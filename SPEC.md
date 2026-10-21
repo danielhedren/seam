@@ -257,6 +257,9 @@ selected file, and scope.
 - Syntax highlighting (§8.4).
 - **Word-level highlights within changed lines:** pair removed and added lines inside a hunk by
   similarity, then highlight the changed tokens. Unpaired lines get no word highlights.
+- Marking a file viewed collapses it (a setting, on by default); unmarking, undoing or a later
+  change to the file opens it again. Review › Hide Whitespace Changes (`-w`) toggles per
+  worktree, starting from the whitespace setting.
 - **Expanding context:** each gap between hunks has controls for "↑ 20 lines", "↓ 20 lines" and
   "all". These use the full file contents from the base and the working tree.
 - Line numbers for both sides. Line wrapping is off by default (toggle `w`). Without wrapping,

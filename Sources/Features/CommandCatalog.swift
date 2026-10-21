@@ -195,6 +195,10 @@ enum CommandCatalog {
             shortcut: .single("3"), isOn: { $0.selected?.scope == .uncommitted },
             run: { $0.setScope(.uncommitted) }),
         SeamCommand(
+            id: "whitespace", title: localized("Hide Whitespace Changes"), menu: .review,
+            section: 0, shortcut: .none, isOn: { $0.selected?.effectiveWhitespace != .show },
+            run: { $0.toggleWhitespace() }),
+        SeamCommand(
             id: "viewed", title: localized("Mark as Viewed"), menu: .review, section: 1,
             shortcut: .single("v"), run: { $0.toggleViewed() }),
         SeamCommand(

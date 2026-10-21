@@ -12,6 +12,7 @@ public struct RepoState: Codable, Equatable, Sendable {
         public var scope: String?
         public var mode: String?
         public var wraps: Bool?
+        public var whitespace: String?
         public var viewed: ViewedMarks?
         /// Where the reader was, restored when the worktree is shown again.
         public var anchor: ScrollAnchor?

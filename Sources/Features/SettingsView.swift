@@ -26,6 +26,9 @@ struct SettingsView: View {
                         WhitespaceMode.ignoreAmount)
                     Text("Ignore all", bundle: .module).tag(WhitespaceMode.ignoreAll)
                 }
+                Toggle(
+                    String(localized: "Collapse files when marked viewed", bundle: .module),
+                    isOn: $settings.collapsesViewed)
                 Stepper(value: $settings.contextLines, in: 0...20) {
                     Text("Context lines: \(settings.contextLines)", bundle: .module)
                 }

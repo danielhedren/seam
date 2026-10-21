@@ -22,6 +22,7 @@ public final class AppSettings {
     var defaultMode: DiffLayoutMode { didSet { save(defaultMode.rawValue, "defaultMode") } }
     var whitespace: WhitespaceMode { didSet { save(whitespace.rawValue, "whitespace") } }
     var contextLines: Int { didSet { save(contextLines, "contextLines") } }
+    var collapsesViewed: Bool { didSet { save(collapsesViewed, "collapsesViewed") } }
 
     private let defaults: UserDefaults
 
@@ -41,6 +42,7 @@ public final class AppSettings {
         defaultMode = DiffLayoutMode(rawValue: value("defaultMode", "")) ?? .unified
         whitespace = WhitespaceMode(rawValue: value("whitespace", "")) ?? .show
         contextLines = value("contextLines", 3)
+        collapsesViewed = value("collapsesViewed", true)
     }
 
     private func save(_ value: some Any, _ key: String) {

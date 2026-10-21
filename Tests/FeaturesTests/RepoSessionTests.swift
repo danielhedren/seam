@@ -415,10 +415,54 @@ import Testing
         }
         #expect(titles().contains("Mark as Viewed"))
         session.toggleViewed("dir/a.txt", advance: false)
-        session.toggleCollapsed("dir/a.txt")
         #expect(titles().contains("Mark as Not Viewed"))
         #expect(titles().contains("Expand"))
+        session.toggleCollapsed("dir/a.txt")
+        #expect(titles().contains("Collapse"))
         pasteboard.releaseGlobally()
+    }
+
+    @Test func viewedFilesFoldAwayAndOpenAgainWhenTheyChange() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\n")
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        let undo = UndoManager()
+        undo.groupsByEvent = false
+        session.undoManager = undo
+        await session.open()
+        await session.settled()
+        let review = try #require(session.selected)
+
+        undo.beginUndoGrouping()
+        session.toggleViewed("a.txt", advance: false)
+        undo.endUndoGrouping()
+        #expect(review.collapsed.contains("a.txt"))
+        undo.undo()
+        #expect(!review.collapsed.contains("a.txt"))
+        undo.redo()
+
+        try repo.write("a.txt", "two\n")
+        await session.apply(RepoChange(worktrees: [repo.main.path]))
+        await session.settled()
+        #expect(review.viewedStatus("a.txt") == .changedSinceViewed)
+        #expect(!review.collapsed.contains("a.txt"))
+    }
+
+    @Test func hidingWhitespaceDropsWhitespaceOnlyChanges() async throws {
+        let repo = try await FixtureRepo()
+        try await repo.commit("a.txt", "if x {\n  y\n}\n", "a")
+        try repo.write("a.txt", "if x {\n    y\n}\n")
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        session.setBaseOverride("refs/heads/main")
+        await session.settled()
+        #expect(session.selected?.diff?.files.map(\.diff.path) == ["a.txt"])
+
+        session.toggleWhitespace()
+        await session.settled()
+
+        #expect(session.selected?.diff?.files.isEmpty == true)
+        #expect(session.selected?.effectiveWhitespace == .ignoreAll)
     }
 
     @Test func overrideWhoseRefIsGoneShowsABannerWithAWayBack() async throws {

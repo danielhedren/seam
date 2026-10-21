@@ -347,6 +347,11 @@ final class RepoSession {
         NSWorkspace.shared.activateFileViewerSelecting([review.worktree.path.appending(path: file)])
     }
 
+    func toggleWhitespace() {
+        selected?.toggleWhitespace()
+        persist()
+    }
+
     func toggleWrap() {
         selected?.toggleWrap()
         persist()

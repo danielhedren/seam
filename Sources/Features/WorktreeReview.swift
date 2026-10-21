@@ -27,6 +27,21 @@ final class WorktreeReview: Identifiable {
     private(set) var mode: DiffLayoutMode
     private(set) var collapsed: Set<String> = []
     private(set) var wraps = false
+    /// Starts from the setting; Review › Hide Whitespace Changes flips it for this worktree.
+    private(set) var whitespace: WhitespaceMode?
+
+    var effectiveWhitespace: WhitespaceMode { whitespace ?? services.settings.whitespace }
+
+    private var diffOptions: DiffOptions {
+        var options = services.settings.diffOptions
+        options.whitespace = effectiveWhitespace
+        return options
+    }
+
+    func toggleWhitespace() {
+        whitespace = effectiveWhitespace == .show ? .ignoreAll : .show
+        reloadDiff()
+    }
     /// Files marked viewed, by path (SPEC §11).
     private(set) var viewed = ViewedMarks()
     /// A detected parent that looks merged (SPEC §5.4); nil once dismissed or overridden.
@@ -104,6 +119,7 @@ final class WorktreeReview: Identifiable {
         if let scope = state?.scope.flatMap(ReviewScope.init) { self.scope = scope }
         if let mode = state?.mode.flatMap(DiffLayoutMode.init) { self.mode = mode }
         if let wraps = state?.wraps { self.wraps = wraps }
+        whitespace = state?.whitespace.flatMap(WhitespaceMode.init)
         if let viewed = state?.viewed { self.viewed = viewed }
         savedAnchor = state?.anchor
         currentFile = state?.currentFile
@@ -112,7 +128,8 @@ final class WorktreeReview: Identifiable {
 
     var persistentState: RepoState.WorktreeState {
         RepoState.WorktreeState(
-            scope: scope.rawValue, mode: mode.rawValue, wraps: wraps, viewed: viewed,
+            scope: scope.rawValue, mode: mode.rawValue, wraps: wraps,
+            whitespace: whitespace?.rawValue, viewed: viewed,
             anchor: savedAnchor, currentFile: currentFile)
     }
 
@@ -137,11 +154,26 @@ final class WorktreeReview: Identifiable {
         guard let file = diff?.files.first(where: { $0.diff.path == path }) else { return nil }
         let previous = viewed.marks[path]
         viewed.toggle(file)
+        collapseIfViewed(path)
         return .some(previous)
     }
 
     func restoreViewed(_ mark: String?, for path: String) {
         viewed.setMark(mark, for: path)
+        collapseIfViewed(path)
+    }
+
+    /// With the setting on, a viewed file folds away and opens again once unmarked or changed.
+    private func collapseIfViewed(_ path: String) {
+        guard services.settings.collapsesViewed,
+            let file = diff?.files.first(where: { $0.diff.path == path })
+        else { return }
+        if viewed.status(of: file) == .viewed {
+            collapsed.insert(path)
+            openedByReader.remove(path)
+        } else {
+            collapsed.remove(path)
+        }
     }
 
     /// Where "open in editor" lands for a whole file: its first hunk's first new line.
@@ -182,9 +214,17 @@ final class WorktreeReview: Identifiable {
 
     /// Generated and large files start collapsed, except ones the reader has opened.
     private func applyDefaultCollapse(_ diff: ReviewDiff) {
-        for file in diff.files
-        where file.startsCollapsed && !openedByReader.contains(file.diff.path) {
-            collapsed.insert(file.diff.path)
+        let collapsesViewed = services.settings.collapsesViewed
+        for file in diff.files {
+            let path = file.diff.path
+            let status = viewed.status(of: file)
+            if status == .changedSinceViewed, collapsesViewed {
+                collapsed.remove(path)
+            } else if file.startsCollapsed || (collapsesViewed && status == .viewed),
+                !openedByReader.contains(path)
+            {
+                collapsed.insert(path)
+            }
         }
     }
 
@@ -340,7 +380,7 @@ final class WorktreeReview: Identifiable {
                 git: services.git, fileSystem: services.fileSystem
             ).build(
                 worktree: worktree.path, base: base.commit, scope: scope,
-                options: services.settings.diffOptions)
+                options: diffOptions)
             editorConfig =
                 (try? services.fileSystem.contents(
                     of: worktree.path.appending(path: ".editorconfig")))
