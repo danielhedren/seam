@@ -7,6 +7,8 @@ struct FileListRow: Equatable, Identifiable, Sendable {
         case directory(isExpanded: Bool)
         /// Index into the review's files.
         case file(Int)
+        /// The "Generated" heading over generated files (SPEC §6.3).
+        case generated(count: Int, isExpanded: Bool)
     }
 
     var id: String
@@ -18,12 +20,38 @@ struct FileListRow: Equatable, Identifiable, Sendable {
 enum FileTree {
     /// Rows for `paths`, as a tree grouped by directory or as a flat list. A non-empty `filter`
     /// keeps files whose path contains it, ignoring case, and shows their directories expanded.
+    static let generatedID = "generated:"
+
+    /// Generated files (indices into `paths`) go under their own heading after the rest, as a
+    /// flat list.
     static func rows(
-        _ paths: [String], flat: Bool = false, collapsed: Set<String> = [], filter: String = ""
+        _ paths: [String], flat: Bool = false, collapsed: Set<String> = [], filter: String = "",
+        generated: Set<Int> = [], showsGenerated: Bool = false
     ) -> [FileListRow] {
         let matching = paths.indices.filter {
             filter.isEmpty || paths[$0].localizedCaseInsensitiveContains(filter)
         }
+        let generatedMatches = matching.filter(generated.contains)
+        var rows = treeRows(
+            paths, matching.filter { !generated.contains($0) }, flat: flat, collapsed: collapsed,
+            filter: filter)
+        guard !generatedMatches.isEmpty else { return rows }
+        let isExpanded = showsGenerated || !filter.isEmpty
+        rows.append(
+            FileListRow(
+                id: generatedID, name: String(localized: "Generated", bundle: .module), depth: 0,
+                kind: .generated(count: generatedMatches.count, isExpanded: isExpanded)))
+        if isExpanded {
+            rows += generatedMatches.map {
+                FileListRow(id: paths[$0], name: paths[$0], depth: 1, kind: .file($0))
+            }
+        }
+        return rows
+    }
+
+    private static func treeRows(
+        _ paths: [String], _ matching: [Int], flat: Bool, collapsed: Set<String>, filter: String
+    ) -> [FileListRow] {
         if flat {
             return matching.map {
                 FileListRow(id: paths[$0], name: paths[$0], depth: 0, kind: .file($0))

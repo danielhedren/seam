@@ -18,12 +18,22 @@ public enum WhitespaceMode: Sendable {
 }
 
 public struct DiffOptions: Equatable, Sendable {
+    public static let defaultGeneratedGlobs = [
+        "**/Generated/**", "**/*.g.cs", "**/package-lock.json", "**/*.lock",
+    ].map(Glob.init)
+
     public var contextLines = 3
     public var whitespace = WhitespaceMode.show
+    /// Paths treated as generated unless `.gitattributes` says otherwise (SPEC §6.3).
+    public var generatedGlobs: [Glob]
 
-    public init(contextLines: Int = 3, whitespace: WhitespaceMode = .show) {
+    public init(
+        contextLines: Int = 3, whitespace: WhitespaceMode = .show,
+        generatedGlobs: [Glob] = DiffOptions.defaultGeneratedGlobs
+    ) {
         self.contextLines = contextLines
         self.whitespace = whitespace
+        self.generatedGlobs = generatedGlobs
     }
 
     /// Every option whose user config would otherwise change the output (SPEC §8.3).
@@ -47,12 +57,28 @@ public struct ReviewFile: Equatable, Sendable {
     public var isUntracked = false
     /// Too large to load up front (SPEC §6.3); `diff` has no hunks.
     public var isDeferred = false
+    /// `linguist-generated`, or matched by a generated-file glob; listed last and collapsed.
+    public var isGenerated = false
 
-    public init(diff: FileDiff, isUntracked: Bool = false, isDeferred: Bool = false) {
+    public init(
+        diff: FileDiff, isUntracked: Bool = false, isDeferred: Bool = false,
+        isGenerated: Bool = false
+    ) {
         self.diff = diff
         self.isUntracked = isUntracked
         self.isDeferred = isDeferred
+        self.isGenerated = isGenerated
     }
+
+    /// Diffs this long start collapsed (SPEC §6.3).
+    public static let largeLineCount = 20_000
+
+    public var isLarge: Bool {
+        diff.hunks.reduce(0) { $0 + $1.lines.count } > Self.largeLineCount
+    }
+
+    /// Generated and large files start collapsed; the reader opens them on demand.
+    public var startsCollapsed: Bool { isGenerated || isLarge || isDeferred }
 }
 
 public struct ReviewDiff: Equatable, Sendable {
@@ -99,8 +125,44 @@ public struct ReviewDiffBuilder: Sendable {
         if scope != .committed {
             files += try await untrackedFiles(worktree)
         }
-        files.sort { $0.diff.path.utf8.lexicographicallyPrecedes($1.diff.path.utf8) }
+        let generated = try await generatedPaths(
+            files.map(\.diff.path), globs: options.generatedGlobs, in: worktree)
+        for index in files.indices where generated.contains(files[index].diff.path) {
+            files[index].isGenerated = true
+        }
+        files.sort { lhs, rhs in
+            lhs.isGenerated != rhs.isGenerated
+                ? !lhs.isGenerated
+                : lhs.diff.path.utf8.lexicographicallyPrecedes(rhs.diff.path.utf8)
+        }
         return ReviewDiff(scope: scope, files: files)
+    }
+
+    /// `.gitattributes` decides first: `linguist-generated` set marks a file, unset clears it
+    /// even when a glob matches. Unspecified paths fall back to the globs.
+    func generatedPaths(_ paths: [String], globs: [Glob], in worktree: URL) async throws(GitError)
+        -> Set<String>
+    {
+        guard !paths.isEmpty else { return [] }
+        let input = Data(paths.joined(separator: "\0").utf8) + Data([0])
+        let output = try await git.run(
+            ["check-attr", "-z", "--stdin", "linguist-generated"], in: worktree, input: input)
+        let fields = output.split(separator: 0, omittingEmptySubsequences: false)
+            .map { String(decoding: $0, as: UTF8.self) }
+        var attributes: [String: String] = [:]
+        var index = 0
+        while index + 2 < fields.count {
+            attributes[fields[index]] = fields[index + 2]
+            index += 3
+        }
+        return Set(
+            paths.filter { path in
+                switch attributes[path] {
+                case "set", "true": true
+                case "unset", "false": false
+                default: globs.contains { $0.matches(path) }
+                }
+            })
     }
 
     private func untrackedFiles(_ worktree: URL) async throws(GitError) -> [ReviewFile] {

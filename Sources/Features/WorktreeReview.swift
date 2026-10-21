@@ -27,6 +27,9 @@ final class WorktreeReview: Identifiable {
     /// Full file contents for the current diff; empty until loaded.
     private(set) var contents: [String: FileContents] = [:]
     private(set) var contentsVersion = 0
+    private var openedByReader: Set<String> = []
+    /// Whether the file list's "Generated" group is open.
+    var showsGenerated = false
     /// Revealed context per file and gap. Kept across reloads; gaps that moved simply reset.
     private(set) var expansions: [String: [Int: GapExpansion]] = [:]
     private(set) var diff: ReviewDiff?
@@ -114,7 +117,20 @@ final class WorktreeReview: Identifiable {
     }
 
     func toggleCollapsed(_ path: String) {
-        if collapsed.remove(path) == nil { collapsed.insert(path) }
+        if collapsed.remove(path) == nil {
+            collapsed.insert(path)
+            openedByReader.remove(path)
+        } else {
+            openedByReader.insert(path)
+        }
+    }
+
+    /// Generated and large files start collapsed, except ones the reader has opened.
+    private func applyDefaultCollapse(_ diff: ReviewDiff) {
+        for file in diff.files
+        where file.startsCollapsed && !openedByReader.contains(file.diff.path) {
+            collapsed.insert(file.diff.path)
+        }
     }
 
     func expand(_ path: String, gap: Int, _ direction: ExpandDirection) {
@@ -231,6 +247,7 @@ final class WorktreeReview: Identifiable {
             // so the new hunks are never drawn with the old files' gap lines.
             let isReload = !contents.isEmpty
             if !isReload {
+                applyDefaultCollapse(result)
                 diff = result
                 diffVersion += 1
                 problem = nil
@@ -240,6 +257,7 @@ final class WorktreeReview: Identifiable {
             ).load(result, worktree: worktree.path)
             guard generation == loadGeneration, !Task.isCancelled else { return }
             if isReload {
+                applyDefaultCollapse(result)
                 diff = result
                 diffVersion += 1
                 problem = nil

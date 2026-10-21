@@ -11,7 +11,9 @@ struct FileList: View {
         let files = review.diff?.files ?? []
         let rows = FileTree.rows(
             files.map(\.diff.path), flat: review.flatFileList,
-            collapsed: review.collapsedDirectories, filter: review.fileFilter)
+            collapsed: review.collapsedDirectories, filter: review.fileFilter,
+            generated: Set(files.indices.filter { files[$0].isGenerated }),
+            showsGenerated: review.showsGenerated)
         VStack(spacing: 0) {
             HStack {
                 if let diff = review.diff {
@@ -61,9 +63,15 @@ struct FileList: View {
     }
 
     private func toggle(_ row: FileListRow) {
-        guard case .directory = row.kind else { return }
-        if review.collapsedDirectories.remove(row.id) == nil {
-            review.collapsedDirectories.insert(row.id)
+        switch row.kind {
+        case .directory:
+            if review.collapsedDirectories.remove(row.id) == nil {
+                review.collapsedDirectories.insert(row.id)
+            }
+        case .generated:
+            review.showsGenerated.toggle()
+        case .file:
+            break
         }
     }
 }
@@ -76,7 +84,7 @@ private struct FileRowView: View {
     var body: some View {
         HStack(spacing: 6) {
             switch row.kind {
-            case .directory(let isExpanded):
+            case .directory(let isExpanded), .generated(_, let isExpanded):
                 Button(action: onToggle) {
                     Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                         .font(.caption2)
@@ -88,6 +96,9 @@ private struct FileRowView: View {
                         ? String(localized: "Collapse", bundle: .module)
                         : String(localized: "Expand", bundle: .module))
                 Text(row.name).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                if case .generated(let count, _) = row.kind {
+                    Text(verbatim: "(\(count))").foregroundStyle(.secondary).monospacedDigit()
+                }
             case .file(let index):
                 let file = files[index]
                 Text(String(file.diff.status.letter))

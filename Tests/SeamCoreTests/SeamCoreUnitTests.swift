@@ -162,3 +162,28 @@ import Testing
         #expect(activity.lastChange == Date(timeIntervalSince1970: try #require(Double(committed))))
     }
 }
+
+@Suite struct GeneratedFileTests {
+    @Test func attributesAndGlobsMarkGeneratedFilesWhichSortLast() async throws {
+        let repo = try await FixtureRepo()
+        let base = try await repo.sha("HEAD")
+        try repo.write(
+            ".gitattributes", "api/** linguist-generated\nyarn.lock -linguist-generated\n")
+        try repo.write("api/client.ts", "x\n")
+        try repo.write("src/Generated/Model.cs", "x\n")
+        try repo.write("package-lock.json", "{}\n")
+        try repo.write("yarn.lock", "x\n")
+        try repo.write("src/app.ts", "x\n")
+
+        let review = try await ReviewDiffBuilder(git: repo.git).build(
+            worktree: repo.main, base: base, scope: .all)
+
+        #expect(
+            review.files.map(\.diff.path) == [
+                ".gitattributes", "src/app.ts", "yarn.lock", "api/client.ts", "package-lock.json",
+                "src/Generated/Model.cs",
+            ])
+        #expect(review.files.map(\.isGenerated) == [false, false, false, true, true, true])
+        #expect(review.files.map(\.startsCollapsed) == [false, false, false, true, true, true])
+    }
+}

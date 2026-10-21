@@ -21,8 +21,11 @@ enum DiffHeaderDrawing {
             } else {
                 file.diff.path
             }
-        let untracked = file.isUntracked ? String(localized: "  (untracked)", bundle: .module) : ""
-        return "\(file.diff.status.letter)  \(path)\(untracked)"
+        var tags: [String] = []
+        if file.isUntracked { tags.append(String(localized: "untracked", bundle: .module)) }
+        if file.isGenerated { tags.append(String(localized: "generated", bundle: .module)) }
+        let suffix = tags.isEmpty ? "" : "  (" + tags.joined(separator: ", ") + ")"
+        return "\(file.diff.status.letter)  \(path)\(suffix)"
     }
 
     static func draw(

@@ -206,6 +206,24 @@ import Testing
         #expect(review.diff?.files.first?.diff.hunks.count == 2)
     }
 
+    @Test func generatedFilesStartCollapsedUntilTheReaderOpensThem() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("package-lock.json", "{}\n")
+        try repo.write("app.ts", "x\n")
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        await session.settled()
+        let review = try #require(session.selected)
+        #expect(review.collapsed == ["package-lock.json"])
+
+        session.toggleCollapsed("package-lock.json")
+        try repo.write("package-lock.json", "{ }\n")
+        await session.apply(RepoChange(worktrees: [repo.main.path]))
+        await session.settled()
+
+        #expect(review.collapsed.isEmpty)
+    }
+
     @Test func overrideWhoseRefIsGoneShowsABannerWithAWayBack() async throws {
         let repo = try await FixtureRepo()
         let session = RepoSession(directory: repo.main, services: services(repo.git))
@@ -303,6 +321,15 @@ import Testing
     @Test func filterMatchesPathsAndIgnoresCollapsing() {
         let rows = FileTree.rows(paths, collapsed: ["src/Orders.Service/"], filter: "delivery/b")
         #expect(rows.map(\.name) == ["src/Orders.Service/Delivery", "B.cs"])
+    }
+
+    @Test func generatedFilesSitUnderTheirOwnClosedHeading() {
+        let paths = ["src/a.cs", "src/Generated/b.cs", "package-lock.json"]
+        let closed = FileTree.rows(paths, generated: [1, 2])
+        #expect(closed.map(\.name) == ["src", "a.cs", "Generated"])
+        #expect(closed.last?.kind == .generated(count: 2, isExpanded: false))
+        let open = FileTree.rows(paths, generated: [1, 2], showsGenerated: true)
+        #expect(open.suffix(2).map(\.name) == ["src/Generated/b.cs", "package-lock.json"])
     }
 
     @Test func flatListShowsFullPathsInReviewOrder() {
