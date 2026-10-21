@@ -82,7 +82,7 @@ struct DiffLayout: Equatable, Sendable {
 
     private static func columns(_ row: DiffRow) -> Int {
         switch row {
-        case .line(_, _, _, _, let text, _): text.count
+        case .line(_, let line): line.text.count
         case .split(_, let left, let right): max(left?.text.count ?? 0, right?.text.count ?? 0)
         case .hunkHeader(_, _, let text), .notice(_, let text): text.count
         case .fileHeader: 0
@@ -137,8 +137,8 @@ extension DiffLayout {
 
     private static func lineNumber(_ row: DiffRow) -> (Int?, Bool) {
         switch row {
-        case .line(_, let old, let new, _, _, _):
-            if let new { (new, false) } else { (old, true) }
+        case .line(_, let line):
+            if let new = line.new { (new, false) } else { (line.old, true) }
         case .split(_, let left, let right):
             if let right { (right.number, false) } else { (left?.number, true) }
         default: (nil, false)
@@ -185,7 +185,7 @@ extension DiffLayout {
     /// The text a side shows in `row`, if it shows any.
     func text(of row: Int, side: DiffSide) -> String? {
         switch (rows[row], side) {
-        case (.line(_, _, _, _, let text, _), .unified): text
+        case (.line(_, let line), .unified): line.text
         case (.split(_, let left, _), .left): left?.text
         case (.split(_, _, let right), .right): right?.text
         default: nil

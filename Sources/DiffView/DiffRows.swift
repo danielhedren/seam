@@ -13,13 +13,24 @@ struct SideLine: Equatable, Sendable {
     /// Tabs already expanded, so column arithmetic is plain character counting.
     var text: String
     var noNewlineAtEnd = false
+    /// Word-level changes, as character ranges into `text`.
+    var highlights: [Range<Int>] = []
+}
+
+/// A unified-mode line, numbered on whichever sides it exists.
+struct UnifiedLine: Equatable, Sendable {
+    var old: Int?
+    var new: Int?
+    var kind: DiffLine.Kind
+    var text: String
+    var noNewline = false
+    var highlights: [Range<Int>] = []
 }
 
 enum DiffRow: Equatable, Sendable {
     case fileHeader(file: Int)
     case hunkHeader(file: Int, hunk: Int, text: String)
-    /// Unified mode: one line, numbered on whichever sides it exists.
-    case line(file: Int, old: Int?, new: Int?, kind: DiffLine.Kind, text: String, noNewline: Bool)
+    case line(file: Int, UnifiedLine)
     /// Split mode: a removed line paired with an added line, or context on both sides.
     case split(file: Int, left: SideLine?, right: SideLine?)
     /// Binary, mode-only, empty or deferred files, which have no lines to show.
@@ -27,7 +38,7 @@ enum DiffRow: Equatable, Sendable {
 
     var file: Int {
         switch self {
-        case .fileHeader(let file), .hunkHeader(let file, _, _), .line(let file, _, _, _, _, _),
+        case .fileHeader(let file), .hunkHeader(let file, _, _), .line(let file, _),
             .split(let file, _, _), .notice(let file, _):
             file
         }
@@ -65,17 +76,21 @@ enum DiffRowBuilder {
             }
             for (hunkIndex, hunk) in file.diff.hunks.enumerated() {
                 rows.append(.hunkHeader(file: index, hunk: hunkIndex, text: header(hunk)))
+                let texts = hunk.lines.map { expandTabs($0.text, width: tabWidth) }
+                let highlights = wordHighlights(hunk.lines, texts)
                 switch mode {
                 case .unified:
-                    for line in hunk.lines {
+                    for (offset, line) in hunk.lines.enumerated() {
                         rows.append(
                             .line(
-                                file: index, old: line.oldNumber, new: line.newNumber,
-                                kind: line.kind, text: expandTabs(line.text, width: tabWidth),
-                                noNewline: line.noNewlineAtEnd))
+                                file: index,
+                                UnifiedLine(
+                                    old: line.oldNumber, new: line.newNumber, kind: line.kind,
+                                    text: texts[offset], noNewline: line.noNewlineAtEnd,
+                                    highlights: highlights[offset])))
                     }
                 case .split:
-                    rows += splitRows(hunk.lines, file: index, tabWidth: tabWidth)
+                    rows += splitRows(hunk.lines, texts, highlights, file: index)
                 }
             }
         }
@@ -106,8 +121,38 @@ enum DiffRowBuilder {
         }
     }
 
+    /// Word highlights per hunk line: each run of removed lines and the added lines after it form
+    /// one change block for `IntraLineDiff`.
+    static func wordHighlights(_ lines: [DiffLine], _ texts: [String]) -> [[Range<Int>]] {
+        var result = [[Range<Int>]](repeating: [], count: lines.count)
+        var index = 0
+        while index < lines.count {
+            guard lines[index].kind != .context else {
+                index += 1
+                continue
+            }
+            var removed: [Int] = []
+            var added: [Int] = []
+            while index < lines.count, lines[index].kind == .removed {
+                removed.append(index)
+                index += 1
+            }
+            while index < lines.count, lines[index].kind == .added {
+                added.append(index)
+                index += 1
+            }
+            let block = IntraLineDiff.highlights(
+                removed: removed.map { texts[$0] }, added: added.map { texts[$0] })
+            for (offset, line) in removed.enumerated() { result[line] = block.removed[offset] }
+            for (offset, line) in added.enumerated() { result[line] = block.added[offset] }
+        }
+        return result
+    }
+
     /// Runs of removed lines pair with the added lines that follow them, in order.
-    static func splitRows(_ lines: [DiffLine], file: Int, tabWidth: Int) -> [DiffRow] {
+    static func splitRows(
+        _ lines: [DiffLine], _ texts: [String], _ highlights: [[Range<Int>]], file: Int
+    ) -> [DiffRow] {
         var rows: [DiffRow] = []
         var removed: [SideLine] = []
         var added: [SideLine] = []
@@ -123,20 +168,20 @@ enum DiffRowBuilder {
             added.removeAll(keepingCapacity: true)
         }
 
-        for line in lines {
-            let text = expandTabs(line.text, width: tabWidth)
+        for (offset, line) in lines.enumerated() {
+            let text = texts[offset]
             switch line.kind {
             case .removed:
                 if !added.isEmpty { flush() }
                 removed.append(
                     SideLine(
                         kind: .removed, number: line.oldNumber ?? 0, text: text,
-                        noNewlineAtEnd: line.noNewlineAtEnd))
+                        noNewlineAtEnd: line.noNewlineAtEnd, highlights: highlights[offset]))
             case .added:
                 added.append(
                     SideLine(
                         kind: .added, number: line.newNumber ?? 0, text: text,
-                        noNewlineAtEnd: line.noNewlineAtEnd))
+                        noNewlineAtEnd: line.noNewlineAtEnd, highlights: highlights[offset]))
             case .context:
                 flush()
                 rows.append(

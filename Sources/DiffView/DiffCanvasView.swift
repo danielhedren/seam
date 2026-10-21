@@ -125,12 +125,14 @@ final class DiffCanvasView: NSView {
             drawText(
                 text, key: LineKey(row: index, side: .unified), x: geometry.unifiedTextX,
                 rowTop: rect.minY, color: palette.gutterText, context: context)
-        case .line(_, let old, let new, let kind, let text, let noNewline):
+        case .line(_, let line):
             let column = Column(
-                x: 0, width: rect.width, numbers: [old, new], textX: geometry.unifiedTextX)
+                x: 0, width: rect.width, numbers: [line.old, line.new],
+                textX: geometry.unifiedTextX)
             drawSide(
-                kind: kind, text: text, noNewline: noNewline, column: column, row: index,
-                side: .unified, rowTop: rect.minY, palette: palette, context: context)
+                kind: line.kind, text: line.text, noNewline: line.noNewline,
+                highlights: line.highlights, column: column, row: index, side: .unified,
+                rowTop: rect.minY, palette: palette, context: context)
         case .split(_, let left, let right):
             for (line, side) in [(left, DiffSide.left), (right, DiffSide.right)] {
                 let x = side == .left ? 0 : geometry.columnWidth
@@ -147,8 +149,8 @@ final class DiffCanvasView: NSView {
                 context.clip(to: bounds)
                 drawSide(
                     kind: line.kind, text: line.text, noNewline: line.noNewlineAtEnd,
-                    column: column, row: index, side: side, rowTop: rect.minY, palette: palette,
-                    context: context)
+                    highlights: line.highlights, column: column, row: index, side: side,
+                    rowTop: rect.minY, palette: palette, context: context)
                 context.restoreGState()
             }
             context.setFillColor(palette.separator.nsColor.cgColor)
@@ -165,7 +167,8 @@ final class DiffCanvasView: NSView {
     }
 
     private func drawSide(
-        kind: DiffLine.Kind, text: String, noNewline: Bool, column: Column, row: Int,
+        kind: DiffLine.Kind, text: String, noNewline: Bool, highlights: [Range<Int>],
+        column: Column, row: Int,
         side: DiffSide, rowTop: Double, palette: DiffPalette, context: CGContext
     ) {
         let height = layout.metrics.lineHeight
@@ -197,6 +200,17 @@ final class DiffCanvasView: NSView {
         drawText(
             symbol, key: nil, x: column.x + gutterWidth + geometry.padding / 2, rowTop: rowTop,
             color: marker, context: context)
+        if let word = kind == .added
+            ? palette.addedWord : kind == .removed ? palette.removedWord : nil
+        {
+            let width = layout.metrics.characterWidth
+            for range in highlights {
+                fill(
+                    NSRect(
+                        x: column.textX + Double(range.lowerBound) * width, y: rowTop,
+                        width: Double(range.count) * width, height: height), word, context)
+            }
+        }
         if let selection, selection.side == side,
             let range = selection.columns(inRow: row, length: text.count + 1), !range.isEmpty
         {
@@ -377,8 +391,8 @@ final class DiffCanvasView: NSView {
         switch layout.rows[index] {
         case .fileHeader(let file): return review.files[file].diff.path
         case .hunkHeader(_, _, let text), .notice(_, let text): return text
-        case .line(_, let old, let new, let kind, let text, _):
-            return describe(kind, new ?? old, isOld: new == nil, text)
+        case .line(_, let line):
+            return describe(line.kind, line.new ?? line.old, isOld: line.new == nil, line.text)
         case .split(_, let left, let right):
             return [
                 left.map { describe($0.kind, $0.number, isOld: true, $0.text) },
@@ -436,7 +450,7 @@ struct Geometry {
     private static func largestNumber(_ rows: [DiffRow]) -> Int {
         rows.reduce(0) { largest, row in
             switch row {
-            case .line(_, let old, let new, _, _, _): max(largest, old ?? 0, new ?? 0)
+            case .line(_, let line): max(largest, line.old ?? 0, line.new ?? 0)
             case .split(_, let left, let right):
                 max(largest, left?.number ?? 0, right?.number ?? 0)
             default: largest

@@ -37,7 +37,9 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
         #expect(
             rows[3]
                 == .line(
-                    file: 0, old: 2, new: nil, kind: .removed, text: "old one", noNewline: false))
+                    file: 0,
+                    UnifiedLine(
+                        old: 2, new: nil, kind: .removed, text: "old one", highlights: [0..<3])))
         #expect(rows.last == .notice(file: 1, text: "Renamed without changes"))
     }
 
@@ -53,13 +55,25 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
 
     @Test func addedLinesBeforeARemovalAreNotPairedWithIt() {
         let rows = DiffRowBuilder.splitRows(
-            [line(.added, "a", old: nil, new: 1), line(.removed, "r", old: 1, new: nil)], file: 0,
-            tabWidth: 4)
+            [line(.added, "a", old: nil, new: 1), line(.removed, "r", old: 1, new: nil)],
+            ["a", "r"], [[], []], file: 0)
         #expect(
             rows == [
                 .split(file: 0, left: nil, right: SideLine(kind: .added, number: 1, text: "a")),
                 .split(file: 0, left: SideLine(kind: .removed, number: 1, text: "r"), right: nil),
             ])
+    }
+
+    @Test func changedWordsAreMarkedOnBothSidesOfAPair() {
+        let rows = DiffRowBuilder.rows(for: sampleReview(), mode: .split)
+        let pair = rows.compactMap { row -> (SideLine, SideLine)? in
+            guard case .split(_, let left?, let right?) = row, left.kind == .removed else {
+                return nil
+            }
+            return (left, right)
+        }
+        #expect(pair.map(\.0.highlights) == [[0..<3], [0..<3]])
+        #expect(pair.map(\.1.highlights) == [[0..<3], [0..<3]])
     }
 
     @Test func collapsedFilesKeepOnlyTheirHeader() {
@@ -226,6 +240,8 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
             ("text on removed", palette.text, palette.removedBackground),
             ("marker on added", palette.addedMarker, palette.addedBackground),
             ("marker on removed", palette.removedMarker, palette.removedBackground),
+            ("text on added word", palette.text, palette.addedWord),
+            ("text on removed word", palette.text, palette.removedWord),
             ("number on context", palette.gutterText, palette.background),
             ("number on added gutter", palette.gutterText, palette.addedGutter),
             ("number on removed gutter", palette.gutterText, palette.removedGutter),
