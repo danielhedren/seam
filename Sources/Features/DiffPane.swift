@@ -30,6 +30,9 @@ struct DiffRepresentable: NSViewRepresentable {
         view.onToggleCollapse = { [session] path in session.toggleCollapsed(path) }
         view.onFocusChange = { [session] focused in session.diffHasFocus = focused }
         view.onCurrentFileChange = { [session] path in session.selected?.currentFile = path }
+        view.onSearchResult = { [session] current, total in
+            session.findResult = (current, total)
+        }
         view.onExpand = { [session] path, gap, direction in
             session.selected?.expand(path, gap: gap, direction)
         }
@@ -77,6 +80,10 @@ struct DiffPane: View {
         VStack(spacing: 0) {
             if let problem = review.problem {
                 ProblemBanner(problem: problem, session: session)
+            }
+            if session.showsFind {
+                FindBar(session: session)
+                Divider()
             }
             ZStack {
                 DiffRepresentable(session: session, review: review)
@@ -139,5 +146,53 @@ struct ProblemBanner: View {
             String(localized: "The chosen base \(ref) no longer exists.", bundle: .module)
         case .gitFailed(let detail): detail
         }
+    }
+}
+
+/// The diff's find bar: searches as you type, Return for the next match, Escape to close.
+struct FindBar: View {
+    @Bindable var session: RepoSession
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            TextField(String(localized: "Find in diff", bundle: .module), text: $session.findQuery)
+                .textFieldStyle(.plain)
+                .focused($focused)
+                .onSubmit { session.diff.moveToMatch(by: 1) }
+                .onChange(of: session.findQuery) { _, query in session.diff.search(query) }
+            Text(status).foregroundStyle(.secondary).monospacedDigit()
+            Button {
+                session.diff.moveToMatch(by: -1)
+            } label: {
+                Image(systemName: "chevron.up")
+            }
+            .accessibilityLabel(String(localized: "Previous match", bundle: .module))
+            .disabled(session.findResult.total == 0)
+            Button {
+                session.diff.moveToMatch(by: 1)
+            } label: {
+                Image(systemName: "chevron.down")
+            }
+            .accessibilityLabel(String(localized: "Next match", bundle: .module))
+            .disabled(session.findResult.total == 0)
+            Button(String(localized: "Done", bundle: .module)) { session.closeFind() }
+        }
+        .buttonStyle(.borderless)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .onAppear { focused = true }
+        .onChange(of: session.findFocusRequests) { focused = true }
+        .onExitCommand { session.closeFind() }
+    }
+
+    private var status: String {
+        guard !session.findQuery.isEmpty else { return "" }
+        guard let current = session.findResult.current else {
+            return String(localized: "No matches", bundle: .module)
+        }
+        return String(localized: "\(current) of \(session.findResult.total)", bundle: .module)
     }
 }

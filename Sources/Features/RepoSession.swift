@@ -34,6 +34,12 @@ final class RepoSession {
     var showsBasePicker = false
     /// Bumped by Edit › Filter Files; the window moves focus to the filter field.
     var filterFocusRequests = 0
+    /// Find in the diff (SPEC §8.5): the bar, its query, and "current of total".
+    var showsFind = false
+    var findQuery = ""
+    var findResult: (current: Int?, total: Int) = (nil, 0)
+    /// Bumped by Edit › Find while the bar is already open, to focus its field again.
+    var findFocusRequests = 0
     let diff = DiffController()
 
     private let services: SeamServices
@@ -200,6 +206,18 @@ final class RepoSession {
         guard let review = selected else { return }
         review.setMode(review.mode == .unified ? .split : .unified)
         persist()
+    }
+
+    func showFind() {
+        showsFind = true
+        findFocusRequests += 1
+    }
+
+    func closeFind() {
+        showsFind = false
+        findQuery = ""
+        diff.search("")
+        diff.focus()
     }
 
     func toggleWrap() {

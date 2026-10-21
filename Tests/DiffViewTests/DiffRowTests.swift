@@ -332,3 +332,36 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
         #expect(DiffLayout.segments(3..<5, wrapColumns: nil).map(\.columns) == [3..<5])
     }
 }
+
+@Suite struct DiffSearchTests {
+    @Test func matchesIgnoreCaseAndFindEveryOccurrenceInReadingOrder() {
+        let layout = DiffLayout(
+            rows: DiffRowBuilder.rows(for: sampleReview(), mode: .split), metrics: metrics)
+        let matches = DiffSearch.matches("ONE", in: layout)
+        #expect(matches.map(\.side) == [.left, .right])
+        #expect(matches.map(\.range) == [4..<7, 4..<7])
+        #expect(matches[0].row == matches[1].row)
+    }
+
+    @Test func severalMatchesOnOneLineAreAllFound() {
+        let rows: [DiffRow] = [
+            .line(file: 0, UnifiedLine(old: 1, new: 1, kind: .context, text: "a.b.a.b.a"))
+        ]
+        let matches = DiffSearch.matches("a", in: DiffLayout(rows: rows, metrics: metrics))
+        #expect(matches.map(\.range) == [0..<1, 4..<5, 8..<9])
+    }
+
+    @Test func headersAndEmptyQueriesMatchNothing() {
+        let layout = DiffLayout(
+            rows: DiffRowBuilder.rows(for: sampleReview(), mode: .unified), metrics: metrics)
+        #expect(DiffSearch.matches("", in: layout).isEmpty)
+        #expect(DiffSearch.matches("func main", in: layout).isEmpty)
+    }
+
+    @Test func afterAReloadTheNearestMatchAtOrBelowTheOldOneIsCurrent() {
+        let matches = [2, 5, 9].map { DiffMatch(row: $0, side: .unified, range: 0..<1) }
+        #expect(DiffSearch.nearest(to: 4, in: matches) == 1)
+        #expect(DiffSearch.nearest(to: 20, in: matches) == 2)
+        #expect(DiffSearch.nearest(to: 0, in: []) == nil)
+    }
+}

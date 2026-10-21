@@ -31,7 +31,14 @@ public final class DiffScrollView: NSScrollView {
         set { canvas.isStale = newValue }
     }
 
+    /// Find results: the current match's number (from 1) and the total, after every search,
+    /// move or content change.
+    public var onSearchResult: ((_ current: Int?, _ total: Int) -> Void)?
+
     private let canvas = DiffCanvasView()
+    private var query = ""
+    private var matches: [DiffMatch] = []
+    private var currentMatch: Int?
     private let sticky = DiffStickyHeaderView()
     private var reportedFile: String?
     /// After a jump to a file, the clip view's top the jump landed on. A short file near the end
@@ -82,7 +89,9 @@ public final class DiffScrollView: NSScrollView {
 
     public func show(_ content: DiffContent, position: Position) {
         let kept = position == .keep ? anchor : nil
+        let matchRow = currentMatch.map { matches[$0].row }
         canvas.show(content)
+        if !query.isEmpty { refreshMatches(near: matchRow ?? 0, reveal: false) }
         canvas.setVisibleWidth(contentSize.width)
         switch position {
         case .keep:
@@ -147,6 +156,45 @@ public final class DiffScrollView: NSScrollView {
 
     func scrollLine(by delta: Int) {
         scroll(toY: visibleTop + Double(delta) * layout.metrics.lineHeight * 3)
+    }
+
+    // MARK: - Find
+
+    /// Searches as the reader types, starting from the line at the top of the view.
+    public func search(_ query: String) {
+        self.query = query
+        let top = layout.row(at: visibleTop + headerHeight) ?? 0
+        refreshMatches(near: top, reveal: true)
+    }
+
+    public func moveToMatch(by delta: Int) {
+        guard !matches.isEmpty else { return }
+        let current = currentMatch ?? (delta > 0 ? -1 : 0)
+        currentMatch = (current + delta + matches.count) % matches.count
+        publishMatches(reveal: true)
+    }
+
+    private func refreshMatches(near row: Int, reveal: Bool) {
+        matches = DiffSearch.matches(query, in: layout)
+        currentMatch = DiffSearch.nearest(to: row, in: matches)
+        publishMatches(reveal: reveal)
+    }
+
+    private func publishMatches(reveal: Bool) {
+        var byRow: [Int: [(side: DiffSide, range: Range<Int>, isCurrent: Bool)]] = [:]
+        for (index, match) in matches.enumerated() {
+            byRow[match.row, default: []].append((match.side, match.range, index == currentMatch))
+        }
+        canvas.findMatches = byRow
+        if reveal, let currentMatch {
+            let row = matches[currentMatch].row
+            let top = layout.top(of: row)
+            let visible = visibleTop + headerHeight..<visibleTop + contentSize.height
+            if !visible.contains(top) {
+                scroll(toY: top - headerHeight - contentSize.height / 3)
+            }
+        }
+        onSearchResult?(currentMatch.map { $0 + 1 }, matches.count)
     }
 
     private func restore(_ anchor: ScrollAnchor) {

@@ -51,6 +51,8 @@ struct DiffPalette: Equatable, Sendable {
     var emptySide: RGB
     var separator: RGB
     var syntax = Syntax.light
+    var findMatch = RGB(0xFFF1A8)
+    var findCurrent = RGB(0xFFD33D)
 
     /// Token colours; operators, punctuation and variables keep the plain text colour.
     struct Syntax: Equatable, Sendable {
@@ -95,7 +97,10 @@ struct DiffPalette: Equatable, Sendable {
 
     /// Every background a line's text can sit on.
     var textBackgrounds: [RGB] {
-        [background, addedBackground, removedBackground, addedWord, removedWord]
+        [
+            background, addedBackground, removedBackground, addedWord, removedWord, findMatch,
+            findCurrent,
+        ]
     }
 
     static let light = DiffPalette(
@@ -116,7 +121,7 @@ struct DiffPalette: Equatable, Sendable {
         addedMarker: RGB(0x56D364), removedMarker: RGB(0xFF7B72),
         hunkBackground: RGB(0x1C2B3D), hunkText: RGB(0xA8B1BB),
         headerBackground: RGB(0x262626), emptySide: RGB(0x242424), separator: RGB(0x3D3D3D),
-        syntax: .dark)
+        syntax: .dark, findMatch: RGB(0x3A3005), findCurrent: RGB(0x544500))
 
     static let lightHighContrast = DiffPalette(
         background: RGB(0xFFFFFF), text: RGB(0x000000), gutterText: RGB(0x3B3B3B),
@@ -126,7 +131,7 @@ struct DiffPalette: Equatable, Sendable {
         addedMarker: RGB(0x00501A), removedMarker: RGB(0x7A0010),
         hunkBackground: RGB(0xCDEBFF), hunkText: RGB(0x1A1A1A),
         headerBackground: RGB(0xEDEDED), emptySide: RGB(0xE4E4E4), separator: RGB(0x6E6E6E),
-        syntax: .lightHighContrast)
+        syntax: .lightHighContrast, findMatch: RGB(0xFFEB80), findCurrent: RGB(0xFFD000))
 
     static let darkHighContrast = DiffPalette(
         background: RGB(0x000000), text: RGB(0xFFFFFF), gutterText: RGB(0xC8C8C8),
@@ -136,7 +141,7 @@ struct DiffPalette: Equatable, Sendable {
         addedMarker: RGB(0x7EF08E), removedMarker: RGB(0xFFA19B),
         hunkBackground: RGB(0x0F2A45), hunkText: RGB(0xE0E0E0),
         headerBackground: RGB(0x1A1A1A), emptySide: RGB(0x141414), separator: RGB(0x9A9A9A),
-        syntax: .darkHighContrast)
+        syntax: .darkHighContrast, findMatch: RGB(0x2E2600), findCurrent: RGB(0x4A3D00))
 
     static let all: [(name: String, palette: DiffPalette)] = [
         ("light", .light), ("dark", .dark), ("light high contrast", .lightHighContrast),

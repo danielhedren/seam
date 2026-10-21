@@ -19,7 +19,20 @@ struct SeamCommands: Commands {
                 .keyboardShortcut("o")
         }
         CommandGroup(after: .textEditing) {
-            // ⌘F only while the file list has focus; in the diff it stays free for Find (§8.5).
+            // ⌘F filters while the file list has focus and finds in the diff otherwise (§7.3).
+            Button(String(localized: "Find…", bundle: .module)) { session?.showFind() }
+                .keyboardShortcut(session?.fileListHasFocus == true ? nil : KeyboardShortcut("f"))
+                .disabled(session?.selected == nil)
+            Button(String(localized: "Find Next", bundle: .module)) {
+                session?.diff.moveToMatch(by: 1)
+            }
+            .keyboardShortcut("g")
+            .disabled(session?.findResult.total ?? 0 == 0)
+            Button(String(localized: "Find Previous", bundle: .module)) {
+                session?.diff.moveToMatch(by: -1)
+            }
+            .keyboardShortcut("g", modifiers: [.command, .shift])
+            .disabled(session?.findResult.total ?? 0 == 0)
             Button(String(localized: "Filter Files", bundle: .module)) {
                 session?.filterFocusRequests += 1
             }

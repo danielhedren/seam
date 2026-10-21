@@ -13,6 +13,10 @@ final class DiffCanvasView: NSView {
     private(set) var mode = DiffLayoutMode.unified
     private(set) var collapsed: Set<String> = []
     private(set) var wraps = false
+    /// Find matches by row; `isCurrent` marks the one the find bar points at.
+    var findMatches: [Int: [(side: DiffSide, range: Range<Int>, isCurrent: Bool)]] = [:] {
+        didSet { needsDisplay = true }
+    }
     var isStale = false {
         didSet { if isStale != oldValue { needsDisplay = true } }
     }
@@ -260,6 +264,10 @@ final class DiffCanvasView: NSView {
                 : NSColor.unemphasizedSelectedTextBackgroundColor
             context.setFillColor(color.cgColor)
             for rect in rects(range) { context.fill(rect) }
+        }
+        for match in findMatches[row] ?? [] where match.side == side {
+            let color = match.isCurrent ? palette.findCurrent : palette.findMatch
+            for rect in rects(match.range) { fill(rect, color, context) }
         }
         let pieces = DiffLayout.segments(0..<text.count, wrapColumns: wrap)
         let characters = pieces.count > 1 ? Array(text) : []

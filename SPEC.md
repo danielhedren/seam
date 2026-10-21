@@ -286,6 +286,7 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 | `r` | force reload |
 | `⌘\` | toggle sidebars |
 | `⌘K` | worktree switcher |
+| `⌘F` / `⌘G` / `⇧⌘G` | find in the diff, next / previous match (`⌘F` filters while the file list has focus) |
 | `⌘⇧P` | command palette (every action) |
 
 ### 7.6 Open in editor
@@ -604,11 +605,11 @@ side-by-side views drawn without highlighting, keyboard navigation, scopes, the 
 live reload.
 *Done when:* you can review feat/b end to end from the keyboard, and editing a file in that
 worktree updates the diff within 1 s with no jump in scroll position.
-*Left for later:* line wrapping (`w`) and find in the diff (M3); VoiceOver hunk groups and the
-XCUITest smoke flows (M4; UI tests need Automation Mode enabled on the machine).
+*Left for later:* VoiceOver hunk groups and the XCUITest smoke flows (M4; UI tests need
+Automation Mode enabled on the machine). Wrapping and find moved to M3.
 
 **M3 — Reading quality.** tree-sitter highlighting, word-level highlights, context expansion,
-generated-file collapse, binary and image entries.
+generated-file collapse, binary and image entries, line wrapping, find in the diff.
 *Done when:* §8.7 rendering budgets are met on a 20k-line synthetic diff.
 
 **M4 — Review state and polish.** Viewed state with invalidation, stale-parent banner, fetch, open
