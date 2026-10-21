@@ -16,6 +16,8 @@ final class OpenRequests {
     }
 
     var pending: [String: Request] = [:]
+    /// Main worktrees that have a window, so a welcome window doesn't become a second one.
+    var openWindows: Set<String> = []
     /// File › Open Recent; refreshed whenever a window opens a repo.
     var recent: [URL] = []
     /// The launch argument opens a repo once, not in every new welcome window.
@@ -32,41 +34,15 @@ public struct SeamScenes: Scene {
     @State private var requests = OpenRequests()
     @Environment(\.openWindow) private var openWindow
 
-    @MainActor
-    public init(services: SeamServices? = nil) {
-        self.services = services ?? .live()
+    public init(services: SeamServices) {
+        self.services = services
     }
 
     public var body: some Scene {
         WindowGroup(for: URL.self) { $url in
-            Group {
-                if let url {
-                    RepoWindow(session: RepoSession(directory: url, services: services))
-                        .id(url)
-                } else {
-                    WelcomeView(services: services) { target in
-                        // The welcome window becomes the repo's window rather than opening another.
-                        guard let resolved = await resolve(target) else { return false }
-                        requests.pending[resolved.main.path] = .init(
-                            worktree: resolved.worktree.path)
-                        url = resolved.main
-                        return true
-                    }
-                }
-            }
-            .onOpenURL { incoming in
-                guard let request = SeamURL(incoming) else { return }
-                Task { await route(request, from: $url) }
-            }
-            // A folder dropped on any window opens like `seam <folder>` would.
-            .dropDestination(for: URL.self) { urls, _ in
-                for dropped in urls where dropped.hasDirectoryPath {
-                    Task { await route(SeamURL(path: dropped.path), from: $url) }
-                }
-                return urls.contains(where: \.hasDirectoryPath)
-            }
-            .environment(requests)
-            .frame(minWidth: 900, minHeight: 500)
+            WindowRoot(url: $url, services: services)
+                .environment(requests)
+                .frame(minWidth: 900, minHeight: 500)
         }
         .commands {
             SeamCommands(
@@ -117,9 +93,10 @@ public struct SeamScenes: Scene {
         open(url)
     }
 
+    /// From the menu bar, which has no window of its own to reuse.
     private func open(_ url: URL) {
         Task {
-            guard let resolved = await resolve(url) else {
+            guard let resolved = await RepoLocator(services: services).resolve(url) else {
                 openWindow(value: url)
                 return
             }
@@ -127,29 +104,72 @@ public struct SeamScenes: Scene {
             openWindow(value: resolved.main)
         }
     }
+}
 
-    /// A `seam://open` URL reaches the key window: it selects the worktree if it shows that
-    /// repo, becomes the repo's window if it's the welcome window, and otherwise brings up the
-    /// repo's own window.
-    private func route(_ request: SeamURL, from window: Binding<URL?>) async {
-        guard let resolved = await resolve(URL(fileURLWithPath: request.path, isDirectory: true))
-        else { return }
-        requests.pending[resolved.main.path] = .init(
-            worktree: resolved.worktree.path, base: request.base)
-        if window.wrappedValue == nil {
-            window.wrappedValue = resolved.main
-        } else if window.wrappedValue != resolved.main {
-            openWindow(value: resolved.main)
-        }
-    }
+/// A folder's repo, keyed by its main worktree (which keys the repo's window), and the worktree
+/// the folder is in.
+struct RepoLocator {
+    let services: SeamServices
 
-    /// The repo's main worktree, which keys its window, and the worktree `url` is in.
-    private func resolve(_ url: URL) async -> (main: URL, worktree: URL)? {
+    func resolve(_ url: URL) async -> (main: URL, worktree: URL)? {
         let service = RepositoryService(git: services.git, fileSystem: services.fileSystem)
         guard let (repository, worktree) = try? await service.open(url),
             let main = try? await service.worktrees(of: repository).first(where: \.isMain)
         else { return nil }
         return (main.path, worktree)
+    }
+}
+
+/// One window: the welcome screen or a repo, and where opens arriving at it go.
+struct WindowRoot: View {
+    @Binding var url: URL?
+    let services: SeamServices
+    @Environment(OpenRequests.self) private var requests
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        Group {
+            if let url {
+                RepoWindow(session: RepoSession(directory: url, services: services)).id(url)
+            } else {
+                WelcomeView(services: services) { target in
+                    await route(SeamURL(path: target.path))
+                }
+            }
+        }
+        // Existing windows take seam:// URLs rather than SwiftUI opening one per URL.
+        .handlesExternalEvents(preferring: ["seam"], allowing: ["*"])
+        .onOpenURL { incoming in
+            guard let request = SeamURL(incoming) else { return }
+            Task { await route(request) }
+        }
+        // A folder dropped on any window opens like `seam <folder>` would.
+        .dropDestination(for: URL.self) { urls, _ in
+            guard let folder = urls.first(where: \.hasDirectoryPath) else { return false }
+            Task { await route(SeamURL(path: folder.path)) }
+            return true
+        }
+    }
+
+    /// One window per repo (SPEC §7.1): a window showing the repo selects the worktree, a welcome
+    /// window becomes the repo's window unless one is already open, and anything else brings up
+    /// the repo's own. False when the folder isn't in a repository.
+    private func route(_ request: SeamURL) async -> Bool {
+        guard
+            let resolved = await RepoLocator(services: services).resolve(
+                URL(fileURLWithPath: request.path, isDirectory: true))
+        else { return false }
+        requests.pending[resolved.main.path] = .init(
+            worktree: resolved.worktree.path, base: request.base)
+        if url == resolved.main { return true }
+        if url == nil, !requests.openWindows.contains(resolved.main.path) {
+            url = resolved.main
+            return true
+        }
+        openWindow(value: resolved.main)
+        if url == nil { dismiss() }
+        return true
     }
 }
 

@@ -465,6 +465,32 @@ import Testing
         #expect(session.selected?.effectiveWhitespace == .ignoreAll)
     }
 
+    @Test func anOpenRequestForANewWorktreeRelistsAndSetsItsBase() async throws {
+        let repo = try await FixtureRepo()
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        await session.settled()
+        let fresh = try await repo.worktree("fresh", branch: "fresh", from: "origin/main")
+
+        await session.handle(worktree: fresh.path, base: "main")
+        await session.settled()
+
+        #expect(session.selected?.id == fresh.path)
+        #expect(session.selected?.baseOverride == "refs/heads/main")
+    }
+
+    @Test func anOpenRequestForAnUnknownWorktreeLeavesTheSelectionAlone() async throws {
+        let repo = try await FixtureRepo()
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        await session.settled()
+
+        await session.handle(worktree: "/nowhere", base: "main")
+
+        #expect(session.selected?.id == repo.main.path)
+        #expect(session.selected?.baseOverride == nil)
+    }
+
     @Test func overrideWhoseRefIsGoneShowsABannerWithAWayBack() async throws {
         let repo = try await FixtureRepo()
         let session = RepoSession(directory: repo.main, services: services(repo.git))

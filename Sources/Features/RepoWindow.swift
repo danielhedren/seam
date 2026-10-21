@@ -27,10 +27,16 @@ struct RepoWindow: View {
                 await handle(requests.take(session.directory.path))
             }
             .onChange(of: requests.pending) {
+                // While opening, the .task above takes the request once the list is known.
+                guard session.state == .open else { return }
                 let request = requests.take(session.directory.path)
                 Task { await handle(request) }
             }
-            .onDisappear { session.close() }
+            .onAppear { requests.openWindows.insert(session.directory.path) }
+            .onDisappear {
+                requests.openWindows.remove(session.directory.path)
+                session.close()
+            }
             .focusedSceneValue(\.repoSession, session)
             .onChange(of: session.filterFocusRequests) { filterFocused = true }
             .sheet(isPresented: Bindable(session).showsSwitcher) {
@@ -43,8 +49,7 @@ struct RepoWindow: View {
 
     private func handle(_ request: OpenRequests.Request?) async {
         guard let request else { return }
-        session.select(request.worktree)
-        if let base = request.base { await session.setTypedBase(base) }
+        await session.handle(worktree: request.worktree, base: request.base)
     }
 
     /// The split view also changes visibility itself, when the user drags a column closed.

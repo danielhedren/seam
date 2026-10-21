@@ -491,6 +491,25 @@ final class RepoSession {
 
     var isWatching: Bool { monitorTask != nil }
 
+    /// An open request (`seam`, a drop, Open Recent). A worktree created since the list was read
+    /// isn't in it yet, so the list is read again first; the base applies only if that worktree
+    /// really got selected.
+    func handle(worktree: String, base: String?) async {
+        if !reviews.contains(where: { $0.id == worktree }) { await relistWorktrees() }
+        select(worktree)
+        guard selectedID == worktree, let base else { return }
+        await setTypedBase(base)
+    }
+
+    /// For an open request naming a worktree the list doesn't have yet.
+    func relistWorktrees() async {
+        let before = reviews.map(\.id)
+        try? await listWorktrees()
+        guard reviews.map(\.id) != before else { return }
+        startMonitor()
+        await refreshRows(skippingSelected: false)
+    }
+
     func recentRepositories() async -> [URL] {
         await services.store.recentRepositories()
     }
