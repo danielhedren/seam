@@ -11,7 +11,7 @@ public enum ReviewScope: String, CaseIterable, Sendable {
     case uncommitted
 }
 
-public enum WhitespaceMode: Sendable {
+public enum WhitespaceMode: String, CaseIterable, Sendable {
     case show
     case ignoreAmount
     case ignoreAll

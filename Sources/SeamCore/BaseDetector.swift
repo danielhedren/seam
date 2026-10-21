@@ -3,8 +3,8 @@ import GitKit
 import os
 
 public struct DetectionSettings: Equatable, Sendable {
-    /// Full ref name; nil resolves `origin/HEAD`, then `origin/main`, `main`, `origin/master`,
-    /// `master`.
+    /// A ref name, full (`refs/remotes/origin/main`) or short (`origin/main`, `main`); nil
+    /// resolves `origin/HEAD`, then `origin/main`, `main`, `origin/master`, `master`.
     public var defaultBase: String?
     /// Globs over short ref names (`origin/renovate/x`) never considered as parents.
     public var ignoredRefs: [Glob]
@@ -218,10 +218,15 @@ public struct BaseDetector: Sendable {
     private func resolveDefaultBase(_ refs: [String: RefRow], _ symbolic: [String: String])
         -> String?
     {
-        let preferred = [
-            settings.defaultBase, symbolic["refs/remotes/origin/HEAD"], "refs/remotes/origin/main",
-            "refs/heads/main", "refs/remotes/origin/master", "refs/heads/master",
-        ]
+        let configured =
+            settings.defaultBase.map { name in
+                [name, RefName.remotes + name, RefName.heads + name]
+            } ?? []
+        let preferred =
+            configured + [
+                symbolic["refs/remotes/origin/HEAD"], "refs/remotes/origin/main",
+                "refs/heads/main", "refs/remotes/origin/master", "refs/heads/master",
+            ]
         return preferred.compactMap { $0 }.first { refs[$0] != nil }
     }
 

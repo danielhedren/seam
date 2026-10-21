@@ -44,6 +44,7 @@ struct DiffRepresentable: NSViewRepresentable {
     func updateNSView(_ view: DiffScrollView, context: Context) {
         session.diff.view = view
         view.isStale = review.showsProgress
+        view.setFont(session.settings.font)
         let shown = Coordinator.Shown(
             id: review.id, version: review.diffVersion, mode: review.mode,
             collapsed: review.collapsed, contentsVersion: review.contentsVersion,

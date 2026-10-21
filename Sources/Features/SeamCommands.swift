@@ -50,6 +50,22 @@ struct SeamCommands: Commands {
             }
             .keyboardShortcut("\\", modifiers: [.command, .option])
             Divider()
+            Button(String(localized: "Make Text Bigger", bundle: .module)) {
+                session?.settings.adjustFontSize(by: 1)
+            }
+            .keyboardShortcut("+")
+            .disabled(session == nil)
+            Button(String(localized: "Make Text Smaller", bundle: .module)) {
+                session?.settings.adjustFontSize(by: -1)
+            }
+            .keyboardShortcut("-")
+            .disabled(session == nil)
+            Button(String(localized: "Actual Size", bundle: .module)) {
+                session?.settings.fontSize = 12
+            }
+            .keyboardShortcut("0")
+            .disabled(session == nil)
+            Divider()
             item("Side by Side", key: "s") { $0.toggleMode() }
             item("Wrap Lines", key: "w") { $0.toggleWrap() }
             if let session {

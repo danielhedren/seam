@@ -34,7 +34,7 @@ final class DiffCanvasView: NSView {
         increaseContrastOverride ?? NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
     }
 
-    let font: NSFont
+    private(set) var font: NSFont
     private(set) var geometry = Geometry()
     private var lineCache: [LineKey: CTLine] = [:]
     var isDragging = false
@@ -90,8 +90,19 @@ final class DiffCanvasView: NSView {
         viewed = content.viewed
         let rows = DiffRowBuilder.rows(
             for: review, mode: mode, collapsed: collapsed, contents: content.contents,
-            expansions: content.expansions, syntax: content.syntax)
+            expansions: content.expansions, syntax: content.syntax, tabWidth: content.tabWidth,
+            tabWidths: content.tabWidths)
         selection = nil
+        relayout(rows, width: geometry.visibleWidth)
+    }
+
+    /// A new font changes every row's metrics, so the layout is rebuilt at the new sizes.
+    func setFont(_ font: NSFont) {
+        guard font != self.font else { return }
+        self.font = font
+        let rows = layout.rows
+        layout = DiffLayout(rows: [], metrics: Self.metrics(for: font))
+        lineCache.removeAll(keepingCapacity: true)
         relayout(rows, width: geometry.visibleWidth)
     }
 

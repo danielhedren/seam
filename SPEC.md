@@ -573,6 +573,11 @@ Seam writes nothing inside the repository or `.git`.
 - Background fetch interval (off by default).
 - Default view mode, whitespace mode, and number of context lines.
 
+Settings apply to the next load of each worktree; font changes apply at once (`⌘+`, `⌘−`, `⌘0`
+in the View menu too). The default base may be a short name (`origin/develop`, `main`). Tab widths
+come from the repository's root `.editorconfig` (`tab_width`, or a numeric `indent_size`) where a
+section matches, else the setting; nested `.editorconfig` files aren't read.
+
 ## 13. CLI
 
 The app bundle includes a `seam` command, installed via a menu item that symlinks it into

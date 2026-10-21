@@ -31,6 +31,8 @@ final class WorktreeReview: Identifiable {
     private(set) var viewed = ViewedMarks()
     /// A detected parent that looks merged (SPEC §5.4); nil once dismissed or overridden.
     private(set) var staleParent: StaleParent?
+    /// The worktree's root `.editorconfig`, for per-file tab widths (SPEC §12).
+    private var editorConfig: EditorConfig?
     private var dismissedStaleParents: Set<String> = []
     /// Full file contents for the current diff; empty until loaded.
     private(set) var contents: [String: FileContents] = [:]
@@ -194,7 +196,12 @@ final class WorktreeReview: Identifiable {
                 expansions: expansions, syntax: syntax, wraps: wraps,
                 viewed: Dictionary(
                     $0.files.map { ($0.diff.path, viewed.status(of: $0)) },
-                    uniquingKeysWith: { first, _ in first }))
+                    uniquingKeysWith: { first, _ in first }),
+                tabWidth: services.settings.tabWidth,
+                tabWidths: Dictionary(
+                    $0.files.compactMap { file in
+                        editorConfig?.tabWidth(for: file.diff.path).map { (file.diff.path, $0) }
+                    }, uniquingKeysWith: { first, _ in first }))
         }
     }
 
@@ -236,8 +243,10 @@ final class WorktreeReview: Identifiable {
             return
         }
         do {
-            detection = try await BaseDetector(git: services.git, settings: services.detection)
-                .detect(in: worktree.path)
+            detection = try await BaseDetector(
+                git: services.git, settings: services.settings.detection
+            )
+            .detect(in: worktree.path)
         } catch {
             problem = .gitFailed(Self.describe(error))
         }
@@ -318,7 +327,13 @@ final class WorktreeReview: Identifiable {
             staleParent = stale.flatMap { dismissedStaleParents.contains($0.parent) ? nil : $0 }
             let result = try await ReviewDiffBuilder(
                 git: services.git, fileSystem: services.fileSystem
-            ).build(worktree: worktree.path, base: base.commit, scope: scope)
+            ).build(
+                worktree: worktree.path, base: base.commit, scope: scope,
+                options: services.settings.diffOptions)
+            editorConfig =
+                (try? services.fileSystem.contents(
+                    of: worktree.path.appending(path: ".editorconfig")))
+                .map { EditorConfig(String(decoding: $0, as: UTF8.self)) }
             guard generation == loadGeneration, !Task.isCancelled else { return }
             // A first load shows the diff before its contents arrive. A reload waits for both,
             // so the new hunks are never drawn with the old files' gap lines.

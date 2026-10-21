@@ -20,13 +20,19 @@ public struct DiffContent: Equatable, Sendable {
     public var wraps: Bool
     /// Viewed status per path, shown as each file header's checkbox (SPEC §7.4).
     public var viewed: [String: ViewedMarks.Status]
+    public var tabWidth: Int
+    /// Per-file widths from `.editorconfig`, over `tabWidth`.
+    public var tabWidths: [String: Int]
 
     public init(
         review: ReviewDiff, mode: DiffLayoutMode = .unified, collapsed: Set<String> = [],
         contents: [String: FileContents] = [:], expansions: [String: [Int: GapExpansion]] = [:],
         syntax: [String: FileSyntax] = [:], wraps: Bool = false,
-        viewed: [String: ViewedMarks.Status] = [:]
+        viewed: [String: ViewedMarks.Status] = [:], tabWidth: Int = 4,
+        tabWidths: [String: Int] = [:]
     ) {
+        self.tabWidth = tabWidth
+        self.tabWidths = tabWidths
         self.wraps = wraps
         self.viewed = viewed
         self.review = review

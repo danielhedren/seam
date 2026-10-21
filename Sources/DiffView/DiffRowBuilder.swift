@@ -3,11 +3,13 @@ import GitKit
 import SeamCore
 
 enum DiffRowBuilder {
-    /// Files without loaded `contents` get no gap rows, sizes or previews.
+    /// Files without loaded `contents` get no gap rows, sizes or previews. `tabWidths` overrides
+    /// `tabWidth` per path.
     static func rows(
         for review: ReviewDiff, mode: DiffLayoutMode, collapsed: Set<String> = [],
         contents: [String: FileContents] = [:], expansions: [String: [Int: GapExpansion]] = [:],
-        syntax: [String: FileSyntax] = [:], tabWidth: Int = 4
+        syntax: [String: FileSyntax] = [:], tabWidth defaultTabWidth: Int = 4,
+        tabWidths: [String: Int] = [:]
     ) -> [DiffRow] {
         var rows: [DiffRow] = []
         rows.reserveCapacity(review.files.reduce(0) { $0 + $1.diff.hunks.count * 8 + 1 })
@@ -15,6 +17,7 @@ enum DiffRowBuilder {
             rows.append(.fileHeader(file: index))
             guard !collapsed.contains(file.diff.path) else { continue }
             let fileContents = contents[file.diff.path]
+            let tabWidth = tabWidths[file.diff.path] ?? defaultTabWidth
             if let notice = notice(for: file, contents: fileContents) {
                 rows.append(.notice(file: index, text: notice))
                 if fileContents?.oldImage != nil || fileContents?.newImage != nil {

@@ -236,6 +236,20 @@ import Testing
         #expect(detection.base == head)
     }
 
+    @Test func aConfiguredDefaultBaseMayBeAShortName() async throws {
+        let repo = try await FixtureRepo()
+        try await repo.run("push", "-q", "origin", "main:develop")
+        try await repo.run("fetch", "-q", "origin")
+        let feature = try await repo.worktree("feature", branch: "feature", from: "origin/develop")
+        try await repo.commit("f.txt", "f\n", "f1", in: feature)
+
+        let detection = try await BaseDetector(
+            git: repo.git, settings: DetectionSettings(defaultBase: "origin/develop")
+        ).detect(in: feature)
+
+        #expect(detection.candidates.contains { $0.isDefaultBase && $0.name == "origin/develop" })
+    }
+
     @Test func f12FreshChildAtTheSameCommitIsNotAParent() async throws {
         let repo = try await FixtureRepo()
         let b = try await repo.worktree("b", branch: "b", from: "origin/main")

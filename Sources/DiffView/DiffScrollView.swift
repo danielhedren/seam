@@ -176,6 +176,16 @@ public final class DiffScrollView: NSScrollView {
         scroll(toY: visibleTop + Double(delta) * layout.metrics.lineHeight * 3)
     }
 
+    /// Keeps the reader's line in view across the size change.
+    public func setFont(_ font: NSFont) {
+        guard font != canvas.font else { return }
+        let anchor = anchor
+        canvas.setFont(font)
+        sticky.font = font
+        if let anchor { restore(anchor) }
+        updateSticky()
+    }
+
     public func setViewed(_ viewed: [String: ViewedMarks.Status]) {
         canvas.setViewed(viewed)
         updateSticky()

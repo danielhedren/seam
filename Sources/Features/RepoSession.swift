@@ -43,7 +43,6 @@ final class RepoSession {
     let diff = DiffController()
 
     private let services: SeamServices
-    private let defaultMode: DiffLayoutMode
     private var repoState = RepoState()
     private var monitorTask: Task<Void, Never>?
     private var saveTask: Task<Void, Never>?
@@ -54,11 +53,12 @@ final class RepoSession {
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
     private let signposter = OSSignposter(subsystem: "com.danielhedren.seam", category: "Features")
 
-    init(directory: URL, services: SeamServices, defaultMode: DiffLayoutMode = .unified) {
+    init(directory: URL, services: SeamServices) {
         self.directory = directory
         self.services = services
-        self.defaultMode = defaultMode
     }
+
+    var settings: AppSettings { services.settings }
 
     /// The diff or the file list has keyboard focus, so single-letter shortcuts apply (SPEC §9).
     /// The sheet and popover are separate windows, so the canvas keeps first responder under them;
@@ -112,6 +112,7 @@ final class RepoSession {
             state = .open
             select(worktree.path)
             startMonitor()
+            startBackgroundFetch()
             rowsTask = Task { [weak self] in await self?.refreshRows(skippingSelected: true) }
         } catch {
             state = .failed(Self.openFailure(error))
@@ -139,7 +140,8 @@ final class RepoSession {
                 review.update(worktree)
                 return review
             }
-            let review = WorktreeReview(worktree: worktree, mode: defaultMode, services: services)
+            let review = WorktreeReview(
+                worktree: worktree, mode: services.settings.defaultMode, services: services)
             review.restore(
                 repoState.worktrees[worktree.id],
                 override: worktree.branch.flatMap { repoState.baseOverrides[$0] })
@@ -221,6 +223,29 @@ final class RepoSession {
     }
 
     private(set) var isFetching = false
+    private var fetchLoop: Task<Void, Never>?
+
+    /// Fetches every `fetchInterval` minutes while that's on (SPEC §5.5), and restarts when the
+    /// setting changes, so nothing runs at all while it's off.
+    private func startBackgroundFetch() {
+        fetchLoop?.cancel()
+        guard !isClosed else { return }
+        withObservationTracking {
+            _ = settings.fetchInterval
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.startBackgroundFetch() }
+        }
+        let minutes = settings.fetchInterval
+        guard minutes > 0 else { return }
+        let clock = services.clock
+        fetchLoop = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await clock.sleep(for: .seconds(60 * minutes))
+                guard let self, !self.isClosed, !Task.isCancelled else { return }
+                self.fetch()
+            }
+        }
+    }
 
     /// `f`: `git fetch --prune` for the repo (SPEC §5.5). The refs it changes reach every row
     /// through the same path as any other ref change.
@@ -271,8 +296,9 @@ final class RepoSession {
     }
 
     /// `o`: opens the reader's file and line in their editor, inside the reviewed worktree.
-    func openInEditor(_ command: EditorCommand = EditorCommand()) {
+    func openInEditor(_ command: EditorCommand? = nil) {
         guard let review = selected, let location = diff.readingLocation else { return }
+        let command = command ?? services.settings.editor
         let path = review.worktree.path.appending(path: location.path).path
         let line = command.commandLine(path: path, line: location.line)
         let launcher = services.launcher
@@ -416,6 +442,7 @@ final class RepoSession {
         monitorTask?.cancel()
         monitorTask = nil
         rowsTask?.cancel()
+        fetchLoop?.cancel()
         for task in deferredActivity.values { task.cancel() }
         selected?.cancelLoading()
     }

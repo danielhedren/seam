@@ -83,7 +83,9 @@ func services(
     _ git: any GitClient, clock: any Clock<Duration> = ManualClock(),
     store: any StateStore = MemoryStore()
 ) -> SeamServices {
-    SeamServices(git: git, watcher: SilentWatcher(), clock: clock, store: store)
+    SeamServices(
+        git: git, watcher: SilentWatcher(), clock: clock, store: store,
+        settings: testSettings())
 }
 
 /// Records launched command lines; `next()` waits for the next one.
@@ -107,4 +109,10 @@ actor FakeLauncher: CommandLauncher {
         if !lines.isEmpty { return lines.removeFirst() }
         return await withCheckedContinuation { waiters.append($0) }
     }
+}
+
+/// Settings in a throwaway defaults domain, so tests never read or write the user's.
+@MainActor
+func testSettings() -> AppSettings {
+    AppSettings(defaults: UserDefaults(suiteName: "seam-tests-\(UUID())") ?? UserDefaults())
 }

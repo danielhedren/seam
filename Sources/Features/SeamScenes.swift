@@ -26,8 +26,9 @@ public struct SeamScenes: Scene {
     @State private var requests = OpenRequests()
     @Environment(\.openWindow) private var openWindow
 
-    public init(services: SeamServices = .live) {
-        self.services = services
+    @MainActor
+    public init(services: SeamServices? = nil) {
+        self.services = services ?? .live()
     }
 
     public var body: some Scene {
@@ -51,6 +52,9 @@ public struct SeamScenes: Scene {
         }
         .commands {
             SeamCommands(openRepository: choose)
+        }
+        Settings {
+            SettingsView(settings: services.settings)
         }
     }
 

@@ -96,7 +96,7 @@ public struct SeamServices: Sendable {
     public var watcher: any FileWatcher
     public var clock: any Clock<Duration>
     public var store: any StateStore
-    public var detection: DetectionSettings
+    public var settings: AppSettings
     /// Shared by every window, so its cache spans repos and reloads.
     public var highlighter: SyntaxHighlighter
     var launcher: any CommandLauncher = ShellLauncher()
@@ -104,8 +104,7 @@ public struct SeamServices: Sendable {
     public init(
         git: any GitClient, fileSystem: any FileSystem = LocalFileSystem(),
         watcher: any FileWatcher, clock: any Clock<Duration>, store: any StateStore,
-        detection: DetectionSettings = DetectionSettings(),
-        highlighter: SyntaxHighlighter = SyntaxHighlighter()
+        settings: AppSettings, highlighter: SyntaxHighlighter = SyntaxHighlighter()
     ) {
         self.highlighter = highlighter
         self.git = git
@@ -113,10 +112,13 @@ public struct SeamServices: Sendable {
         self.watcher = watcher
         self.clock = clock
         self.store = store
-        self.detection = detection
+        self.settings = settings
     }
 
-    public static let live = SeamServices(
-        git: CLIGitClient(), watcher: FSEventsWatcher(), clock: ContinuousClock(),
-        store: JSONStateStore())
+    @MainActor
+    public static func live() -> SeamServices {
+        SeamServices(
+            git: CLIGitClient(), watcher: FSEventsWatcher(), clock: ContinuousClock(),
+            store: JSONStateStore(), settings: AppSettings())
+    }
 }

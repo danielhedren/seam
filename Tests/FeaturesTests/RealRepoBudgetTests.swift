@@ -1,4 +1,5 @@
 import Foundation
+import GitKit
 import SeamCore
 import Testing
 
@@ -13,8 +14,8 @@ struct RealRepoBudgetTests {
     @Test func worktreeListIsReadyWithinOneSecondAndSwitchingLoadsWithin200ms() async throws {
         let worktree = URL(fileURLWithPath: try #require(environment["SEAM_REAL_REPO"]))
         let services = SeamServices(
-            git: SeamServices.live.git, watcher: SilentWatcher(), clock: ContinuousClock(),
-            store: MemoryStore())
+            git: CLIGitClient(), watcher: SilentWatcher(), clock: ContinuousClock(),
+            store: MemoryStore(), settings: testSettings())
         let session = RepoSession(directory: worktree, services: services)
         let clock = ContinuousClock()
 
