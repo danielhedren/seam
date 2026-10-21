@@ -40,4 +40,5 @@ REAL_REPO ?= $(HOME)/Code/work-repo/.worktrees/feat-b
 test-all: check app
 	SEAM_REAL_REPO=$(REAL_REPO) swift test --skip 'Budget|Benchmark'
 	SEAM_REAL_REPO=$(REAL_REPO) SEAM_BENCH=1 swift test -c release -Xswiftc -enable-testing \
-		--filter 'Budget|Benchmark|LiveReload'
+		--filter 'Budget|Benchmark'
+	SEAM_BENCH=1 swift test -c release -Xswiftc -enable-testing --filter LiveReload
