@@ -15,6 +15,9 @@ let package = Package(
         .library(name: "Features", targets: ["Features"]),
         .executable(name: "seam-debug", targets: ["seam-debug"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", exact: "1.19.6")
+    ],
     targets: [
         .target(name: "GitKit", swiftSettings: strict),
         .target(name: "SeamCore", dependencies: ["GitKit"], swiftSettings: strict),
@@ -36,8 +39,12 @@ let package = Package(
             swiftSettings: strict
         ),
         .testTarget(
-            name: "DiffViewTests", dependencies: ["DiffView", "SeamCore", "GitKit"],
-            swiftSettings: strict),
+            name: "DiffViewTests",
+            dependencies: [
+                "DiffView", "SeamCore", "GitKit",
+                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
+            ],
+            exclude: ["__Snapshots__"], swiftSettings: strict),
         .testTarget(
             name: "FeaturesTests",
             dependencies: ["Features", "DiffView", "SeamCore", "GitKit", "TestSupport"],
