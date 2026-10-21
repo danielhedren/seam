@@ -12,15 +12,16 @@ format:
 	swift format --in-place --recursive Package.swift Sources Tests App
 
 build:
-	swift build
+	Scripts/build.sh swift build
 
 test:
 	swift test
 
 # The thin Xcode app target (SPEC §8.1); everything else builds with SwiftPM.
 app:
-	xcodebuild -quiet -project App/Seam.xcodeproj -scheme Seam -configuration Debug \
-		-derivedDataPath .build/xcode build
+	@echo "Building Seam.app (the first build compiles the tree-sitter grammars, a few minutes)"
+	Scripts/build.sh xcodebuild -project App/Seam.xcodeproj -scheme Seam -configuration Debug \
+		-destination 'platform=macOS,arch=arm64' -derivedDataPath .build/xcode build
 
 run: app
 	open .build/xcode/Build/Products/Debug/Seam.app --args "$${REPO:-$$PWD}"
