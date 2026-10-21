@@ -61,4 +61,31 @@ import Testing
 
         #expect(review.files.first?.diff.newBlob == expected)
     }
+
+    @Test func aNestedRepositoryInsideTheWorktreeDoesNotBreakTheDiff() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("note.txt", "n\n")
+        _ = try await repo.git.run(
+            ["init", "-q", repo.main.appending(path: ".worktrees/agent").path], in: repo.main)
+        try repo.write(".worktrees/agent/inner.txt", "i\n")
+
+        let review = try await ReviewDiffBuilder(git: repo.git).build(
+            worktree: repo.main, base: try await repo.sha("HEAD"), scope: .all)
+
+        let note = try #require(review.files.first { $0.diff.path == "note.txt" })
+        #expect(note.diff.newBlob == (try await repo.run("hash-object", "note.txt")))
+        #expect(review.files.contains { $0.diff.path.hasPrefix(".worktrees/agent") })
+    }
+
+    @Test func symlinksGetGitsBlobIDForTheirTarget() async throws {
+        let repo = try await FixtureRepo()
+        try FileManager.default.createSymbolicLink(
+            atPath: repo.main.appending(path: "link").path, withDestinationPath: "target.txt")
+        let review = try await ReviewDiffBuilder(git: repo.git).build(
+            worktree: repo.main, base: try await repo.sha("HEAD"), scope: .all)
+        try await repo.run("add", "link")
+        let staged = try await repo.run("ls-files", "-s", "link")
+
+        #expect(staged.contains(try #require(review.files.first?.diff.newBlob)))
+    }
 }

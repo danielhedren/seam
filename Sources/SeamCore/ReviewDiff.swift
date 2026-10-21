@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import GitKit
 import os
@@ -168,24 +169,20 @@ public struct ReviewDiffBuilder: Sendable {
     private func untrackedFiles(_ worktree: URL) async throws(GitError) -> [ReviewFile] {
         let output = try await git.run(
             ["ls-files", "--others", "--exclude-standard", "-z"], in: worktree)
-        var files = output.split(separator: 0).map { field in
+        return output.split(separator: 0).map { field in
             let path = String(decoding: field, as: UTF8.self)
             return untracked(path, at: worktree.appending(path: path))
         }
-        // Untracked files have no blob until git hashes them; viewed marks need one (SPEC §11).
-        let regular = files.indices.filter { files[$0].diff.newMode != "120000" }
-        if !regular.isEmpty {
-            let input = Data(regular.map { files[$0].diff.path + "\n" }.joined().utf8)
-            let ids = try await git.string(
-                ["hash-object", "--no-filters", "--stdin-paths"], in: worktree, input: input
-            ).split(separator: "\n")
-            for (index, id) in zip(regular, ids) { files[index].diff.newBlob = String(id) }
-        }
-        for index in files.indices where files[index].diff.newMode == "120000" {
-            let target = files[index].diff.hunks.first?.lines.first?.text ?? ""
-            files[index].diff.newBlob = "link:" + target
-        }
-        return files
+    }
+
+    /// The id git would give `data` as a blob. Computed here from bytes already read, so a file
+    /// that vanishes or a nested repository (listed as `dir/`) can't fail the load; deferred
+    /// files have no id and can't be marked viewed.
+    static func blobID(_ data: Data) -> String {
+        var hash = Insecure.SHA1()
+        hash.update(data: Data("blob \(data.count)\0".utf8))
+        hash.update(data: data)
+        return hash.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
     private func untracked(_ path: String, at url: URL) -> ReviewFile {
@@ -193,6 +190,7 @@ public struct ReviewDiffBuilder: Sendable {
         if let destination = fileSystem.symbolicLinkDestination(of: url) {
             diff.newMode = "120000"
             diff.hunks = Self.additionHunk(Data(destination.utf8), endsWithNewline: false)
+            diff.newBlob = Self.blobID(Data(destination.utf8))
             return ReviewFile(diff: diff, isUntracked: true)
         }
         diff.newMode = fileSystem.isExecutable(url) ? "100755" : "100644"
@@ -202,6 +200,7 @@ public struct ReviewDiffBuilder: Sendable {
         guard let data = try? fileSystem.contents(of: url) else {
             return ReviewFile(diff: diff, isUntracked: true, isDeferred: true)
         }
+        diff.newBlob = Self.blobID(data)
         // Git's own heuristic: a NUL in the first 8000 bytes means binary.
         if data.prefix(8000).contains(0) {
             diff.isBinary = true
