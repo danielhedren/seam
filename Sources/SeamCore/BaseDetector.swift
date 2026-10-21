@@ -169,6 +169,7 @@ public struct BaseDetector: Sendable {
 
         let remotes = try await git.string(["remote"], in: directory).split(separator: "\n")
         let upstream = branch.flatMap { refs[$0]?.upstream }.flatMap { $0.isEmpty ? nil : $0 }
+        let defaultBase = resolveDefaultBase(refs, symbolic)
         var excluded: Set<String> = []
         if let branch {
             excluded.insert(branch)
@@ -176,6 +177,8 @@ public struct BaseDetector: Sendable {
             for remote in remotes { excluded.insert("\(RefName.remotes)\(remote)/\(name)") }
             if let upstream, upstream.hasSuffix("/\(name)") { excluded.insert(upstream) }
         }
+        // The default branch itself (local `main`) is reviewed against its own remote copy.
+        if let defaultBase { excluded.remove(defaultBase) }
         let eligible = Set(refs.keys).subtracting(excluded).filter { ref in
             let name = RefName.short(ref)
             return !settings.ignoredRefs.contains { $0.matches(name) }
@@ -183,7 +186,7 @@ public struct BaseDetector: Sendable {
 
         return Context(
             directory: directory, head: head, branch: branch, refs: refs, eligible: eligible,
-            upstream: upstream, defaultBase: resolveDefaultBase(refs, symbolic))
+            upstream: upstream, defaultBase: defaultBase)
     }
 
     private func resolveDefaultBase(_ refs: [String: RefRow], _ symbolic: [String: String])
@@ -198,13 +201,11 @@ public struct BaseDetector: Sendable {
 
     private func findCandidates(_ context: Context) async throws(GitError) -> [ParentCandidate] {
         let containing = try await refsContaining([context.head], context)
-        let atHead = containing.filter { context.refs[$0]?.tip == context.head }
-        let parentsAtHead = try await atHead.asyncFilter { ref throws(GitError) in
-            try await isParentAtHead(ref, context)
-        }
-        if !parentsAtHead.isEmpty {
+            .intersection(context.eligible)
+        let parentsContaining = try await parentsAmong(containing, context)
+        if !parentsContaining.isEmpty {
             var result: [ParentCandidate] = []
-            for ref in parentsAtHead {
+            for ref in parentsContaining {
                 if let row = context.refs[ref] {
                     result.append(try await candidate(row, context, count: 0))
                 }
@@ -273,22 +274,36 @@ public struct BaseDetector: Sendable {
         return result
     }
 
-    /// A ref at HEAD's exact commit is either the branch HEAD was just cut from, or a branch just
-    /// cut from HEAD. The graph cannot tell them apart; branch creation times in the reflog can.
-    private func isParentAtHead(_ ref: String, _ context: Context) async throws(GitError) -> Bool {
-        guard context.eligible.contains(ref) else { return false }
-        if ref == context.defaultBase || ref == context.upstream { return true }
+    /// A ref containing HEAD is either a branch HEAD was cut from (possibly moved on since) or a
+    /// branch cut from HEAD. The graph cannot tell them apart; the default base, the upstream and
+    /// branch creation order in the reflog can.
+    private func parentsAmong(_ containing: Set<String>, _ context: Context) async throws(GitError)
+        -> [String]
+    {
+        let known = containing.filter { $0 == context.defaultBase || $0 == context.upstream }
+        if !known.isEmpty { return known.sorted() }
+        var parents: [String] = []
+        for ref in containing.sorted() where try await isOlderBranch(ref, context) {
+            parents.append(ref)
+        }
+        return parents
+    }
+
+    /// Without reflog evidence, a ref at HEAD's own commit counts as the parent (a fresh worktree)
+    /// and a ref ahead of HEAD counts as a descendant.
+    private func isOlderBranch(_ ref: String, _ context: Context) async throws(GitError) -> Bool {
+        let fallback = context.refs[ref]?.tip == context.head
         guard let branch = context.branch, let ownCreated = try await created(branch, context)
         else {
-            return true
+            return fallback
         }
         var local = ref
         if ref.hasPrefix(RefName.remotes) {
             let short = RefName.short(ref)
-            guard let slash = short.firstIndex(of: "/") else { return true }
+            guard let slash = short.firstIndex(of: "/") else { return fallback }
             local = RefName.heads + short[short.index(after: slash)...]
         }
-        guard let otherCreated = try await created(local, context) else { return true }
+        guard let otherCreated = try await created(local, context) else { return fallback }
         return otherCreated <= ownCreated
     }
 
@@ -333,15 +348,5 @@ public struct BaseDetector: Sendable {
     private func line(_ arguments: [String], _ directory: URL) async throws(GitError) -> String {
         let output = try await git.string(arguments, in: directory)
         return output.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-}
-
-extension Collection where Element: Sendable {
-    fileprivate func asyncFilter(
-        _ predicate: (Element) async throws(GitError) -> Bool
-    ) async throws(GitError) -> [Element] {
-        var result: [Element] = []
-        for element in self where try await predicate(element) { result.append(element) }
-        return result
     }
 }

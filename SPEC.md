@@ -71,17 +71,18 @@ Inputs: worktree HEAD, the current branch name `B`, and every ref under `refs/he
 
 1. **Exclude refs that are not candidate parents:**
    - `B` itself, plus its own remote copy (the ref `B`'s upstream points to, if it has the same
-     branch name, and `<remote>/B` for every remote).
+     branch name, and `<remote>/B` for every remote). The exception is the default base: local
+     `main` is reviewed against `origin/main` (F13).
    - Symbolic refs (`refs/remotes/*/HEAD`).
    - Refs matching user ignore globs (§12).
-2. **Refs at HEAD's own commit.** A ref whose tip *is* HEAD is either the branch HEAD was just
-   cut from (a fresh worktree, F8) or a branch just cut from HEAD (F12); the graph can't tell
-   which. It counts as a parent, with 0 unique commits, when it is a remote ref, the default
-   base, `B`'s upstream, or a local branch created no later than `B` (first reflog entry). If
-   any such parent exists, stop here: base = HEAD.
-3. **Exclude descendants:** every other ref that contains HEAD
-   (`git for-each-ref --contains HEAD`), e.g. a branch stacked on top of this one. Keeping them
-   would hide every commit.
+2. **Refs that contain HEAD** (`git for-each-ref --contains HEAD`) are either a branch HEAD was
+   cut from, at the same commit or moved on since (F8, F14), or a branch cut from HEAD (F6, F12).
+   The graph can't tell which. Such a ref is a parent, with 0 unique commits, when it is the
+   default base or `B`'s upstream; failing that, when its local branch was created no later than
+   `B` (first reflog entry). With no reflog evidence, a ref at HEAD's exact commit is a parent and
+   a ref ahead of HEAD is a descendant. If any parent is found, stop here: base = HEAD.
+3. **Exclude descendants:** every other ref that contains HEAD, e.g. a branch stacked on top of
+   this one. Keeping them would hide every commit.
 4. **Find the commits unique to this branch:** `git rev-list --boundary --stdin` fed `HEAD` and
    `^<ref>` for every remaining ref. Lines without a prefix are the commits no other branch has.
    Lines with a `-` prefix are the boundary commits where those meet other branches. No boundary
@@ -129,6 +130,8 @@ and base.
 | F10 | B squash-merged into main and its branch deleted | `origin/main` once B's refs are gone. While B's remote ref still exists: B, with the warning from §5.4 |
 | F11 | Stacked, where local B has commits not yet pushed to `origin/B`, and C is built on them | local B; those commits are not in C's diff |
 | F12 | D freshly cut from C (same commit, nothing committed yet) | C's parent is unaffected by D; D's parent is C with 0 commits (step 2) |
+| F13 | The main worktree, local `main` behind `origin/main` | `origin/main` with 0 commits; diff = uncommitted changes |
+| F14 | Fresh worktree with nothing committed, after main has moved on | `origin/main` with 0 commits; base = HEAD |
 
 Plus one real-repo check: on `feat-b`, commit `9f8e7d6c5` reviewed as
 `feat/b` must pick `origin/feat/a` and give a
@@ -490,7 +493,7 @@ Every layer gets the cheapest test that can catch its failures. Test names descr
 | GitKit parsers | Unit, golden files | Swift Testing | Real `git` outputs checked in under `Tests/Fixtures/`: renames, copies, binary files, mode changes, `\ No newline`, quoted and unicode paths, CRLF, empty files, porcelain v2 status, worktree porcelain with locked, prunable and detached entries |
 | GitKit parsers | Round-trip property | Swift Testing, seeded generator | Generate random old/new file pairs, run real `git diff`, parse it, apply the parsed hunks to old → must equal new. 500 cases per run, with the seed printed on failure |
 | SeamCore | Unit | Swift Testing, parameterised | Ranking and tie-breaks (§5.1) as a pure function, intra-line pairing, viewed-state invalidation, scope assembly, generated-file matching |
-| Base detection | Integration, real git | Swift Testing | Fixtures F1–F12: the fixture builder (`Tests/SeamCoreTests/Support/`) creates each repo in a temp dir, with a local bare repo as `origin` so remote refs are real. The test asserts parent, base and file list. The ordinary path (F1) is tested as carefully as the edge cases |
+| Base detection | Integration, real git | Swift Testing | Fixtures F1–F14: the fixture builder (`Tests/SeamCoreTests/Support/`) creates each repo in a temp dir, with a local bare repo as `origin` so remote refs are real. The test asserts parent, base and file list. The ordinary path (F1) is tested as carefully as the edge cases |
 | DiffView | Unit | Swift Testing | Row model: prefix sums, hit testing, selection ranges, scroll anchoring across reloads |
 | DiffView | Image snapshot | swift-snapshot-testing | ~10 snapshots: unified/side-by-side × light/dark/high contrast, word highlights, wrapped rows. Recorded per macOS major version |
 | Features | Unit | Swift Testing | Models driven through intents with fakes: switching worktrees cancels the old work, reloads keep the selection, banner states |
@@ -564,7 +567,7 @@ Each milestone ends with a version you can use daily.
 **M1 — Core (headless).** The `SeamCore` package: process runner, worktree listing, base
 detection, diff parsing, review-diff assembly. A debug CLI target that prints a worktree's parent,
 base, and file list.
-*Done when:* fixtures F1–F12 pass, the feat/b real-repo check passes, and detection meets the
+*Done when:* fixtures F1–F14 pass, the feat/b real-repo check passes, and detection meets the
 §8.7 budget.
 
 **M2 — Viewer MVP.** The three-pane window, worktree list with counts, file list, unified and

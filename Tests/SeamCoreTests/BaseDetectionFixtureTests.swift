@@ -202,6 +202,39 @@ import Testing
         #expect(detection.uniqueCommitCount == 1)
     }
 
+    @Test func f13DefaultBranchIsReviewedAgainstItsOwnRemote() async throws {
+        let repo = try await FixtureRepo()
+        let other = try await repo.worktree("other", branch: "other", from: "origin/main")
+        try await repo.commit("o.txt", "o\n", "o1", in: other)
+        try await repo.run("push", "-q", "origin", "other", in: other)
+        let stale = try await repo.sha("HEAD")
+        try await repo.run("push", "-q", "origin", "other:main", in: other)
+        try await repo.run("fetch", "-q", "origin")
+
+        let detection = try await detect(repo, repo.main)
+
+        #expect(detection.branch == "main")
+        #expect(detection.parent?.name == "origin/main")
+        #expect(detection.uniqueCommitCount == 0)
+        #expect(detection.base == stale)
+    }
+
+    @Test func f14FreshWorktreeWhoseParentMovedOn() async throws {
+        let repo = try await FixtureRepo()
+        let fresh = try await repo.worktree("fresh", branch: "fresh", from: "origin/main")
+        let head = try await repo.sha("HEAD")
+        let b = try await repo.worktree("b", branch: "b", from: "origin/main")
+        try await repo.commit("b.txt", "b\n", "b1", in: b)
+        try await repo.commit("main.txt", "m\n", "main moves")
+        try await repo.run("push", "-q", "origin", "main")
+
+        let detection = try await detect(repo, fresh)
+
+        #expect(detection.parent?.name == "origin/main")
+        #expect(detection.uniqueCommitCount == 0)
+        #expect(detection.base == head)
+    }
+
     @Test func f12FreshChildAtTheSameCommitIsNotAParent() async throws {
         let repo = try await FixtureRepo()
         let b = try await repo.worktree("b", branch: "b", from: "origin/main")
