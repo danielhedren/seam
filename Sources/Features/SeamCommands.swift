@@ -109,6 +109,7 @@ struct SeamCommands: Commands {
             item("Committed", key: "2") { $0.setScope(.committed) }
             item("Uncommitted", key: "3") { $0.setScope(.uncommitted) }
             Divider()
+            item("Mark as Viewed", key: "v") { $0.toggleViewed() }
             item("Collapse or Expand File", key: "x") { $0.toggleCollapsed() }
             item("Choose Base…", key: "b") { $0.showsBasePicker.toggle() }
             Button(String(localized: "Use Detected Base", bundle: .module)) {

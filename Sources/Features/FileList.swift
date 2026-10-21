@@ -22,6 +22,11 @@ struct FileList: View {
                     )
                     Text(verbatim: "+\(diff.additions)").foregroundStyle(.green)
                     Text(verbatim: "−\(diff.deletions)").foregroundStyle(.red)
+                    Text(
+                        "\(review.viewed.viewedCount(in: diff))/\(diff.files.count) viewed",
+                        bundle: .module
+                    )
+                    .foregroundStyle(.secondary)
                 }
                 Spacer()
                 Toggle(isOn: $review.flatFileList) {
@@ -42,7 +47,7 @@ struct FileList: View {
                 .padding(.bottom, 6)
             List(selection: selection(files, rows)) {
                 ForEach(rows) { row in
-                    FileRowView(row: row, files: files) {
+                    FileRowView(row: row, files: files, viewed: review.viewed) {
                         toggle(row)
                     }
                     .tag(row.id)
@@ -81,6 +86,7 @@ struct FileList: View {
 private struct FileRowView: View {
     let row: FileListRow
     let files: [ReviewFile]
+    let viewed: ViewedMarks
     let onToggle: () -> Void
 
     var body: some View {
@@ -112,6 +118,19 @@ private struct FileRowView: View {
                 Text(verbatim: "+\(file.diff.additions) −\(file.diff.deletions)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
+                switch viewed.status(of: file) {
+                case .viewed:
+                    Image(systemName: "checkmark").font(.caption).foregroundStyle(.secondary)
+                        .accessibilityLabel(String(localized: "Viewed", bundle: .module))
+                case .changedSinceViewed:
+                    Image(systemName: "circle.lefthalf.filled").font(.caption)
+                        .foregroundStyle(.orange)
+                        .accessibilityLabel(
+                            String(localized: "Changed since viewed", bundle: .module))
+                case .unviewed:
+                    Image(systemName: "checkmark").font(.caption).hidden()
+                        .accessibilityHidden(true)
+                }
             }
         }
         .padding(.leading, Double(row.depth) * 12)

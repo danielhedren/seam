@@ -11,6 +11,7 @@ extension FocusedValues {
 struct RepoWindow: View {
     @State private var session: RepoSession
     @Environment(OpenRequests.self) private var requests
+    @Environment(\.undoManager) private var undoManager
     @State private var columns = NavigationSplitViewVisibility.all
     @FocusState private var filterFocused: Bool
     @FocusState private var fileListFocused: Bool
@@ -22,6 +23,7 @@ struct RepoWindow: View {
     var body: some View {
         content
             .task {
+                session.undoManager = undoManager
                 await session.open()
                 session.select(requests.take(session.directory.path))
             }

@@ -23,6 +23,10 @@ public final class DiffScrollView: NSScrollView {
     public var onExpand: ((String, Int, ExpandDirection) -> Void)? {
         didSet { canvas.onExpand = onExpand }
     }
+    /// The viewed checkbox in a file header was clicked.
+    public var onToggleViewed: ((String) -> Void)? {
+        didSet { canvas.onToggleViewed = onToggleViewed }
+    }
     /// The file at the top of the view, for the file list to follow.
     public var onCurrentFileChange: ((String?) -> Void)?
 
@@ -55,9 +59,13 @@ public final class DiffScrollView: NSScrollView {
         sticky.font = canvas.font
         sticky.increaseContrast = canvas.increaseContrast
         sticky.isHidden = true
-        sticky.onClick = { [weak self] in
+        sticky.onClick = { [weak self] onViewed in
             guard let self, let file = sticky.file else { return }
-            onToggleCollapse?(file.diff.path)
+            if onViewed {
+                onToggleViewed?(file.diff.path)
+            } else {
+                onToggleCollapse?(file.diff.path)
+            }
         }
         addSubview(sticky)
         setAccessibilityLabel(String(localized: "Diff", bundle: .module))
@@ -158,6 +166,11 @@ public final class DiffScrollView: NSScrollView {
         scroll(toY: visibleTop + Double(delta) * layout.metrics.lineHeight * 3)
     }
 
+    public func setViewed(_ viewed: [String: ViewedMarks.Status]) {
+        canvas.setViewed(viewed)
+        updateSticky()
+    }
+
     // MARK: - Find
 
     /// Searches as the reader types, starting from the line at the top of the view.
@@ -249,11 +262,12 @@ public final class DiffScrollView: NSScrollView {
         let y = isFlipped ? content.minY - push : content.maxY - headerHeight + push
         sticky.frame = NSRect(x: content.minX, y: y, width: content.width, height: headerHeight)
         let reviewFile = canvas.review.files[file]
-        if sticky.file != reviewFile
-            || sticky.collapsed != canvas.collapsed.contains(reviewFile.diff.path)
-        {
+        let collapsed = canvas.collapsed.contains(reviewFile.diff.path)
+        let viewed = canvas.viewed[reviewFile.diff.path] ?? .unviewed
+        if sticky.file != reviewFile || sticky.collapsed != collapsed || sticky.viewed != viewed {
             sticky.file = reviewFile
-            sticky.collapsed = canvas.collapsed.contains(reviewFile.diff.path)
+            sticky.collapsed = collapsed
+            sticky.viewed = viewed
             sticky.needsDisplay = true
         }
         sticky.isHidden = false

@@ -254,6 +254,53 @@ import Testing
         #expect(review.syntax["notes.txt"] == nil)
     }
 
+    @Test func markingViewedAdvancesUndoesAndSurvivesAReopen() async throws {
+        let repo = try await FixtureRepo()
+        for name in ["a.txt", "b.txt", "c.txt"] { try repo.write(name, "\(name)\n") }
+        let store = MemoryStore()
+        let session = RepoSession(directory: repo.main, services: services(repo.git, store: store))
+        let undo = UndoManager()
+        undo.groupsByEvent = false
+        session.undoManager = undo
+        await session.open()
+        await session.settled()
+        let review = try #require(session.selected)
+        review.currentFile = "a.txt"
+
+        undo.beginUndoGrouping()
+        session.toggleViewed()
+        undo.endUndoGrouping()
+        #expect(review.viewedStatus("a.txt") == .viewed)
+        #expect(review.currentFile == "b.txt")
+        undo.undo()
+        #expect(review.viewedStatus("a.txt") == .unviewed)
+        undo.redo()
+        #expect(review.viewedStatus("a.txt") == .viewed)
+        await session.settled()
+
+        let reopened = RepoSession(directory: repo.main, services: services(repo.git, store: store))
+        await reopened.open()
+        await reopened.settled()
+        #expect(reopened.selected?.viewedStatus("a.txt") == .viewed)
+        #expect(reopened.selected?.viewedStatus("b.txt") == .unviewed)
+    }
+
+    @Test func editingAViewedFileMarksItChangedSinceViewed() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\n")
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        await session.settled()
+        session.toggleViewed("a.txt", advance: false)
+
+        try repo.write("a.txt", "two\n")
+        await session.apply(RepoChange(worktrees: [repo.main.path]))
+        await session.settled()
+
+        #expect(session.selected?.viewedStatus("a.txt") == .changedSinceViewed)
+        #expect(session.selected?.nextUnviewed(after: nil) == "a.txt")
+    }
+
     @Test func overrideWhoseRefIsGoneShowsABannerWithAWayBack() async throws {
         let repo = try await FixtureRepo()
         let session = RepoSession(directory: repo.main, services: services(repo.git))

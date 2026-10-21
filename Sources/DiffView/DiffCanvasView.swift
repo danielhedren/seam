@@ -13,6 +13,7 @@ final class DiffCanvasView: NSView {
     private(set) var mode = DiffLayoutMode.unified
     private(set) var collapsed: Set<String> = []
     private(set) var wraps = false
+    private(set) var viewed: [String: ViewedMarks.Status] = [:]
     /// Find matches by row; `isCurrent` marks the one the find bar points at.
     var findMatches: [Int: [(side: DiffSide, range: Range<Int>, isCurrent: Bool)]] = [:] {
         didSet { needsDisplay = true }
@@ -26,6 +27,7 @@ final class DiffCanvasView: NSView {
     var onToggleCollapse: ((String) -> Void)?
     var onFocusChange: ((Bool) -> Void)?
     var onExpand: ((String, Int, ExpandDirection) -> Void)?
+    var onToggleViewed: ((String) -> Void)?
     /// Nil follows the system's Increase Contrast setting; snapshot tests force it.
     var increaseContrastOverride: Bool?
     var increaseContrast: Bool {
@@ -85,11 +87,17 @@ final class DiffCanvasView: NSView {
         mode = content.mode
         collapsed = content.collapsed
         wraps = content.wraps
+        viewed = content.viewed
         let rows = DiffRowBuilder.rows(
             for: review, mode: mode, collapsed: collapsed, contents: content.contents,
             expansions: content.expansions, syntax: content.syntax)
         selection = nil
         relayout(rows, width: geometry.visibleWidth)
+    }
+
+    func setViewed(_ viewed: [String: ViewedMarks.Status]) {
+        self.viewed = viewed
+        needsDisplay = true
     }
 
     /// Returns whether row heights changed, which only happens when wrapping.
@@ -141,9 +149,11 @@ final class DiffCanvasView: NSView {
     private func draw(row index: Int, in rect: NSRect, palette: DiffPalette, context: CGContext) {
         switch layout.rows[index] {
         case .fileHeader(let file):
+            let path = review.files[file].diff.path
             DiffHeaderDrawing.draw(
-                review.files[file], collapsed: collapsed.contains(review.files[file].diff.path),
-                in: rect, font: font, palette: palette, context: context)
+                review.files[file], collapsed: collapsed.contains(path),
+                viewed: viewed[path] ?? .unviewed, in: rect, font: font, palette: palette,
+                context: context)
         case .hunkHeader(_, _, let text):
             fill(rect, palette.hunkBackground, context)
             drawText(

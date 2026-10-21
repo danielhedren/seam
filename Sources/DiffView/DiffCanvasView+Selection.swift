@@ -29,7 +29,19 @@ extension DiffCanvasView {
         guard let (side, position) = self.position(at: point) else { return }
         switch layout.rows[position.row] {
         case .fileHeader(let file):
-            onToggleCollapse?(review.files[file].diff.path)
+            let path = review.files[file].diff.path
+            let header = DiffHeaderDrawing.layout(
+                review.files[file], collapsed: collapsed.contains(path),
+                viewed: viewed[path] ?? .unviewed,
+                in: NSRect(
+                    x: 0, y: layout.top(of: position.row), width: bounds.width,
+                    height: layout.height(of: position.row)),
+                font: font, palette: .light)
+            if header.viewedFrame.contains(point) {
+                onToggleViewed?(path)
+            } else {
+                onToggleCollapse?(path)
+            }
             return
         case .gap(let file, let gap):
             let column = Int((point.x - geometry.unifiedTextX) / layout.metrics.characterWidth)

@@ -17,6 +17,7 @@ struct DiffRepresentable: NSViewRepresentable {
             var contentsVersion: Int
             var syntaxVersion: Int
             var wraps: Bool
+            var viewed: ViewedMarks
             var expansions: [String: [Int: GapExpansion]]
         }
         var shown: Shown?
@@ -30,6 +31,7 @@ struct DiffRepresentable: NSViewRepresentable {
         view.onToggleCollapse = { [session] path in session.toggleCollapsed(path) }
         view.onFocusChange = { [session] focused in session.diffHasFocus = focused }
         view.onCurrentFileChange = { [session] path in session.selected?.currentFile = path }
+        view.onToggleViewed = { [session] path in session.toggleViewed(path, advance: false) }
         view.onSearchResult = { [session] current, total in
             session.findResult = (current, total)
         }
@@ -45,10 +47,19 @@ struct DiffRepresentable: NSViewRepresentable {
         let shown = Coordinator.Shown(
             id: review.id, version: review.diffVersion, mode: review.mode,
             collapsed: review.collapsed, contentsVersion: review.contentsVersion,
-            syntaxVersion: review.syntaxVersion, wraps: review.wraps,
+            syntaxVersion: review.syntaxVersion, wraps: review.wraps, viewed: review.viewed,
             expansions: review.expansions)
         guard shown != context.coordinator.shown else { return }
         let previous = context.coordinator.shown
+        // A viewed toggle only redraws headers; rebuilding rows would cost a 20k-line diff 75 ms.
+        if var unmarked = previous, let content = review.content {
+            unmarked.viewed = shown.viewed
+            if unmarked == shown {
+                view.setViewed(content.viewed)
+                context.coordinator.shown = shown
+                return
+            }
+        }
         guard let content = review.content else {
             // Not loaded yet, or the worktree's directory went missing: show nothing stale.
             if previous != nil {

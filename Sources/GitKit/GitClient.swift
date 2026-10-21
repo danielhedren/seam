@@ -18,8 +18,10 @@ extension GitClient {
         try await run(arguments, in: directory, input: nil)
     }
 
-    public func string(_ arguments: [String], in directory: URL) async throws(GitError) -> String {
-        String(decoding: try await run(arguments, in: directory), as: UTF8.self)
+    public func string(_ arguments: [String], in directory: URL, input: Data? = nil)
+        async throws(GitError) -> String
+    {
+        String(decoding: try await run(arguments, in: directory, input: input), as: UTF8.self)
     }
 
     /// Output without the trailing newline, or nil when git exits non-zero.

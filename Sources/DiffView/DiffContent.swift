@@ -18,13 +18,17 @@ public struct DiffContent: Equatable, Sendable {
     /// Syntax highlights per file; lines are drawn plain until theirs arrive (SPEC §8.4).
     public var syntax: [String: FileSyntax]
     public var wraps: Bool
+    /// Viewed status per path, shown as each file header's checkbox (SPEC §7.4).
+    public var viewed: [String: ViewedMarks.Status]
 
     public init(
         review: ReviewDiff, mode: DiffLayoutMode = .unified, collapsed: Set<String> = [],
         contents: [String: FileContents] = [:], expansions: [String: [Int: GapExpansion]] = [:],
-        syntax: [String: FileSyntax] = [:], wraps: Bool = false
+        syntax: [String: FileSyntax] = [:], wraps: Bool = false,
+        viewed: [String: ViewedMarks.Status] = [:]
     ) {
         self.wraps = wraps
+        self.viewed = viewed
         self.review = review
         self.mode = mode
         self.collapsed = collapsed

@@ -26,6 +26,8 @@ final class WorktreeReview: Identifiable {
     private(set) var mode: DiffLayoutMode
     private(set) var collapsed: Set<String> = []
     private(set) var wraps = false
+    /// Files marked viewed, by path (SPEC §11).
+    private(set) var viewed = ViewedMarks()
     /// Full file contents for the current diff; empty until loaded.
     private(set) var contents: [String: FileContents] = [:]
     private(set) var contentsVersion = 0
@@ -96,11 +98,13 @@ final class WorktreeReview: Identifiable {
         if let scope = state?.scope.flatMap(ReviewScope.init) { self.scope = scope }
         if let mode = state?.mode.flatMap(DiffLayoutMode.init) { self.mode = mode }
         if let wraps = state?.wraps { self.wraps = wraps }
+        if let viewed = state?.viewed { self.viewed = viewed }
         baseOverride = override
     }
 
     var persistentState: RepoState.WorktreeState {
-        RepoState.WorktreeState(scope: scope.rawValue, mode: mode.rawValue, wraps: wraps)
+        RepoState.WorktreeState(
+            scope: scope.rawValue, mode: mode.rawValue, wraps: wraps, viewed: viewed)
     }
 
     // MARK: - Intents
@@ -117,6 +121,31 @@ final class WorktreeReview: Identifiable {
 
     func toggleWrap() {
         wraps.toggle()
+    }
+
+    /// Returns the mark the file had before, for undo; nil when there's no such file.
+    func toggleViewed(_ path: String) -> String?? {
+        guard let file = diff?.files.first(where: { $0.diff.path == path }) else { return nil }
+        let previous = viewed.marks[path]
+        viewed.toggle(file)
+        return .some(previous)
+    }
+
+    func restoreViewed(_ mark: String?, for path: String) {
+        viewed.setMark(mark, for: path)
+    }
+
+    func viewedStatus(_ path: String) -> ViewedMarks.Status {
+        diff?.files.first { $0.diff.path == path }.map(viewed.status) ?? .unviewed
+    }
+
+    /// The next file after `path`, in review order and wrapping, that isn't viewed.
+    func nextUnviewed(after path: String?) -> String? {
+        guard let files = diff?.files, !files.isEmpty else { return nil }
+        let start = files.firstIndex { $0.diff.path == path } ?? -1
+        return (1...files.count).lazy
+            .map { files[(start + $0 + files.count) % files.count] }
+            .first { viewed.status(of: $0) != .viewed }?.diff.path
     }
 
     func setOverride(_ ref: String?) {
@@ -158,7 +187,10 @@ final class WorktreeReview: Identifiable {
         diff.map {
             DiffContent(
                 review: $0, mode: mode, collapsed: collapsed, contents: contents,
-                expansions: expansions, syntax: syntax, wraps: wraps)
+                expansions: expansions, syntax: syntax, wraps: wraps,
+                viewed: Dictionary(
+                    $0.files.map { ($0.diff.path, viewed.status(of: $0)) },
+                    uniquingKeysWith: { first, _ in first }))
         }
     }
 

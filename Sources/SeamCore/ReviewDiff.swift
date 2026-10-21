@@ -168,10 +168,24 @@ public struct ReviewDiffBuilder: Sendable {
     private func untrackedFiles(_ worktree: URL) async throws(GitError) -> [ReviewFile] {
         let output = try await git.run(
             ["ls-files", "--others", "--exclude-standard", "-z"], in: worktree)
-        return output.split(separator: 0).map { field in
+        var files = output.split(separator: 0).map { field in
             let path = String(decoding: field, as: UTF8.self)
             return untracked(path, at: worktree.appending(path: path))
         }
+        // Untracked files have no blob until git hashes them; viewed marks need one (SPEC §11).
+        let regular = files.indices.filter { files[$0].diff.newMode != "120000" }
+        if !regular.isEmpty {
+            let input = Data(regular.map { files[$0].diff.path + "\n" }.joined().utf8)
+            let ids = try await git.string(
+                ["hash-object", "--no-filters", "--stdin-paths"], in: worktree, input: input
+            ).split(separator: "\n")
+            for (index, id) in zip(regular, ids) { files[index].diff.newBlob = String(id) }
+        }
+        for index in files.indices where files[index].diff.newMode == "120000" {
+            let target = files[index].diff.hunks.first?.lines.first?.text ?? ""
+            files[index].diff.newBlob = "link:" + target
+        }
+        return files
     }
 
     private func untracked(_ path: String, at url: URL) -> ReviewFile {

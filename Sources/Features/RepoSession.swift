@@ -220,6 +220,37 @@ final class RepoSession {
         diff.focus()
     }
 
+    /// The window's undo manager; viewed toggles are the only state changes that can be undone.
+    weak var undoManager: UndoManager?
+
+    /// `v`: toggles the current file's mark and, when it became viewed, moves to the next
+    /// unviewed file. Undo restores the mark exactly (SPEC §9).
+    func toggleViewed(_ path: String? = nil, advance: Bool = true) {
+        guard let review = selected, let path = path ?? review.currentFile,
+            let previous = review.toggleViewed(path)
+        else { return }
+        persist()
+        registerViewedUndo(review, path, previous)
+        if advance, review.viewedStatus(path) == .viewed,
+            let next = review.nextUnviewed(after: path), next != path
+        {
+            review.currentFile = next
+            diff.scroll(toFile: next)
+        }
+    }
+
+    private func registerViewedUndo(_ review: WorktreeReview, _ path: String, _ mark: String?) {
+        let current = review.viewed.marks[path]
+        undoManager?.registerUndo(withTarget: self) { session in
+            MainActor.assumeIsolated {
+                review.restoreViewed(mark, for: path)
+                session.persist()
+                session.registerViewedUndo(review, path, current)
+            }
+        }
+        undoManager?.setActionName(String(localized: "Mark as Viewed", bundle: .module))
+    }
+
     func toggleWrap() {
         selected?.toggleWrap()
         persist()
@@ -258,7 +289,7 @@ final class RepoSession {
         }
     }
 
-    private func persist() {
+    func persist() {
         guard let repository else { return }
         for review in reviews {
             repoState.worktrees[review.id] = review.persistentState

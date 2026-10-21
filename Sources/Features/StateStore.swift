@@ -6,12 +6,13 @@ import Highlighting
 import SeamCore
 import os
 
-/// What Seam remembers per repo (SPEC §11). Viewed state joins it in M4.
+/// What Seam remembers per repo (SPEC §11).
 public struct RepoState: Codable, Equatable, Sendable {
     public struct WorktreeState: Codable, Equatable, Sendable {
         public var scope: String?
         public var mode: String?
         public var wraps: Bool?
+        public var viewed: ViewedMarks?
     }
 
     /// Base override per branch: the chosen parent ref (SPEC §5.3).
