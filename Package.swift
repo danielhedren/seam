@@ -7,14 +7,19 @@ let strict: [SwiftSetting] = [
 
 let package = Package(
     name: "Seam",
+    defaultLocalization: "en",
     platforms: [.macOS(.v26)],
     products: [
         .library(name: "SeamCore", targets: ["SeamCore"]),
+        .library(name: "DiffView", targets: ["DiffView"]),
         .executable(name: "seam-debug", targets: ["seam-debug"]),
     ],
     targets: [
         .target(name: "GitKit", swiftSettings: strict),
         .target(name: "SeamCore", dependencies: ["GitKit"], swiftSettings: strict),
+        .target(
+            name: "DiffView", dependencies: ["SeamCore", "GitKit"],
+            resources: [.process("Resources")], swiftSettings: strict),
         .executableTarget(
             name: "seam-debug", dependencies: ["SeamCore", "GitKit"], swiftSettings: strict),
         .target(
@@ -26,6 +31,9 @@ let package = Package(
             resources: [.copy("Fixtures")],
             swiftSettings: strict
         ),
+        .testTarget(
+            name: "DiffViewTests", dependencies: ["DiffView", "SeamCore", "GitKit"],
+            swiftSettings: strict),
         .testTarget(
             name: "SeamCoreTests", dependencies: ["SeamCore", "GitKit", "TestSupport"],
             swiftSettings: strict),

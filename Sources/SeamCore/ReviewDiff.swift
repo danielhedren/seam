@@ -60,6 +60,11 @@ public struct ReviewDiff: Equatable, Sendable {
 
     public var additions: Int { files.reduce(0) { $0 + $1.diff.additions } }
     public var deletions: Int { files.reduce(0) { $0 + $1.diff.deletions } }
+
+    public init(scope: ReviewScope, files: [ReviewFile]) {
+        self.scope = scope
+        self.files = files
+    }
 }
 
 public struct ReviewDiffBuilder: Sendable {

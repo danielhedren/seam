@@ -258,7 +258,9 @@ selected file, and scope.
   similarity, then highlight the changed tokens. Unpaired lines get no word highlights.
 - **Expanding context:** each gap between hunks has controls for "↑ 20 lines", "↓ 20 lines" and
   "all". These use the full file contents from the base and the working tree.
-- Line numbers for both sides. Line wrapping is off by default (toggle `w`).
+- Line numbers for both sides. Line wrapping is off by default (toggle `w`). Without wrapping,
+  unified mode scrolls horizontally; split mode keeps each side at half the width and clips long
+  lines at the column edge, so both sides stay in view.
 - Text selection and copy work in both modes. In side-by-side mode a selection stays within one
   side.
 - Hunk header context (function name), as git shows it.
@@ -463,9 +465,10 @@ written down here.
 **Appearance**
 - Semantic system colours and the user's accent colour. Light and dark follow the system.
   Increase Contrast, Reduce Transparency and Reduce Motion are all honoured.
-- Diff colours are defined as named colour assets with light, dark and high-contrast variants.
-  Text on added and removed backgrounds must reach WCAG AA contrast (4.5:1), checked by a unit
-  test against the asset values.
+- Diff colours are defined in code (`DiffPalette`) with light, dark and high-contrast variants,
+  not as asset catalog colours, because `swift build` doesn't compile asset catalogs. Text,
+  markers and line numbers on every diff background must reach WCAG AA contrast (4.5:1), checked
+  by a unit test against those values.
 - **Colour is never the only signal:** added and removed lines also carry a `+` or `−` gutter
   marker, and file status shows as a letter.
 - Monospaced font for code (default SF Mono), system font for all chrome.
