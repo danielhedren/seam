@@ -69,7 +69,13 @@
     "Choose the base this worktree is compared with (b)" : {
 
     },
+    "Clear Menu" : {
+
+    },
     "Collapse" : {
+
+    },
+    "Collapse files when marked viewed" : {
 
     },
     "Collapse or Expand File" : {
@@ -88,6 +94,12 @@
 
     },
     "Context lines: %lld" : {
+
+    },
+    "Copy Path" : {
+
+    },
+    "Copy Relative Path" : {
 
     },
     "Couldn't install the seam command" : {
@@ -171,6 +183,9 @@
     "Hide Missing Worktrees" : {
 
     },
+    "Hide Whitespace Changes" : {
+
+    },
     "Ignore all" : {
 
     },
@@ -190,6 +205,9 @@
 
     },
     "Make Text Smaller" : {
+
+    },
+    "Mark as Not Viewed" : {
 
     },
     "Mark as Viewed" : {
@@ -241,6 +259,9 @@
 
     },
     "Open" : {
+
+    },
+    "Open Recent" : {
 
     },
     "Open Repository…" : {
@@ -296,6 +317,9 @@
 
     },
     "Retry" : {
+
+    },
+    "Reveal in Finder" : {
 
     },
     "Review" : {
