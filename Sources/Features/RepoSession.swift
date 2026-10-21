@@ -133,10 +133,15 @@ public final class RepoSession {
         if let selectedID, !reviews.contains(where: { $0.id == selectedID }) {
             self.selectedID = nil
         }
+        // Bounded: dozens of simultaneous git processes contend for the same pack files.
+        let limit = 8
         await withTaskGroup(of: Void.self) { group in
-            for review in reviews {
-                group.addTask { await review.refreshDetection() }
-                group.addTask { await review.refreshActivity() }
+            for (index, review) in reviews.enumerated() {
+                if index >= limit { await group.next() }
+                group.addTask {
+                    await review.refreshDetection()
+                    await review.refreshActivity()
+                }
             }
         }
     }
