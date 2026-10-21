@@ -84,13 +84,14 @@ public struct BaseDetector: Sendable {
         self.settings = settings
     }
 
-    public func detect(in worktree: URL, at revision: Revision = .head) async throws(GitError)
-        -> BaseDetection
+    /// `refs` lets several worktrees of one repo share a single ref listing.
+    public func detect(in worktree: URL, at revision: Revision = .head, refs: RefSnapshot? = nil)
+        async throws(GitError) -> BaseDetection
     {
         let interval = signposter.beginInterval("detect")
         defer { signposter.endInterval("detect", interval) }
 
-        let context = try await loadContext(worktree, revision)
+        let context = try await loadContext(worktree, revision, refs)
         let candidates = try await findCandidates(context)
         var ranked = ParentCandidate.ranked(candidates)
         guard let parent = ranked.first else {
@@ -140,19 +141,12 @@ public struct BaseDetector: Sendable {
 
     // MARK: - Steps
 
-    private struct RefRow {
-        var ref: String
-        var tip: String
-        var upstream: String
-        var committerDate: Int
-    }
-
     private struct Context {
         var directory: URL
         var head: String
         /// Full ref name of the reviewed branch.
         var branch: String?
-        var refs: [String: RefRow]
+        var refs: [String: RefSnapshot.Row]
         /// Refs that may be parents (SPEC §5.1 step 1, before descendant filtering).
         var eligible: Set<String>
         var upstream: String?
@@ -161,8 +155,8 @@ public struct BaseDetector: Sendable {
         var branchName: String? { branch.map(RefName.shortBranch) }
     }
 
-    private func loadContext(_ directory: URL, _ revision: Revision) async throws(GitError)
-        -> Context
+    private func loadContext(_ directory: URL, _ revision: Revision, _ snapshot: RefSnapshot?)
+        async throws(GitError) -> Context
     {
         let head: String
         let branch: String?
@@ -175,25 +169,11 @@ public struct BaseDetector: Sendable {
             branch = name.map { RefName.heads + $0 }
         }
 
-        let format = "%(refname)%00%(objectname)%00%(upstream)%00%(committerdate:unix)%00%(symref)"
-        let output = try await git.string(
-            ["for-each-ref", "--format=\(format)", "refs/heads", "refs/remotes"], in: directory)
-        var refs: [String: RefRow] = [:]
-        var symbolic: [String: String] = [:]
-        for row in output.split(separator: "\n") {
-            let fields = row.split(separator: "\0", omittingEmptySubsequences: false).map(
-                String.init)
-            guard fields.count == 5 else { continue }
-            if !fields[4].isEmpty {
-                symbolic[fields[0]] = fields[4]
-                continue
+        let snapshot =
+            if let snapshot { snapshot } else {
+                try await RefSnapshot.load(in: directory, git: git)
             }
-            refs[fields[0]] = RefRow(
-                ref: fields[0], tip: fields[1], upstream: fields[2],
-                committerDate: Int(fields[3]) ?? 0)
-        }
-
-        let remotes = try await git.string(["remote"], in: directory).split(separator: "\n")
+        let (refs, symbolic, remotes) = (snapshot.refs, snapshot.symbolic, snapshot.remotes)
         let upstream = branch.flatMap { refs[$0]?.upstream }.flatMap { $0.isEmpty ? nil : $0 }
         let defaultBase = resolveDefaultBase(refs, symbolic)
         var excluded: Set<String> = []
@@ -215,7 +195,7 @@ public struct BaseDetector: Sendable {
             upstream: upstream, defaultBase: defaultBase)
     }
 
-    private func resolveDefaultBase(_ refs: [String: RefRow], _ symbolic: [String: String])
+    private func resolveDefaultBase(_ refs: [String: RefSnapshot.Row], _ symbolic: [String: String])
         -> String?
     {
         let configured =
@@ -345,7 +325,8 @@ public struct BaseDetector: Sendable {
         return log?.split(separator: "\n").last.flatMap { Int($0) }
     }
 
-    private func candidate(_ row: RefRow, _ context: Context, count: Int?) async throws(GitError)
+    private func candidate(_ row: RefSnapshot.Row, _ context: Context, count: Int?)
+        async throws(GitError)
         -> ParentCandidate
     {
         let commitCount: Int
@@ -379,5 +360,43 @@ public struct BaseDetector: Sendable {
     private func line(_ arguments: [String], _ directory: URL) async throws(GitError) -> String {
         let output = try await git.string(arguments, in: directory)
         return output.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+/// Every branch and remote ref of a repo, which all its worktrees share (refs live in the common
+/// git dir), so one listing serves a whole refresh of the worktree list.
+public struct RefSnapshot: Sendable {
+    struct Row: Sendable {
+        var ref: String
+        var tip: String
+        var upstream: String
+        var committerDate: Int
+    }
+
+    var refs: [String: Row] = [:]
+    var symbolic: [String: String] = [:]
+    var remotes: [Substring] = []
+
+    public static func load(in directory: URL, git: any GitClient) async throws(GitError)
+        -> RefSnapshot
+    {
+        let format = "%(refname)%00%(objectname)%00%(upstream)%00%(committerdate:unix)%00%(symref)"
+        let output = try await git.string(
+            ["for-each-ref", "--format=\(format)", "refs/heads", "refs/remotes"], in: directory)
+        var snapshot = RefSnapshot()
+        for row in output.split(separator: "\n") {
+            let fields = row.split(separator: "\0", omittingEmptySubsequences: false).map(
+                String.init)
+            guard fields.count == 5 else { continue }
+            if !fields[4].isEmpty {
+                snapshot.symbolic[fields[0]] = fields[4]
+                continue
+            }
+            snapshot.refs[fields[0]] = Row(
+                ref: fields[0], tip: fields[1], upstream: fields[2],
+                committerDate: Int(fields[3]) ?? 0)
+        }
+        snapshot.remotes = try await git.string(["remote"], in: directory).split(separator: "\n")
+        return snapshot
     }
 }

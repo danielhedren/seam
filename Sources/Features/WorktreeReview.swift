@@ -240,7 +240,8 @@ final class WorktreeReview: Identifiable {
         }
     }
 
-    func refreshDetection() async {
+    /// `refs` comes from the session when it refreshes every row at once.
+    func refreshDetection(refs: RefSnapshot? = nil) async {
         guard !worktree.isMissing else {
             problem = .missingDirectory
             return
@@ -249,7 +250,7 @@ final class WorktreeReview: Identifiable {
             detection = try await BaseDetector(
                 git: services.git, settings: services.settings.detection
             )
-            .detect(in: worktree.path)
+            .detect(in: worktree.path, refs: refs)
         } catch {
             problem = .gitFailed(Self.describe(error))
         }

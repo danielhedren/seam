@@ -168,12 +168,17 @@ final class RepoSession {
     private func refreshRows(skippingSelected: Bool) async {
         let limit = 8
         let selectedID = selectedID
+        // Refs live in the common git dir, so one listing serves every row.
+        var refs: RefSnapshot?
+        if let repository {
+            refs = try? await RefSnapshot.load(in: repository.anchor, git: services.git)
+        }
         await withTaskGroup(of: Void.self) { group in
             for (index, review) in reviews.enumerated() {
                 if index >= limit { await group.next() }
-                group.addTask {
+                group.addTask { [refs] in
                     if !(skippingSelected && review.id == selectedID) {
-                        await review.refreshDetection()
+                        await review.refreshDetection(refs: refs)
                     }
                     await review.refreshActivity()
                 }
