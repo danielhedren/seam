@@ -251,6 +251,22 @@ final class RepoSession {
         undoManager?.setActionName(String(localized: "Mark as Viewed", bundle: .module))
     }
 
+    /// `o`: opens the reader's file and line in their editor, inside the reviewed worktree.
+    func openInEditor(_ command: EditorCommand = EditorCommand()) {
+        guard let review = selected, let location = diff.readingLocation else { return }
+        let path = review.worktree.path.appending(path: location.path).path
+        let line = command.commandLine(path: path, line: location.line)
+        let launcher = services.launcher
+        Task {
+            do {
+                try await launcher.run(line)
+            } catch {
+                let message = (error as? LaunchFailed)?.message ?? error.localizedDescription
+                review.report(.editorFailed(message))
+            }
+        }
+    }
+
     func toggleWrap() {
         selected?.toggleWrap()
         persist()

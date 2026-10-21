@@ -14,6 +14,7 @@ final class WorktreeReview: Identifiable {
         case missingDirectory
         case overrideGone(String)
         case gitFailed(String)
+        case editorFailed(String)
     }
 
     let id: String
@@ -267,6 +268,10 @@ final class WorktreeReview: Identifiable {
     /// Waits for the current load; tests use it instead of sleeping.
     func loaded() async {
         await loadTask?.value
+    }
+
+    func report(_ problem: Problem) {
+        self.problem = problem
     }
 
     func cancelLoading() {

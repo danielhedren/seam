@@ -1,3 +1,4 @@
+import AppKit
 import DiffView
 import Foundation
 import GitKit
@@ -301,6 +302,49 @@ import Testing
         #expect(session.selected?.nextUnviewed(after: nil) == "a.txt")
     }
 
+    @Test func openInEditorPassesTheWorktreePathAndReadingLine() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("dir with space/it's.txt", "one\ntwo\n")
+        let launcher = FakeLauncher()
+        var services = services(repo.git)
+        services.launcher = launcher
+        let session = RepoSession(directory: repo.main, services: services)
+        await session.open()
+        await session.settled()
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        session.diff.view = view
+        view.show(try #require(session.selected?.content), position: .top)
+
+        session.openInEditor(EditorCommand(template: "ed +{line} {path}"))
+
+        let path = repo.main.appending(path: "dir with space/it's.txt").path
+        #expect(await launcher.next() == "ed +1 " + EditorCommand.quoted(path))
+    }
+
+    @Test func aFailingEditorShowsItsMessageAsABanner() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\n")
+        let launcher = FakeLauncher()
+        await launcher.fail(with: "zed: command not found")
+        var services = services(repo.git)
+        services.launcher = launcher
+        let session = RepoSession(directory: repo.main, services: services)
+        await session.open()
+        await session.settled()
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        session.diff.view = view
+        view.show(try #require(session.selected?.content), position: .top)
+
+        session.openInEditor()
+        _ = await launcher.next()
+        let review = try #require(session.selected)
+        await until { review.problem != nil }
+
+        #expect(review.problem == .editorFailed("zed: command not found"))
+    }
+
     @Test func overrideWhoseRefIsGoneShowsABannerWithAWayBack() async throws {
         let repo = try await FixtureRepo()
         let session = RepoSession(directory: repo.main, services: services(repo.git))
@@ -447,5 +491,13 @@ import Testing
         ] as [([String], String?)])
     func defaultsPairsAreNotTakenForAPath(arguments: [String], expected: String?) {
         #expect(WelcomeView.launchPath(arguments) == expected)
+    }
+}
+
+@Suite struct EditorCommandTests {
+    @Test func pathsAreQuotedSoSpacesAndQuotesStayOneArgument() {
+        let line = EditorCommand(template: "code -g {path}:{line}").commandLine(
+            path: "/w/a b/it's.swift", line: 42)
+        #expect(line == "code -g '/w/a b/it'\\''s.swift':42")
     }
 }

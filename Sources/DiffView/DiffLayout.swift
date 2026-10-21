@@ -180,6 +180,18 @@ extension DiffLayout {
         return top(of: best ?? header)
     }
 
+    /// The first numbered line at or after `row` in the same file; a header row reads as the
+    /// hunk below it. Line 1 when the file has no numbered lines.
+    func location(atOrAfter row: Int) -> (file: Int, line: Int)? {
+        guard rows.indices.contains(row) else { return nil }
+        let file = rows[row].file
+        for index in row..<rows.count {
+            guard rows[index].file == file else { break }
+            if let number = Self.lineNumber(rows[index]).0 { return (file, number) }
+        }
+        return (file, 1)
+    }
+
     private static func lineNumber(_ row: DiffRow) -> (Int?, Bool) {
         switch row {
         case .line(_, let line):

@@ -191,6 +191,14 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
         #expect(split.anchor(atY: y, paths: paths)?.line == anchor.line)
     }
 
+    @Test func aHeaderRowReadsAsTheFirstLineBelowIt() {
+        let layout = layout(sampleReview())
+        #expect(layout.location(atOrAfter: 1)?.line == 1)
+        #expect(layout.location(atOrAfter: 4)?.line == 3)
+        #expect(layout.location(atOrAfter: 9)?.file == 1)
+        #expect(layout.location(atOrAfter: 9)?.line == 1)
+    }
+
     @Test func missingFileGivesNoPosition() {
         let anchor = ScrollAnchor(path: "gone.txt", line: 1, offset: 0)
         #expect(layout(sampleReview()).y(for: anchor, paths: paths) == nil)

@@ -99,6 +99,7 @@ public struct SeamServices: Sendable {
     public var detection: DetectionSettings
     /// Shared by every window, so its cache spans repos and reloads.
     public var highlighter: SyntaxHighlighter
+    var launcher: any CommandLauncher = ShellLauncher()
 
     public init(
         git: any GitClient, fileSystem: any FileSystem = LocalFileSystem(),

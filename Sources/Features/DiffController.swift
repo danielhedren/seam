@@ -17,5 +17,6 @@ final class DiffController {
     func scroll(toFile path: String) { view?.scroll(toFile: path) }
     func focus() { view?.focus() }
     func search(_ query: String) { view?.search(query) }
+    var readingLocation: (path: String, line: Int)? { view?.readingLocation }
     func moveToMatch(by delta: Int) { view?.moveToMatch(by: delta) }
 }

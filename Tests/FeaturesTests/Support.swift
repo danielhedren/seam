@@ -85,3 +85,26 @@ func services(
 ) -> SeamServices {
     SeamServices(git: git, watcher: SilentWatcher(), clock: clock, store: store)
 }
+
+/// Records launched command lines; `next()` waits for the next one.
+actor FakeLauncher: CommandLauncher {
+    private var lines: [String] = []
+    private var waiters: [CheckedContinuation<String, Never>] = []
+    var failure: String?
+
+    func fail(with message: String) { failure = message }
+
+    func run(_ commandLine: String) throws {
+        if waiters.isEmpty {
+            lines.append(commandLine)
+        } else {
+            waiters.removeFirst().resume(returning: commandLine)
+        }
+        if let failure { throw LaunchFailed(message: failure) }
+    }
+
+    func next() async -> String {
+        if !lines.isEmpty { return lines.removeFirst() }
+        return await withCheckedContinuation { waiters.append($0) }
+    }
+}

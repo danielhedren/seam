@@ -116,6 +116,16 @@ public final class DiffScrollView: NSScrollView {
         layout.anchor(atY: visibleTop + headerHeight, paths: canvas.paths)
     }
 
+    /// The file and line the reader is on, for "open in editor": the selection's line if there
+    /// is one, else the line under the sticky header.
+    public var readingLocation: (path: String, line: Int)? {
+        let y = canvas.selection.map { layout.top(of: $0.head.row) } ?? visibleTop + headerHeight
+        guard let row = layout.row(at: y), let location = layout.location(atOrAfter: row) else {
+            return nil
+        }
+        return (canvas.paths[location.file], location.line)
+    }
+
     public var currentFilePath: String? {
         guard let row = layout.row(at: visibleTop + headerHeight) else { return nil }
         let file = layout.rows[row].file

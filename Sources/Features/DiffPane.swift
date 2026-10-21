@@ -139,7 +139,7 @@ struct ProblemBanner: View {
                 }
             case .gitFailed:
                 Button(String(localized: "Retry", bundle: .module)) { session.reload() }
-            case .missingDirectory:
+            case .missingDirectory, .editorFailed:
                 EmptyView()
             }
         }
@@ -156,6 +156,8 @@ struct ProblemBanner: View {
         case .overrideGone(let ref):
             String(localized: "The chosen base \(ref) no longer exists.", bundle: .module)
         case .gitFailed(let detail): detail
+        case .editorFailed(let detail):
+            String(localized: "Couldn't open the editor: \(detail)", bundle: .module)
         }
     }
 }
