@@ -1,3 +1,4 @@
+import Foundation
 import GitKit
 import SeamCore
 
@@ -50,14 +51,11 @@ public struct DiffContent: Equatable, Sendable {
     /// Lines revealed per click on a gap's arrow.
     public static let expandStep = 20
 
-    /// Each file's new side split into lines, without the empty piece after a final newline.
-    var newLines: [String: [Substring]] {
-        contents.compactMapValues { contents in
-            guard let text = contents.new else { return nil }
-            var lines = text.split(separator: "\n", omittingEmptySubsequences: false)
-            if text.hasSuffix("\n") { lines.removeLast() }
-            return lines
-        }
+    /// A file's text split into lines, without the empty piece after a final newline.
+    static func lines(_ text: String) -> [Substring] {
+        var lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+        if text.hasSuffix("\n") { lines.removeLast() }
+        return lines
     }
 }
 
@@ -101,13 +99,15 @@ enum DiffRow: Equatable, Sendable {
     case split(file: Int, left: SideLine?, right: SideLine?)
     /// Binary, mode-only, empty or deferred files, which have no lines to show.
     case notice(file: Int, text: String)
+    /// Old and new image side by side.
+    case image(file: Int)
     /// Unchanged lines between hunks that aren't shown.
     case gap(file: Int, GapRow)
 
     var file: Int {
         switch self {
         case .fileHeader(let file), .hunkHeader(let file, _, _), .line(let file, _),
-            .split(let file, _, _), .notice(let file, _), .gap(let file, _):
+            .split(let file, _, _), .notice(let file, _), .gap(let file, _), .image(let file):
             file
         }
     }
@@ -129,11 +129,10 @@ enum DiffSide: Hashable, Sendable {
 }
 
 enum DiffRowBuilder {
-    /// `newLines` holds each file's new side split into lines, where it was loaded; files
-    /// without it get no gap rows.
+    /// Files without loaded `contents` get no gap rows, sizes or previews.
     static func rows(
         for review: ReviewDiff, mode: DiffLayoutMode, collapsed: Set<String> = [],
-        newLines: [String: [Substring]] = [:], expansions: [String: [Int: GapExpansion]] = [:],
+        contents: [String: FileContents] = [:], expansions: [String: [Int: GapExpansion]] = [:],
         tabWidth: Int = 4
     ) -> [DiffRow] {
         var rows: [DiffRow] = []
@@ -141,11 +140,16 @@ enum DiffRowBuilder {
         for (index, file) in review.files.enumerated() {
             rows.append(.fileHeader(file: index))
             guard !collapsed.contains(file.diff.path) else { continue }
-            if let notice = notice(for: file) {
+            let fileContents = contents[file.diff.path]
+            if let notice = notice(for: file, contents: fileContents) {
                 rows.append(.notice(file: index, text: notice))
+                if fileContents?.oldImage != nil || fileContents?.newImage != nil {
+                    rows.append(.image(file: index))
+                }
                 continue
             }
-            let lines = file.diff.newPath == nil ? nil : newLines[file.diff.path]
+            let lines =
+                file.diff.newPath == nil ? nil : fileContents?.new.map(DiffContent.lines)
             let fileExpansions = expansions[file.diff.path] ?? [:]
             var next = (old: 1, new: 1)
             func gap(_ number: Int, until end: Int) {
@@ -266,9 +270,20 @@ enum DiffRowBuilder {
             + section
     }
 
-    static func notice(for file: ReviewFile) -> String? {
+    static func notice(for file: ReviewFile, contents: FileContents? = nil) -> String? {
         if file.isDeferred { return String(localized: "Large file not loaded", bundle: .module) }
-        if file.diff.isBinary { return String(localized: "Binary file", bundle: .module) }
+        if file.diff.isBinary {
+            let sizes = [contents?.oldSize, contents?.newSize].map {
+                $0.map { ByteCountFormatter.string(fromByteCount: Int64($0), countStyle: .file) }
+            }
+            return switch (sizes[0], sizes[1]) {
+            case (let old?, let new?):
+                String(localized: "Binary file, \(old) → \(new)", bundle: .module)
+            case (nil, let new?): String(localized: "Binary file, \(new)", bundle: .module)
+            case (let old?, nil): String(localized: "Binary file, \(old) deleted", bundle: .module)
+            case (nil, nil): String(localized: "Binary file", bundle: .module)
+            }
+        }
         guard file.diff.hunks.isEmpty else { return nil }
         if let old = file.diff.oldMode, let new = file.diff.newMode, old != new,
             file.diff.status == .modified

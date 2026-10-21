@@ -124,6 +124,35 @@ struct DiffSnapshotTests {
         assertSnapshot(of: view, as: .image, named: "gaps-\(Self.os)")
     }
 
+    @Test func imagesPreviewSideBySideUnderTheirSizes() throws {
+        func png(_ color: NSColor, _ size: NSSize) throws -> Data {
+            let image = NSImage(size: size, flipped: false) { rect in
+                color.setFill()
+                rect.fill()
+                return true
+            }
+            let rep = try #require(image.tiffRepresentation.flatMap(NSBitmapImageRep.init))
+            return try #require(rep.representation(using: .png, properties: [:]))
+        }
+        var file = FileDiff(oldPath: "logo.png", newPath: "logo.png", status: .modified)
+        file.isBinary = true
+        let content = DiffContent(
+            review: ReviewDiff(scope: .all, files: [ReviewFile(diff: file)]),
+            contents: [
+                "logo.png": FileContents(
+                    oldSize: 1200, newSize: 2400,
+                    oldImage: try png(.systemBlue, NSSize(width: 80, height: 40)),
+                    newImage: try png(.systemOrange, NSSize(width: 40, height: 80)))
+            ])
+        let view = DiffScrollView()
+        view.appearance = NSAppearance(named: .aqua)
+        view.increaseContrastOverride = false
+        view.frame = NSRect(x: 0, y: 0, width: 700, height: 340)
+        view.show(content, position: .top)
+        view.layoutSubtreeIfNeeded()
+        assertSnapshot(of: view, as: .image, named: "image-\(Self.os)")
+    }
+
     @Test func collapsedFileShowsOnlyItsHeader() {
         let view = view(.unified, .aqua, collapsed: ["Sources/Order.swift"])
         assertSnapshot(of: view, as: .image, named: "collapsed-\(Self.os)")

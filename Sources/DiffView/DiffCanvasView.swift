@@ -31,6 +31,14 @@ final class DiffCanvasView: NSView {
     private var geometry = Geometry()
     private var lineCache: [LineKey: CTLine] = [:]
     private var dragStart: TextPosition?
+    private var contents: [String: FileContents] = [:]
+    /// Decoded previews by file index and side (true for new); decoded on first draw.
+    private var images: [ImageKey: NSImage?] = [:]
+
+    private struct ImageKey: Hashable {
+        var file: Int
+        var isNew: Bool
+    }
     private let signposter = OSSignposter(subsystem: "com.danielhedren.seam", category: "DiffView")
 
     init(font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular)) {
@@ -67,11 +75,13 @@ final class DiffCanvasView: NSView {
         let interval = signposter.beginInterval("layoutDiff")
         defer { signposter.endInterval("layoutDiff", interval) }
         review = content.review
+        contents = content.contents
+        images.removeAll()
         mode = content.mode
         collapsed = content.collapsed
         layout = DiffLayout(
             rows: DiffRowBuilder.rows(
-                for: review, mode: mode, collapsed: collapsed, newLines: content.newLines,
+                for: review, mode: mode, collapsed: collapsed, contents: content.contents,
                 expansions: content.expansions),
             metrics: layout.metrics)
         lineCache.removeAll(keepingCapacity: true)
@@ -128,6 +138,8 @@ final class DiffCanvasView: NSView {
             drawText(
                 text, key: LineKey(row: index, side: .unified), x: geometry.unifiedTextX,
                 rowTop: rect.minY, color: palette.gutterText, context: context)
+        case .image(let file):
+            drawImages(file: file, in: rect, palette: palette, context: context)
         case .gap(_, let gap):
             fill(rect, palette.hunkBackground, context)
             drawText(
@@ -243,6 +255,40 @@ final class DiffCanvasView: NSView {
                 String(localized: "⊘ no newline at end of file", bundle: .module), key: nil, x: x,
                 rowTop: rowTop,
                 color: palette.gutterText, context: context)
+        }
+    }
+
+    /// Old on the left, new on the right, each fitted into its half with its aspect ratio kept.
+    private func drawImages(
+        file: Int, in rect: NSRect, palette: DiffPalette, context: CGContext
+    ) {
+        let path = review.files[file].diff.path
+        fill(
+            NSRect(x: rect.midX, y: rect.minY + 8, width: 1, height: rect.height - 16),
+            palette.separator, context)
+        for isNew in [false, true] {
+            let half = NSRect(
+                x: rect.minX + (isNew ? rect.width / 2 : 0), y: rect.minY, width: rect.width / 2,
+                height: rect.height
+            ).insetBy(dx: 16, dy: 12)
+            let key = ImageKey(file: file, isNew: isNew)
+            if images[key] == nil {
+                let data = isNew ? contents[path]?.newImage : contents[path]?.oldImage
+                images[key] = .some(data.flatMap(NSImage.init(data:)))
+            }
+            guard let image = images[key] ?? nil, image.size.width > 0, image.size.height > 0
+            else {
+                fill(half, palette.emptySide, context)
+                continue
+            }
+            let scale = min(half.width / image.size.width, half.height / image.size.height, 1)
+            let size = NSSize(width: image.size.width * scale, height: image.size.height * scale)
+            let target = NSRect(
+                x: half.midX - size.width / 2, y: half.midY - size.height / 2, width: size.width,
+                height: size.height)
+            image.draw(
+                in: target, from: .zero, operation: .sourceOver, fraction: 1,
+                respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
         }
     }
 
@@ -413,6 +459,8 @@ final class DiffCanvasView: NSView {
         case .hunkHeader(_, _, let text), .notice(_, let text): return text
         case .gap(_, let gap):
             return String(localized: "\(gap.hidden) unchanged lines hidden", bundle: .module)
+        case .image:
+            return String(localized: "Image preview, old and new", bundle: .module)
         case .line(_, let line):
             return describe(line.kind, line.new ?? line.old, isOld: line.new == nil, line.text)
         case .split(_, let left, let right):

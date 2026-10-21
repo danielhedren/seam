@@ -40,7 +40,7 @@ import Testing
         var content = content
         content.expansions = expansions.isEmpty ? [:] : [path: expansions]
         return DiffRowBuilder.rows(
-            for: content.review, mode: .unified, newLines: content.newLines,
+            for: content.review, mode: .unified, contents: content.contents,
             expansions: content.expansions)
     }
 

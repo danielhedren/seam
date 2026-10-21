@@ -8,6 +8,7 @@ struct DiffLayout: Equatable, Sendable {
         var lineHeight: Double
         var fileHeaderHeight: Double
         var characterWidth: Double
+        var imageHeight = 240.0
     }
 
     let rows: [DiffRow]
@@ -26,7 +27,13 @@ struct DiffLayout: Equatable, Sendable {
         var columns = 0
         for row in rows {
             offsets.append(y)
-            y += row.isFileHeader ? metrics.fileHeaderHeight : metrics.lineHeight
+            let height =
+                switch row {
+                case .fileHeader: metrics.fileHeaderHeight
+                case .image: metrics.imageHeight
+                default: metrics.lineHeight
+                }
+            y += height
             columns = max(columns, Self.columns(row))
         }
         offsets.append(y)
@@ -86,7 +93,7 @@ struct DiffLayout: Equatable, Sendable {
         case .split(_, let left, let right): max(left?.text.count ?? 0, right?.text.count ?? 0)
         case .hunkHeader(_, _, let text), .notice(_, let text): text.count
         case .gap(_, let gap): DiffRowBuilder.gapLabel(gap).text.count
-        case .fileHeader: 0
+        case .fileHeader, .image: 0
         }
     }
 }
