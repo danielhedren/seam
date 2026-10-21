@@ -1,5 +1,5 @@
 #!/bin/sh
-# Regenerates Tests/GitKitTests/Fixtures/*.patch from real git output (SPEC §10).
+# Regenerates Tests/GitKitTests/Fixtures from real git output (SPEC §10).
 set -eu
 out="$(cd "$(dirname "$0")/.." && pwd)/Tests/GitKitTests/Fixtures"
 work="$(mktemp -d)"
@@ -44,3 +44,21 @@ git add -A
 flags='diff --cached --no-ext-diff --no-color --no-textconv --histogram -M -C --src-prefix=a/ --dst-prefix=b/ -U3'
 git -c core.quotepath=off $flags > "$out/worktree-changes.patch"
 echo "wrote $out/worktree-changes.patch"
+
+# Status on top of the staged changes: unstaged edits, untracked and ignored files.
+printf 'one\nTWO\nthree, unstaged\n' > modified.txt
+printf 'untracked\n' > 'untracked file.txt'
+printf 'ignored.log\n' > .gitignore
+printf 'log\n' > ignored.log
+git -c core.quotepath=off status --porcelain=v2 -z --branch --ignored --untracked-files=all \
+    > "$out/status.v2z"
+
+# An unmerged path needs a conflict, so it comes from its own repository.
+mkdir "$work/conflict" && cd "$work/conflict"
+git init -q -b main
+printf 'base\n' > both.txt && git add -A && git commit -q -m base
+git checkout -q -b other && printf 'other\n' > both.txt && git commit -q -am other
+git checkout -q main && printf 'main\n' > both.txt && git commit -q -am main
+git merge -q other > /dev/null 2>&1 || true
+git -c core.quotepath=off status --porcelain=v2 -z > "$out/status-unmerged.v2z"
+echo "wrote $out/status.v2z and status-unmerged.v2z"

@@ -134,3 +134,30 @@ import Testing
         #expect(worktrees.allSatisfy { !$0.isMissing })
     }
 }
+
+@Suite struct WorktreeActivityTests {
+    @Test func countsStagedUnstagedAndUntrackedFiles() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("README.md", "edited\n")
+        try repo.write("staged.txt", "s\n")
+        try await repo.run("add", "staged.txt")
+        try repo.write("dir/untracked.txt", "u\n")
+        try repo.write(".gitignore", "*.log\n")
+        try repo.write("build.log", "ignored\n")
+
+        let activity = try await WorktreeActivityService(git: repo.git).activity(of: repo.main)
+
+        #expect(activity.uncommittedFiles == 4)
+        #expect(activity.lastChange != nil)
+    }
+
+    @Test func cleanWorktreeReportsTheHeadCommitTime() async throws {
+        let repo = try await FixtureRepo()
+        let committed = try await repo.run("log", "-1", "--format=%ct")
+
+        let activity = try await WorktreeActivityService(git: repo.git).activity(of: repo.main)
+
+        #expect(activity.uncommittedFiles == 0)
+        #expect(activity.lastChange == Date(timeIntervalSince1970: try #require(Double(committed))))
+    }
+}

@@ -2,6 +2,11 @@ import Foundation
 import GitKit
 
 public struct Repository: Equatable, Sendable {
+    public init(commonDirectory: URL, anchor: URL) {
+        self.commonDirectory = commonDirectory
+        self.anchor = anchor
+    }
+
     /// `git rev-parse --git-common-dir`, shared by every worktree; identifies the repo.
     public var commonDirectory: URL
     /// A worktree to run repo-wide commands from.
@@ -18,6 +23,25 @@ public struct Worktree: Equatable, Sendable, Identifiable {
     public var isLocked: Bool
     public var isPrunable: Bool
     public var isMissing: Bool
+    /// The worktree's own git dir: the common dir for the main worktree,
+    /// `<common>/worktrees/<name>` for a linked one.
+    public var gitDirectory: URL?
+
+    public init(
+        path: URL, head: String? = nil, branch: String? = nil, isMain: Bool = false,
+        isDetached: Bool = false, isLocked: Bool = false, isPrunable: Bool = false,
+        isMissing: Bool = false, gitDirectory: URL? = nil
+    ) {
+        self.path = path
+        self.head = head
+        self.branch = branch
+        self.isMain = isMain
+        self.isDetached = isDetached
+        self.isLocked = isLocked
+        self.isPrunable = isPrunable
+        self.isMissing = isMissing
+        self.gitDirectory = gitDirectory
+    }
 
     public var id: String { path.path }
     public var name: String { path.lastPathComponent }
@@ -60,9 +84,24 @@ public struct RepositoryService: Sendable {
                 isDetached: entry.isDetached,
                 isLocked: entry.lockReason != nil,
                 isPrunable: entry.prunableReason != nil,
-                isMissing: !fileSystem.directoryExists(path)
+                isMissing: !fileSystem.directoryExists(path),
+                gitDirectory: index == 0
+                    ? repository.commonDirectory : linkedGitDirectory(path)
             )
         }
+    }
+}
+
+extension RepositoryService {
+    /// A linked worktree's `.git` is a file containing `gitdir: <path>`.
+    private func linkedGitDirectory(_ worktree: URL) -> URL? {
+        guard let data = try? fileSystem.contents(of: worktree.appending(path: ".git")) else {
+            return nil
+        }
+        let text = String(decoding: data, as: UTF8.self)
+        guard text.hasPrefix("gitdir: ") else { return nil }
+        let path = text.dropFirst("gitdir: ".count).trimmingCharacters(in: .newlines)
+        return URL(fileURLWithPath: path, isDirectory: true, relativeTo: worktree).absoluteURL
     }
 }
 

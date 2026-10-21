@@ -411,7 +411,10 @@ This is where the project's performance risk lies.
 - FSEvents watches each worktree directory, honouring `.gitignore` (events under ignored paths are
   dropped), and the repo's common git dir (`refs/`, `packed-refs`, `HEAD`, `worktrees/*/HEAD`,
   `index`).
-- Events are debounced 300 ms. A working-tree change refreshes that worktree's diff and counts, and
+- Events are coalesced: the first relevant event opens a 300 ms window, and everything arriving
+  within it is delivered as one change. Unlike a trailing debounce, continuous writes can't
+  postpone a reload indefinitely. Paths git ignores (`git check-ignore`) are dropped before they
+  can open a window. A working-tree change refreshes that worktree's diff and counts, and
   a ref change re-runs base detection for every worktree in the repo.
 - Hidden worktrees refresh only their row counts (cheap: `git status --porcelain=v2 -z` plus the
   cached unique-commit count). Only the selected worktree's full diff is recomputed.

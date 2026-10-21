@@ -6,6 +6,7 @@ public protocol FileSystem: Sendable {
     func symbolicLinkDestination(of url: URL) -> String?
     func isExecutable(_ url: URL) -> Bool
     func directoryExists(_ url: URL) -> Bool
+    func modificationDate(of url: URL) -> Date?
 }
 
 public struct LocalFileSystem: FileSystem {
@@ -32,5 +33,10 @@ public struct LocalFileSystem: FileSystem {
         var isDirectory: ObjCBool = false
         return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
             && isDirectory.boolValue
+    }
+
+    public func modificationDate(of url: URL) -> Date? {
+        let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
+        return attributes?[.modificationDate] as? Date
     }
 }
