@@ -1,16 +1,15 @@
 import Foundation
 import GitKit
-import TestSupport
 
 /// A throwaway repository with a local bare `origin`, built from real git commands.
-struct FixtureRepo {
-    let directory: TemporaryDirectory
-    let git: HermeticGit
+public struct FixtureRepo: Sendable {
+    public let directory: TemporaryDirectory
+    public let git: HermeticGit
     /// The main worktree.
-    let main: URL
-    let origin: URL
+    public let main: URL
+    public let origin: URL
 
-    init() async throws {
+    public init() async throws {
         directory = try TemporaryDirectory()
         let root = directory.resolved
         git = HermeticGit(home: root)
@@ -25,14 +24,16 @@ struct FixtureRepo {
     }
 
     @discardableResult
-    func run(_ arguments: String..., in worktree: URL? = nil) async throws -> String {
+    public func run(_ arguments: String..., in worktree: URL? = nil) async throws -> String {
         try await git.string(arguments, in: worktree ?? main).trimmingCharacters(
             in: .whitespacesAndNewlines)
     }
 
     /// Writes `file` and commits it; returns the new commit's SHA.
     @discardableResult
-    func commit(_ file: String, _ content: String, _ message: String, in worktree: URL? = nil)
+    public func commit(
+        _ file: String, _ content: String, _ message: String, in worktree: URL? = nil
+    )
         async throws
         -> String
     {
@@ -43,7 +44,7 @@ struct FixtureRepo {
         return try await run("rev-parse", "HEAD", in: directory)
     }
 
-    func write(_ file: String, _ content: String, in worktree: URL? = nil) throws {
+    public func write(_ file: String, _ content: String, in worktree: URL? = nil) throws {
         let url = (worktree ?? main).appending(path: file)
         try FileManager.default.createDirectory(
             at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -51,13 +52,13 @@ struct FixtureRepo {
     }
 
     /// Adds a worktree on a new branch cut from `start`.
-    func worktree(_ name: String, branch: String, from start: String) async throws -> URL {
+    public func worktree(_ name: String, branch: String, from start: String) async throws -> URL {
         let path = directory.resolved.appending(path: "wt-\(name)", directoryHint: .isDirectory)
         try await run("worktree", "add", "-q", "--no-track", "-b", branch, path.path, start)
         return path
     }
 
-    func sha(_ revision: String) async throws -> String {
+    public func sha(_ revision: String) async throws -> String {
         try await run("rev-parse", revision)
     }
 }

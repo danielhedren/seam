@@ -12,6 +12,7 @@ let package = Package(
     products: [
         .library(name: "SeamCore", targets: ["SeamCore"]),
         .library(name: "DiffView", targets: ["DiffView"]),
+        .library(name: "Features", targets: ["Features"]),
         .executable(name: "seam-debug", targets: ["seam-debug"]),
     ],
     targets: [
@@ -19,6 +20,9 @@ let package = Package(
         .target(name: "SeamCore", dependencies: ["GitKit"], swiftSettings: strict),
         .target(
             name: "DiffView", dependencies: ["SeamCore", "GitKit"],
+            resources: [.process("Resources")], swiftSettings: strict),
+        .target(
+            name: "Features", dependencies: ["DiffView", "SeamCore", "GitKit"],
             resources: [.process("Resources")], swiftSettings: strict),
         .executableTarget(
             name: "seam-debug", dependencies: ["SeamCore", "GitKit"], swiftSettings: strict),
@@ -33,6 +37,10 @@ let package = Package(
         ),
         .testTarget(
             name: "DiffViewTests", dependencies: ["DiffView", "SeamCore", "GitKit"],
+            swiftSettings: strict),
+        .testTarget(
+            name: "FeaturesTests",
+            dependencies: ["Features", "DiffView", "SeamCore", "GitKit", "TestSupport"],
             swiftSettings: strict),
         .testTarget(
             name: "SeamCoreTests", dependencies: ["SeamCore", "GitKit", "TestSupport"],

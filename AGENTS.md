@@ -55,7 +55,7 @@ spec disagree, stop and ask; do not pick one silently.
 - A bug fix starts with a failing test. A misdetected base becomes a new fixture in §5.2.
 - Test the ordinary success path, not only failures and edge cases.
 - Hermetic git in tests: `GIT_CONFIG_GLOBAL=/dev/null`, `GIT_CONFIG_NOSYSTEM=1`, fixed author,
-  committer and dates. Use the fixture builder in `Tests/SeamCoreTests/Support/`.
+  committer and dates. Use the fixture builder `FixtureRepo` in `Tests/TestSupport/`.
 - No sleeps. Anything time-based takes a `Clock`.
 - Swift Testing (`@Test`, `#expect`, `#require`) for everything except performance baselines and
   UI tests (XCTest). Name tests after behaviour.

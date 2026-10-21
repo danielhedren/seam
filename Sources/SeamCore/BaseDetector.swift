@@ -112,6 +112,12 @@ public struct BaseDetector: Sendable {
             candidates: ranked)
     }
 
+    /// The base for a user-chosen parent (SPEC §5.3); nil when `ref` no longer resolves or
+    /// shares no history with HEAD.
+    public func base(forParent ref: String, in worktree: URL) async throws(GitError) -> String? {
+        try await git.optionalLine(["merge-base", ref, "HEAD"], in: worktree)
+    }
+
     // MARK: - Steps
 
     private struct RefRow {

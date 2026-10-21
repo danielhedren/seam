@@ -1,5 +1,6 @@
 import Foundation
 import GitKit
+import TestSupport
 import Testing
 
 @testable import SeamCore

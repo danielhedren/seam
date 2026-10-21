@@ -124,15 +124,19 @@ public actor RepoMonitor {
         self.window = window
     }
 
+    /// Watching starts before this returns, so a write right after it is seen.
     public nonisolated func changes() -> AsyncStream<RepoChange> {
-        AsyncStream { continuation in
-            let task = Task { await self.run(continuation) }
+        let events = watcher.events(for: classifier.watchedDirectories)
+        return AsyncStream { continuation in
+            let task = Task { await self.run(events, continuation) }
             continuation.onTermination = { _ in task.cancel() }
         }
     }
 
-    private func run(_ continuation: AsyncStream<RepoChange>.Continuation) async {
-        for await paths in watcher.events(for: classifier.watchedDirectories) {
+    private func run(
+        _ events: AsyncStream<[String]>, _ continuation: AsyncStream<RepoChange>.Continuation
+    ) async {
+        for await paths in events {
             let change = await relevantChange(paths)
             guard !change.isEmpty else { continue }
             pending.merge(change)
