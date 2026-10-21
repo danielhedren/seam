@@ -95,6 +95,9 @@ final class DiffStickyHeaderView: NSView {
     var increaseContrast = false
     /// Called with true when the click was on the viewed checkbox.
     var onClick: ((_ onViewed: Bool) -> Void)?
+    var menuForFile: (() -> NSMenu?)?
+
+    override func menu(for event: NSEvent) -> NSMenu? { menuForFile?() }
 
     override var isFlipped: Bool { true }
 

@@ -28,6 +28,14 @@ final class DiffCanvasView: NSView {
     var onFocusChange: ((Bool) -> Void)?
     var onExpand: ((String, Int, ExpandDirection) -> Void)?
     var onToggleViewed: ((String) -> Void)?
+    var menuForFile: ((String) -> NSMenu?)?
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let point = convert(event.locationInWindow, from: nil)
+        guard let row = layout.row(at: point.y), case .fileHeader(let file) = layout.rows[row]
+        else { return super.menu(for: event) }
+        return menuForFile?(review.files[file].diff.path)
+    }
     /// Nil follows the system's Increase Contrast setting; snapshot tests force it.
     var increaseContrastOverride: Bool?
     var increaseContrast: Bool {

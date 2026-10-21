@@ -1,3 +1,4 @@
+import AppKit
 import DiffView
 import Foundation
 import GitKit
@@ -313,11 +314,15 @@ final class RepoSession {
     }
 
     /// `o`: opens the reader's file and line in their editor, inside the reviewed worktree.
-    func openInEditor(_ command: EditorCommand? = nil) {
-        guard let review = selected, let location = diff.readingLocation else { return }
+    /// Without a `file`, opens what the reader is on; with one, its first changed line.
+    func openInEditor(_ command: EditorCommand? = nil, file: String? = nil) {
+        guard let review = selected,
+            let location = file.map({ ($0, review.firstChangedLine(of: $0)) })
+                ?? diff.readingLocation
+        else { return }
         let command = command ?? services.settings.editor
-        let path = review.worktree.path.appending(path: location.path).path
-        let line = command.commandLine(path: path, line: location.line)
+        let path = review.worktree.path.appending(path: location.0).path
+        let line = command.commandLine(path: path, line: location.1)
         let launcher = services.launcher
         Task {
             do {
@@ -327,6 +332,19 @@ final class RepoSession {
                 review.report(.editorFailed(message))
             }
         }
+    }
+
+    /// The file's absolute path in the reviewed worktree, or its path in the repository.
+    func copyPath(_ file: String, relative: Bool, to pasteboard: NSPasteboard = .general) {
+        guard let review = selected else { return }
+        let text = relative ? file : review.worktree.path.appending(path: file).path
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+    }
+
+    func revealInFinder(_ file: String) {
+        guard let review = selected else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([review.worktree.path.appending(path: file)])
     }
 
     func toggleWrap() {

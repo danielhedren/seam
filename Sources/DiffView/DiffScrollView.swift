@@ -23,6 +23,15 @@ public final class DiffScrollView: NSScrollView {
     public var onExpand: ((String, Int, ExpandDirection) -> Void)? {
         didSet { canvas.onExpand = onExpand }
     }
+    /// The context menu for a file header, by path.
+    public var menuForFile: ((String) -> NSMenu?)? {
+        didSet {
+            canvas.menuForFile = menuForFile
+            sticky.menuForFile = { [weak self] in
+                self?.sticky.file.flatMap { self?.menuForFile?($0.diff.path) }
+            }
+        }
+    }
     /// The viewed checkbox in a file header was clicked.
     public var onToggleViewed: ((String) -> Void)? {
         didSet { canvas.onToggleViewed = onToggleViewed }

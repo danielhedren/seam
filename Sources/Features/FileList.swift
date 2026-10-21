@@ -51,6 +51,11 @@ struct FileList: View {
                         toggle(row)
                     }
                     .tag(row.id)
+                    .contextMenu {
+                        if case .file(let index) = row.kind {
+                            FileContextMenu(path: files[index].diff.path, session: session)
+                        }
+                    }
                 }
             }
         }

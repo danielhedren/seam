@@ -144,6 +144,13 @@ final class WorktreeReview: Identifiable {
         viewed.setMark(mark, for: path)
     }
 
+    /// Where "open in editor" lands for a whole file: its first hunk's first new line.
+    func firstChangedLine(of path: String) -> Int {
+        guard let hunk = diff?.files.first(where: { $0.diff.path == path })?.diff.hunks.first
+        else { return 1 }
+        return max(hunk.newStart, 1)
+    }
+
     func viewedStatus(_ path: String) -> ViewedMarks.Status {
         diff?.files.first { $0.diff.path == path }.map(viewed.status) ?? .unviewed
     }
