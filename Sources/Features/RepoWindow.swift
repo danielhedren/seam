@@ -23,6 +23,7 @@ struct RepoWindow: View {
             .task {
                 session.undoManager = undoManager
                 await session.open()
+                requests.recent = await session.recentRepositories()
                 await handle(requests.take(session.directory.path))
             }
             .onChange(of: requests.pending) {

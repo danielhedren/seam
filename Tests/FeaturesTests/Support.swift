@@ -20,6 +20,7 @@ actor MemoryStore: StateStore {
 
     func recentRepositories() -> [URL] { opened }
     func noteOpened(_ directory: URL) { opened.append(directory) }
+    func clearRecent() { opened = [] }
 }
 
 /// Never reports changes; tests deliver `RepoChange`s directly.

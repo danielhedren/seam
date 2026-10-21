@@ -33,6 +33,7 @@ public protocol StateStore: Sendable {
     func save(_ state: RepoState, for repository: Repository) async
     func recentRepositories() async -> [URL]
     func noteOpened(_ directory: URL) async
+    func clearRecent() async
 }
 
 /// JSON files under `~/Library/Application Support/Seam/`. Nothing is written into the repo.
@@ -56,6 +57,10 @@ actor JSONStateStore: StateStore {
         (read([String].self, from: root.appending(path: "repos.json")) ?? []).map {
             URL(fileURLWithPath: $0, isDirectory: true)
         }
+    }
+
+    func clearRecent() {
+        write([String](), to: root.appending(path: "repos.json"))
     }
 
     func noteOpened(_ directory: URL) {

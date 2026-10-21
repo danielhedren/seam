@@ -4,11 +4,21 @@ import SwiftUI
 /// The menu bar, rendered from `CommandCatalog` (SPEC §9).
 struct SeamCommands: Commands {
     @FocusedValue(\.repoSession) private var session
+    private let requests: OpenRequests
     private let openRepository: () -> Void
+    private let openRecent: (URL) -> Void
+    private let clearRecent: () -> Void
     private let installCommandLineTool: () -> Void
 
-    init(openRepository: @escaping () -> Void, installCommandLineTool: @escaping () -> Void) {
+    init(
+        requests: OpenRequests, openRepository: @escaping () -> Void,
+        openRecent: @escaping (URL) -> Void, clearRecent: @escaping () -> Void,
+        installCommandLineTool: @escaping () -> Void
+    ) {
+        self.requests = requests
         self.openRepository = openRepository
+        self.openRecent = openRecent
+        self.clearRecent = clearRecent
         self.installCommandLineTool = installCommandLineTool
     }
 
@@ -16,6 +26,14 @@ struct SeamCommands: Commands {
         CommandGroup(replacing: .newItem) {
             Button(String(localized: "Open Repository…", bundle: .module), action: openRepository)
                 .keyboardShortcut("o")
+            Menu(String(localized: "Open Recent", bundle: .module)) {
+                ForEach(requests.recent, id: \.self) { url in
+                    Button(url.lastPathComponent) { openRecent(url) }
+                }
+                Divider()
+                Button(String(localized: "Clear Menu", bundle: .module), action: clearRecent)
+                    .disabled(requests.recent.isEmpty)
+            }
             Divider()
             Button(
                 String(localized: "Install Command Line Tool…", bundle: .module),

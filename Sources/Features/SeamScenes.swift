@@ -16,6 +16,8 @@ final class OpenRequests {
     }
 
     var pending: [String: Request] = [:]
+    /// File › Open Recent; refreshed whenever a window opens a repo.
+    var recent: [URL] = []
     /// The launch argument opens a repo once, not in every new welcome window.
     var launchHandled = false
 
@@ -56,11 +58,25 @@ public struct SeamScenes: Scene {
                 guard let request = SeamURL(incoming) else { return }
                 Task { await route(request, from: $url) }
             }
+            // A folder dropped on any window opens like `seam <folder>` would.
+            .dropDestination(for: URL.self) { urls, _ in
+                for dropped in urls where dropped.hasDirectoryPath {
+                    Task { await route(SeamURL(path: dropped.path), from: $url) }
+                }
+                return urls.contains(where: \.hasDirectoryPath)
+            }
             .environment(requests)
             .frame(minWidth: 900, minHeight: 500)
         }
         .commands {
-            SeamCommands(openRepository: choose, installCommandLineTool: installTool)
+            SeamCommands(
+                requests: requests, openRepository: choose, openRecent: open,
+                clearRecent: {
+                    Task {
+                        await services.store.clearRecent()
+                        requests.recent = []
+                    }
+                }, installCommandLineTool: installTool)
         }
         Settings {
             SettingsView(settings: services.settings)
@@ -181,6 +197,7 @@ struct WelcomeView: View {
                 start(URL(fileURLWithPath: path, isDirectory: true))
             }
             recent = await services.store.recentRepositories()
+            requests.recent = recent
         }
     }
 

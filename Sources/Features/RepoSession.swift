@@ -114,7 +114,7 @@ final class RepoSession {
             let (repository, worktree) = try await service.open(directory)
             self.repository = repository
             repoState = await services.store.load(repository)
-            await services.store.noteOpened(repository.anchor)
+            await services.store.noteOpened(directory)
             // The list shows as soon as it's known; rows fill in their counts as they arrive.
             try await listWorktrees()
             guard !isClosed else { return }
@@ -467,6 +467,10 @@ final class RepoSession {
     }
 
     var isWatching: Bool { monitorTask != nil }
+
+    func recentRepositories() async -> [URL] {
+        await services.store.recentRepositories()
+    }
 
     /// Waits for every row's detection and counts.
     func rowsLoaded() async {
