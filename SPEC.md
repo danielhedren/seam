@@ -314,8 +314,10 @@ the file opens in that worktree.
   - swift-argument-parser (CLI)
   - swift-snapshot-testing (tests only)
 - **Project layout:** a thin Xcode app target, with all code in a local Swift package. The Xcode
-  project contains only the app entry point, assets, entitlements and signing, so merges never
-  touch `project.pbxproj` for code changes.
+  project (`App/Seam.xcodeproj`) contains only the app entry point (`App/Seam/SeamApp.swift`),
+  assets and signing, so merges never touch `project.pbxproj` for code changes. Scenes and menus
+  live in `Features` (`SeamScenes`, `SeamCommands`) for the same reason. The app is not sandboxed:
+  it runs the user's `git` on arbitrary repositories. `make app` builds it, `make run` opens it.
 
 ### 8.2 Architecture
 
@@ -327,8 +329,8 @@ nearly all of the logic testable without git or a window.
 **Modules** (SwiftPM targets). Dependencies only point downward, and the compiler enforces it:
 
 ```
-SeamApp (app target: SwiftUI scenes, menus, settings)
-  └ Features      @Observable models + SwiftUI views per pane
+SeamApp (app target: entry point only)
+  └ Features      @Observable models, SwiftUI views per pane, scenes and menus
       ├ DiffView      AppKit diff view, row model, Core Text drawing
       ├ Highlighting  tree-sitter wrapper, highlight cache
       └ SeamCore      domain: Repo, Worktree, BaseDetector, ReviewDiff, IntraLineDiff, ViewedState
