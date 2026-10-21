@@ -29,16 +29,19 @@ struct SilentWatcher: FileWatcher {
     }
 }
 
-/// Holds `git diff` in one worktree until released, to observe work in flight.
+/// Holds one git command (`diff` by default) in one worktree until released, to observe work in
+/// flight.
 final class GatedGit: GitClient, Sendable {
     private let inner: any GitClient
     private let gated: String
+    private let command: String
     private let state = Mutex<(open: Bool, waiters: [CheckedContinuation<Void, Never>], held: Int)>(
         (false, [], 0))
 
-    init(_ inner: any GitClient, holding worktree: URL) {
+    init(_ inner: any GitClient, holding worktree: URL, command: String = "diff") {
         self.inner = inner
         gated = worktree.path
+        self.command = command
     }
 
     var heldCount: Int { state.withLock { $0.held } }
@@ -54,7 +57,7 @@ final class GatedGit: GitClient, Sendable {
 
     func run(_ arguments: [String], in directory: URL, input: Data?) async throws(GitError) -> Data
     {
-        if arguments.first == "diff", directory.path == gated {
+        if arguments.first == command, directory.path == gated {
             await withCheckedContinuation { continuation in
                 let open = state.withLock { state in
                     state.held += 1

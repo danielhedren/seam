@@ -42,6 +42,7 @@ final class RepoSession {
     private var monitorTask: Task<Void, Never>?
     private var saveTask: Task<Void, Never>?
     private var isClosed = false
+    private var rowsTask: Task<Void, Never>?
     private var deferredActivity: [String: Task<Void, Never>] = [:]
     private var staleActivity: Set<String> = []
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
@@ -99,11 +100,13 @@ final class RepoSession {
             self.repository = repository
             repoState = await services.store.load(repository)
             await services.store.noteOpened(repository.anchor)
-            try await reloadWorktrees()
+            // The list shows as soon as it's known; rows fill in their counts as they arrive.
+            try await listWorktrees()
             guard !isClosed else { return }
             state = .open
             select(worktree.path)
             startMonitor()
+            rowsTask = Task { [weak self] in await self?.refreshRows(skippingSelected: true) }
         } catch {
             state = .failed(Self.openFailure(error))
         }
@@ -119,7 +122,7 @@ final class RepoSession {
 
     /// Lists worktrees again, keeping the models of those that still exist, and refreshes every
     /// row concurrently so the list is ready within the §8.7 budget.
-    private func reloadWorktrees() async throws(GitError) {
+    private func listWorktrees() async throws(GitError) {
         guard let repository else { return }
         let worktrees = try await RepositoryService(
             git: services.git, fileSystem: services.fileSystem
@@ -139,13 +142,21 @@ final class RepoSession {
         if let selectedID, !reviews.contains(where: { $0.id == selectedID }) {
             self.selectedID = nil
         }
-        // Bounded: dozens of simultaneous git processes contend for the same pack files.
+    }
+
+    /// Detection and counts for every row, at most eight at a time: dozens of simultaneous git
+    /// processes contend for the same pack files. The selected worktree's own load detects it,
+    /// so a first refresh can skip it.
+    private func refreshRows(skippingSelected: Bool) async {
         let limit = 8
+        let selectedID = selectedID
         await withTaskGroup(of: Void.self) { group in
             for (index, review) in reviews.enumerated() {
                 if index >= limit { await group.next() }
                 group.addTask {
-                    await review.refreshDetection()
+                    if !(skippingSelected && review.id == selectedID) {
+                        await review.refreshDetection()
+                    }
                     await review.refreshActivity()
                 }
             }
@@ -258,10 +269,11 @@ final class RepoSession {
         if change.refs {
             let before = reviews.map(\.id)
             do {
-                try await reloadWorktrees()
+                try await listWorktrees()
             } catch {
                 logger.error("worktree list failed: \(error)")
             }
+            await refreshRows(skippingSelected: false)
             selected?.reloadDiff()
             if reviews.map(\.id) != before {
                 // Restarting from here would cancel this very task mid-apply.
@@ -314,15 +326,22 @@ final class RepoSession {
         isClosed = true
         monitorTask?.cancel()
         monitorTask = nil
+        rowsTask?.cancel()
         for task in deferredActivity.values { task.cancel() }
         selected?.cancelLoading()
     }
 
     var isWatching: Bool { monitorTask != nil }
 
+    /// Waits for every row's detection and counts.
+    func rowsLoaded() async {
+        await rowsTask?.value
+    }
+
     /// Waits for in-flight work; tests use it instead of sleeping.
     func settled() async {
         await selected?.loaded()
+        await rowsTask?.value
         await saveTask?.value
     }
 }

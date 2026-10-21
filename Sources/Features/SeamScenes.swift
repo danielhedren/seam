@@ -37,7 +37,13 @@ public struct SeamScenes: Scene {
                     RepoWindow(session: RepoSession(directory: url, services: services))
                         .id(url)
                 } else {
-                    WelcomeView(services: services, open: open)
+                    WelcomeView(services: services) { target in
+                        // The welcome window becomes the repo's window rather than opening another.
+                        guard let resolved = await resolve(target) else { return false }
+                        requests.pending[resolved.main.path] = resolved.worktree.path
+                        url = resolved.main
+                        return true
+                    }
                 }
             }
             .environment(requests)
@@ -59,52 +65,81 @@ public struct SeamScenes: Scene {
 
     private func open(_ url: URL) {
         Task {
-            let service = RepositoryService(git: services.git, fileSystem: services.fileSystem)
-            guard let (repository, worktree) = try? await service.open(url),
-                let main = try? await service.worktrees(of: repository).first(where: \.isMain)
-            else {
+            guard let resolved = await resolve(url) else {
                 openWindow(value: url)
                 return
             }
-            requests.pending[main.id] = worktree.path
-            openWindow(value: main.path)
+            requests.pending[resolved.main.path] = resolved.worktree.path
+            openWindow(value: resolved.main)
         }
+    }
+
+    /// The repo's main worktree, which keys its window, and the worktree `url` is in.
+    private func resolve(_ url: URL) async -> (main: URL, worktree: URL)? {
+        let service = RepositoryService(git: services.git, fileSystem: services.fileSystem)
+        guard let (repository, worktree) = try? await service.open(url),
+            let main = try? await service.worktrees(of: repository).first(where: \.isMain)
+        else { return nil }
+        return (main.path, worktree)
     }
 }
 
 struct WelcomeView: View {
     let services: SeamServices
+    /// Turns this window into the repo's window; false when `url` isn't in a repository.
+    let open: (URL) async -> Bool
     @Environment(OpenRequests.self) private var requests
-    let open: (URL) -> Void
     @State private var recent: [URL] = []
+    @State private var opening: URL?
+    @State private var failure: String?
 
     var body: some View {
         VStack(spacing: 16) {
             Text("Seam", bundle: .module).font(.largeTitle.bold())
-            Text("Open a repository to review its worktrees.", bundle: .module)
-                .foregroundStyle(.secondary)
-            Button(String(localized: "Open Repository…", bundle: .module)) {
-                let panel = NSOpenPanel()
-                panel.canChooseDirectories = true
-                panel.canChooseFiles = false
-                if panel.runModal() == .OK, let url = panel.url { open(url) }
-            }
-            .keyboardShortcut(.defaultAction)
-            if !recent.isEmpty {
-                Divider().frame(width: 280)
-                ForEach(recent, id: \.self) { url in
-                    Button(url.path) { open(url) }.buttonStyle(.link)
+            if let opening {
+                ProgressView(
+                    String(localized: "Opening \(opening.lastPathComponent)…", bundle: .module))
+            } else {
+                Text("Open a repository to review its worktrees.", bundle: .module)
+                    .foregroundStyle(.secondary)
+                if let failure {
+                    Text(failure).foregroundStyle(.red)
+                }
+                Button(String(localized: "Open Repository…", bundle: .module)) {
+                    let panel = NSOpenPanel()
+                    panel.canChooseDirectories = true
+                    panel.canChooseFiles = false
+                    if panel.runModal() == .OK, let url = panel.url { start(url) }
+                }
+                .keyboardShortcut(.defaultAction)
+                if !recent.isEmpty {
+                    Divider().frame(width: 280)
+                    ForEach(recent, id: \.self) { url in
+                        Button(url.path) { start(url) }.buttonStyle(.link)
+                    }
                 }
             }
         }
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task {
-            recent = await services.store.recentRepositories()
             if !requests.launchHandled, let path = Self.launchPath() {
                 requests.launchHandled = true
-                open(URL(fileURLWithPath: path, isDirectory: true))
+                start(URL(fileURLWithPath: path, isDirectory: true))
             }
+            recent = await services.store.recentRepositories()
+        }
+    }
+
+    private func start(_ url: URL) {
+        opening = url
+        failure = nil
+        Task {
+            if !(await open(url)) {
+                failure = String(
+                    localized: "\(url.path) is not in a git repository.", bundle: .module)
+            }
+            opening = nil
         }
     }
 

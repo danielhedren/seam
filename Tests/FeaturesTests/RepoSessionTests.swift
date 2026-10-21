@@ -29,6 +29,21 @@ import Testing
         #expect(review.problem == nil)
     }
 
+    @Test func theListShowsBeforeRowsHaveTheirCounts() async throws {
+        let repo = try await FixtureRepo()
+        let other = try await repo.worktree("other", branch: "other", from: "origin/main")
+        let git = GatedGit(repo.git, holding: other, command: "status")
+        let session = RepoSession(directory: repo.main, services: services(git))
+
+        await session.open()
+
+        #expect(session.state == .open)
+        #expect(session.reviews.first { $0.id == other.path }?.activity == nil)
+        git.release()
+        await session.rowsLoaded()
+        #expect(session.reviews.first { $0.id == other.path }?.activity != nil)
+    }
+
     @Test func aFolderOutsideGitExplainsWhatToDo() async throws {
         let directory = try TemporaryDirectory()
         let session = RepoSession(

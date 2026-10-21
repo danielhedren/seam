@@ -20,6 +20,7 @@ struct RealRepoBudgetTests {
 
         let open = await clock.measure {
             await session.open()
+            await session.rowsLoaded()
         }
         await session.settled()
         let other = try #require(

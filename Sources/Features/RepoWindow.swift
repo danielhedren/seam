@@ -40,7 +40,11 @@ struct RepoWindow: View {
     @ViewBuilder private var content: some View {
         switch session.state {
         case .opening:
-            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            ProgressView(
+                String(
+                    localized: "Opening \(session.directory.lastPathComponent)…", bundle: .module)
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .failed(let message):
             ContentUnavailableView(message, systemImage: "folder.badge.questionmark")
         case .open:
