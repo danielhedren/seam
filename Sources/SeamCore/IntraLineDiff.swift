@@ -18,8 +18,9 @@ public enum IntraLineDiff {
             removed: Array(repeating: [], count: removed.count),
             added: Array(repeating: [], count: added.count))
         guard !removed.isEmpty, !added.isEmpty else { return result }
-        let left = removed.map(tokenize)
-        let right = added.map(tokenize)
+        var interner = Interner()
+        let left = removed.map { tokenize($0, &interner) }
+        let right = added.map { tokenize($0, &interner) }
         for (i, j) in pairs(left, right) {
             guard let (a, b) = changes(left[i], right[j]) else { continue }
             result.removed[i] = a
@@ -28,14 +29,28 @@ public enum IntraLineDiff {
         return result
     }
 
+    /// Tokens compare as small integers: one hash per token instead of one per comparison.
+    struct Interner {
+        private var ids: [Substring: Int] = [:]
+
+        mutating func id(_ text: Substring) -> Int {
+            if let id = ids[text] { return id }
+            let id = ids.count
+            ids[text] = id
+            return id
+        }
+    }
+
     struct Token: Equatable {
-        var text: Substring
+        var id: Int
         var start: Int
         var count: Int
+        /// Characters that count towards similarity; whitespace-only tokens count for nothing.
+        var weight: Int
     }
 
     /// Words, runs of whitespace, and every other character on its own.
-    static func tokenize(_ line: String) -> [Token] {
+    static func tokenize(_ line: String, _ interner: inout Interner) -> [Token] {
         var tokens: [Token] = []
         var offset = 0
         var index = line.startIndex
@@ -48,7 +63,10 @@ public enum IntraLineDiff {
                 while end < line.endIndex, line[end].isWhitespace { end = line.index(after: end) }
             }
             let count = line.distance(from: index, to: end)
-            tokens.append(Token(text: line[index..<end], start: offset, count: count))
+            tokens.append(
+                Token(
+                    id: interner.id(line[index..<end]), start: offset, count: count,
+                    weight: first.isWhitespace ? 0 : count))
             offset += count
             index = end
         }
@@ -64,13 +82,14 @@ public enum IntraLineDiff {
         guard left.count * right.count <= maximumPairings else {
             return (0..<min(left.count, right.count)).map { ($0, $0) }
         }
-        var score = Array(
-            repeating: Array(repeating: 0.0, count: right.count + 1), count: left.count + 1)
+        var table = Table()
         var similarity = Array(
             repeating: Array(repeating: 0.0, count: right.count), count: left.count)
         for i in left.indices {
-            for j in right.indices { similarity[i][j] = Self.similarity(left[i], right[j]) }
+            for j in right.indices { similarity[i][j] = Self.similarity(left[i], right[j], &table) }
         }
+        var score = Array(
+            repeating: Array(repeating: 0.0, count: right.count + 1), count: left.count + 1)
         for i in stride(from: left.count - 1, through: 0, by: -1) {
             for j in stride(from: right.count - 1, through: 0, by: -1) {
                 let paired =
@@ -96,40 +115,57 @@ public enum IntraLineDiff {
         return result
     }
 
-    /// Characters in common tokens over all characters, ignoring whitespace-only tokens.
-    static func similarity(_ left: [Token], _ right: [Token]) -> Double {
-        let total =
-            left.reduce(0) { $0 + weight($1) } + right.reduce(0) { $0 + weight($1) }
-        guard total > 0, let common = commonTokens(left, right) else { return 0 }
-        let shared = common.reduce(0) { $0 + weight(left[$1.0]) }
-        return Double(2 * shared) / Double(total)
-    }
+    /// Reused across comparisons, so pairing allocates one buffer per block, not one per pair.
+    struct Table {
+        var values: [Int] = []
 
-    private static func weight(_ token: Token) -> Int {
-        token.text.allSatisfy(\.isWhitespace) ? 0 : token.count
-    }
-
-    /// Index pairs of the longest common token subsequence; nil when a line is too long.
-    static func commonTokens(_ left: [Token], _ right: [Token]) -> [(Int, Int)]? {
-        guard left.count <= maximumTokens, right.count <= maximumTokens else { return nil }
-        let width = right.count + 1
-        var table = [Int](repeating: 0, count: (left.count + 1) * width)
-        for i in stride(from: left.count - 1, through: 0, by: -1) {
-            for j in stride(from: right.count - 1, through: 0, by: -1) {
-                table[i * width + j] =
-                    left[i].text == right[j].text
-                    ? table[(i + 1) * width + j + 1] + 1
-                    : max(table[(i + 1) * width + j], table[i * width + j + 1])
+        /// `aligning` adds one per matched token, so equal-weight alignments prefer keeping
+        /// whitespace in common; similarity uses the plain weights.
+        mutating func fill(_ left: [Token], _ right: [Token], aligning: Bool = false) {
+            let width = right.count + 1
+            let size = (left.count + 1) * width
+            if values.count < size { values = [Int](repeating: 0, count: size) }
+            for j in 0...right.count { values[left.count * width + j] = 0 }
+            for i in stride(from: left.count - 1, through: 0, by: -1) {
+                values[i * width + right.count] = 0
+                for j in stride(from: right.count - 1, through: 0, by: -1) {
+                    values[i * width + j] =
+                        left[i].id == right[j].id
+                        ? values[(i + 1) * width + j + 1] + left[i].weight * (aligning ? 2 : 1)
+                            + (aligning ? 1 : 0)
+                        : max(values[(i + 1) * width + j], values[i * width + j + 1])
+                }
             }
         }
+
+        subscript(i: Int, j: Int, width width: Int) -> Int { values[i * width + j] }
+    }
+
+    /// Weighted characters in common over all weighted characters.
+    static func similarity(_ left: [Token], _ right: [Token], _ table: inout Table) -> Double {
+        let total = left.reduce(0) { $0 + $1.weight } + right.reduce(0) { $0 + $1.weight }
+        guard total > 0, left.count <= maximumTokens, right.count <= maximumTokens else { return 0 }
+        table.fill(left, right)
+        return Double(2 * table[0, 0, width: right.count + 1]) / Double(total)
+    }
+
+    /// Index pairs of the heaviest common token subsequence; nil when a line is too long.
+    static func commonTokens(_ left: [Token], _ right: [Token]) -> [(Int, Int)]? {
+        guard left.count <= maximumTokens, right.count <= maximumTokens else { return nil }
+        var table = Table()
+        table.fill(left, right, aligning: true)
+        let width = right.count + 1
         var pairs: [(Int, Int)] = []
         var (i, j) = (0, 0)
         while i < left.count, j < right.count {
-            if left[i].text == right[j].text {
+            if left[i].id == right[j].id,
+                table[i, j, width: width]
+                    == table[i + 1, j + 1, width: width] + left[i].weight * 2 + 1
+            {
                 pairs.append((i, j))
                 i += 1
                 j += 1
-            } else if table[(i + 1) * width + j] >= table[i * width + j + 1] {
+            } else if table[i + 1, j, width: width] >= table[i, j + 1, width: width] {
                 i += 1
             } else {
                 j += 1

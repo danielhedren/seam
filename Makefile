@@ -23,8 +23,12 @@ app:
 	Scripts/build.sh xcodebuild -project App/Seam.xcodeproj -scheme Seam -configuration Debug \
 		-destination 'platform=macOS,arch=arm64' -derivedDataPath .build/xcode build
 
-run: app
-	open .build/xcode/Build/Products/Debug/Seam.app --args "$${REPO:-$$PWD}"
+# Release, because the performance budgets (SPEC §8.7) describe the optimised app.
+run:
+	@echo "Building Seam.app in Release (the first build compiles the tree-sitter grammars)"
+	Scripts/build.sh xcodebuild -project App/Seam.xcodeproj -scheme Seam -configuration Release \
+		-destination 'platform=macOS,arch=arm64' -derivedDataPath .build/xcode build
+	open .build/xcode/Build/Products/Release/Seam.app --args "$${REPO:-$$PWD}"
 
 strings:
 	Scripts/sync-strings.sh
@@ -35,4 +39,5 @@ REAL_REPO ?= $(HOME)/Code/work-repo/.worktrees/feat-b
 
 test-all: check app
 	SEAM_REAL_REPO=$(REAL_REPO) swift test --skip 'Budget|Benchmark'
-	SEAM_REAL_REPO=$(REAL_REPO) SEAM_BENCH=1 swift test --filter 'Budget|Benchmark|LiveReload'
+	SEAM_REAL_REPO=$(REAL_REPO) SEAM_BENCH=1 swift test -c release -Xswiftc -enable-testing \
+		--filter 'Budget|Benchmark|LiveReload'
