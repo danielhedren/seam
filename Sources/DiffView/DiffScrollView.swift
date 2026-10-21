@@ -136,6 +136,14 @@ public final class DiffScrollView: NSScrollView {
         window?.makeFirstResponder(canvas)
     }
 
+    /// A new window has nothing focused, and single-letter keys only apply while the diff or file
+    /// list has focus; taking it here means `j`, `n` and `v` work as soon as the diff appears.
+    public override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard let window, window.firstResponder === window else { return }
+        window.makeFirstResponder(canvas)
+    }
+
     public var isFocused: Bool { window?.firstResponder === canvas }
 
     public func scroll(toFile path: String) {

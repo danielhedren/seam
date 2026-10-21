@@ -32,4 +32,24 @@ import Testing
 
         #expect(results == ["1/2", "2/2", "1/2", "1/3", "0/0"])
     }
+
+    @Test func theDiffTakesFocusInAWindowWhereNothingHasIt() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 300), styleMask: [.titled],
+            backing: .buffered, defer: true)
+        let view = DiffScrollView()
+        window.contentView = view
+        #expect(view.isFocused)
+
+        let field = NSTextField()
+        let other = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 300), styleMask: [.titled],
+            backing: .buffered, defer: true)
+        other.contentView = NSView()
+        other.contentView?.addSubview(field)
+        other.makeFirstResponder(field)
+        let second = DiffScrollView()
+        other.contentView?.addSubview(second)
+        #expect(!second.isFocused)
+    }
 }
