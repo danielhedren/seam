@@ -4,18 +4,22 @@ import Observation
 import SeamCore
 import SwiftUI
 
-/// Worktrees asked for by an open request, keyed by the repo's main worktree. One window per repo
+/// What an open request asks for, keyed by the repo's main worktree. One window per repo
 /// (SPEC §7.1), so opening any worktree of an open repo selects it in the existing window.
 @MainActor
 @Observable
 final class OpenRequests {
-    var pending: [String: String] = [:]
+    struct Request: Equatable {
+        var worktree: String
+        /// From `seam --base`: set as the worktree's base override once it's selected.
+        var base: String?
+    }
+
+    var pending: [String: Request] = [:]
     /// The launch argument opens a repo once, not in every new welcome window.
     var launchHandled = false
 
-    init() {}
-
-    func take(_ main: String) -> String? {
+    func take(_ main: String) -> Request? {
         pending.removeValue(forKey: main)
     }
 }
@@ -41,21 +45,51 @@ public struct SeamScenes: Scene {
                     WelcomeView(services: services) { target in
                         // The welcome window becomes the repo's window rather than opening another.
                         guard let resolved = await resolve(target) else { return false }
-                        requests.pending[resolved.main.path] = resolved.worktree.path
+                        requests.pending[resolved.main.path] = .init(
+                            worktree: resolved.worktree.path)
                         url = resolved.main
                         return true
                     }
                 }
             }
+            .onOpenURL { incoming in
+                guard let request = SeamURL(incoming) else { return }
+                Task { await route(request, from: $url) }
+            }
             .environment(requests)
             .frame(minWidth: 900, minHeight: 500)
         }
         .commands {
-            SeamCommands(openRepository: choose)
+            SeamCommands(openRepository: choose, installCommandLineTool: installTool)
         }
         Settings {
             SettingsView(settings: services.settings)
         }
+    }
+
+    /// A one-off answer to an explicit menu command, so an alert is the right shape (SPEC §9).
+    private func installTool() {
+        let alert = NSAlert()
+        do {
+            try CommandLineTool.install(
+                script: Bundle.main.url(forResource: "seam", withExtension: nil))
+            alert.messageText = String(localized: "Installed the seam command", bundle: .module)
+            alert.informativeText = String(
+                localized:
+                    "\(CommandLineTool.defaultLink.path) now opens Seam. Make sure ~/.local/bin is on your PATH.",
+                bundle: .module)
+        } catch CommandLineTool.Failure.occupied(let path) {
+            alert.messageText = String(
+                localized: "Couldn't install the seam command", bundle: .module)
+            alert.informativeText = String(
+                localized: "\(path) already exists and isn't Seam's. Remove it and try again.",
+                bundle: .module)
+        } catch {
+            alert.messageText = String(
+                localized: "Couldn't install the seam command", bundle: .module)
+            alert.informativeText = error.localizedDescription
+        }
+        alert.runModal()
     }
 
     private func choose() {
@@ -73,7 +107,22 @@ public struct SeamScenes: Scene {
                 openWindow(value: url)
                 return
             }
-            requests.pending[resolved.main.path] = resolved.worktree.path
+            requests.pending[resolved.main.path] = .init(worktree: resolved.worktree.path)
+            openWindow(value: resolved.main)
+        }
+    }
+
+    /// A `seam://open` URL reaches the key window: it selects the worktree if it shows that
+    /// repo, becomes the repo's window if it's the welcome window, and otherwise brings up the
+    /// repo's own window.
+    private func route(_ request: SeamURL, from window: Binding<URL?>) async {
+        guard let resolved = await resolve(URL(fileURLWithPath: request.path, isDirectory: true))
+        else { return }
+        requests.pending[resolved.main.path] = .init(
+            worktree: resolved.worktree.path, base: request.base)
+        if window.wrappedValue == nil {
+            window.wrappedValue = resolved.main
+        } else if window.wrappedValue != resolved.main {
             openWindow(value: resolved.main)
         }
     }

@@ -9,10 +9,13 @@
 /* Begin PBXBuildFile section */
 		A10000000000000000000001 /* SeamApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000002 /* SeamApp.swift */; };
 		A10000000000000000000003 /* Features in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000004 /* Features */; };
+		A10000000000000000000020 /* seam in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000021 /* seam */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A10000000000000000000002 /* SeamApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeamApp.swift; sourceTree = "<group>"; };
+		A10000000000000000000021 /* seam */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = seam; sourceTree = "<group>"; };
+		A10000000000000000000022 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A10000000000000000000005 /* Seam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Seam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -40,6 +43,8 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000002 /* SeamApp.swift */,
+				A10000000000000000000021 /* seam */,
+				A10000000000000000000022 /* Info.plist */,
 			);
 			path = Seam;
 			sourceTree = "<group>";
@@ -61,6 +66,7 @@
 			buildPhases = (
 				A1000000000000000000000C /* Sources */,
 				A10000000000000000000006 /* Frameworks */,
+				A10000000000000000000023 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -103,6 +109,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A10000000000000000000023 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000020 /* seam in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		A1000000000000000000000C /* Sources */ = {
@@ -156,6 +173,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Seam/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Seam;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -182,6 +200,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_HARDENED_RUNTIME = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Seam/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Seam;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";

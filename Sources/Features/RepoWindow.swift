@@ -23,10 +23,11 @@ struct RepoWindow: View {
             .task {
                 session.undoManager = undoManager
                 await session.open()
-                session.select(requests.take(session.directory.path))
+                await handle(requests.take(session.directory.path))
             }
             .onChange(of: requests.pending) {
-                if let id = requests.take(session.directory.path) { session.select(id) }
+                let request = requests.take(session.directory.path)
+                Task { await handle(request) }
             }
             .onDisappear { session.close() }
             .focusedSceneValue(\.repoSession, session)
@@ -37,6 +38,12 @@ struct RepoWindow: View {
             .sheet(isPresented: Bindable(session).showsPalette) {
                 CommandPalette(session: session)
             }
+    }
+
+    private func handle(_ request: OpenRequests.Request?) async {
+        guard let request else { return }
+        session.select(request.worktree)
+        if let base = request.base { await session.setTypedBase(base) }
     }
 
     /// The split view also changes visibility itself, when the user drags a column closed.

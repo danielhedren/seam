@@ -5,15 +5,21 @@ import SwiftUI
 struct SeamCommands: Commands {
     @FocusedValue(\.repoSession) private var session
     private let openRepository: () -> Void
+    private let installCommandLineTool: () -> Void
 
-    init(openRepository: @escaping () -> Void) {
+    init(openRepository: @escaping () -> Void, installCommandLineTool: @escaping () -> Void) {
         self.openRepository = openRepository
+        self.installCommandLineTool = installCommandLineTool
     }
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
             Button(String(localized: "Open Repository…", bundle: .module), action: openRepository)
                 .keyboardShortcut("o")
+            Divider()
+            Button(
+                String(localized: "Install Command Line Tool…", bundle: .module),
+                action: installCommandLineTool)
         }
         CommandGroup(after: .textEditing) { items(.edit) }
         CommandGroup(after: .sidebar) { items(.view) }

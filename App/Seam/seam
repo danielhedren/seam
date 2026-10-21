@@ -1,0 +1,32 @@
+#!/bin/sh
+# seam [path] [--base ref]: review the repo containing path (default: here) in Seam (SPEC §13).
+set -eu
+path="$PWD"
+base=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --base)
+            [ $# -ge 2 ] || { echo "seam: --base needs a ref" >&2; exit 64; }
+            base="$2"
+            shift 2
+            ;;
+        -h | --help)
+            echo "usage: seam [path] [--base ref]"
+            exit 0
+            ;;
+        -*)
+            echo "seam: unknown option $1" >&2
+            exit 64
+            ;;
+        *)
+            path="$1"
+            shift
+            ;;
+    esac
+done
+path="$(cd "$path" && pwd -P)"
+# Percent-encodes every byte outside the URL's unreserved set.
+encode() { printf '%s' "$1" | perl -pe 's/([^A-Za-z0-9\/._~-])/sprintf("%%%02X", ord($1))/ge'; }
+url="seam://open?path=$(encode "$path")"
+[ -z "$base" ] || url="$url&base=$(encode "$base")"
+exec open -b com.danielhedren.seam "$url"
