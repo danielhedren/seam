@@ -67,7 +67,7 @@ final class WorktreeReview: Identifiable {
 
     /// The parent the diff is against: the override if set, else the detected one.
     var parentName: String? {
-        baseOverride.map(RefDisplay.short) ?? detection?.parent?.name
+        baseOverride.map(RefName.short) ?? detection?.parent?.name
     }
 
     var uniqueCommitCount: Int? {
@@ -162,37 +162,16 @@ final class WorktreeReview: Identifiable {
         }
     }
 
-    /// Highlights every file off the main actor, the one being read first. Results publish after
-    /// that file and then in batches, since each publish rebuilds the diff's rows.
     private func highlight(_ diff: ReviewDiff, _ contents: [String: FileContents]) {
         highlightTask?.cancel()
-        let highlighter = services.highlighter
-        let current = currentFile
-        let files =
-            diff.files.filter { $0.diff.path == current }
-            + diff.files.filter { $0.diff.path != current }
+        let pass = HighlightPass(
+            files: diff.files, contents: contents, first: currentFile,
+            highlighter: services.highlighter)
         highlightTask = Task { [weak self] in
-            var pending: [String: FileSyntax] = [:]
-            for (index, file) in files.enumerated() {
-                guard !Task.isCancelled else { return }
-                let path = file.diff.path
-                guard let texts = contents[path] else { continue }
-                var result = FileSyntax()
-                if let text = texts.old,
-                    let language = SyntaxLanguage.detect(path: file.diff.oldPath ?? path)
-                {
-                    result.old = await highlighter.highlight(text, as: language)
-                }
-                if let text = texts.new, let language = SyntaxLanguage.detect(path: path) {
-                    result.new = await highlighter.highlight(text, as: language)
-                }
-                if result.old != nil || result.new != nil { pending[path] = result }
-                if index == 0 || index % 25 == 24 || index == files.count - 1, !pending.isEmpty {
-                    guard let self, !Task.isCancelled else { return }
-                    self.syntax.merge(pending) { $1 }
-                    self.syntaxVersion += 1
-                    pending = [:]
-                }
+            await pass.run { batch in
+                guard let self else { return }
+                self.syntax.merge(batch) { $1 }
+                self.syntaxVersion += 1
             }
         }
     }
@@ -281,7 +260,7 @@ final class WorktreeReview: Identifiable {
                     git: services.git)
             else {
                 guard generation == loadGeneration else { return }
-                problem = baseOverride.map { .overrideGone(RefDisplay.short($0)) }
+                problem = baseOverride.map { .overrideGone(RefName.short($0)) }
                 finish(generation)
                 return
             }
@@ -338,14 +317,5 @@ final class WorktreeReview: Identifiable {
         case .unexpectedOutput(let message):
             String(localized: "Unexpected output from git: \(message)", bundle: .module)
         }
-    }
-}
-
-enum RefDisplay {
-    static func short(_ ref: String) -> String {
-        for prefix in ["refs/heads/", "refs/remotes/"] where ref.hasPrefix(prefix) {
-            return String(ref.dropFirst(prefix.count))
-        }
-        return ref
     }
 }

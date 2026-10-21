@@ -105,9 +105,9 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
     }
 
     @Test func tabsExpandToTheNextStopAndCarriageReturnsShow() {
-        #expect(DiffRowBuilder.expandTabs("a\tb", width: 4) == "a   b")
-        #expect(DiffRowBuilder.expandTabs("\tx", width: 4) == "    x")
-        #expect(DiffRowBuilder.expandTabs("line\r", width: 4) == "line␍")
+        #expect(TabStops.expand("a\tb", width: 4) == "a   b")
+        #expect(TabStops.expand("\tx", width: 4) == "    x")
+        #expect(TabStops.expand("line\r", width: 4) == "line␍")
     }
 }
 

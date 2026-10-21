@@ -8,9 +8,8 @@ struct SideLine: Equatable, Sendable {
     /// Tabs already expanded, so column arithmetic is plain character counting.
     var text: String
     var noNewlineAtEnd = false
-    /// Word-level changes, as character ranges into `text`.
+    /// Word changes and syntax runs below are character ranges into `text`.
     var highlights: [Range<Int>] = []
-    /// Syntax runs, as character ranges into `text`.
     var syntax: [SyntaxSpan] = []
 }
 
@@ -41,7 +40,6 @@ enum DiffRow: Equatable, Sendable {
     case split(file: Int, left: SideLine?, right: SideLine?)
     /// Binary, mode-only, empty or deferred files, which have no lines to show.
     case notice(file: Int, text: String)
-    /// Old and new image side by side.
     case image(file: Int)
     /// Unchanged lines between hunks that aren't shown.
     case gap(file: Int, GapRow)
@@ -64,7 +62,6 @@ enum DiffRow: Equatable, Sendable {
 }
 
 enum DiffSide: Hashable, Sendable {
-    /// The single text column of unified mode.
     case unified
     case left
     case right

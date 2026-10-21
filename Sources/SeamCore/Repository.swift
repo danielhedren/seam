@@ -105,16 +105,16 @@ extension RepositoryService {
     }
 }
 
-enum RefName {
-    static let heads = "refs/heads/"
-    static let remotes = "refs/remotes/"
+public enum RefName {
+    public static let heads = "refs/heads/"
+    public static let remotes = "refs/remotes/"
 
-    static func shortBranch(_ ref: String) -> String {
+    public static func shortBranch(_ ref: String) -> String {
         ref.hasPrefix(heads) ? String(ref.dropFirst(heads.count)) : ref
     }
 
     /// `refs/heads/x` → `x`, `refs/remotes/origin/x` → `origin/x`.
-    static func short(_ ref: String) -> String {
+    public static func short(_ ref: String) -> String {
         if ref.hasPrefix(heads) { return String(ref.dropFirst(heads.count)) }
         if ref.hasPrefix(remotes) { return String(ref.dropFirst(remotes.count)) }
         return ref

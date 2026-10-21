@@ -12,13 +12,7 @@ struct SyntaxLookup {
         guard let lines, let number, lines.indices.contains(number - 1) else { return [] }
         let spans = lines[number - 1]
         guard !spans.isEmpty, raw.contains("\t") else { return spans }
-        var columns: [Int] = []
-        var column = 0
-        for character in raw {
-            columns.append(column)
-            column += character == "\t" ? tabWidth - column % tabWidth : 1
-        }
-        columns.append(column)
+        let columns = TabStops.columns(raw, width: tabWidth)
         return spans.map { span in
             let lower = columns[min(span.range.lowerBound, columns.count - 1)]
             let upper = columns[min(span.range.upperBound, columns.count - 1)]

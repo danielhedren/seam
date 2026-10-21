@@ -214,7 +214,8 @@ public actor SyntaxHighlighter {
             unit += width
         }
         close()
-        if text.hasSuffix("\n") { lines.removeLast() }
+        // Matches TextLines: "\r\n" is one Character, so hasSuffix("\n") misses CRLF text.
+        if text.utf8.last == UInt8(ascii: "\n") { lines.removeLast() }
         return lines
     }
 }

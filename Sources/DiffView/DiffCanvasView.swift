@@ -35,7 +35,7 @@ final class DiffCanvasView: NSView {
     let font: NSFont
     private(set) var geometry = Geometry()
     private var lineCache: [LineKey: CTLine] = [:]
-    var dragStart: TextPosition?
+    var isDragging = false
     private var contents: [String: FileContents] = [:]
     /// Decoded previews by file index and side (true for new); decoded on first draw.
     private var images: [ImageKey: NSImage?] = [:]
@@ -348,9 +348,9 @@ final class DiffCanvasView: NSView {
         } else {
             line =
                 if let palette, !syntax.isEmpty {
-                    DiffHeaderDrawing.line(text, font: font, syntax: syntax, palette: palette)
+                    TextLine.make(text, font: font, syntax: syntax, palette: palette)
                 } else {
-                    DiffHeaderDrawing.line(text, font: font)
+                    TextLine.make(text, font: font)
                 }
             if let key {
                 if lineCache.count > 20_000 { lineCache.removeAll(keepingCapacity: true) }

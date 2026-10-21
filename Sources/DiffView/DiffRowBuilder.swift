@@ -42,7 +42,7 @@ enum DiffRowBuilder {
                 gap(hunkIndex, until: first.new)
                 next = Self.next(hunk)
                 rows.append(.hunkHeader(file: index, hunk: hunkIndex, text: header(hunk)))
-                let texts = hunk.lines.map { expandTabs($0.text, width: tabWidth) }
+                let texts = hunk.lines.map { TabStops.expand($0.text, width: tabWidth) }
                 let highlights = wordHighlights(hunk.lines, texts)
                 let oldSyntax = hunk.lines.map { lookup.old($0.oldNumber, raw: $0.text) }
                 let newSyntax = hunk.lines.map { lookup.new($0.newNumber, raw: $0.text) }
@@ -188,27 +188,5 @@ enum DiffRowBuilder {
         }
         flush()
         return rows
-    }
-
-    static func expandTabs(_ text: String, width: Int) -> String {
-        guard text.contains("\t") || text.hasSuffix("\r") else { return text }
-        var result = ""
-        var column = 0
-        for character in text {
-            switch character {
-            case "\t":
-                let spaces = width - column % width
-                result += String(repeating: " ", count: spaces)
-                column += spaces
-            // CRLF files: the CR is drawn as a visible marker rather than moving the caret.
-            case "\r":
-                result += "␍"
-                column += 1
-            default:
-                result.append(character)
-                column += 1
-            }
-        }
-        return result
     }
 }

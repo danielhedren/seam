@@ -58,11 +58,11 @@ extension DiffCanvasView {
                 selection = DiffSelection(side: side, anchor: position, head: position)
             }
         }
-        dragStart = position
+        isDragging = true
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard let current = selection, dragStart != nil else { return }
+        guard let current = selection, isDragging else { return }
         autoscroll(with: event)
         let point = convert(event.locationInWindow, from: nil)
         guard let (_, position) = self.position(at: point) else { return }
@@ -70,7 +70,7 @@ extension DiffCanvasView {
     }
 
     override func mouseUp(with event: NSEvent) {
-        dragStart = nil
+        isDragging = false
     }
 
     private func wordSelection(side: DiffSide, at position: TextPosition) -> DiffSelection {
