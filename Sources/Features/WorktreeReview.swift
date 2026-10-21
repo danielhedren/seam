@@ -25,6 +25,7 @@ final class WorktreeReview: Identifiable {
     private(set) var scope = ReviewScope.all
     private(set) var mode: DiffLayoutMode
     private(set) var collapsed: Set<String> = []
+    private(set) var wraps = false
     /// Full file contents for the current diff; empty until loaded.
     private(set) var contents: [String: FileContents] = [:]
     private(set) var contentsVersion = 0
@@ -94,11 +95,12 @@ final class WorktreeReview: Identifiable {
     func restore(_ state: RepoState.WorktreeState?, override: String?) {
         if let scope = state?.scope.flatMap(ReviewScope.init) { self.scope = scope }
         if let mode = state?.mode.flatMap(DiffLayoutMode.init) { self.mode = mode }
+        if let wraps = state?.wraps { self.wraps = wraps }
         baseOverride = override
     }
 
     var persistentState: RepoState.WorktreeState {
-        RepoState.WorktreeState(scope: scope.rawValue, mode: mode.rawValue)
+        RepoState.WorktreeState(scope: scope.rawValue, mode: mode.rawValue, wraps: wraps)
     }
 
     // MARK: - Intents
@@ -111,6 +113,10 @@ final class WorktreeReview: Identifiable {
 
     func setMode(_ mode: DiffLayoutMode) {
         self.mode = mode
+    }
+
+    func toggleWrap() {
+        wraps.toggle()
     }
 
     func setOverride(_ ref: String?) {
@@ -152,7 +158,7 @@ final class WorktreeReview: Identifiable {
         diff.map {
             DiffContent(
                 review: $0, mode: mode, collapsed: collapsed, contents: contents,
-                expansions: expansions, syntax: syntax)
+                expansions: expansions, syntax: syntax, wraps: wraps)
         }
     }
 

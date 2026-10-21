@@ -11,6 +11,7 @@ public struct RepoState: Codable, Equatable, Sendable {
     public struct WorktreeState: Codable, Equatable, Sendable {
         public var scope: String?
         public var mode: String?
+        public var wraps: Bool?
     }
 
     /// Base override per branch: the chosen parent ref (SPEC §5.3).

@@ -202,6 +202,11 @@ final class RepoSession {
         persist()
     }
 
+    func toggleWrap() {
+        selected?.toggleWrap()
+        persist()
+    }
+
     func setBaseOverride(_ ref: String?) {
         guard let review = selected else { return }
         review.setOverride(ref)

@@ -17,10 +17,13 @@ struct DiffLayout: Equatable, Sendable {
     private let offsets: [Double]
     /// The longest text in characters, for the document width.
     let maxColumns: Int
+    /// Characters per visual line when wrapping; nil when lines don't wrap.
+    let wrapColumns: Int?
 
-    init(rows: [DiffRow], metrics: Metrics) {
+    init(rows: [DiffRow], metrics: Metrics, wrapColumns: Int? = nil) {
         self.rows = rows
         self.metrics = metrics
+        self.wrapColumns = wrapColumns
         var offsets = [Double]()
         offsets.reserveCapacity(rows.count + 1)
         var y = 0.0
@@ -31,6 +34,14 @@ struct DiffLayout: Equatable, Sendable {
                 switch row {
                 case .fileHeader: metrics.fileHeaderHeight
                 case .image: metrics.imageHeight
+                case .line(_, let line):
+                    metrics.lineHeight * Double(Self.visualLines(line.text.count, wrapColumns))
+                case .split(_, let left, let right):
+                    metrics.lineHeight
+                        * Double(
+                            max(
+                                Self.visualLines(left?.text.count ?? 0, wrapColumns),
+                                Self.visualLines(right?.text.count ?? 0, wrapColumns)))
                 default: metrics.lineHeight
                 }
             y += height
@@ -42,6 +53,32 @@ struct DiffLayout: Equatable, Sendable {
     }
 
     var totalHeight: Double { offsets.last ?? 0 }
+
+    /// Monospaced text wraps at a fixed column, so a row's height follows from its length.
+    static func visualLines(_ count: Int, _ wrapColumns: Int?) -> Int {
+        guard let wrapColumns, wrapColumns > 0, count > wrapColumns else { return 1 }
+        return (count + wrapColumns - 1) / wrapColumns
+    }
+
+    /// `range` cut at each wrap point: the visual line of each piece and its columns within it.
+    static func segments(_ range: Range<Int>, wrapColumns: Int?) -> [(
+        line: Int, columns: Range<Int>
+    )] {
+        guard let wrapColumns, wrapColumns > 0 else { return [(0, range)] }
+        var segments: [(line: Int, columns: Range<Int>)] = []
+        var start = range.lowerBound
+        repeat {
+            let line = start / wrapColumns
+            let end = min(range.upperBound, (line + 1) * wrapColumns)
+            segments.append((line, (start - line * wrapColumns)..<(end - line * wrapColumns)))
+            start = end
+        } while start < range.upperBound
+        return segments
+    }
+
+    static func maxColumns(_ rows: [DiffRow]) -> Int {
+        rows.reduce(0) { max($0, columns($1)) }
+    }
 
     func top(of row: Int) -> Double { offsets[min(max(row, 0), rows.count)] }
 
@@ -87,7 +124,7 @@ struct DiffLayout: Equatable, Sendable {
         files ? rows[index].isFileHeader : rows[index].isHunkHeader
     }
 
-    private static func columns(_ row: DiffRow) -> Int {
+    static func columns(_ row: DiffRow) -> Int {
         switch row {
         case .line(_, let line): line.text.count
         case .split(_, let left, let right): max(left?.text.count ?? 0, right?.text.count ?? 0)

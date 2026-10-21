@@ -153,6 +153,16 @@ struct DiffSnapshotTests {
         assertSnapshot(of: view, as: .image, named: "image-\(Self.os)")
     }
 
+    @Test func wrappedLinesContinueOnTheirOwnRows() {
+        let view = DiffScrollView()
+        view.appearance = NSAppearance(named: .aqua)
+        view.increaseContrastOverride = false
+        view.frame = NSRect(x: 0, y: 0, width: 520, height: 460)
+        view.show(DiffContent(review: Self.review, wraps: true), position: .top)
+        view.layoutSubtreeIfNeeded()
+        assertSnapshot(of: view, as: .image, named: "wrapped-\(Self.os)")
+    }
+
     @Test func collapsedFileShowsOnlyItsHeader() {
         let view = view(.unified, .aqua, collapsed: ["Sources/Order.swift"])
         assertSnapshot(of: view, as: .image, named: "collapsed-\(Self.os)")

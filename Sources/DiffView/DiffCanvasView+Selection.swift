@@ -15,7 +15,11 @@ extension DiffCanvasView {
             case .right: geometry.columnWidth + geometry.splitTextOffset
             }
         let length = layout.text(of: row, side: side)?.count ?? 0
-        let column = Int(((point.x - textX) / layout.metrics.characterWidth).rounded())
+        var column = Int(((point.x - textX) / layout.metrics.characterWidth).rounded())
+        if let wrap = layout.wrapColumns {
+            let line = Int((point.y - layout.top(of: row)) / layout.metrics.lineHeight)
+            column = line * wrap + min(max(column, 0), wrap)
+        }
         return (side, TextPosition(row: row, column: min(max(column, 0), length)))
     }
 

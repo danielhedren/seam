@@ -416,7 +416,9 @@ This is where the project's performance risk lies.
   construction. There are no linked scroll views.
 - Row model: a flat array of display rows (file header, hunk header, context, removed, added,
   paired, gap/expander), with prefix sums of row heights. Rows have a fixed height when wrapping
-  is off. With wrapping on, heights are measured lazily and cached per width.
+  is off. With wrapping on, a row's height follows from its length: the text is monospaced, so
+  it wraps at a fixed column and needs no measuring. A width change recomputes heights and keeps
+  the reader's line in view.
 - Typesetting results (`CTLine`) are cached per row and theme, and the cache is dropped on width
   or font changes.
 - Selection, copy, and find in the diff (`⌘F` while the diff has focus) are implemented on the

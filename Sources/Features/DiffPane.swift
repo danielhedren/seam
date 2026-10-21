@@ -16,6 +16,7 @@ struct DiffRepresentable: NSViewRepresentable {
             var collapsed: Set<String>
             var contentsVersion: Int
             var syntaxVersion: Int
+            var wraps: Bool
             var expansions: [String: [Int: GapExpansion]]
         }
         var shown: Shown?
@@ -41,7 +42,7 @@ struct DiffRepresentable: NSViewRepresentable {
         let shown = Coordinator.Shown(
             id: review.id, version: review.diffVersion, mode: review.mode,
             collapsed: review.collapsed, contentsVersion: review.contentsVersion,
-            syntaxVersion: review.syntaxVersion,
+            syntaxVersion: review.syntaxVersion, wraps: review.wraps,
             expansions: review.expansions)
         guard shown != context.coordinator.shown else { return }
         let previous = context.coordinator.shown

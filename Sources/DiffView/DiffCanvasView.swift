@@ -12,6 +12,7 @@ final class DiffCanvasView: NSView {
     private(set) var review = ReviewDiff(scope: .all, files: [])
     private(set) var mode = DiffLayoutMode.unified
     private(set) var collapsed: Set<String> = []
+    private(set) var wraps = false
     var isStale = false {
         didSet { if isStale != oldValue { needsDisplay = true } }
     }
@@ -79,21 +80,31 @@ final class DiffCanvasView: NSView {
         images.removeAll()
         mode = content.mode
         collapsed = content.collapsed
-        layout = DiffLayout(
-            rows: DiffRowBuilder.rows(
-                for: review, mode: mode, collapsed: collapsed, contents: content.contents,
-                expansions: content.expansions, syntax: content.syntax),
-            metrics: layout.metrics)
-        lineCache.removeAll(keepingCapacity: true)
+        wraps = content.wraps
+        let rows = DiffRowBuilder.rows(
+            for: review, mode: mode, collapsed: collapsed, contents: content.contents,
+            expansions: content.expansions, syntax: content.syntax)
         selection = nil
-        geometry = Geometry(layout: layout, mode: mode, visibleWidth: geometry.visibleWidth)
-        resize()
-        needsDisplay = true
+        relayout(rows, width: geometry.visibleWidth)
     }
 
-    func setVisibleWidth(_ width: Double) {
-        guard width != geometry.visibleWidth else { return }
-        geometry = Geometry(layout: layout, mode: mode, visibleWidth: width)
+    /// Returns whether row heights changed, which only happens when wrapping.
+    @discardableResult
+    func setVisibleWidth(_ width: Double) -> Bool {
+        guard width != geometry.visibleWidth else { return false }
+        let wrapColumns = geometry.wrapColumns
+        relayout(layout.rows, width: width)
+        return geometry.wrapColumns != wrapColumns
+    }
+
+    private func relayout(_ rows: [DiffRow], width: Double) {
+        geometry = Geometry(
+            rows: rows, metrics: layout.metrics, mode: mode, visibleWidth: width, wraps: wraps)
+        if rows != layout.rows || geometry.wrapColumns != layout.wrapColumns {
+            layout = DiffLayout(
+                rows: rows, metrics: layout.metrics, wrapColumns: geometry.wrapColumns)
+            lineCache.removeAll(keepingCapacity: true)
+        }
         resize()
     }
 
@@ -154,7 +165,7 @@ final class DiffCanvasView: NSView {
                 kind: line.kind, text: line.text, noNewline: line.noNewline,
                 highlights: line.highlights, syntax: line.syntax, column: column, row: index,
                 side: .unified,
-                rowTop: rect.minY, palette: palette, context: context)
+                rowTop: rect.minY, rowHeight: rect.height, palette: palette, context: context)
         case .split(_, let left, let right):
             for (line, side) in [(left, DiffSide.left), (right, DiffSide.right)] {
                 let x = side == .left ? 0 : geometry.columnWidth
@@ -173,7 +184,7 @@ final class DiffCanvasView: NSView {
                     kind: line.kind, text: line.text, noNewline: line.noNewlineAtEnd,
                     highlights: line.highlights, syntax: line.syntax, column: column, row: index,
                     side: side,
-                    rowTop: rect.minY, palette: palette, context: context)
+                    rowTop: rect.minY, rowHeight: rect.height, palette: palette, context: context)
                 context.restoreGState()
             }
             context.setFillColor(palette.separator.nsColor.cgColor)
@@ -193,9 +204,20 @@ final class DiffCanvasView: NSView {
         kind: DiffLine.Kind, text: String, noNewline: Bool, highlights: [Range<Int>],
         syntax: [SyntaxSpan],
         column: Column, row: Int,
-        side: DiffSide, rowTop: Double, palette: DiffPalette, context: CGContext
+        side: DiffSide, rowTop: Double, rowHeight: Double, palette: DiffPalette, context: CGContext
     ) {
-        let height = layout.metrics.lineHeight
+        let height = rowHeight
+        let lineHeight = layout.metrics.lineHeight
+        let wrap = layout.wrapColumns
+        let width = layout.metrics.characterWidth
+        func rects(_ range: Range<Int>) -> [NSRect] {
+            DiffLayout.segments(range, wrapColumns: wrap).map { segment in
+                NSRect(
+                    x: column.textX + Double(segment.columns.lowerBound) * width,
+                    y: rowTop + Double(segment.line) * lineHeight,
+                    width: Double(segment.columns.count) * width, height: lineHeight)
+            }
+        }
         let gutterWidth = geometry.numberWidth * Double(column.numbers.count)
         let (background, gutter, marker, symbol): (RGB?, RGB?, RGB, String) =
             switch kind {
@@ -227,37 +249,44 @@ final class DiffCanvasView: NSView {
         if let word = kind == .added
             ? palette.addedWord : kind == .removed ? palette.removedWord : nil
         {
-            let width = layout.metrics.characterWidth
-            for range in highlights {
-                fill(
-                    NSRect(
-                        x: column.textX + Double(range.lowerBound) * width, y: rowTop,
-                        width: Double(range.count) * width, height: height), word, context)
-            }
+            for rect in highlights.flatMap(rects) { fill(rect, word, context) }
         }
         if let selection, selection.side == side,
             let range = selection.columns(inRow: row, length: text.count + 1), !range.isEmpty
         {
-            let width = layout.metrics.characterWidth
-            let highlight = NSRect(
-                x: column.textX + Double(range.lowerBound) * width, y: rowTop,
-                width: Double(range.count) * width, height: height)
             let color =
                 window?.firstResponder === self
                 ? NSColor.selectedTextBackgroundColor
                 : NSColor.unemphasizedSelectedTextBackgroundColor
             context.setFillColor(color.cgColor)
-            context.fill(highlight)
+            for rect in rects(range) { context.fill(rect) }
         }
-        drawText(
-            text, key: LineKey(row: row, side: side), x: column.textX, rowTop: rowTop,
-            color: palette.text, syntax: syntax, palette: palette, context: context)
-        if noNewline {
-            let x = column.textX + Double(text.count + 1) * layout.metrics.characterWidth
+        let pieces = DiffLayout.segments(0..<text.count, wrapColumns: wrap)
+        let characters = pieces.count > 1 ? Array(text) : []
+        for piece in pieces {
+            let offset = piece.line * (wrap ?? 0)
+            let start = offset + piece.columns.lowerBound
+            let end = offset + piece.columns.upperBound
+            let chunk = pieces.count > 1 ? String(characters[start..<end]) : text
+            let spans =
+                pieces.count > 1
+                ? syntax.compactMap { span -> SyntaxSpan? in
+                    let lower = max(span.range.lowerBound, start)
+                    let upper = min(span.range.upperBound, end)
+                    guard lower < upper else { return nil }
+                    return SyntaxSpan(range: (lower - start)..<(upper - start), token: span.token)
+                } : syntax
+            drawText(
+                chunk, key: LineKey(row: row, side: side, chunk: piece.line), x: column.textX,
+                rowTop: rowTop + Double(piece.line) * lineHeight, color: palette.text,
+                syntax: spans, palette: palette, context: context)
+        }
+        if noNewline, let last = pieces.last {
+            let x = column.textX + Double(last.columns.upperBound + 1) * width
             drawText(
                 String(localized: "⊘ no newline at end of file", bundle: .module), key: nil, x: x,
-                rowTop: rowTop,
-                color: palette.gutterText, context: context)
+                rowTop: rowTop + Double(last.line) * lineHeight, color: palette.gutterText,
+                context: context)
         }
     }
 
@@ -341,4 +370,6 @@ final class DiffCanvasView: NSView {
 private struct LineKey: Hashable {
     var row: Int
     var side: DiffSide
+    /// The visual line within a wrapped row.
+    var chunk = 0
 }

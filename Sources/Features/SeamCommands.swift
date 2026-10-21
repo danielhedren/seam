@@ -38,6 +38,7 @@ struct SeamCommands: Commands {
             .keyboardShortcut("\\", modifiers: [.command, .option])
             Divider()
             item("Side by Side", key: "s") { $0.toggleMode() }
+            item("Wrap Lines", key: "w") { $0.toggleWrap() }
             if let session {
                 Toggle(
                     String(localized: "Files as Flat List", bundle: .module),

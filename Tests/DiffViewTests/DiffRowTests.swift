@@ -296,3 +296,39 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
             ])
     }
 }
+
+@Suite struct WrapTests {
+    private func row(_ text: String) -> DiffRow {
+        .line(file: 0, UnifiedLine(old: 1, new: 1, kind: .context, text: text))
+    }
+
+    @Test func wrappedRowsAreAsTallAsTheirVisualLines() {
+        let layout = DiffLayout(
+            rows: [row(String(repeating: "x", count: 25)), row("short"), row("")],
+            metrics: metrics, wrapColumns: 10)
+        #expect(layout.height(of: 0) == 30)
+        #expect(layout.height(of: 1) == 10)
+        #expect(layout.height(of: 2) == 10)
+    }
+
+    @Test func splitRowsTakeTheTallerSide() {
+        let rows: [DiffRow] = [
+            .split(
+                file: 0, left: SideLine(kind: .removed, number: 1, text: "short"),
+                right: SideLine(kind: .added, number: 1, text: String(repeating: "y", count: 21)))
+        ]
+        #expect(DiffLayout(rows: rows, metrics: metrics, wrapColumns: 10).height(of: 0) == 30)
+    }
+
+    @Test func withoutWrappingEveryLineIsOneLineTall() {
+        let layout = DiffLayout(rows: [row(String(repeating: "x", count: 500))], metrics: metrics)
+        #expect(layout.height(of: 0) == 10)
+    }
+
+    @Test func rangesAreCutAtEachWrapPoint() {
+        let segments = DiffLayout.segments(7..<23, wrapColumns: 10)
+        #expect(segments.map(\.line) == [0, 1, 2])
+        #expect(segments.map(\.columns) == [7..<10, 0..<10, 0..<3])
+        #expect(DiffLayout.segments(3..<5, wrapColumns: nil).map(\.columns) == [3..<5])
+    }
+}

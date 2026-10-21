@@ -160,9 +160,11 @@ public final class DiffScrollView: NSScrollView {
         reflectScrolledClipView(contentView)
     }
 
+    /// With wrapping, a new width changes row heights, so the reader's line is restored.
     public override func tile() {
         super.tile()
-        canvas.setVisibleWidth(contentSize.width)
+        let anchor = anchor
+        if canvas.setVisibleWidth(contentSize.width), let anchor { restore(anchor) }
         updateSticky()
     }
 

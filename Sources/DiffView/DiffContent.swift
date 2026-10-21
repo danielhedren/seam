@@ -17,12 +17,15 @@ public struct DiffContent: Equatable, Sendable {
     public var expansions: [String: [Int: GapExpansion]]
     /// Syntax highlights per file; lines are drawn plain until theirs arrive (SPEC §8.4).
     public var syntax: [String: FileSyntax]
+    /// Long lines wrap at the view's width instead of scrolling sideways (SPEC §7.4, `w`).
+    public var wraps: Bool
 
     public init(
         review: ReviewDiff, mode: DiffLayoutMode = .unified, collapsed: Set<String> = [],
         contents: [String: FileContents] = [:], expansions: [String: [Int: GapExpansion]] = [:],
-        syntax: [String: FileSyntax] = [:]
+        syntax: [String: FileSyntax] = [:], wraps: Bool = false
     ) {
+        self.wraps = wraps
         self.review = review
         self.mode = mode
         self.collapsed = collapsed
