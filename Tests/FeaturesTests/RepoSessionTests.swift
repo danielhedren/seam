@@ -491,6 +491,36 @@ import Testing
         #expect(session.selected?.baseOverride == nil)
     }
 
+    @Test func switchingAwayBeforeTheDiffShowsKeepsTheSavedPosition() async throws {
+        let repo = try await FixtureRepo()
+        let other = try await repo.worktree("other", branch: "other", from: "origin/main")
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        await session.settled()
+        let anchor = ScrollAnchor(path: "a.txt", line: 3, offset: 0)
+        session.selected?.savedAnchor = anchor
+
+        session.select(other.path)
+        session.select(repo.main.path)
+
+        #expect(session.selected?.savedAnchor == anchor)
+    }
+
+    @Test func readingAnotherFileIsSavedAtOnce() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "a\n")
+        let store = MemoryStore()
+        let session = RepoSession(directory: repo.main, services: services(repo.git, store: store))
+        await session.open()
+        await session.settled()
+        let repository = try #require(session.repository)
+
+        session.noteReading("a.txt")
+        await session.settled()
+
+        #expect(await store.load(repository).worktrees[repo.main.path]?.currentFile == "a.txt")
+    }
+
     @Test func overrideWhoseRefIsGoneShowsABannerWithAWayBack() async throws {
         let repo = try await FixtureRepo()
         let session = RepoSession(directory: repo.main, services: services(repo.git))

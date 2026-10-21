@@ -193,7 +193,7 @@ final class RepoSession {
         guard let id, id != selectedID, let review = reviews.first(where: { $0.id == id }) else {
             return
         }
-        selected?.savedAnchor = diff.anchor
+        if let anchor = diff.anchor { selected?.savedAnchor = anchor }
         selected?.cancelLoading()
         selectedID = id
         repoState.selectedWorktree = id
@@ -504,6 +504,15 @@ final class RepoSession {
         select(worktree)
         guard selectedID == worktree, let base else { return }
         await setTypedBase(base)
+    }
+
+    /// The diff scrolled to another file. Saving here, not only on switch or close, keeps the
+    /// position across ⌘Q, where nothing else gets a chance to run.
+    func noteReading(_ path: String?) {
+        guard let review = selected else { return }
+        review.currentFile = path
+        if let anchor = diff.anchor { review.savedAnchor = anchor }
+        persist()
     }
 
     /// For an open request naming a worktree the list doesn't have yet.
