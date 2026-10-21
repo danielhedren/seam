@@ -38,8 +38,11 @@ final class WorktreeReview: Identifiable {
         return options
     }
 
+    /// Between showing whitespace and the configured way of hiding it (all of it, by default).
     func toggleWhitespace() {
-        whitespace = effectiveWhitespace == .show ? .ignoreAll : .show
+        let hidden =
+            services.settings.whitespace == .show ? .ignoreAll : services.settings.whitespace
+        whitespace = effectiveWhitespace == .show ? hidden : .show
         reloadDiff()
     }
     /// Files marked viewed, by path (SPEC §11).
@@ -58,6 +61,8 @@ final class WorktreeReview: Identifiable {
     private(set) var syntaxVersion = 0
     private var highlightTask: Task<Void, Never>?
     private var openedByReader: Set<String> = []
+    /// Each file's viewed status at the last load, to spot a viewed file that changed.
+    private var lastStatuses: [String: ViewedMarks.Status] = [:]
     /// Whether the file list's "Generated" group is open.
     var showsGenerated = false
     /// Revealed context per file and gap. Kept across reloads; gaps that moved simply reset.
@@ -170,9 +175,9 @@ final class WorktreeReview: Identifiable {
 
     /// With the setting on, a viewed file folds away and opens again once unmarked or changed.
     private func collapseIfViewed(_ path: String) {
-        guard services.settings.collapsesViewed,
-            let file = diff?.files.first(where: { $0.diff.path == path })
-        else { return }
+        guard let file = diff?.files.first(where: { $0.diff.path == path }) else { return }
+        lastStatuses[path] = viewed.status(of: file)
+        guard services.settings.collapsesViewed else { return }
         if viewed.status(of: file) == .viewed {
             collapsed.insert(path)
             openedByReader.remove(path)
@@ -220,10 +225,15 @@ final class WorktreeReview: Identifiable {
     /// Generated and large files start collapsed, except ones the reader has opened.
     private func applyDefaultCollapse(_ diff: ReviewDiff) {
         let collapsesViewed = services.settings.collapsesViewed
+        var statuses: [String: ViewedMarks.Status] = [:]
         for file in diff.files {
             let path = file.diff.path
             let status = viewed.status(of: file)
-            if status == .changedSinceViewed, collapsesViewed {
+            statuses[path] = status
+            // Opens once, when a viewed file changes, so a reader's later collapse sticks.
+            if collapsesViewed, status == .changedSinceViewed, lastStatuses[path] == .viewed,
+                !file.startsCollapsed
+            {
                 collapsed.remove(path)
             } else if file.startsCollapsed || (collapsesViewed && status == .viewed),
                 !openedByReader.contains(path)
@@ -231,6 +241,7 @@ final class WorktreeReview: Identifiable {
                 collapsed.insert(path)
             }
         }
+        lastStatuses = statuses
     }
 
     func expand(_ path: String, gap: Int, _ direction: ExpandDirection) {

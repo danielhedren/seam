@@ -310,7 +310,10 @@ final class RepoSession {
                 session.registerViewedUndo(review, path, current)
             }
         }
-        undoManager?.setActionName(String(localized: "Mark as Viewed", bundle: .module))
+        undoManager?.setActionName(
+            current == nil
+                ? String(localized: "Mark as Not Viewed", bundle: .module)
+                : String(localized: "Mark as Viewed", bundle: .module))
     }
 
     /// `o`: opens the reader's file and line in their editor, inside the reviewed worktree.

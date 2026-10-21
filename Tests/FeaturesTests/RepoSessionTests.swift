@@ -446,6 +446,11 @@ import Testing
         await session.settled()
         #expect(review.viewedStatus("a.txt") == .changedSinceViewed)
         #expect(!review.collapsed.contains("a.txt"))
+
+        session.toggleCollapsed("a.txt")
+        await session.apply(RepoChange(worktrees: [repo.main.path]))
+        await session.settled()
+        #expect(review.collapsed.contains("a.txt"))
     }
 
     @Test func hidingWhitespaceDropsWhitespaceOnlyChanges() async throws {

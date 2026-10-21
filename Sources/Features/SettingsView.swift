@@ -99,18 +99,25 @@ struct SettingsView: View {
     }
 
     private func lines(_ title: String, _ values: Binding<[String]>) -> some View {
-        LabeledContent(title) {
-            TextEditor(
-                text: Binding(
-                    get: { values.wrappedValue.joined(separator: "\n") },
-                    set: {
-                        values.wrappedValue = $0.split(separator: "\n").map {
-                            $0.trimmingCharacters(in: .whitespaces)
-                        }.filter { !$0.isEmpty }
-                    })
-            )
+        LabeledContent(title) { LineListEditor(values: values) }
+    }
+}
+
+/// One entry per line. The text is kept as typed, so a new empty line survives until it has
+/// content; only the parsed entries go to the setting.
+private struct LineListEditor: View {
+    @Binding var values: [String]
+    @State private var text = ""
+
+    var body: some View {
+        TextEditor(text: $text)
             .font(.body.monospaced())
             .frame(height: 60)
-        }
+            .onAppear { text = values.joined(separator: "\n") }
+            .onChange(of: text) {
+                values = text.split(separator: "\n").map {
+                    $0.trimmingCharacters(in: .whitespaces)
+                }.filter { !$0.isEmpty }
+            }
     }
 }
