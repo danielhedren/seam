@@ -47,15 +47,18 @@ enum ProcessRunner {
                 .value
             async let err = Task.detached { stderr.fileHandleForReading.readDataToEndOfFile() }
                 .value
-            if let input {
-                Task.detached {
-                    let writer = stdin.fileHandleForWriting
-                    try? writer.write(contentsOf: input)
-                    try? writer.close()
-                }
-            }
+            async let wrote: Void = Task.detached {
+                guard let input else { return }
+                let writer = stdin.fileHandleForWriting
+                // git may exit, or be terminated, before reading everything. A write to the closed
+                // pipe would raise SIGPIPE and kill the app; this makes it fail with EPIPE.
+                _ = fcntl(writer.fileDescriptor, F_SETNOSIGPIPE, 1)
+                try? writer.write(contentsOf: input)
+                try? writer.close()
+            }.value
             var status: Int32 = -1
             for await code in exited.stream { status = code }
+            await wrote
             let result = ProcessResult(status: status, stdout: await out, stderr: await err)
             try Task.checkCancellation()
             return result
