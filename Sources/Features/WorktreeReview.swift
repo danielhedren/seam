@@ -269,44 +269,30 @@ final class WorktreeReview: Identifiable {
             return
         }
         do {
-            var base = detection.base
-            if let baseOverride {
-                guard
-                    let resolved = try await BaseDetector(git: services.git)
-                        .base(forParent: baseOverride, in: worktree.path)
-                else {
-                    guard generation == loadGeneration else { return }
-                    problem = .overrideGone(RefDisplay.short(baseOverride))
-                    finish(generation)
-                    return
-                }
-                base = resolved
-                overrideCommitCount = try await BaseDetector(git: services.git)
-                    .commitCount(since: resolved, in: worktree.path)
+            guard
+                let base = try await ReviewBase.resolve(
+                    detection: detection, override: baseOverride, in: worktree.path,
+                    git: services.git)
+            else {
+                guard generation == loadGeneration else { return }
+                problem = baseOverride.map { .overrideGone(RefDisplay.short($0)) }
+                finish(generation)
+                return
             }
+            overrideCommitCount = base.commitCount
             let result = try await ReviewDiffBuilder(
                 git: services.git, fileSystem: services.fileSystem
-            ).build(worktree: worktree.path, base: base, scope: scope)
+            ).build(worktree: worktree.path, base: base.commit, scope: scope)
             guard generation == loadGeneration, !Task.isCancelled else { return }
             // A first load shows the diff before its contents arrive. A reload waits for both,
             // so the new hunks are never drawn with the old files' gap lines.
             let isReload = !contents.isEmpty
-            if !isReload {
-                applyDefaultCollapse(result)
-                diff = result
-                diffVersion += 1
-                problem = nil
-            }
+            if !isReload { present(result) }
             let loaded = try await FileContentLoader(
                 git: services.git, fileSystem: services.fileSystem
             ).load(result, worktree: worktree.path)
             guard generation == loadGeneration, !Task.isCancelled else { return }
-            if isReload {
-                applyDefaultCollapse(result)
-                diff = result
-                diffVersion += 1
-                problem = nil
-            }
+            if isReload { present(result) }
             // Spans of files whose text changed would paint the new lines wrongly until redone.
             let previous = contents
             syntax = syntax.filter { previous[$0.key] == loaded[$0.key] }
@@ -318,6 +304,13 @@ final class WorktreeReview: Identifiable {
             problem = .gitFailed(Self.describe(error))
         }
         finish(generation)
+    }
+
+    private func present(_ diff: ReviewDiff) {
+        applyDefaultCollapse(diff)
+        self.diff = diff
+        diffVersion += 1
+        problem = nil
     }
 
     private func finish(_ generation: Int) {
