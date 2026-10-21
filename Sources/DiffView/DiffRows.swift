@@ -27,6 +27,72 @@ struct UnifiedLine: Equatable, Sendable {
     var highlights: [Range<Int>] = []
 }
 
+/// Everything the diff view shows. Equal content means nothing to redraw.
+public struct DiffContent: Equatable, Sendable {
+    public var review: ReviewDiff
+    public var mode: DiffLayoutMode
+    public var collapsed: Set<String>
+    /// Full file contents, for context expansion; files without them get no gap rows.
+    public var contents: [String: FileContents]
+    public var expansions: [String: [Int: GapExpansion]]
+
+    public init(
+        review: ReviewDiff, mode: DiffLayoutMode = .unified, collapsed: Set<String> = [],
+        contents: [String: FileContents] = [:], expansions: [String: [Int: GapExpansion]] = [:]
+    ) {
+        self.review = review
+        self.mode = mode
+        self.collapsed = collapsed
+        self.contents = contents
+        self.expansions = expansions
+    }
+
+    /// Lines revealed per click on a gap's arrow.
+    public static let expandStep = 20
+
+    /// Each file's new side split into lines, without the empty piece after a final newline.
+    var newLines: [String: [Substring]] {
+        contents.compactMapValues { contents in
+            guard let text = contents.new else { return nil }
+            var lines = text.split(separator: "\n", omittingEmptySubsequences: false)
+            if text.hasSuffix("\n") { lines.removeLast() }
+            return lines
+        }
+    }
+}
+
+/// How much of one gap between hunks the reader has revealed (SPEC §7.4). Gap 0 is above the
+/// first hunk, gap `n` below hunk `n - 1`.
+public struct GapExpansion: Equatable, Sendable {
+    /// Lines shown below the hunk above the gap.
+    public var top = 0
+    /// Lines shown above the hunk below the gap.
+    public var bottom = 0
+
+    public init(top: Int = 0, bottom: Int = 0) {
+        self.top = top
+        self.bottom = bottom
+    }
+
+    public static let all = GapExpansion(top: Int.max / 2, bottom: 0)
+}
+
+public enum ExpandDirection: Equatable, Sendable {
+    /// Reveal lines below the hunk above the gap.
+    case down
+    /// Reveal lines above the hunk below the gap.
+    case up
+    case all
+}
+
+/// The hidden part of a gap, with the controls that apply to it.
+struct GapRow: Equatable, Sendable {
+    var gap: Int
+    var hidden: Int
+    var canExpandDown: Bool
+    var canExpandUp: Bool
+}
+
 enum DiffRow: Equatable, Sendable {
     case fileHeader(file: Int)
     case hunkHeader(file: Int, hunk: Int, text: String)
@@ -35,11 +101,13 @@ enum DiffRow: Equatable, Sendable {
     case split(file: Int, left: SideLine?, right: SideLine?)
     /// Binary, mode-only, empty or deferred files, which have no lines to show.
     case notice(file: Int, text: String)
+    /// Unchanged lines between hunks that aren't shown.
+    case gap(file: Int, GapRow)
 
     var file: Int {
         switch self {
         case .fileHeader(let file), .hunkHeader(let file, _, _), .line(let file, _),
-            .split(let file, _, _), .notice(let file, _):
+            .split(let file, _, _), .notice(let file, _), .gap(let file, _):
             file
         }
     }
@@ -61,8 +129,11 @@ enum DiffSide: Hashable, Sendable {
 }
 
 enum DiffRowBuilder {
+    /// `newLines` holds each file's new side split into lines, where it was loaded; files
+    /// without it get no gap rows.
     static func rows(
         for review: ReviewDiff, mode: DiffLayoutMode, collapsed: Set<String> = [],
+        newLines: [String: [Substring]] = [:], expansions: [String: [Int: GapExpansion]] = [:],
         tabWidth: Int = 4
     ) -> [DiffRow] {
         var rows: [DiffRow] = []
@@ -74,7 +145,22 @@ enum DiffRowBuilder {
                 rows.append(.notice(file: index, text: notice))
                 continue
             }
+            let lines = file.diff.newPath == nil ? nil : newLines[file.diff.path]
+            let fileExpansions = expansions[file.diff.path] ?? [:]
+            var next = (old: 1, new: 1)
+            func gap(_ number: Int, until end: Int) {
+                guard let lines else { return }
+                rows += gapRows(
+                    file: index, gap: number, newRange: next.new..<end,
+                    oldOffset: next.old - next.new, lines: lines,
+                    expansion: fileExpansions[number] ?? GapExpansion(), mode: mode,
+                    tabWidth: tabWidth, isFirst: number == 0,
+                    isLast: number == file.diff.hunks.count)
+            }
             for (hunkIndex, hunk) in file.diff.hunks.enumerated() {
+                let first = Self.first(hunk)
+                gap(hunkIndex, until: first.new)
+                next = Self.next(hunk)
                 rows.append(.hunkHeader(file: index, hunk: hunkIndex, text: header(hunk)))
                 let texts = hunk.lines.map { expandTabs($0.text, width: tabWidth) }
                 let highlights = wordHighlights(hunk.lines, texts)
@@ -93,8 +179,85 @@ enum DiffRowBuilder {
                     rows += splitRows(hunk.lines, texts, highlights, file: index)
                 }
             }
+            if let lines, !file.diff.hunks.isEmpty {
+                gap(file.diff.hunks.count, until: lines.count + 1)
+            }
         }
         return rows
+    }
+
+    /// A hunk's first line on each side. A side with no lines names the line before it.
+    static func first(_ hunk: Hunk) -> (old: Int, new: Int) {
+        (
+            hunk.oldCount == 0 ? hunk.oldStart + 1 : hunk.oldStart,
+            hunk.newCount == 0 ? hunk.newStart + 1 : hunk.newStart
+        )
+    }
+
+    /// The first line after a hunk on each side.
+    static func next(_ hunk: Hunk) -> (old: Int, new: Int) {
+        (
+            hunk.oldCount == 0 ? hunk.oldStart + 1 : hunk.oldStart + hunk.oldCount,
+            hunk.newCount == 0 ? hunk.newStart + 1 : hunk.newStart + hunk.newCount
+        )
+    }
+
+    /// Revealed context at the top and bottom of a gap, with the hidden rest as one gap row.
+    static func gapRows(
+        file: Int, gap: Int, newRange: Range<Int>, oldOffset: Int, lines: [Substring],
+        expansion: GapExpansion, mode: DiffLayoutMode, tabWidth: Int, isFirst: Bool,
+        isLast: Bool
+    ) -> [DiffRow] {
+        let range = newRange.clamped(to: 1..<(lines.count + 1))
+        guard !range.isEmpty else { return [] }
+        let top = isFirst ? 0 : min(expansion.top, range.count)
+        let bottom = isLast ? 0 : min(expansion.bottom, range.count - top)
+        let all = expansion.top >= range.count
+        func context(_ numbers: Range<Int>) -> [DiffRow] {
+            numbers.map { number in
+                let text = expandTabs(String(lines[number - 1]), width: tabWidth)
+                let old = number + oldOffset
+                return switch mode {
+                case .unified:
+                    .line(
+                        file: file, UnifiedLine(old: old, new: number, kind: .context, text: text))
+                case .split:
+                    .split(
+                        file: file, left: SideLine(kind: .context, number: old, text: text),
+                        right: SideLine(kind: .context, number: number, text: text))
+                }
+            }
+        }
+        if all { return context(range) }
+        var rows = context(range.lowerBound..<(range.lowerBound + top))
+        let hidden = range.count - top - bottom
+        if hidden > 0 {
+            rows.append(
+                .gap(
+                    file: file,
+                    GapRow(gap: gap, hidden: hidden, canExpandDown: !isFirst, canExpandUp: !isLast))
+            )
+        }
+        rows += context((range.upperBound - bottom)..<range.upperBound)
+        return rows
+    }
+
+    /// The gap row's text and the character ranges of its controls.
+    static func gapLabel(_ gap: GapRow) -> (text: String, controls: [(Range<Int>, ExpandDirection)])
+    {
+        var text = ""
+        var controls: [(Range<Int>, ExpandDirection)] = []
+        func add(_ label: String, _ direction: ExpandDirection) {
+            let start = text.count
+            text += label
+            controls.append((start..<text.count, direction))
+            text += "    "
+        }
+        let step = min(DiffContent.expandStep, gap.hidden)
+        if gap.canExpandDown { add("↓ \(step)", .down) }
+        if gap.canExpandUp { add("↑ \(step)", .up) }
+        add(String(localized: "Show all \(gap.hidden) lines", bundle: .module), .all)
+        return (text, controls)
     }
 
     static func header(_ hunk: Hunk) -> String {

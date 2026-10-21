@@ -20,6 +20,7 @@ final class DiffCanvasView: NSView {
     }
     var onToggleCollapse: ((String) -> Void)?
     var onFocusChange: ((Bool) -> Void)?
+    var onExpand: ((String, Int, ExpandDirection) -> Void)?
     /// Nil follows the system's Increase Contrast setting; snapshot tests force it.
     var increaseContrastOverride: Bool?
     var increaseContrast: Bool {
@@ -62,14 +63,16 @@ final class DiffCanvasView: NSView {
             characterWidth: width > 0 ? width : font.pointSize * 0.6)
     }
 
-    func show(_ review: ReviewDiff, mode: DiffLayoutMode, collapsed: Set<String>) {
+    func show(_ content: DiffContent) {
         let interval = signposter.beginInterval("layoutDiff")
         defer { signposter.endInterval("layoutDiff", interval) }
-        self.review = review
-        self.mode = mode
-        self.collapsed = collapsed
+        review = content.review
+        mode = content.mode
+        collapsed = content.collapsed
         layout = DiffLayout(
-            rows: DiffRowBuilder.rows(for: review, mode: mode, collapsed: collapsed),
+            rows: DiffRowBuilder.rows(
+                for: review, mode: mode, collapsed: collapsed, newLines: content.newLines,
+                expansions: content.expansions),
             metrics: layout.metrics)
         lineCache.removeAll(keepingCapacity: true)
         selection = nil
@@ -125,6 +128,12 @@ final class DiffCanvasView: NSView {
             drawText(
                 text, key: LineKey(row: index, side: .unified), x: geometry.unifiedTextX,
                 rowTop: rect.minY, color: palette.gutterText, context: context)
+        case .gap(_, let gap):
+            fill(rect, palette.hunkBackground, context)
+            drawText(
+                DiffRowBuilder.gapLabel(gap).text, key: LineKey(row: index, side: .unified),
+                x: geometry.unifiedTextX, rowTop: rect.minY, color: palette.hunkText,
+                context: context)
         case .line(_, let line):
             let column = Column(
                 x: 0, width: rect.width, numbers: [line.old, line.new],
@@ -287,9 +296,20 @@ final class DiffCanvasView: NSView {
         window?.makeFirstResponder(self)
         let point = convert(event.locationInWindow, from: nil)
         guard let (side, position) = self.position(at: point) else { return }
-        if case .fileHeader(let file) = layout.rows[position.row] {
+        switch layout.rows[position.row] {
+        case .fileHeader(let file):
             onToggleCollapse?(review.files[file].diff.path)
             return
+        case .gap(let file, let gap):
+            let column = Int((point.x - geometry.unifiedTextX) / layout.metrics.characterWidth)
+            if let control = DiffRowBuilder.gapLabel(gap).controls.first(where: {
+                $0.0.contains(column)
+            }) {
+                onExpand?(review.files[file].diff.path, gap.gap, control.1)
+            }
+            return
+        default:
+            break
         }
         switch event.clickCount {
         case 2:
@@ -391,6 +411,8 @@ final class DiffCanvasView: NSView {
         switch layout.rows[index] {
         case .fileHeader(let file): return review.files[file].diff.path
         case .hunkHeader(_, _, let text), .notice(_, let text): return text
+        case .gap(_, let gap):
+            return String(localized: "\(gap.hidden) unchanged lines hidden", bundle: .module)
         case .line(_, let line):
             return describe(line.kind, line.new ?? line.old, isOld: line.new == nil, line.text)
         case .split(_, let left, let right):

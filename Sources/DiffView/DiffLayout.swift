@@ -85,6 +85,7 @@ struct DiffLayout: Equatable, Sendable {
         case .line(_, let line): line.text.count
         case .split(_, let left, let right): max(left?.text.count ?? 0, right?.text.count ?? 0)
         case .hunkHeader(_, _, let text), .notice(_, let text): text.count
+        case .gap(_, let gap): DiffRowBuilder.gapLabel(gap).text.count
         case .fileHeader: 0
         }
     }

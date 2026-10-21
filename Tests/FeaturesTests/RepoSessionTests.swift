@@ -1,3 +1,4 @@
+import DiffView
 import Foundation
 import GitKit
 import SeamCore
@@ -176,6 +177,33 @@ import Testing
         session.showsSwitcher = false
         session.showsBasePicker = true
         #expect(!session.reviewHasFocus)
+    }
+
+    @Test func fileContentsArriveForExpansionAndSurviveAReload() async throws {
+        let repo = try await FixtureRepo()
+        let lines = (1...60).map { "line \($0)" }
+        try await repo.commit("big.txt", lines.joined(separator: "\n") + "\n", "big")
+        var edited = lines
+        edited[29] = "line 30 edited"
+        try repo.write("big.txt", edited.joined(separator: "\n") + "\n")
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        session.setBaseOverride("refs/heads/main")
+        await session.settled()
+        let review = try #require(session.selected)
+        #expect(review.contents["big.txt"]?.old?.contains("line 30\n") == true)
+        #expect(review.contents["big.txt"]?.new?.contains("line 30 edited") == true)
+
+        review.expand("big.txt", gap: 0, .up)
+        review.expand("big.txt", gap: 0, .up)
+        edited[59] = "line 60 edited"
+        try repo.write("big.txt", edited.joined(separator: "\n") + "\n")
+        await session.apply(RepoChange(worktrees: [repo.main.path]))
+        await session.settled()
+
+        #expect(review.content?.expansions == ["big.txt": [0: GapExpansion(bottom: 40)]])
+        #expect(review.contents["big.txt"]?.new?.contains("line 60 edited") == true)
+        #expect(review.diff?.files.first?.diff.hunks.count == 2)
     }
 
     @Test func overrideWhoseRefIsGoneShowsABannerWithAWayBack() async throws {

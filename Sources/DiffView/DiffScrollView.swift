@@ -19,6 +19,10 @@ public final class DiffScrollView: NSScrollView {
     public var onFocusChange: ((Bool) -> Void)? {
         didSet { canvas.onFocusChange = onFocusChange }
     }
+    /// A gap's control was clicked: file path, gap index, direction.
+    public var onExpand: ((String, Int, ExpandDirection) -> Void)? {
+        didSet { canvas.onExpand = onExpand }
+    }
     /// The file at the top of the view, for the file list to follow.
     public var onCurrentFileChange: ((String?) -> Void)?
 
@@ -76,11 +80,9 @@ public final class DiffScrollView: NSScrollView {
     private var headerHeight: Double { layout.metrics.fileHeaderHeight }
     private var visibleTop: Double { contentView.bounds.minY }
 
-    public func show(
-        _ review: ReviewDiff, mode: DiffLayoutMode, collapsed: Set<String>, position: Position
-    ) {
+    public func show(_ content: DiffContent, position: Position) {
         let kept = position == .keep ? anchor : nil
-        canvas.show(review, mode: mode, collapsed: collapsed)
+        canvas.show(content)
         canvas.setVisibleWidth(contentSize.width)
         switch position {
         case .keep:

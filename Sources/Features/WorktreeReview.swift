@@ -24,6 +24,11 @@ final class WorktreeReview: Identifiable {
     private(set) var scope = ReviewScope.all
     private(set) var mode: DiffLayoutMode
     private(set) var collapsed: Set<String> = []
+    /// Full file contents for the current diff; empty until loaded.
+    private(set) var contents: [String: FileContents] = [:]
+    private(set) var contentsVersion = 0
+    /// Revealed context per file and gap. Kept across reloads; gaps that moved simply reset.
+    private(set) var expansions: [String: [Int: GapExpansion]] = [:]
     private(set) var diff: ReviewDiff?
     /// Bumped on every new diff, so the view knows to redraw even when the content is equal.
     private(set) var diffVersion = 0
@@ -110,6 +115,25 @@ final class WorktreeReview: Identifiable {
 
     func toggleCollapsed(_ path: String) {
         if collapsed.remove(path) == nil { collapsed.insert(path) }
+    }
+
+    func expand(_ path: String, gap: Int, _ direction: ExpandDirection) {
+        var expansion = expansions[path]?[gap] ?? GapExpansion()
+        switch direction {
+        case .down: expansion.top += DiffContent.expandStep
+        case .up: expansion.bottom += DiffContent.expandStep
+        case .all: expansion = .all
+        }
+        expansions[path, default: [:]][gap] = expansion
+    }
+
+    /// What the diff view shows; nil until the diff has loaded.
+    var content: DiffContent? {
+        diff.map {
+            DiffContent(
+                review: $0, mode: mode, collapsed: collapsed, contents: contents,
+                expansions: expansions)
+        }
     }
 
     // MARK: - Loading
@@ -203,9 +227,25 @@ final class WorktreeReview: Identifiable {
                 git: services.git, fileSystem: services.fileSystem
             ).build(worktree: worktree.path, base: base, scope: scope)
             guard generation == loadGeneration, !Task.isCancelled else { return }
-            diff = result
-            diffVersion += 1
-            problem = nil
+            // A first load shows the diff before its contents arrive. A reload waits for both,
+            // so the new hunks are never drawn with the old files' gap lines.
+            let isReload = !contents.isEmpty
+            if !isReload {
+                diff = result
+                diffVersion += 1
+                problem = nil
+            }
+            let loaded = try await FileContentLoader(
+                git: services.git, fileSystem: services.fileSystem
+            ).load(result, worktree: worktree.path)
+            guard generation == loadGeneration, !Task.isCancelled else { return }
+            if isReload {
+                diff = result
+                diffVersion += 1
+                problem = nil
+            }
+            contents = loaded
+            contentsVersion += 1
         } catch {
             guard generation == loadGeneration, error != .cancelled else { return }
             problem = .gitFailed(Self.describe(error))

@@ -30,7 +30,8 @@ public struct DiffOptions: Equatable, Sendable {
     var arguments: [String] {
         var arguments = [
             "diff", "--no-ext-diff", "--no-color", "--no-textconv", "--histogram", "-M", "-C",
-            "--src-prefix=a/", "--dst-prefix=b/", "--no-relative", "-U\(contextLines)",
+            "--src-prefix=a/", "--dst-prefix=b/", "--no-relative", "--full-index",
+            "-U\(contextLines)",
         ]
         switch whitespace {
         case .show: break

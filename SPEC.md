@@ -379,8 +379,12 @@ seam-debug (M1)       ─ SeamCore
 - Output is parsed from porcelain and `-z` formats wherever they exist. The unified diff parser
   handles: renames and copies, binary markers, mode changes, `\ No newline at end of file`, and
   quoted and unicode paths.
-- Full-file contents for highlighting and context expansion: `git cat-file --batch`, one long-lived
-  process per repo, fed blob ids. Working-tree files are read from disk.
+- Full-file contents for highlighting and context expansion: one `git cat-file --batch` per diff
+  load, fed every blob id the load needs (`--full-index` gives full ids). Working-tree files are
+  read from disk. This keeps blob reads behind `GitClient`, so tests stay hermetic; a long-lived
+  process would need its own seam for no measured gain.
+- A first load shows the diff as soon as it's parsed and adds contents when they arrive. A
+  reload swaps diff and contents together, so new hunks never meet the old file's lines.
 - Cancellation: switching worktrees or scopes cancels in-flight processes for the old selection.
 
 ### 8.4 Syntax highlighting

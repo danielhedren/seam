@@ -14,6 +14,8 @@ struct DiffRepresentable: NSViewRepresentable {
             var version: Int
             var mode: DiffLayoutMode
             var collapsed: Set<String>
+            var contentsVersion: Int
+            var expansions: [String: [Int: GapExpansion]]
         }
         var shown: Shown?
     }
@@ -26,6 +28,9 @@ struct DiffRepresentable: NSViewRepresentable {
         view.onToggleCollapse = { [session] path in session.toggleCollapsed(path) }
         view.onFocusChange = { [session] focused in session.diffHasFocus = focused }
         view.onCurrentFileChange = { [session] path in session.selected?.currentFile = path }
+        view.onExpand = { [session] path, gap, direction in
+            session.selected?.expand(path, gap: gap, direction)
+        }
         return view
     }
 
@@ -34,14 +39,15 @@ struct DiffRepresentable: NSViewRepresentable {
         view.isStale = review.showsProgress
         let shown = Coordinator.Shown(
             id: review.id, version: review.diffVersion, mode: review.mode,
-            collapsed: review.collapsed)
+            collapsed: review.collapsed, contentsVersion: review.contentsVersion,
+            expansions: review.expansions)
         guard shown != context.coordinator.shown else { return }
         let previous = context.coordinator.shown
-        guard let diff = review.diff else {
+        guard let content = review.content else {
             // Not loaded yet, or the worktree's directory went missing: show nothing stale.
             if previous != nil {
                 view.show(
-                    ReviewDiff(scope: review.scope, files: []), mode: review.mode, collapsed: [],
+                    DiffContent(review: ReviewDiff(scope: review.scope, files: [])),
                     position: .top)
                 context.coordinator.shown = nil
             }
@@ -55,7 +61,7 @@ struct DiffRepresentable: NSViewRepresentable {
             } else {
                 .top
             }
-        view.show(diff, mode: review.mode, collapsed: review.collapsed, position: position)
+        view.show(content, position: position)
         context.coordinator.shown = shown
     }
 }

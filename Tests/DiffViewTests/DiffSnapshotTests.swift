@@ -70,7 +70,8 @@ struct DiffSnapshotTests {
         view.appearance = NSAppearance(named: appearance)
         view.increaseContrastOverride = highContrast
         view.frame = NSRect(x: 0, y: 0, width: 900, height: 460)
-        view.show(Self.review, mode: mode, collapsed: collapsed, position: .top)
+        view.show(
+            DiffContent(review: Self.review, mode: mode, collapsed: collapsed), position: .top)
         view.layoutSubtreeIfNeeded()
         return view
     }
@@ -97,6 +98,30 @@ struct DiffSnapshotTests {
         view.moveHunk(by: 1)
         view.moveHunk(by: 1)
         assertSnapshot(of: view, as: .image, named: "sticky-\(Self.os)")
+    }
+
+    @Test func gapsBetweenHunksOfferExpansion() {
+        var hunk = Hunk(oldStart: 10, oldCount: 3, newStart: 10, newCount: 3, section: "")
+        hunk.lines = [
+            Self.line(.context, "line 10", 10, 10),
+            Self.line(.removed, "line 11", 11, nil),
+            Self.line(.added, "line eleven", nil, 11),
+            Self.line(.context, "line 12", 12, 12),
+        ]
+        var file = FileDiff(oldPath: "a.txt", newPath: "a.txt", status: .modified)
+        file.hunks = [hunk]
+        let lines = (1...30).map { $0 == 11 ? "line eleven" : "line \($0)" }
+        let content = DiffContent(
+            review: ReviewDiff(scope: .all, files: [ReviewFile(diff: file)]),
+            contents: ["a.txt": FileContents(old: nil, new: lines.joined(separator: "\n") + "\n")],
+            expansions: ["a.txt": [0: GapExpansion(bottom: 3)]])
+        let view = DiffScrollView()
+        view.appearance = NSAppearance(named: .aqua)
+        view.increaseContrastOverride = false
+        view.frame = NSRect(x: 0, y: 0, width: 700, height: 300)
+        view.show(content, position: .top)
+        view.layoutSubtreeIfNeeded()
+        assertSnapshot(of: view, as: .image, named: "gaps-\(Self.os)")
     }
 
     @Test func collapsedFileShowsOnlyItsHeader() {
