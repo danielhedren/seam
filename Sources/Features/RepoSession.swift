@@ -220,6 +220,25 @@ final class RepoSession {
         diff.focus()
     }
 
+    private(set) var isFetching = false
+
+    /// `f`: `git fetch --prune` for the repo (SPEC §5.5). The refs it changes reach every row
+    /// through the same path as any other ref change.
+    func fetch() {
+        guard let repository, !isFetching else { return }
+        isFetching = true
+        let git = services.git
+        Task {
+            defer { isFetching = false }
+            do throws(GitError) {
+                _ = try await git.run(["fetch", "--prune", "--quiet"], in: repository.anchor)
+                await apply(RepoChange(refs: true))
+            } catch {
+                selected?.report(.gitFailed(WorktreeReview.describe(error)))
+            }
+        }
+    }
+
     /// The window's undo manager; viewed toggles are the only state changes that can be undone.
     weak var undoManager: UndoManager?
 

@@ -29,6 +29,9 @@ final class WorktreeReview: Identifiable {
     private(set) var wraps = false
     /// Files marked viewed, by path (SPEC §11).
     private(set) var viewed = ViewedMarks()
+    /// A detected parent that looks merged (SPEC §5.4); nil once dismissed or overridden.
+    private(set) var staleParent: StaleParent?
+    private var dismissedStaleParents: Set<String> = []
     /// Full file contents for the current diff; empty until loaded.
     private(set) var contents: [String: FileContents] = [:]
     private(set) var contentsVersion = 0
@@ -270,6 +273,11 @@ final class WorktreeReview: Identifiable {
         await loadTask?.value
     }
 
+    func dismissStaleParent() {
+        if let parent = staleParent?.parent { dismissedStaleParents.insert(parent) }
+        staleParent = nil
+    }
+
     func report(_ problem: Problem) {
         self.problem = problem
     }
@@ -302,6 +310,12 @@ final class WorktreeReview: Identifiable {
                 return
             }
             overrideCommitCount = base.commitCount
+            let stale =
+                baseOverride == nil
+                ? try await StaleParent.check(detection, in: worktree.path, git: services.git)
+                : nil
+            guard generation == loadGeneration else { return }
+            staleParent = stale.flatMap { dismissedStaleParents.contains($0.parent) ? nil : $0 }
             let result = try await ReviewDiffBuilder(
                 git: services.git, fileSystem: services.fileSystem
             ).build(worktree: worktree.path, base: base.commit, scope: scope)

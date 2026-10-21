@@ -118,6 +118,7 @@ struct SeamCommands: Commands {
             }
             .disabled(session?.selected?.baseOverride == nil)
             item("Reload", key: "r") { $0.reload() }
+            item("Fetch", key: "f") { $0.fetch() }
         }
     }
 

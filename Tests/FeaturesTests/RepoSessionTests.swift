@@ -345,6 +345,35 @@ import Testing
         #expect(review.problem == .editorFailed("zed: command not found"))
     }
 
+    @Test func fetchPrunesAMergedParentAndTheReviewOffersMain() async throws {
+        let repo = try await FixtureRepo()
+        let b = try await repo.worktree("b", branch: "b", from: "origin/main")
+        try await repo.commit("b.txt", "b\n", "b1", in: b)
+        try await repo.run("push", "-q", "-u", "origin", "b", in: b)
+        try await repo.commit("b.txt", "b\nlocal\n", "b2", in: b)
+        let c = try await repo.worktree("c", branch: "c", from: "b")
+        try await repo.commit("c.txt", "c\n", "c1", in: c)
+        let session = RepoSession(directory: c, services: services(repo.git))
+        await session.open()
+        await session.settled()
+        let review = try #require(session.selected)
+        #expect(review.staleParent == nil)
+
+        _ = try await repo.git.run(
+            ["--git-dir", repo.origin.path, "update-ref", "-d", "refs/heads/b"], in: repo.main)
+        session.fetch()
+        await until { !session.isFetching }
+        await session.settled()
+
+        #expect(review.staleParent?.parent == "b")
+        #expect(review.staleParent?.suggestion.name == "origin/main")
+        review.dismissStaleParent()
+        review.reloadDiff()
+        await review.loaded()
+        #expect(review.diff != nil)
+        #expect(review.staleParent == nil)
+    }
+
     @Test func overrideWhoseRefIsGoneShowsABannerWithAWayBack() async throws {
         let repo = try await FixtureRepo()
         let session = RepoSession(directory: repo.main, services: services(repo.git))

@@ -92,6 +92,9 @@ struct DiffPane: View {
             if let problem = review.problem {
                 ProblemBanner(problem: problem, session: session)
             }
+            if let stale = review.staleParent {
+                StaleParentBanner(stale: stale, session: session, review: review)
+            }
             if session.showsFind {
                 FindBar(session: session)
                 Divider()
@@ -207,5 +210,33 @@ struct FindBar: View {
             return String(localized: "No matches", bundle: .module)
         }
         return String(localized: "\(current) of \(session.findResult.total)", bundle: .module)
+    }
+}
+
+/// "Parent X looks merged": non-blocking, with the suggested base one click away (SPEC §5.4).
+struct StaleParentBanner: View {
+    let stale: StaleParent
+    let session: RepoSession
+    let review: WorktreeReview
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.triangle.merge").foregroundStyle(.secondary)
+                .accessibilityHidden(true)
+            Text(
+                "Parent \(stale.parent) looks merged. Diff against \(stale.suggestion.name) instead?",
+                bundle: .module)
+            Spacer()
+            Button(String(localized: "Use \(stale.suggestion.name)", bundle: .module)) {
+                session.setBaseOverride(stale.suggestion.ref)
+            }
+            Button(String(localized: "Keep \(stale.parent)", bundle: .module)) {
+                review.dismissStaleParent()
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.blue.opacity(0.1))
+        .accessibilityElement(children: .contain)
     }
 }

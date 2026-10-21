@@ -118,6 +118,21 @@ struct ReviewToolbar: ToolbarContent {
         }
         ToolbarItem {
             Button {
+                session.fetch()
+            } label: {
+                if session.isFetching {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Label(
+                        String(localized: "Fetch", bundle: .module),
+                        systemImage: "arrow.down.circle")
+                }
+            }
+            .disabled(session.isFetching)
+            .help(String(localized: "Fetch and prune remote branches (f)", bundle: .module))
+        }
+        ToolbarItem {
+            Button {
                 session.reload()
             } label: {
                 Label(String(localized: "Reload", bundle: .module), systemImage: "arrow.clockwise")
