@@ -68,4 +68,16 @@ import Testing
 
         #expect(try await check(repo, c) == nil)
     }
+
+    @Test func aSiblingStackedOnTheSameLocalParentIsNotAMerge() async throws {
+        let repo = try await FixtureRepo()
+        let p = try await repo.worktree("p", branch: "p", from: "origin/main")
+        try await repo.commit("p.txt", "p\n", "p1", in: p)
+        let b = try await repo.worktree("b", branch: "b", from: "p")
+        try await repo.commit("b.txt", "b\n", "b1", in: b)
+        let c = try await repo.worktree("c", branch: "c", from: "p")
+        try await repo.commit("c.txt", "c\n", "c1", in: c)
+
+        #expect(try await check(repo, b) == nil)
+    }
 }

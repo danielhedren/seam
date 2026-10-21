@@ -211,6 +211,10 @@ enum CommandCatalog {
             id: "base", title: localized("Choose Base…"), menu: .review, section: 2,
             shortcut: .single("b"), run: { $0.showsBasePicker.toggle() }),
         SeamCommand(
+            id: "keep-parent", title: localized("Keep Parent That Looks Merged"), menu: .review,
+            section: 2, shortcut: .none, isEnabled: { $0.selected?.staleParent != nil },
+            run: { $0.dismissStaleParent() }),
+        SeamCommand(
             id: "detected-base", title: localized("Use Detected Base"), menu: .review,
             section: 2, shortcut: .none, isEnabled: { $0.selected?.baseOverride != nil },
             run: { $0.setBaseOverride(nil) }),

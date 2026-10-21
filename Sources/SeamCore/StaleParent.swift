@@ -4,7 +4,7 @@ import GitKit
 /// A parent that looks merged (SPEC §5.4): squash-merged branches never reach main, so detection
 /// keeps choosing them and the diff silently shrinks to the commits after them.
 public struct StaleParent: Equatable, Sendable {
-    public enum Reason: Equatable, Sendable {
+    enum Reason: Equatable, Sendable {
         /// The parent's upstream was deleted after its pull request merged.
         case upstreamGone
         /// A local-only parent whose tip is already in `suggestion`.
@@ -12,7 +12,7 @@ public struct StaleParent: Equatable, Sendable {
     }
 
     public var parent: String
-    public var reason: Reason
+    var reason: Reason
     /// The base to offer instead: the default base, or another candidate.
     public var suggestion: ParentCandidate
 
@@ -37,7 +37,10 @@ public struct StaleParent: Equatable, Sendable {
             ["rev-parse", "--verify", "--quiet", "refs/remotes/origin/" + parent.name], in: worktree
         )
         guard remoteCopy == nil else { return nil }
-        for candidate in detection.candidates where candidate.ref != parent.ref {
+        // Only the default base or a remote ref proves a merge: a sibling branch cut from the same
+        // local parent also contains its tip.
+        for candidate in detection.candidates
+        where candidate.ref != parent.ref && (candidate.isDefaultBase || candidate.isRemote) {
             let contained = try await git.optionalLine(
                 ["merge-base", "--is-ancestor", parent.tip, candidate.tip], in: worktree)
             if contained != nil {

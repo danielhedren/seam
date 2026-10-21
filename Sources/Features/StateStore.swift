@@ -14,6 +14,8 @@ public struct RepoState: Codable, Equatable, Sendable {
         public var wraps: Bool?
         public var whitespace: String?
         public var viewed: ViewedMarks?
+        /// Parents whose "looks merged" banner the reader dismissed.
+        public var dismissedStaleParents: [String]?
         /// Where the reader was, restored when the worktree is shown again.
         public var anchor: ScrollAnchor?
         public var currentFile: String?

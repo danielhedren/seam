@@ -347,6 +347,11 @@ final class RepoSession {
         NSWorkspace.shared.activateFileViewerSelecting([review.worktree.path.appending(path: file)])
     }
 
+    func dismissStaleParent() {
+        selected?.dismissStaleParent()
+        persist()
+    }
+
     func toggleWhitespace() {
         selected?.toggleWhitespace()
         persist()

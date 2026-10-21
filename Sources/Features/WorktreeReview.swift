@@ -49,6 +49,8 @@ final class WorktreeReview: Identifiable {
     /// The worktree's root `.editorconfig`, for per-file tab widths (SPEC §12).
     private var editorConfig: EditorConfig?
     private var dismissedStaleParents: Set<String> = []
+    private var detectionRuns = 0
+    private var staleCheckedAt = -1
     /// Full file contents for the current diff; empty until loaded.
     private(set) var contents: [String: FileContents] = [:]
     private(set) var contentsVersion = 0
@@ -121,6 +123,7 @@ final class WorktreeReview: Identifiable {
         if let wraps = state?.wraps { self.wraps = wraps }
         whitespace = state?.whitespace.flatMap(WhitespaceMode.init)
         if let viewed = state?.viewed { self.viewed = viewed }
+        dismissedStaleParents = Set(state?.dismissedStaleParents ?? [])
         savedAnchor = state?.anchor
         currentFile = state?.currentFile
         baseOverride = override
@@ -130,6 +133,8 @@ final class WorktreeReview: Identifiable {
         RepoState.WorktreeState(
             scope: scope.rawValue, mode: mode.rawValue, wraps: wraps,
             whitespace: whitespace?.rawValue, viewed: viewed,
+            dismissedStaleParents: dismissedStaleParents.isEmpty
+                ? nil : dismissedStaleParents.sorted(),
             anchor: savedAnchor, currentFile: currentFile)
     }
 
@@ -287,18 +292,25 @@ final class WorktreeReview: Identifiable {
         }
     }
 
-    /// `refs` comes from the session when it refreshes every row at once.
+    /// `refs` comes from the session when it refreshes every row at once. Refreshes can overlap
+    /// (a fetch and the monitor), so only the most recently started one may write its result:
+    /// it saw the newest refs.
     func refreshDetection(refs: RefSnapshot? = nil) async {
         guard !worktree.isMissing else {
             problem = .missingDirectory
             return
         }
+        detectionRuns += 1
+        let run = detectionRuns
         do {
-            detection = try await BaseDetector(
+            let result = try await BaseDetector(
                 git: services.git, settings: services.settings.detection
             )
             .detect(in: worktree.path, refs: refs)
+            guard run == detectionRuns else { return }
+            detection = result
         } catch {
+            guard run == detectionRuns else { return }
             problem = .gitFailed(Self.describe(error))
         }
     }
@@ -338,6 +350,20 @@ final class WorktreeReview: Identifiable {
         staleParent = nil
     }
 
+    /// Runs once per detection, which reruns on every ref change: a fetch that prunes the parent
+    /// leaves detection's answer the same, so the result can't be compared instead. Working-tree
+    /// reloads skip it. A failure leaves the banner off rather than failing the load.
+    private func checkStaleParent(_ detection: BaseDetection) async {
+        guard baseOverride == nil else {
+            staleParent = nil
+            return
+        }
+        guard detectionRuns != staleCheckedAt else { return }
+        let stale = try? await StaleParent.check(detection, in: worktree.path, git: services.git)
+        staleCheckedAt = detectionRuns
+        staleParent = stale.flatMap { dismissedStaleParents.contains($0.parent) ? nil : $0 }
+    }
+
     func report(_ problem: Problem) {
         self.problem = problem
     }
@@ -370,12 +396,8 @@ final class WorktreeReview: Identifiable {
                 return
             }
             overrideCommitCount = base.commitCount
-            let stale =
-                baseOverride == nil
-                ? try await StaleParent.check(detection, in: worktree.path, git: services.git)
-                : nil
+            await checkStaleParent(detection)
             guard generation == loadGeneration else { return }
-            staleParent = stale.flatMap { dismissedStaleParents.contains($0.parent) ? nil : $0 }
             let result = try await ReviewDiffBuilder(
                 git: services.git, fileSystem: services.fileSystem
             ).build(

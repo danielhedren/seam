@@ -153,9 +153,13 @@ If the parent has been squash-merged, its commits never reach main. Detection th
 the old parent, and the diff shows only the commits after it. Signals:
 
 - The parent's remote ref is `[gone]` after a fetch. The local branch may still exist.
-- The parent is a local branch with no remote ref, and it is fully contained in another candidate.
+- The parent is a local branch with no remote ref, and it is fully contained in the default base
+  or a remote candidate. A sibling branch cut from the same local parent also contains it, so
+  local siblings don't count.
 
-On either signal, show a non-blocking banner: "Parent `X` looks merged — diff against `origin/main`
+The check reruns with detection, on every ref change, and the worktree's row carries a "stale
+parent" marker. Dismissing the banner ("Keep X", also in the Review menu) is remembered per
+worktree. On either signal, show a non-blocking banner: "Parent `X` looks merged — diff against `origin/main`
 instead?" Asking `gh` whether the PR is merged is out of scope for v1.
 
 ### 5.5 Fetching

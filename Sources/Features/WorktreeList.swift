@@ -75,6 +75,9 @@ struct WorktreeRow: View {
         if worktree.isLocked { markers.append(String(localized: "locked", bundle: .module)) }
         if worktree.isPrunable { markers.append(String(localized: "prunable", bundle: .module)) }
         if worktree.isMissing { markers.append(String(localized: "missing", bundle: .module)) }
+        if review.staleParent != nil {
+            markers.append(String(localized: "stale parent", bundle: .module))
+        }
         return markers
     }
 

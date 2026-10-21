@@ -233,7 +233,7 @@ struct StaleParentBanner: View {
                 session.setBaseOverride(stale.suggestion.ref)
             }
             Button(String(localized: "Keep \(stale.parent)", bundle: .module)) {
-                review.dismissStaleParent()
+                session.dismissStaleParent()
             }
         }
         .padding(.horizontal, 12)
