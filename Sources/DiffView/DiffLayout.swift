@@ -3,27 +3,21 @@ import GitKit
 
 /// Row positions as prefix sums of row heights (SPEC §8.5). Pure, so hit testing, navigation and
 /// scroll anchoring are unit tested without a window.
-public struct DiffLayout: Equatable, Sendable {
-    public struct Metrics: Equatable, Sendable {
-        public var lineHeight: Double
-        public var fileHeaderHeight: Double
-        public var characterWidth: Double
-
-        public init(lineHeight: Double, fileHeaderHeight: Double, characterWidth: Double) {
-            self.lineHeight = lineHeight
-            self.fileHeaderHeight = fileHeaderHeight
-            self.characterWidth = characterWidth
-        }
+struct DiffLayout: Equatable, Sendable {
+    struct Metrics: Equatable, Sendable {
+        var lineHeight: Double
+        var fileHeaderHeight: Double
+        var characterWidth: Double
     }
 
-    public let rows: [DiffRow]
-    public let metrics: Metrics
+    let rows: [DiffRow]
+    let metrics: Metrics
     /// `offsets[i]` is the top of row `i`; the last element is the total height.
     private let offsets: [Double]
     /// The longest text in characters, for the document width.
-    public let maxColumns: Int
+    let maxColumns: Int
 
-    public init(rows: [DiffRow], metrics: Metrics) {
+    init(rows: [DiffRow], metrics: Metrics) {
         self.rows = rows
         self.metrics = metrics
         var offsets = [Double]()
@@ -40,14 +34,14 @@ public struct DiffLayout: Equatable, Sendable {
         maxColumns = columns
     }
 
-    public var totalHeight: Double { offsets.last ?? 0 }
+    var totalHeight: Double { offsets.last ?? 0 }
 
-    public func top(of row: Int) -> Double { offsets[min(max(row, 0), rows.count)] }
+    func top(of row: Int) -> Double { offsets[min(max(row, 0), rows.count)] }
 
-    public func height(of row: Int) -> Double { top(of: row + 1) - top(of: row) }
+    func height(of row: Int) -> Double { top(of: row + 1) - top(of: row) }
 
     /// The row containing `y`, clamped to the rows that exist; nil when there are none.
-    public func row(at y: Double) -> Int? {
+    func row(at y: Double) -> Int? {
         guard !rows.isEmpty else { return nil }
         var low = 0
         var high = rows.count - 1
@@ -58,12 +52,12 @@ public struct DiffLayout: Equatable, Sendable {
         return low
     }
 
-    public func rows(in minY: Double, _ maxY: Double) -> Range<Int> {
+    func rows(in minY: Double, _ maxY: Double) -> Range<Int> {
         guard let first = row(at: minY), let last = row(at: maxY) else { return 0..<0 }
         return first..<(last + 1)
     }
 
-    public func headerRow(ofFile file: Int) -> Int? {
+    func headerRow(ofFile file: Int) -> Int? {
         var low = 0
         var high = rows.count
         while low < high {
@@ -74,11 +68,11 @@ public struct DiffLayout: Equatable, Sendable {
     }
 
     /// The first row after `row` that starts a hunk (or a file, when `files` is true).
-    public func nextStop(after row: Int, files: Bool) -> Int? {
+    func nextStop(after row: Int, files: Bool) -> Int? {
         rows.indices.dropFirst(row + 1).first { isStop($0, files: files) }
     }
 
-    public func previousStop(before row: Int, files: Bool) -> Int? {
+    func previousStop(before row: Int, files: Bool) -> Int? {
         rows.indices.prefix(max(row, 0)).last { isStop($0, files: files) }
     }
 
@@ -114,7 +108,7 @@ public struct ScrollAnchor: Equatable, Sendable {
 }
 
 extension DiffLayout {
-    public func anchor(atY y: Double, paths: [String]) -> ScrollAnchor? {
+    func anchor(atY y: Double, paths: [String]) -> ScrollAnchor? {
         guard let index = row(at: y), rows[index].file < paths.count else { return nil }
         let row = rows[index]
         let (line, isOld) = Self.lineNumber(row)
@@ -124,7 +118,7 @@ extension DiffLayout {
 
     /// The y offset that shows `anchor` where it was: the same line if it still exists, else the
     /// nearest following line in the same file, else the file's header.
-    public func y(for anchor: ScrollAnchor, paths: [String]) -> Double? {
+    func y(for anchor: ScrollAnchor, paths: [String]) -> Double? {
         guard let file = paths.firstIndex(of: anchor.path), let header = headerRow(ofFile: file)
         else {
             return nil
@@ -153,38 +147,33 @@ extension DiffLayout {
 }
 
 /// A text position: a row, and a character offset within one side's text.
-public struct TextPosition: Comparable, Sendable {
-    public var row: Int
-    public var column: Int
+struct TextPosition: Comparable, Sendable {
+    var row: Int
+    var column: Int
 
-    public init(row: Int, column: Int) {
-        self.row = row
-        self.column = column
-    }
-
-    public static func < (lhs: TextPosition, rhs: TextPosition) -> Bool {
+    static func < (lhs: TextPosition, rhs: TextPosition) -> Bool {
         (lhs.row, lhs.column) < (rhs.row, rhs.column)
     }
 }
 
 /// A selection stays within one side in split mode (SPEC §7.4).
-public struct DiffSelection: Equatable, Sendable {
-    public var side: DiffSide
-    public var anchor: TextPosition
-    public var head: TextPosition
+struct DiffSelection: Equatable, Sendable {
+    var side: DiffSide
+    var anchor: TextPosition
+    var head: TextPosition
 
-    public init(side: DiffSide, anchor: TextPosition, head: TextPosition) {
+    init(side: DiffSide, anchor: TextPosition, head: TextPosition) {
         self.side = side
         self.anchor = anchor
         self.head = head
     }
 
-    public var start: TextPosition { min(anchor, head) }
-    public var end: TextPosition { max(anchor, head) }
-    public var isEmpty: Bool { anchor == head }
+    var start: TextPosition { min(anchor, head) }
+    var end: TextPosition { max(anchor, head) }
+    var isEmpty: Bool { anchor == head }
 
     /// The selected columns of `row`, or nil when the row is outside the selection.
-    public func columns(inRow row: Int, length: Int) -> Range<Int>? {
+    func columns(inRow row: Int, length: Int) -> Range<Int>? {
         guard row >= start.row, row <= end.row else { return nil }
         let from = row == start.row ? min(start.column, length) : 0
         let to = row == end.row ? min(end.column, length) : length
@@ -194,7 +183,7 @@ public struct DiffSelection: Equatable, Sendable {
 
 extension DiffLayout {
     /// The text a side shows in `row`, if it shows any.
-    public func text(of row: Int, side: DiffSide) -> String? {
+    func text(of row: Int, side: DiffSide) -> String? {
         switch (rows[row], side) {
         case (.line(_, _, _, _, let text, _), .unified): text
         case (.split(_, let left, _), .left): left?.text
@@ -205,7 +194,7 @@ extension DiffLayout {
 
     /// Copy text: selected lines of the selection's side, joined with newlines. Rows where that
     /// side has no line (headers, the empty half of an unpaired line) are skipped.
-    public func text(of selection: DiffSelection) -> String {
+    func text(of selection: DiffSelection) -> String {
         guard !selection.isEmpty, selection.end.row < rows.count else { return "" }
         var lines: [Substring] = []
         for row in selection.start.row...selection.end.row {

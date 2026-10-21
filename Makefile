@@ -1,4 +1,4 @@
-.PHONY: setup check format lint build test test-all app run
+.PHONY: setup check format lint build test test-all app run strings
 
 setup:
 	git config core.hooksPath .githooks
@@ -24,6 +24,9 @@ app:
 
 run: app
 	open .build/xcode/Build/Products/Debug/Seam.app --args "$${REPO:-$$PWD}"
+
+strings:
+	Scripts/sync-strings.sh
 
 # Opt-in suites (SPEC §10): the real-repo acceptance check and performance budgets.
 test-all: check app

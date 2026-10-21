@@ -115,7 +115,27 @@ public struct BaseDetector: Sendable {
     /// The base for a user-chosen parent (SPEC §5.3); nil when `ref` no longer resolves or
     /// shares no history with HEAD.
     public func base(forParent ref: String, in worktree: URL) async throws(GitError) -> String? {
-        try await git.optionalLine(["merge-base", ref, "HEAD"], in: worktree)
+        try await git.optionalLine(["merge-base", "--end-of-options", ref, "HEAD"], in: worktree)
+    }
+
+    /// Commits on HEAD since `base`, for a parent that wasn't among the candidates.
+    public func commitCount(since base: String, in worktree: URL) async throws(GitError) -> Int? {
+        try await git.optionalLine(["rev-list", "--count", "\(base)..HEAD"], in: worktree)
+            .flatMap(Int.init)
+    }
+
+    /// A typed ref as the full name the candidates use (`main` → `refs/heads/main`), or the
+    /// commit id when it names no ref; nil when it doesn't resolve to a commit.
+    public func resolveRef(_ name: String, in worktree: URL) async throws(GitError) -> String? {
+        guard
+            let commit = try await git.optionalLine(
+                ["rev-parse", "--verify", "--quiet", "--end-of-options", name + "^{commit}"],
+                in: worktree)
+        else { return nil }
+        let full = try await git.optionalLine(
+            ["rev-parse", "--verify", "--quiet", "--symbolic-full-name", "--end-of-options", name],
+            in: worktree)
+        return full.flatMap { $0.isEmpty ? nil : $0 } ?? commit
     }
 
     // MARK: - Steps

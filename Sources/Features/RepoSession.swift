@@ -5,7 +5,7 @@ import Observation
 import SeamCore
 import os
 
-public enum WorktreeSort: String, CaseIterable, Sendable {
+enum WorktreeSort: String, CaseIterable, Sendable {
     case recent
     case name
 }
@@ -14,52 +14,57 @@ public enum WorktreeSort: String, CaseIterable, Sendable {
 /// Views read it and call its methods; nothing else mutates it.
 @MainActor
 @Observable
-public final class RepoSession {
-    public enum OpenState: Equatable {
+final class RepoSession {
+    enum OpenState: Equatable {
         case opening
         case open
         case failed(String)
     }
 
-    public let directory: URL
-    public private(set) var state = OpenState.opening
-    public private(set) var repository: Repository?
-    public private(set) var reviews: [WorktreeReview] = []
-    public private(set) var selectedID: String?
-    public var sort = WorktreeSort.recent
-    public var hidesMissing = false
-    public var diffHasFocus = false
-    public var fileListHasFocus = false
-    public var showsSwitcher = false
-    public var showsBasePicker = false
+    let directory: URL
+    private(set) var state = OpenState.opening
+    private(set) var repository: Repository?
+    private(set) var reviews: [WorktreeReview] = []
+    private(set) var selectedID: String?
+    var sort = WorktreeSort.recent
+    var hidesMissing = false
+    var diffHasFocus = false
+    var fileListHasFocus = false
+    var showsSwitcher = false
+    var showsBasePicker = false
     /// Bumped by Edit › Filter Files; the window moves focus to the filter field.
-    public var filterFocusRequests = 0
-    public let diff = DiffController()
+    var filterFocusRequests = 0
+    let diff = DiffController()
 
     private let services: SeamServices
     private let defaultMode: DiffLayoutMode
     private var repoState = RepoState()
     private var monitorTask: Task<Void, Never>?
     private var saveTask: Task<Void, Never>?
+    private var isClosed = false
     private var deferredActivity: [String: Task<Void, Never>] = [:]
     private var staleActivity: Set<String> = []
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
     private let signposter = OSSignposter(subsystem: "com.danielhedren.seam", category: "Features")
 
-    public init(directory: URL, services: SeamServices, defaultMode: DiffLayoutMode = .unified) {
+    init(directory: URL, services: SeamServices, defaultMode: DiffLayoutMode = .unified) {
         self.directory = directory
         self.services = services
         self.defaultMode = defaultMode
     }
 
     /// The diff or the file list has keyboard focus, so single-letter shortcuts apply (SPEC §9).
-    public var reviewHasFocus: Bool { diffHasFocus || fileListHasFocus }
+    /// The sheet and popover are separate windows, so the canvas keeps first responder under them;
+    /// their text fields must still get every key.
+    var reviewHasFocus: Bool {
+        (diffHasFocus || fileListHasFocus) && !showsSwitcher && !showsBasePicker
+    }
 
-    public var selected: WorktreeReview? {
+    var selected: WorktreeReview? {
         reviews.first { $0.id == selectedID }
     }
 
-    public var repositoryName: String {
+    var repositoryName: String {
         guard let repository else { return directory.lastPathComponent }
         let common = repository.commonDirectory
         return common.lastPathComponent == ".git"
@@ -67,7 +72,7 @@ public final class RepoSession {
     }
 
     /// Main worktree pinned first, then by recent change or name (SPEC §7.2).
-    public var sortedReviews: [WorktreeReview] {
+    var sortedReviews: [WorktreeReview] {
         let visible = reviews.filter { !(hidesMissing && $0.worktree.isMissing) }
         let main = visible.filter(\.worktree.isMain)
         let others = visible.filter { !$0.worktree.isMain }.sorted { lhs, rhs in
@@ -85,7 +90,7 @@ public final class RepoSession {
 
     // MARK: - Opening
 
-    public func open() async {
+    func open() async {
         let interval = signposter.beginInterval("openRepository")
         defer { signposter.endInterval("openRepository", interval) }
         let service = RepositoryService(git: services.git, fileSystem: services.fileSystem)
@@ -95,6 +100,7 @@ public final class RepoSession {
             repoState = await services.store.load(repository)
             await services.store.noteOpened(repository.anchor)
             try await reloadWorktrees()
+            guard !isClosed else { return }
             state = .open
             select(worktree.path)
             startMonitor()
@@ -148,7 +154,7 @@ public final class RepoSession {
 
     // MARK: - Selection
 
-    public func select(_ id: String?) {
+    func select(_ id: String?) {
         guard let id, id != selectedID, let review = reviews.first(where: { $0.id == id }) else {
             return
         }
@@ -159,33 +165,33 @@ public final class RepoSession {
     }
 
     /// `⌘1`…`⌘9`: the worktree at that position in the list.
-    public func select(position: Int) {
+    func select(position: Int) {
         let sorted = sortedReviews
         guard sorted.indices.contains(position) else { return }
         select(sorted[position].id)
     }
 
-    public func selectAdjacent(_ delta: Int) {
+    func selectAdjacent(_ delta: Int) {
         let sorted = sortedReviews
         guard !sorted.isEmpty else { return }
-        let current = sorted.firstIndex { $0.id == selectedID } ?? -delta
+        let current = sorted.firstIndex { $0.id == selectedID } ?? (delta > 0 ? -1 : 0)
         select(sorted[(current + delta + sorted.count) % sorted.count].id)
     }
 
     // MARK: - Review intents
 
-    public func setScope(_ scope: ReviewScope) {
+    func setScope(_ scope: ReviewScope) {
         selected?.setScope(scope)
         persist()
     }
 
-    public func toggleMode() {
+    func toggleMode() {
         guard let review = selected else { return }
         review.setMode(review.mode == .unified ? .split : .unified)
         persist()
     }
 
-    public func setBaseOverride(_ ref: String?) {
+    func setBaseOverride(_ ref: String?) {
         guard let review = selected else { return }
         review.setOverride(ref)
         if let branch = review.worktree.branch {
@@ -194,12 +200,22 @@ public final class RepoSession {
         persist()
     }
 
-    public func toggleCollapsed(_ path: String? = nil) {
+    /// A ref typed into the base picker, stored by its full name so it matches the candidates.
+    /// One that doesn't resolve is kept as typed, and the load reports it as gone.
+    func setTypedBase(_ name: String) async {
+        guard let review = selected else { return }
+        let resolved = try? await BaseDetector(git: services.git)
+            .resolveRef(name, in: review.worktree.path)
+        guard review.id == selectedID else { return }
+        setBaseOverride(resolved ?? name)
+    }
+
+    func toggleCollapsed(_ path: String? = nil) {
         guard let review = selected, let path = path ?? review.currentFile else { return }
         review.toggleCollapsed(path)
     }
 
-    public func reload() {
+    func reload() {
         guard let review = selected else { return }
         Task {
             await review.refreshDetection()
@@ -229,9 +245,11 @@ public final class RepoSession {
             repository: repository, worktrees: reviews.map(\.worktree), watcher: services.watcher,
             git: services.git, clock: services.clock)
         let changes = monitor.changes()
+        // Ending the loop drops the stream, which stops FSEvents.
         monitorTask = Task { [weak self] in
             for await change in changes {
-                await self?.apply(change)
+                guard let self, !self.isClosed else { return }
+                await self.apply(change)
             }
         }
     }
@@ -244,12 +262,16 @@ public final class RepoSession {
             } catch {
                 logger.error("worktree list failed: \(error)")
             }
-            if reviews.map(\.id) != before { startMonitor() }
             selected?.reloadDiff()
+            if reviews.map(\.id) != before {
+                // Restarting from here would cancel this very task mid-apply.
+                Task { [weak self] in self?.restartMonitor() }
+            }
             return
         }
         for id in change.worktrees {
             guard let review = reviews.first(where: { $0.id == id }) else { continue }
+            review.noteChange(at: .now)
             if id == selectedID {
                 await review.refreshActivity()
                 review.reloadDiff()
@@ -277,12 +299,26 @@ public final class RepoSession {
         }
     }
 
+    /// A new worktree list needs a new watch. Edits made while the list reloaded reached neither
+    /// monitor, so every row's counts are refreshed once more.
+    private func restartMonitor() {
+        guard !isClosed else { return }
+        startMonitor()
+        for review in reviews where review.id != selectedID {
+            refreshHiddenActivity(review)
+        }
+    }
+
     /// Stops watching; the window is closing.
-    public func close() {
+    func close() {
+        isClosed = true
         monitorTask?.cancel()
+        monitorTask = nil
         for task in deferredActivity.values { task.cancel() }
         selected?.cancelLoading()
     }
+
+    var isWatching: Bool { monitorTask != nil }
 
     /// Waits for in-flight work; tests use it instead of sleeping.
     func settled() async {

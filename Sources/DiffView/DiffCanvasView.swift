@@ -2,6 +2,7 @@ import AppKit
 import CoreText
 import GitKit
 import SeamCore
+import os
 
 /// The diff document view: draws only the visible rows with Core Text (SPEC §8.5). Both split
 /// columns live in this one view, so they scroll together by construction.
@@ -29,6 +30,7 @@ final class DiffCanvasView: NSView {
     private var geometry = Geometry()
     private var lineCache: [LineKey: CTLine] = [:]
     private var dragStart: TextPosition?
+    private let signposter = OSSignposter(subsystem: "com.danielhedren.seam", category: "DiffView")
 
     init(font: NSFont = .monospacedSystemFont(ofSize: 12, weight: .regular)) {
         self.font = font
@@ -61,6 +63,8 @@ final class DiffCanvasView: NSView {
     }
 
     func show(_ review: ReviewDiff, mode: DiffLayoutMode, collapsed: Set<String>) {
+        let interval = signposter.beginInterval("layoutDiff")
+        defer { signposter.endInterval("layoutDiff", interval) }
         self.review = review
         self.mode = mode
         self.collapsed = collapsed
@@ -213,7 +217,8 @@ final class DiffCanvasView: NSView {
         if noNewline {
             let x = column.textX + Double(text.count + 1) * layout.metrics.characterWidth
             drawText(
-                "⊘ no newline at end of file", key: nil, x: x, rowTop: rowTop,
+                String(localized: "⊘ no newline at end of file", bundle: .module), key: nil, x: x,
+                rowTop: rowTop,
                 color: palette.gutterText, context: context)
         }
     }
@@ -356,7 +361,7 @@ final class DiffCanvasView: NSView {
     }
 
     private func accessibilityLabel(row index: Int) -> String {
-        func describe(_ kind: DiffLine.Kind, _ number: Int?, side: String, _ text: String) -> String
+        func describe(_ kind: DiffLine.Kind, _ number: Int?, isOld: Bool, _ text: String) -> String
         {
             let kindName =
                 switch kind {
@@ -364,18 +369,20 @@ final class DiffCanvasView: NSView {
                 case .removed: String(localized: "removed", bundle: .module)
                 case .context: String(localized: "unchanged", bundle: .module)
                 }
-            let line = number.map { String(localized: "\(side) line \($0)", bundle: .module) } ?? ""
-            return "\(kindName), \(line): \(text)"
+            guard let number else { return "\(kindName): \(text)" }
+            return isOld
+                ? String(localized: "\(kindName), old line \(number): \(text)", bundle: .module)
+                : String(localized: "\(kindName), new line \(number): \(text)", bundle: .module)
         }
         switch layout.rows[index] {
         case .fileHeader(let file): return review.files[file].diff.path
         case .hunkHeader(_, _, let text), .notice(_, let text): return text
         case .line(_, let old, let new, let kind, let text, _):
-            return describe(kind, new ?? old, side: new == nil ? "old" : "new", text)
+            return describe(kind, new ?? old, isOld: new == nil, text)
         case .split(_, let left, let right):
             return [
-                left.map { describe($0.kind, $0.number, side: "old", $0.text) },
-                right.map { describe($0.kind, $0.number, side: "new", $0.text) },
+                left.map { describe($0.kind, $0.number, isOld: true, $0.text) },
+                right.map { describe($0.kind, $0.number, isOld: false, $0.text) },
             ].compactMap(\.self).joined(separator: "; ")
         }
     }

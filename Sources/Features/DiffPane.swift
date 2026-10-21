@@ -38,7 +38,8 @@ struct DiffRepresentable: NSViewRepresentable {
         guard shown != context.coordinator.shown else { return }
         let previous = context.coordinator.shown
         guard let diff = review.diff else {
-            if previous?.id != review.id {
+            // Not loaded yet, or the worktree's directory went missing: show nothing stale.
+            if previous != nil {
                 view.show(
                     ReviewDiff(scope: review.scope, files: []), mode: review.mode, collapsed: [],
                     position: .top)

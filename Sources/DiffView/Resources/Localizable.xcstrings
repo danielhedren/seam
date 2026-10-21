@@ -1,6 +1,75 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "  (untracked)" : {
+
+    },
+    "%@, new line %lld: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, new line %2$lld: %3$@"
+          }
+        }
+      }
+    },
+    "%@, old line %lld: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, old line %2$lld: %3$@"
+          }
+        }
+      }
+    },
+    "Binary file" : {
+
+    },
+    "Copied without changes" : {
+
+    },
+    "Diff" : {
+
+    },
+    "Empty file" : {
+
+    },
+    "Empty file deleted" : {
+
+    },
+    "Large file not loaded" : {
+
+    },
+    "Mode changed from %@ to %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mode changed from %1$@ to %2$@"
+          }
+        }
+      }
+    },
+    "No content changes" : {
+
+    },
+    "Renamed without changes" : {
+
+    },
+    "added" : {
+
+    },
+    "removed" : {
+
+    },
+    "unchanged" : {
+
+    },
+    "⊘ no newline at end of file" : {
+
+    }
   },
   "version" : "1.0"
 }

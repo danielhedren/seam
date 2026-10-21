@@ -3,23 +3,23 @@ import SeamCore
 import SwiftUI
 
 extension FocusedValues {
-    @Entry public var repoSession: RepoSession?
+    @Entry var repoSession: RepoSession?
     @Entry var columnVisibility: Binding<NavigationSplitViewVisibility>?
 }
 
 /// The three-pane review window for one repo (SPEC §7.1, §9).
-public struct RepoWindow: View {
+struct RepoWindow: View {
     @State private var session: RepoSession
     @Environment(OpenRequests.self) private var requests
     @State private var columns = NavigationSplitViewVisibility.all
     @FocusState private var filterFocused: Bool
     @FocusState private var fileListFocused: Bool
 
-    public init(session: RepoSession) {
+    init(session: RepoSession) {
         _session = State(initialValue: session)
     }
 
-    public var body: some View {
+    var body: some View {
         content
             .task {
                 await session.open()

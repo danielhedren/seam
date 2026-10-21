@@ -28,29 +28,29 @@ public protocol StateStore: Sendable {
 }
 
 /// JSON files under `~/Library/Application Support/Seam/`. Nothing is written into the repo.
-public actor JSONStateStore: StateStore {
+actor JSONStateStore: StateStore {
     private let root: URL
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
 
-    public init(root: URL = URL.applicationSupportDirectory.appending(path: "Seam")) {
+    init(root: URL = URL.applicationSupportDirectory.appending(path: "Seam")) {
         self.root = root
     }
 
-    public func load(_ repository: Repository) -> RepoState {
+    func load(_ repository: Repository) -> RepoState {
         read(RepoState.self, from: file(for: repository)) ?? RepoState()
     }
 
-    public func save(_ state: RepoState, for repository: Repository) {
+    func save(_ state: RepoState, for repository: Repository) {
         write(state, to: file(for: repository))
     }
 
-    public func recentRepositories() -> [URL] {
+    func recentRepositories() -> [URL] {
         (read([String].self, from: root.appending(path: "repos.json")) ?? []).map {
             URL(fileURLWithPath: $0, isDirectory: true)
         }
     }
 
-    public func noteOpened(_ directory: URL) {
+    func noteOpened(_ directory: URL) {
         var paths = recentRepositories().map(\.path).filter { $0 != directory.path }
         paths.insert(directory.path, at: 0)
         write(Array(paths.prefix(10)), to: root.appending(path: "repos.json"))

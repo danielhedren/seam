@@ -8,10 +8,12 @@ import SwiftUI
 /// (SPEC §7.1), so opening any worktree of an open repo selects it in the existing window.
 @MainActor
 @Observable
-public final class OpenRequests {
+final class OpenRequests {
     var pending: [String: String] = [:]
+    /// The launch argument opens a repo once, not in every new welcome window.
+    var launchHandled = false
 
-    public init() {}
+    init() {}
 
     func take(_ main: String) -> String? {
         pending.removeValue(forKey: main)
@@ -72,6 +74,7 @@ public struct SeamScenes: Scene {
 
 struct WelcomeView: View {
     let services: SeamServices
+    @Environment(OpenRequests.self) private var requests
     let open: (URL) -> Void
     @State private var recent: [URL] = []
 
@@ -98,12 +101,24 @@ struct WelcomeView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task {
             recent = await services.store.recentRepositories()
-            if let path = Self.launchPath() { open(URL(fileURLWithPath: path, isDirectory: true)) }
+            if !requests.launchHandled, let path = Self.launchPath() {
+                requests.launchHandled = true
+                open(URL(fileURLWithPath: path, isDirectory: true))
+            }
         }
     }
 
-    /// `Seam.app/Contents/MacOS/Seam <path>` or `open -a Seam --args <path>` opens that repo.
-    static func launchPath() -> String? {
-        CommandLine.arguments.dropFirst().first { !$0.hasPrefix("-") }
+    /// `open -a Seam --args <path>` opens that repo. `-Key value` pairs are user defaults that
+    /// AppKit and Xcode pass, so their values are skipped.
+    static func launchPath(_ arguments: [String] = CommandLine.arguments) -> String? {
+        var remaining = arguments.dropFirst()[...]
+        while let argument = remaining.popFirst() {
+            if argument.hasPrefix("-") {
+                if let next = remaining.first, !next.hasPrefix("-") { remaining.removeFirst() }
+                continue
+            }
+            return argument
+        }
+        return nil
     }
 }

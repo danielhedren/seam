@@ -71,9 +71,10 @@ struct BasePicker: View {
 
     private func useOtherRef() {
         guard !otherRef.isEmpty else { return }
-        session.setBaseOverride(otherRef)
+        let name = otherRef
         session.showsBasePicker = false
         otherRef = ""
+        Task { await session.setTypedBase(name) }
     }
 }
 

@@ -123,6 +123,61 @@ import Testing
         #expect(reopened.selected?.baseOverride == "refs/remotes/origin/main")
     }
 
+    @Test func aTypedShortRefIsStoredByItsFullName() async throws {
+        let repo = try await FixtureRepo()
+        let b = try await repo.worktree("b", branch: "b", from: "origin/main")
+        try await repo.commit("b.txt", "b\n", "b1", in: b)
+        let c = try await repo.worktree("c", branch: "c", from: "b")
+        try await repo.commit("c.txt", "c\n", "c1", in: c)
+        let session = RepoSession(directory: c, services: services(repo.git))
+        await session.open()
+        await session.settled()
+
+        await session.setTypedBase("main")
+        await session.settled()
+
+        #expect(session.selected?.baseOverride == "refs/heads/main")
+        #expect(session.selected?.uniqueCommitCount == 2)
+        #expect(session.selected?.diff?.files.map(\.diff.path) == ["b.txt", "c.txt"])
+    }
+
+    @Test func aRefThatLooksLikeAnOptionIsNotPassedToGitAsOne() async throws {
+        let repo = try await FixtureRepo()
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        await session.settled()
+
+        await session.setTypedBase("--all")
+        await session.settled()
+
+        #expect(session.selected?.problem == .overrideGone("--all"))
+    }
+
+    @Test func closingWhileOpeningLeavesNothingWatching() async throws {
+        let repo = try await FixtureRepo()
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+
+        let opening = Task { await session.open() }
+        session.close()
+        await opening.value
+
+        #expect(!session.isWatching)
+        #expect(session.state == .opening)
+    }
+
+    @Test func singleLetterKeysStandDownWhileASheetOrPopoverIsOpen() {
+        let session = RepoSession(
+            directory: URL(fileURLWithPath: "/"),
+            services: services(HermeticGit(home: URL(fileURLWithPath: "/"))))
+        session.diffHasFocus = true
+        #expect(session.reviewHasFocus)
+        session.showsSwitcher = true
+        #expect(!session.reviewHasFocus)
+        session.showsSwitcher = false
+        session.showsBasePicker = true
+        #expect(!session.reviewHasFocus)
+    }
+
     @Test func overrideWhoseRefIsGoneShowsABannerWithAWayBack() async throws {
         let repo = try await FixtureRepo()
         let session = RepoSession(directory: repo.main, services: services(repo.git))
@@ -234,5 +289,24 @@ import Testing
         #expect(exact > scattered)
         #expect(FuzzyMatch.score("xyz", in: "feat-b") == nil)
         #expect(FuzzyMatch.score("", in: "anything") == 0)
+    }
+}
+
+@Suite struct LaunchArgumentTests {
+    @Test(
+        arguments: [
+            (["Seam", "/repo"], "/repo"),
+            (["Seam", "-NSDocumentRevisionsDebugMode", "YES", "/repo"], "/repo"),
+            (["Seam", "-NSDocumentRevisionsDebugMode", "YES"], nil),
+            (
+                [
+                    "Seam", "-ApplePersistenceIgnoreState", "YES", "-NSQuitAlwaysKeepsWindows",
+                    "NO", "/r",
+                ], "/r"
+            ),
+            (["Seam"], nil),
+        ] as [([String], String?)])
+    func defaultsPairsAreNotTakenForAPath(arguments: [String], expected: String?) {
+        #expect(WelcomeView.launchPath(arguments) == expected)
     }
 }

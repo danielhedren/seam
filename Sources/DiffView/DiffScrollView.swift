@@ -30,6 +30,9 @@ public final class DiffScrollView: NSScrollView {
     private let canvas = DiffCanvasView()
     private let sticky = DiffStickyHeaderView()
     private var reportedFile: String?
+    /// After a jump to a file, the clip view's top the jump landed on. A short file near the end
+    /// can't reach the top, so until the reader scrolls away the jumped-to file stays current.
+    private var jumpedTop: Double?
 
     public init() {
         super.init(frame: .zero)
@@ -110,6 +113,9 @@ public final class DiffScrollView: NSScrollView {
         guard let file = canvas.paths.firstIndex(of: path), let row = layout.headerRow(ofFile: file)
         else { return }
         scroll(toY: layout.top(of: row))
+        jumpedTop = visibleTop
+        reportedFile = path
+        onCurrentFileChange?(path)
     }
 
     /// Next or previous file header, relative to the file under the sticky header.
@@ -161,6 +167,10 @@ public final class DiffScrollView: NSScrollView {
     public override func reflectScrolledClipView(_ clipView: NSClipView) {
         super.reflectScrolledClipView(clipView)
         updateSticky()
+        if let jumpedTop {
+            if jumpedTop == visibleTop { return }
+            self.jumpedTop = nil
+        }
         let current = currentFilePath
         if current != reportedFile {
             reportedFile = current

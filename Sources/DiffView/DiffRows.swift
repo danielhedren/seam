@@ -7,15 +7,15 @@ public enum DiffLayoutMode: String, CaseIterable, Sendable {
 }
 
 /// One side of a displayed line: what a gutter number and a text column show.
-public struct SideLine: Equatable, Sendable {
-    public var kind: DiffLine.Kind
-    public var number: Int
+struct SideLine: Equatable, Sendable {
+    var kind: DiffLine.Kind
+    var number: Int
     /// Tabs already expanded, so column arithmetic is plain character counting.
-    public var text: String
-    public var noNewlineAtEnd = false
+    var text: String
+    var noNewlineAtEnd = false
 }
 
-public enum DiffRow: Equatable, Sendable {
+enum DiffRow: Equatable, Sendable {
     case fileHeader(file: Int)
     case hunkHeader(file: Int, hunk: Int, text: String)
     /// Unified mode: one line, numbered on whichever sides it exists.
@@ -25,7 +25,7 @@ public enum DiffRow: Equatable, Sendable {
     /// Binary, mode-only, empty or deferred files, which have no lines to show.
     case notice(file: Int, text: String)
 
-    public var file: Int {
+    var file: Int {
         switch self {
         case .fileHeader(let file), .hunkHeader(let file, _, _), .line(let file, _, _, _, _, _),
             .split(let file, _, _), .notice(let file, _):
@@ -33,24 +33,24 @@ public enum DiffRow: Equatable, Sendable {
         }
     }
 
-    public var isFileHeader: Bool {
+    var isFileHeader: Bool {
         if case .fileHeader = self { true } else { false }
     }
 
-    public var isHunkHeader: Bool {
+    var isHunkHeader: Bool {
         if case .hunkHeader = self { true } else { false }
     }
 }
 
-public enum DiffSide: Hashable, Sendable {
+enum DiffSide: Hashable, Sendable {
     /// The single text column of unified mode.
     case unified
     case left
     case right
 }
 
-public enum DiffRowBuilder {
-    public static func rows(
+enum DiffRowBuilder {
+    static func rows(
         for review: ReviewDiff, mode: DiffLayoutMode, collapsed: Set<String> = [],
         tabWidth: Int = 4
     ) -> [DiffRow] {
@@ -89,20 +89,20 @@ public enum DiffRowBuilder {
     }
 
     static func notice(for file: ReviewFile) -> String? {
-        if file.isDeferred { return "Large file not loaded" }
-        if file.diff.isBinary { return "Binary file" }
+        if file.isDeferred { return String(localized: "Large file not loaded", bundle: .module) }
+        if file.diff.isBinary { return String(localized: "Binary file", bundle: .module) }
         guard file.diff.hunks.isEmpty else { return nil }
         if let old = file.diff.oldMode, let new = file.diff.newMode, old != new,
             file.diff.status == .modified
         {
-            return "Mode changed from \(old) to \(new)"
+            return String(localized: "Mode changed from \(old) to \(new)", bundle: .module)
         }
         switch file.diff.status {
-        case .renamed: return "Renamed without changes"
-        case .copied: return "Copied without changes"
-        case .added: return "Empty file"
-        case .deleted: return "Empty file deleted"
-        case .modified: return "No content changes"
+        case .renamed: return String(localized: "Renamed without changes", bundle: .module)
+        case .copied: return String(localized: "Copied without changes", bundle: .module)
+        case .added: return String(localized: "Empty file", bundle: .module)
+        case .deleted: return String(localized: "Empty file deleted", bundle: .module)
+        case .modified: return String(localized: "No content changes", bundle: .module)
         }
     }
 

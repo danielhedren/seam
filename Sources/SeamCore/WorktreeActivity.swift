@@ -28,8 +28,10 @@ public struct WorktreeActivityService: Sendable {
             try await git.run(
                 ["status", "--porcelain=v2", "-z", "--untracked-files=all", "--no-renames"],
                 in: worktree))
-        let committed = try await git.optionalLine(["log", "-1", "--format=%ct"], in: worktree)
-            .flatMap(TimeInterval.init).map(Date.init(timeIntervalSince1970:))
+        let committed = try await git.optionalLine(
+            ["log", "-1", "--no-show-signature", "--format=%ct"], in: worktree
+        )
+        .flatMap(TimeInterval.init).map(Date.init(timeIntervalSince1970:))
         let changed = status.entries.compactMap {
             fileSystem.modificationDate(of: worktree.appending(path: $0.path))
         }

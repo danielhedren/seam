@@ -8,36 +8,36 @@ import os
 /// One worktree's row data and review state (SPEC §7.2–7.4). Owned by `RepoSession`.
 @MainActor
 @Observable
-public final class WorktreeReview: Identifiable {
-    public enum Problem: Equatable, Sendable {
+final class WorktreeReview: Identifiable {
+    enum Problem: Equatable, Sendable {
         case missingDirectory
         case overrideGone(String)
         case gitFailed(String)
     }
 
-    public let id: String
-    public private(set) var worktree: Worktree
-    public private(set) var detection: BaseDetection?
-    public private(set) var activity: WorktreeActivity?
+    let id: String
+    private(set) var worktree: Worktree
+    private(set) var detection: BaseDetection?
+    private(set) var activity: WorktreeActivity?
     /// The parent ref chosen in the base picker, overriding detection (SPEC §5.3).
-    public private(set) var baseOverride: String?
-    public private(set) var scope = ReviewScope.all
-    public private(set) var mode: DiffLayoutMode
-    public private(set) var collapsed: Set<String> = []
-    public private(set) var diff: ReviewDiff?
+    private(set) var baseOverride: String?
+    private(set) var scope = ReviewScope.all
+    private(set) var mode: DiffLayoutMode
+    private(set) var collapsed: Set<String> = []
+    private(set) var diff: ReviewDiff?
     /// Bumped on every new diff, so the view knows to redraw even when the content is equal.
-    public private(set) var diffVersion = 0
-    public private(set) var isLoading = false
+    private(set) var diffVersion = 0
+    private(set) var isLoading = false
     /// Turns on only once a load has taken 150 ms, so fast loads don't flicker (SPEC §9).
-    public private(set) var showsProgress = false
-    public private(set) var problem: Problem?
+    private(set) var showsProgress = false
+    private(set) var problem: Problem?
     /// The file the diff is scrolled to; the file list follows it.
-    public var currentFile: String?
+    var currentFile: String?
     /// Where the reader was when they last left this worktree.
-    public var savedAnchor: ScrollAnchor?
-    public var fileFilter = ""
-    public var flatFileList = false
-    public var collapsedDirectories: Set<String> = []
+    var savedAnchor: ScrollAnchor?
+    var fileFilter = ""
+    var flatFileList = false
+    var collapsedDirectories: Set<String> = []
 
     private let services: SeamServices
     private var loadTask: Task<Void, Never>?
@@ -53,17 +53,27 @@ public final class WorktreeReview: Identifiable {
     }
 
     /// The parent the diff is against: the override if set, else the detected one.
-    public var parentName: String? {
+    var parentName: String? {
         baseOverride.map(RefDisplay.short) ?? detection?.parent?.name
     }
 
-    public var uniqueCommitCount: Int? {
+    var uniqueCommitCount: Int? {
         guard let detection else { return nil }
         guard let baseOverride else { return detection.uniqueCommitCount }
         return detection.candidates.first { $0.ref == baseOverride }?.commitCount
+            ?? overrideCommitCount
     }
 
-    public var lastChange: Date? { activity?.lastChange }
+    /// The newest of the status-derived time and the last watcher event (SPEC §7.2).
+    var lastChange: Date? {
+        [activity?.lastChange, lastEvent].compactMap(\.self).max()
+    }
+    private var lastEvent: Date?
+    private var overrideCommitCount: Int?
+
+    func noteChange(at date: Date) {
+        lastEvent = date
+    }
 
     func update(_ worktree: Worktree) {
         self.worktree = worktree
@@ -136,6 +146,8 @@ public final class WorktreeReview: Identifiable {
         guard !worktree.isMissing else {
             problem = .missingDirectory
             diff = nil
+            isLoading = false
+            showsProgress = false
             return
         }
         isLoading = true
@@ -184,6 +196,8 @@ public final class WorktreeReview: Identifiable {
                     return
                 }
                 base = resolved
+                overrideCommitCount = try await BaseDetector(git: services.git)
+                    .commitCount(since: resolved, in: worktree.path)
             }
             let result = try await ReviewDiffBuilder(
                 git: services.git, fileSystem: services.fileSystem
@@ -207,11 +221,16 @@ public final class WorktreeReview: Identifiable {
 
     static func describe(_ error: GitError) -> String {
         switch error {
-        case .launchFailed(let message): message
+        case .launchFailed(let message):
+            String(localized: "Couldn't run git: \(message)", bundle: .module)
         case .nonZeroExit(let arguments, _, let stderr):
-            "git \(arguments.first ?? "") failed: \(stderr.trimmingCharacters(in: .whitespacesAndNewlines))"
-        case .cancelled: "cancelled"
-        case .unexpectedOutput(let message): message
+            String(
+                localized:
+                    "git \(arguments.first ?? "") failed: \(stderr.trimmingCharacters(in: .whitespacesAndNewlines))",
+                bundle: .module)
+        case .cancelled: String(localized: "Cancelled", bundle: .module)
+        case .unexpectedOutput(let message):
+            String(localized: "Unexpected output from git: \(message)", bundle: .module)
         }
     }
 }

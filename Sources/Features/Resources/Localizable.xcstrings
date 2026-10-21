@@ -1,6 +1,238 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    " · %lld commits" : {
+
+    },
+    "%lld commits" : {
+
+    },
+    "%lld commits ahead" : {
+
+    },
+    "%lld files" : {
+
+    },
+    "%lld uncommitted files" : {
+
+    },
+    "All" : {
+
+    },
+    "All Changes" : {
+
+    },
+    "Cancelled" : {
+
+    },
+    "Choose Base…" : {
+
+    },
+    "Choose the base this worktree is compared with (b)" : {
+
+    },
+    "Collapse" : {
+
+    },
+    "Collapse or Expand File" : {
+
+    },
+    "Committed" : {
+
+    },
+    "Compare against" : {
+
+    },
+    "Couldn't run git: %@" : {
+
+    },
+    "Expand" : {
+
+    },
+    "Files as Flat List" : {
+
+    },
+    "Filter" : {
+
+    },
+    "Filter Files" : {
+
+    },
+    "Flat list" : {
+
+    },
+    "Go" : {
+
+    },
+    "Hide Missing Worktrees" : {
+
+    },
+    "Name" : {
+
+    },
+    "Next File" : {
+
+    },
+    "Next Hunk" : {
+
+    },
+    "Next Worktree" : {
+
+    },
+    "No base" : {
+
+    },
+    "No changes against %@" : {
+
+    },
+    "No commits since %@" : {
+
+    },
+    "No uncommitted changes" : {
+
+    },
+    "No worktree selected" : {
+
+    },
+    "Not a git repository. Choose another folder." : {
+
+    },
+    "Open" : {
+
+    },
+    "Open Repository…" : {
+
+    },
+    "Open a repository to review its worktrees." : {
+
+    },
+    "Other ref" : {
+
+    },
+    "Page Down" : {
+
+    },
+    "Page Up" : {
+
+    },
+    "Previous File" : {
+
+    },
+    "Previous Hunk" : {
+
+    },
+    "Previous Worktree" : {
+
+    },
+    "Recently Changed" : {
+
+    },
+    "Reload" : {
+
+    },
+    "Reload (r)" : {
+
+    },
+    "Retry" : {
+
+    },
+    "Review" : {
+
+    },
+    "Scope" : {
+
+    },
+    "Scope (1, 2, 3)" : {
+
+    },
+    "Seam" : {
+
+    },
+    "Select a worktree" : {
+
+    },
+    "Show as Flat List" : {
+
+    },
+    "Side by Side" : {
+
+    },
+    "Sort By" : {
+
+    },
+    "Sort Worktrees By" : {
+
+    },
+    "Switch Worktree…" : {
+
+    },
+    "Switch to worktree" : {
+
+    },
+    "The chosen base %@ no longer exists." : {
+
+    },
+    "This worktree's directory is missing." : {
+
+    },
+    "Toggle Sidebars" : {
+
+    },
+    "Toggle Worktree List" : {
+
+    },
+    "Toggle side-by-side (s)" : {
+
+    },
+    "Uncommitted" : {
+
+    },
+    "Unexpected output from git: %@" : {
+
+    },
+    "Unified" : {
+
+    },
+    "Use" : {
+
+    },
+    "Use Detected Base" : {
+
+    },
+    "Worktree %lld" : {
+
+    },
+    "detached" : {
+
+    },
+    "detected" : {
+
+    },
+    "git %@ failed: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "git %1$@ failed: %2$@"
+          }
+        }
+      }
+    },
+    "locked" : {
+
+    },
+    "missing" : {
+
+    },
+    "prunable" : {
+
+    },
+    "the base" : {
+
+    },
+    "vs %@" : {
+
+    }
   },
   "version" : "1.0"
 }

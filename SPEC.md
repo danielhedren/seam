@@ -225,7 +225,8 @@ A segmented control picks the scope (keys `1`/`2`/`3` when the diff has focus):
 Each row shows:
 - The worktree directory name in bold, and the branch name if it differs.
 - `+N` commits unique to the branch (from §5), and `✎N` uncommitted files.
-- Time since the last file change in that worktree (from the watcher).
+- Time since the last change in that worktree: the newest of the HEAD commit time, the changed
+  files' modification times (from `git status`), and the last watcher event for it.
 - State markers: detached, locked, prunable (from porcelain output), missing directory, stale
   parent (§5.4).
 - `◆` marks the selected worktree.
@@ -446,8 +447,8 @@ written down here.
 - The window is a three-column `NavigationSplitView` (sidebar | content | detail). Column
   collapsing, resizing and the sidebar toggle all behave natively. `⌘\` is the one custom
   shortcut on top of that.
-- Toolbar in the unified style, holding only: base picker, scope control, view mode, fetch. The
-  diff gets the rest of the window.
+- Toolbar in the unified style, holding only: base picker, scope control, view mode, reload,
+  fetch. The diff gets the rest of the window.
 - Standard scenes: `WindowGroup` per repo, a `Settings` scene (`⌘,`), File › Open Recent, native
   window tabs and full screen. Windows and their selection are restored on relaunch
   (`SceneStorage` plus §11 state).
@@ -458,8 +459,11 @@ written down here.
   bindings supplement the menus and never replace them.
 - `⌘`-shortcuts follow system conventions and never override standard ones (`⌘F` find, `⌘C`
   copy, `⌘+`/`⌘−` font size, `⌘W`, `⌘,`).
-- Single-letter keys (§7.5) only work while the diff or file list has focus. That's the same
-  convention Mail and Xcode use for unmodified keys. They never fire inside a text field.
+- Single-letter keys (§7.5) only work while the diff or file list has focus, and not while a
+  sheet or popover is open. That's the same convention Mail and Xcode use for unmodified keys.
+  They never fire inside a text field. AppKit lets a menu key equivalent win over a focused text
+  field even when the item is disabled, so the menu items carry their single-letter shortcut
+  only while it applies.
 - Viewed toggles can be undone (`⌘Z`) through the window's `UndoManager`. They're the only state
   changes Seam makes.
 - Full Keyboard Access works everywhere. Focus order: worktrees → files → diff.
@@ -489,7 +493,9 @@ written down here.
   worktree row reads its counts as words.
 - The custom diff view implements `NSAccessibility`: each visible row is an element ("added, new
   line 42: …"), hunks are groups, and VO navigation follows `n`/`p`.
-- Strings live in a String Catalog. The app is English only, but nothing is hard-coded in views.
+- Strings live in a String Catalog per module. The app is English only, but nothing is
+  hard-coded in views. `swift build` doesn't extract keys, so `make strings` syncs the catalogs
+  from the Xcode build.
 
 ## 10. Testing strategy
 
@@ -583,6 +589,8 @@ side-by-side views drawn without highlighting, keyboard navigation, scopes, the 
 live reload.
 *Done when:* you can review feat/b end to end from the keyboard, and editing a file in that
 worktree updates the diff within 1 s with no jump in scroll position.
+*Left for later:* line wrapping (`w`) and find in the diff (M3); VoiceOver hunk groups and the
+XCUITest smoke flows (M4; UI tests need Automation Mode enabled on the machine).
 
 **M3 — Reading quality.** tree-sitter highlighting, word-level highlights, context expansion,
 generated-file collapse, binary and image entries.

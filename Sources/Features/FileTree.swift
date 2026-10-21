@@ -1,24 +1,24 @@
 import Foundation
 
 /// One visible row of the file list (SPEC §7.3).
-public struct FileListRow: Equatable, Identifiable, Sendable {
-    public enum Kind: Equatable, Sendable {
+struct FileListRow: Equatable, Identifiable, Sendable {
+    enum Kind: Equatable, Sendable {
         /// A directory, with single-child chains compacted into one name (`src/Orders.Service`).
         case directory(isExpanded: Bool)
         /// Index into the review's files.
         case file(Int)
     }
 
-    public var id: String
-    public var name: String
-    public var depth: Int
-    public var kind: Kind
+    var id: String
+    var name: String
+    var depth: Int
+    var kind: Kind
 }
 
-public enum FileTree {
+enum FileTree {
     /// Rows for `paths`, as a tree grouped by directory or as a flat list. A non-empty `filter`
     /// keeps files whose path contains it, ignoring case, and shows their directories expanded.
-    public static func rows(
+    static func rows(
         _ paths: [String], flat: Bool = false, collapsed: Set<String> = [], filter: String = ""
     ) -> [FileListRow] {
         let matching = paths.indices.filter {
@@ -84,10 +84,10 @@ public enum FileTree {
     }
 }
 
-public enum FuzzyMatch {
+enum FuzzyMatch {
     /// A score for `query` as a subsequence of `candidate`, higher is better; nil when it isn't
     /// one. Consecutive characters and matches at word starts score more.
-    public static func score(_ query: String, in candidate: String) -> Int? {
+    static func score(_ query: String, in candidate: String) -> Int? {
         let query = Array(query.lowercased())
         let text = Array(candidate.lowercased())
         guard !query.isEmpty else { return 0 }

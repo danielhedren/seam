@@ -161,7 +161,10 @@ public actor RepoMonitor {
     private func relevantChange(_ paths: [String]) async -> RepoChange {
         let result = classifier.classify(paths)
         var change = result.change
-        for (id, files) in result.files where !change.worktrees.contains(id) {
+        // Worktrees already due to reload skip the ignore check: during a build every batch
+        // would otherwise cost one git process per worktree.
+        for (id, files) in result.files
+        where !change.worktrees.contains(id) && !pending.worktrees.contains(id) {
             guard let root = worktreePaths[id] else { continue }
             if await hasUnignoredPath(files, in: root) { change.worktrees.insert(id) }
         }
