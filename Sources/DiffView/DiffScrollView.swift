@@ -39,6 +39,7 @@ public final class DiffScrollView: NSScrollView {
         autohidesScrollers = true
         drawsBackground = false
         sticky.font = canvas.font
+        sticky.increaseContrast = canvas.increaseContrast
         sticky.isHidden = true
         sticky.onClick = { [weak self] in
             guard let self, let file = sticky.file else { return }
@@ -46,6 +47,24 @@ public final class DiffScrollView: NSScrollView {
         }
         addSubview(sticky)
         setAccessibilityLabel(String(localized: "Diff", bundle: .module))
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self, selector: #selector(displayOptionsChanged),
+            name: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil)
+    }
+
+    /// Forces Increase Contrast on or off; nil follows the system.
+    var increaseContrastOverride: Bool? {
+        get { canvas.increaseContrastOverride }
+        set {
+            canvas.increaseContrastOverride = newValue
+            displayOptionsChanged()
+        }
+    }
+
+    @objc private func displayOptionsChanged() {
+        sticky.increaseContrast = canvas.increaseContrast
+        canvas.needsDisplay = true
+        sticky.needsDisplay = true
     }
 
     required init?(coder: NSCoder) { nil }

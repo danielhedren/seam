@@ -85,14 +85,15 @@ public struct DiffPalette: Equatable, Sendable {
         ("dark high contrast", .darkHighContrast),
     ]
 
-    static func current(for appearance: NSAppearance) -> DiffPalette {
-        switch appearance.bestMatch(from: [
-            .aqua, .darkAqua, .accessibilityHighContrastAqua, .accessibilityHighContrastDarkAqua,
-        ]) {
-        case .darkAqua: .dark
-        case .accessibilityHighContrastAqua: .lightHighContrast
-        case .accessibilityHighContrastDarkAqua: .darkHighContrast
-        default: .light
+    /// High-contrast appearances can't be constructed or matched by name, so Increase Contrast
+    /// comes from the workspace setting rather than the appearance.
+    static func current(for appearance: NSAppearance, increaseContrast: Bool) -> DiffPalette {
+        let dark = appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        return switch (dark, increaseContrast) {
+        case (false, false): .light
+        case (true, false): .dark
+        case (false, true): .lightHighContrast
+        case (true, true): .darkHighContrast
         }
     }
 }

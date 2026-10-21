@@ -61,6 +61,7 @@ final class DiffStickyHeaderView: NSView {
     var collapsed = false
     var font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
     var onClick: (() -> Void)?
+    var increaseContrast = false
 
     override var isFlipped: Bool { true }
 
@@ -68,7 +69,8 @@ final class DiffStickyHeaderView: NSView {
         guard let file, let context = NSGraphicsContext.current?.cgContext else { return }
         DiffHeaderDrawing.draw(
             file, collapsed: collapsed, in: bounds, font: font,
-            palette: DiffPalette.current(for: effectiveAppearance), context: context)
+            palette: DiffPalette.current(
+                for: effectiveAppearance, increaseContrast: increaseContrast), context: context)
     }
 
     override func mouseDown(with event: NSEvent) { onClick?() }

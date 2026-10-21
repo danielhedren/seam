@@ -19,6 +19,11 @@ final class DiffCanvasView: NSView {
     }
     var onToggleCollapse: ((String) -> Void)?
     var onFocusChange: ((Bool) -> Void)?
+    /// Nil follows the system's Increase Contrast setting; snapshot tests force it.
+    var increaseContrastOverride: Bool?
+    var increaseContrast: Bool {
+        increaseContrastOverride ?? NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+    }
 
     let font: NSFont
     private var geometry = Geometry()
@@ -87,7 +92,8 @@ final class DiffCanvasView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         guard let context = NSGraphicsContext.current?.cgContext else { return }
-        let palette = DiffPalette.current(for: effectiveAppearance)
+        let palette = DiffPalette.current(
+            for: effectiveAppearance, increaseContrast: increaseContrast)
         context.setFillColor(palette.background.nsColor.cgColor)
         context.fill(dirtyRect)
         if isStale { context.setAlpha(0.5) }
