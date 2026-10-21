@@ -4,6 +4,15 @@
     " · %lld commits" : {
 
     },
+    "%@ already exists and isn't Seam's. Remove it and try again." : {
+
+    },
+    "%@ is not in a git repository." : {
+
+    },
+    "%@ now opens Seam. Make sure ~/.local/bin is on your PATH." : {
+
+    },
     "%lld commits" : {
 
     },
@@ -13,7 +22,33 @@
     "%lld files" : {
 
     },
+    "%lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld"
+          }
+        }
+      }
+    },
     "%lld uncommitted files" : {
+
+    },
+    "%lld/%lld viewed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$lld viewed"
+          }
+        }
+      }
+    },
+    "A repository's .editorconfig overrides the tab width." : {
+
+    },
+    "Actual Size" : {
 
     },
     "All" : {
@@ -23,6 +58,9 @@
 
     },
     "Cancelled" : {
+
+    },
+    "Changed since viewed" : {
 
     },
     "Choose Base…" : {
@@ -37,16 +75,58 @@
     "Collapse or Expand File" : {
 
     },
+    "Command" : {
+
+    },
+    "Command Palette…" : {
+
+    },
     "Committed" : {
 
     },
     "Compare against" : {
 
     },
+    "Context lines: %lld" : {
+
+    },
+    "Couldn't install the seam command" : {
+
+    },
+    "Couldn't open the editor: %@" : {
+
+    },
     "Couldn't run git: %@" : {
 
     },
+    "Custom" : {
+
+    },
+    "Default base" : {
+
+    },
+    "Display" : {
+
+    },
+    "Done" : {
+
+    },
+    "Editor" : {
+
+    },
+    "Every %lld minutes" : {
+
+    },
     "Expand" : {
+
+    },
+    "Fetch" : {
+
+    },
+    "Fetch and prune remote branches (f)" : {
+
+    },
+    "Fetch in the background" : {
 
     },
     "Files as Flat List" : {
@@ -58,16 +138,70 @@
     "Filter Files" : {
 
     },
+    "Find Next" : {
+
+    },
+    "Find Previous" : {
+
+    },
+    "Find in diff" : {
+
+    },
+    "Find…" : {
+
+    },
     "Flat list" : {
+
+    },
+    "Font" : {
+
+    },
+    "Generated" : {
+
+    },
+    "Generated files" : {
 
     },
     "Go" : {
 
     },
+    "Go to %@" : {
+
+    },
     "Hide Missing Worktrees" : {
 
     },
+    "Ignore all" : {
+
+    },
+    "Ignore changes in amount" : {
+
+    },
+    "Install Command Line Tool…" : {
+
+    },
+    "Installed the seam command" : {
+
+    },
+    "Keep %@" : {
+
+    },
+    "Make Text Bigger" : {
+
+    },
+    "Make Text Smaller" : {
+
+    },
+    "Mark as Viewed" : {
+
+    },
     "Name" : {
+
+    },
+    "Never use as a parent" : {
+
+    },
+    "New worktrees show" : {
 
     },
     "Next File" : {
@@ -79,6 +213,9 @@
     "Next Worktree" : {
 
     },
+    "Next match" : {
+
+    },
     "No base" : {
 
     },
@@ -86,6 +223,9 @@
 
     },
     "No commits since %@" : {
+
+    },
+    "No matches" : {
 
     },
     "No uncommitted changes" : {
@@ -97,6 +237,9 @@
     "Not a git repository. Choose another folder." : {
 
     },
+    "Off" : {
+
+    },
     "Open" : {
 
     },
@@ -104,6 +247,12 @@
 
     },
     "Open a repository to review its worktrees." : {
+
+    },
+    "Open in Editor" : {
+
+    },
+    "Opening %@…" : {
 
     },
     "Other ref" : {
@@ -115,6 +264,16 @@
     "Page Up" : {
 
     },
+    "Parent %@ looks merged. Diff against %@ instead?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Parent %1$@ looks merged. Diff against %2$@ instead?"
+          }
+        }
+      }
+    },
     "Previous File" : {
 
     },
@@ -122,6 +281,9 @@
 
     },
     "Previous Worktree" : {
+
+    },
+    "Previous match" : {
 
     },
     "Recently Changed" : {
@@ -139,6 +301,12 @@
     "Review" : {
 
     },
+    "Run a command" : {
+
+    },
+    "SF Mono" : {
+
+    },
     "Scope" : {
 
     },
@@ -154,19 +322,37 @@
     "Show as Flat List" : {
 
     },
+    "Show changes" : {
+
+    },
     "Side by Side" : {
+
+    },
+    "Side by side" : {
+
+    },
+    "Size: %lld" : {
 
     },
     "Sort By" : {
 
     },
-    "Sort Worktrees By" : {
+    "Sort Worktrees by Name" : {
+
+    },
+    "Sort Worktrees by Recent Change" : {
+
+    },
+    "Space" : {
 
     },
     "Switch Worktree…" : {
 
     },
     "Switch to worktree" : {
+
+    },
+    "Tab width: %lld" : {
 
     },
     "The chosen base %@ no longer exists." : {
@@ -196,10 +382,22 @@
     "Use" : {
 
     },
+    "Use %@" : {
+
+    },
     "Use Detected Base" : {
 
     },
+    "Viewed" : {
+
+    },
+    "Whitespace" : {
+
+    },
     "Worktree %lld" : {
+
+    },
+    "Wrap Lines" : {
 
     },
     "detached" : {
@@ -224,6 +422,9 @@
     "missing" : {
 
     },
+    "origin/HEAD, then origin/main, then main" : {
+
+    },
     "prunable" : {
 
     },
@@ -231,6 +432,9 @@
 
     },
     "vs %@" : {
+
+    },
+    "{path} and {line} are filled in; the command runs in your login shell." : {
 
     }
   },

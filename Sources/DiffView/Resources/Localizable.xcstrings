@@ -1,9 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "  (untracked)" : {
-
-    },
     "%@, new line %lld: %@" : {
       "localizations" : {
         "en" : {
@@ -24,8 +21,27 @@
         }
       }
     },
+    "%lld unchanged lines hidden" : {
+
+    },
     "Binary file" : {
 
+    },
+    "Binary file, %@" : {
+
+    },
+    "Binary file, %@ deleted" : {
+
+    },
+    "Binary file, %@ → %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Binary file, %1$@ → %2$@"
+          }
+        }
+      }
     },
     "Copied without changes" : {
 
@@ -37,6 +53,9 @@
 
     },
     "Empty file deleted" : {
+
+    },
+    "Image preview, old and new" : {
 
     },
     "Large file not loaded" : {
@@ -58,7 +77,13 @@
     "Renamed without changes" : {
 
     },
+    "Show all %lld lines" : {
+
+    },
     "added" : {
+
+    },
+    "generated" : {
 
     },
     "removed" : {
@@ -67,7 +92,19 @@
     "unchanged" : {
 
     },
+    "untracked" : {
+
+    },
     "⊘ no newline at end of file" : {
+
+    },
+    "◐ Changed since viewed" : {
+
+    },
+    "☐ Viewed" : {
+
+    },
+    "☑ Viewed" : {
 
     }
   },
