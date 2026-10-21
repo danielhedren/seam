@@ -1,0 +1,136 @@
+import Foundation
+import GitKit
+import Testing
+
+@testable import SeamCore
+
+@Suite struct CandidateRankingTests {
+    private func candidate(
+        _ ref: String, count: Int, configure: (inout ParentCandidate) -> Void = { _ in }
+    )
+        -> ParentCandidate
+    {
+        var item = ParentCandidate(ref: ref, tip: ref, commitCount: count)
+        configure(&item)
+        return item
+    }
+
+    @Test func fewerCommitsWinsOverEveryTieBreak() {
+        let ranked = ParentCandidate.ranked([
+            candidate("refs/remotes/origin/main", count: 17) {
+                $0.isDefaultBase = true
+                $0.tipIsBoundary = true
+            },
+            candidate("refs/heads/parent", count: 5),
+        ])
+        #expect(ranked.map(\.name) == ["parent", "origin/main"])
+    }
+
+    @Test func tieBreaksApplyInSpecOrder() {
+        let boundary = candidate("refs/heads/z-boundary", count: 1) { $0.tipIsBoundary = true }
+        let upstream = candidate("refs/heads/y-upstream", count: 1) { $0.isUpstream = true }
+        let defaultBase = candidate("refs/heads/x-default", count: 1) { $0.isDefaultBase = true }
+        let remote = candidate("refs/remotes/origin/w-remote", count: 1)
+        let recent = candidate("refs/heads/v-recent", count: 1) { $0.committerDate = 10 }
+        let older = candidate("refs/heads/u-older", count: 1)
+
+        let ranked = ParentCandidate.ranked([
+            older, recent, remote, defaultBase, upstream, boundary,
+        ])
+
+        #expect(
+            ranked.map(\.name) == [
+                "z-boundary", "y-upstream", "x-default", "origin/w-remote", "v-recent", "u-older",
+            ])
+    }
+}
+
+@Suite struct GlobTests {
+    @Test(arguments: [
+        ("origin/renovate/**", "origin/renovate/npm/x", true),
+        ("origin/renovate/**", "origin/renovate-x", false),
+        ("**/Generated/**", "src/A/Generated/B.cs", true),
+        ("**/Generated/**", "Generated/B.cs", true),
+        ("**/*.g.cs", "a/b/c.g.cs", true),
+        ("*.lock", "dir/x.lock", false),
+        ("feat/?", "feat/a", true),
+        ("feat/?", "feat/ab", false),
+    ])
+    func matches(pattern: String, path: String, expected: Bool) {
+        #expect(Glob(pattern).matches(path) == expected)
+    }
+}
+
+@Suite struct ReviewDiffTests {
+    @Test func scopesSplitCommittedFromUncommittedWork() async throws {
+        let repo = try await FixtureRepo()
+        let base = try await repo.sha("HEAD")
+        try await repo.commit("committed.txt", "c\n", "commit")
+        try repo.write("README.md", "fixture\nedited\n")
+        try repo.write("untracked.txt", "u\n")
+        let builder = ReviewDiffBuilder(git: repo.git)
+
+        let all = try await builder.build(worktree: repo.main, base: base, scope: .all)
+        let committed = try await builder.build(worktree: repo.main, base: base, scope: .committed)
+        let uncommitted = try await builder.build(
+            worktree: repo.main, base: base, scope: .uncommitted)
+
+        #expect(all.files.map(\.diff.path) == ["README.md", "committed.txt", "untracked.txt"])
+        #expect(committed.files.map(\.diff.path) == ["committed.txt"])
+        #expect(uncommitted.files.map(\.diff.path) == ["README.md", "untracked.txt"])
+        #expect(all.additions == 3)
+    }
+
+    @Test func untrackedFilesAreSynthesisedAsAdditions() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("text.txt", "one\ntwo")
+        try Data([0, 1, 2]).write(to: repo.main.appending(path: "blob.bin"))
+        try FileManager.default.createSymbolicLink(
+            atPath: repo.main.appending(path: "link").path, withDestinationPath: "text.txt")
+
+        let review = try await ReviewDiffBuilder(git: repo.git).build(
+            worktree: repo.main, base: try await repo.sha("HEAD"), scope: .all)
+        let files = Dictionary(uniqueKeysWithValues: review.files.map { ($0.diff.path, $0) })
+
+        let text = try #require(files["text.txt"])
+        #expect(text.diff.hunks.first?.lines.map(\.text) == ["one", "two"])
+        #expect(text.diff.hunks.first?.lines.last?.noNewlineAtEnd == true)
+        #expect(files["blob.bin"]?.diff.isBinary == true)
+        #expect(files["link"]?.diff.newMode == "120000")
+        #expect(files["link"]?.diff.hunks.first?.lines.first?.text == "text.txt")
+    }
+
+    @Test func userDiffConfigDoesNotChangeTheOutput() async throws {
+        let repo = try await FixtureRepo()
+        let base = try await repo.sha("HEAD")
+        try await repo.run("config", "diff.noprefix", "true")
+        try await repo.run("config", "diff.mnemonicPrefix", "true")
+        try await repo.run("config", "diff.renames", "false")
+        try await repo.run("mv", "README.md", "RENAMED.md")
+        try await repo.run("commit", "-q", "-m", "rename")
+
+        let review = try await ReviewDiffBuilder(git: repo.git).build(
+            worktree: repo.main, base: base, scope: .committed)
+
+        #expect(review.files.count == 1)
+        #expect(review.files.first?.diff.status == .renamed(similarity: 100))
+        #expect(review.files.first?.diff.oldPath == "README.md")
+    }
+}
+
+@Suite struct RepositoryServiceTests {
+    @Test func listsWorktreesWithBranchesAndOpensFromAnyOfThem() async throws {
+        let repo = try await FixtureRepo()
+        let feature = try await repo.worktree("feature", branch: "feature", from: "origin/main")
+        let service = RepositoryService(git: repo.git)
+
+        let (repository, opened) = try await service.open(feature.appending(path: "."))
+        let worktrees = try await service.worktrees(of: repository)
+
+        #expect(opened.path == feature.path)
+        #expect(repository.commonDirectory.path == repo.main.appending(path: ".git").path)
+        #expect(worktrees.map(\.branch) == ["main", "feature"])
+        #expect(worktrees.map(\.isMain) == [true, false])
+        #expect(worktrees.allSatisfy { !$0.isMissing })
+    }
+}

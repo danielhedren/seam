@@ -1,0 +1,109 @@
+diff --git a/added.txt b/added.txt
+new file mode 100644
+index 0000000..ecce07a
+--- /dev/null
++++ b/added.txt
+@@ -0,0 +1,2 @@
++added
++file
+diff --git a/binary.bin b/binary.bin
+index 8352675..1592e5c 100644
+Binary files a/binary.bin and b/binary.bin differ
+diff --git a/modified.txt b/copy-of-modified.txt
+similarity index 100%
+copy from modified.txt
+copy to copy-of-modified.txt
+diff --git a/crlf.txt b/crlf.txt
+index c30dea8..57213eb 100644
+--- a/crlf.txt
++++ b/crlf.txt
+@@ -1,2 +1,2 @@
+ a
+-b
++B
+diff --git a/deleted.txt b/deleted.txt
+deleted file mode 100644
+index 2fa992c..0000000
+--- a/deleted.txt
++++ /dev/null
+@@ -1 +0,0 @@
+-keep
+diff --git a/empty-added.txt b/empty-added.txt
+new file mode 100644
+index 0000000..e69de29
+diff --git a/link b/link
+new file mode 120000
+index 0000000..a707117
+--- /dev/null
++++ b/link
+@@ -0,0 +1 @@
++modified.txt
+\ No newline at end of file
+diff --git a/mode.sh b/mode.sh
+old mode 100644
+new mode 100755
+diff --git a/modified.txt b/modified.txt
+index c9e9e05..0d1c98f 100644
+--- a/modified.txt
++++ b/modified.txt
+@@ -1,5 +1,5 @@
+ one
+-two
++TWO
+ three
+ four
+ five
+@@ -7,4 +7,5 @@ six
+ seven
+ eight
+ nine
+-ten
++TEN
++eleven
+diff --git a/old-name.txt b/new-name.txt
+similarity index 86%
+rename from old-name.txt
+rename to new-name.txt
+index 1e395f2..9901384 100644
+--- a/old-name.txt
++++ b/new-name.txt
+@@ -5,4 +5,4 @@ delta
+ epsilon
+ zeta
+ eta
+-theta
++THETA
+diff --git a/no-newline.txt b/no-newline.txt
+index 20cbb4d..db1dabe 100644
+--- a/no-newline.txt
++++ b/no-newline.txt
+@@ -1 +1 @@
+-no newline
+\ No newline at end of file
++no newline, changed
+\ No newline at end of file
+diff --git a/pure-old.txt b/pure-new.txt
+similarity index 100%
+rename from pure-old.txt
+rename to pure-new.txt
+diff --git "a/quote\"d.txt" "b/quote\"d.txt"
+index b04fedb..611973c 100644
+--- "a/quote\"d.txt"
++++ "b/quote\"d.txt"
+@@ -1 +1 @@
+-quoted
++quoted, changed
+diff --git a/with space.txt b/with space.txt
+index cc6e400..2cbe2dc 100644
+--- a/with space.txt	
++++ b/with space.txt	
+@@ -1 +1 @@
+-with space
++with space, changed
+diff --git a/åäö.txt b/åäö.txt
+index 4de4f93..7dd9b78 100644
+--- a/åäö.txt
++++ b/åäö.txt
+@@ -1 +1 @@
+-unicode
++unicode, changed
