@@ -394,8 +394,17 @@ seam-debug (M1)       ─ SeamCore
   TOML, Dockerfile.
 - Parse the **whole** old and new files, then map the highlights onto diff lines. Highlighting a
   single hunk gets multi-line strings and comments wrong.
-- Highlighting runs off the main thread and is cached by blob id (and by mtime and size for
-  working-tree files). Lines are drawn without colours first, and colours appear when ready.
+- Highlighting runs off the main thread and is cached by language and content hash, which covers
+  blobs and working-tree files alike. Lines are drawn without colours first, and colours appear
+  when ready: the file being read first, the rest in batches. On a reload, a file whose text
+  changed drops its old spans until it is highlighted again.
+- Grammars are vendored as C targets under `Vendor/Grammars` by `Scripts/vendor-grammars.sh`,
+  which pins each repository's ref and records the commit in `VERSIONS.md`. Only `parser.c`, the
+  scanner, the headers, the highlight query and the licence are kept. Their C warnings are
+  silenced (`-w`): generated third-party code isn't ours to fix, and the build stays clean.
+- The token types (`SyntaxToken`, `SyntaxSpan`) live in SeamCore, so Highlighting produces them
+  and DiffView draws them without either importing the other. Syntax colours are part of
+  `DiffPalette`, contrast-tested on every diff background.
 - Unknown language: plain text.
 
 ### 8.5 Diff rendering

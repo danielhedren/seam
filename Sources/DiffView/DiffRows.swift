@@ -16,6 +16,8 @@ struct SideLine: Equatable, Sendable {
     var noNewlineAtEnd = false
     /// Word-level changes, as character ranges into `text`.
     var highlights: [Range<Int>] = []
+    /// Syntax runs, as character ranges into `text`.
+    var syntax: [SyntaxSpan] = []
 }
 
 /// A unified-mode line, numbered on whichever sides it exists.
@@ -26,6 +28,7 @@ struct UnifiedLine: Equatable, Sendable {
     var text: String
     var noNewline = false
     var highlights: [Range<Int>] = []
+    var syntax: [SyntaxSpan] = []
 }
 
 /// Everything the diff view shows. Equal content means nothing to redraw.
@@ -36,16 +39,20 @@ public struct DiffContent: Equatable, Sendable {
     /// Full file contents, for context expansion; files without them get no gap rows.
     public var contents: [String: FileContents]
     public var expansions: [String: [Int: GapExpansion]]
+    /// Syntax highlights per file; lines are drawn plain until theirs arrive (SPEC §8.4).
+    public var syntax: [String: FileSyntax]
 
     public init(
         review: ReviewDiff, mode: DiffLayoutMode = .unified, collapsed: Set<String> = [],
-        contents: [String: FileContents] = [:], expansions: [String: [Int: GapExpansion]] = [:]
+        contents: [String: FileContents] = [:], expansions: [String: [Int: GapExpansion]] = [:],
+        syntax: [String: FileSyntax] = [:]
     ) {
         self.review = review
         self.mode = mode
         self.collapsed = collapsed
         self.contents = contents
         self.expansions = expansions
+        self.syntax = syntax
     }
 
     /// Lines revealed per click on a gap's arrow.
@@ -128,12 +135,39 @@ enum DiffSide: Hashable, Sendable {
     case right
 }
 
+/// A file's syntax spans by line number, moved onto display columns where tabs were expanded.
+struct SyntaxLookup {
+    var syntax: FileSyntax?
+    var tabWidth: Int
+
+    func old(_ number: Int?, raw: String) -> [SyntaxSpan] { spans(syntax?.old, number, raw) }
+    func new(_ number: Int?, raw: String) -> [SyntaxSpan] { spans(syntax?.new, number, raw) }
+
+    private func spans(_ lines: [[SyntaxSpan]]?, _ number: Int?, _ raw: String) -> [SyntaxSpan] {
+        guard let lines, let number, lines.indices.contains(number - 1) else { return [] }
+        let spans = lines[number - 1]
+        guard !spans.isEmpty, raw.contains("\t") else { return spans }
+        var columns: [Int] = []
+        var column = 0
+        for character in raw {
+            columns.append(column)
+            column += character == "\t" ? tabWidth - column % tabWidth : 1
+        }
+        columns.append(column)
+        return spans.map { span in
+            let lower = columns[min(span.range.lowerBound, columns.count - 1)]
+            let upper = columns[min(span.range.upperBound, columns.count - 1)]
+            return SyntaxSpan(range: lower..<max(lower, upper), token: span.token)
+        }
+    }
+}
+
 enum DiffRowBuilder {
     /// Files without loaded `contents` get no gap rows, sizes or previews.
     static func rows(
         for review: ReviewDiff, mode: DiffLayoutMode, collapsed: Set<String> = [],
         contents: [String: FileContents] = [:], expansions: [String: [Int: GapExpansion]] = [:],
-        tabWidth: Int = 4
+        syntax: [String: FileSyntax] = [:], tabWidth: Int = 4
     ) -> [DiffRow] {
         var rows: [DiffRow] = []
         rows.reserveCapacity(review.files.reduce(0) { $0 + $1.diff.hunks.count * 8 + 1 })
@@ -151,6 +185,7 @@ enum DiffRowBuilder {
             let lines =
                 file.diff.newPath == nil ? nil : fileContents?.new.map(DiffContent.lines)
             let fileExpansions = expansions[file.diff.path] ?? [:]
+            let lookup = SyntaxLookup(syntax: syntax[file.diff.path], tabWidth: tabWidth)
             var next = (old: 1, new: 1)
             func gap(_ number: Int, until end: Int) {
                 guard let lines else { return }
@@ -158,7 +193,7 @@ enum DiffRowBuilder {
                     file: index, gap: number, newRange: next.new..<end,
                     oldOffset: next.old - next.new, lines: lines,
                     expansion: fileExpansions[number] ?? GapExpansion(), mode: mode,
-                    tabWidth: tabWidth, isFirst: number == 0,
+                    lookup: lookup, isFirst: number == 0,
                     isLast: number == file.diff.hunks.count)
             }
             for (hunkIndex, hunk) in file.diff.hunks.enumerated() {
@@ -168,6 +203,8 @@ enum DiffRowBuilder {
                 rows.append(.hunkHeader(file: index, hunk: hunkIndex, text: header(hunk)))
                 let texts = hunk.lines.map { expandTabs($0.text, width: tabWidth) }
                 let highlights = wordHighlights(hunk.lines, texts)
+                let oldSyntax = hunk.lines.map { lookup.old($0.oldNumber, raw: $0.text) }
+                let newSyntax = hunk.lines.map { lookup.new($0.newNumber, raw: $0.text) }
                 switch mode {
                 case .unified:
                     for (offset, line) in hunk.lines.enumerated() {
@@ -177,10 +214,14 @@ enum DiffRowBuilder {
                                 UnifiedLine(
                                     old: line.oldNumber, new: line.newNumber, kind: line.kind,
                                     text: texts[offset], noNewline: line.noNewlineAtEnd,
-                                    highlights: highlights[offset])))
+                                    highlights: highlights[offset],
+                                    syntax: line.kind == .removed
+                                        ? oldSyntax[offset] : newSyntax[offset])))
                     }
                 case .split:
-                    rows += splitRows(hunk.lines, texts, highlights, file: index)
+                    rows += splitRows(
+                        hunk.lines, texts, highlights, file: index,
+                        syntax: (oldSyntax, newSyntax))
                 }
             }
             if let lines, !file.diff.hunks.isEmpty {
@@ -209,7 +250,7 @@ enum DiffRowBuilder {
     /// Revealed context at the top and bottom of a gap, with the hidden rest as one gap row.
     static func gapRows(
         file: Int, gap: Int, newRange: Range<Int>, oldOffset: Int, lines: [Substring],
-        expansion: GapExpansion, mode: DiffLayoutMode, tabWidth: Int, isFirst: Bool,
+        expansion: GapExpansion, mode: DiffLayoutMode, lookup: SyntaxLookup, isFirst: Bool,
         isLast: Bool
     ) -> [DiffRow] {
         let range = newRange.clamped(to: 1..<(lines.count + 1))
@@ -219,16 +260,21 @@ enum DiffRowBuilder {
         let all = expansion.top >= range.count
         func context(_ numbers: Range<Int>) -> [DiffRow] {
             numbers.map { number in
-                let text = expandTabs(String(lines[number - 1]), width: tabWidth)
+                let raw = String(lines[number - 1])
+                let text = expandTabs(raw, width: lookup.tabWidth)
                 let old = number + oldOffset
+                let syntax = lookup.new(number, raw: raw)
                 return switch mode {
                 case .unified:
                     .line(
-                        file: file, UnifiedLine(old: old, new: number, kind: .context, text: text))
+                        file: file,
+                        UnifiedLine(
+                            old: old, new: number, kind: .context, text: text, syntax: syntax))
                 case .split:
                     .split(
-                        file: file, left: SideLine(kind: .context, number: old, text: text),
-                        right: SideLine(kind: .context, number: number, text: text))
+                        file: file,
+                        left: SideLine(kind: .context, number: old, text: text, syntax: syntax),
+                        right: SideLine(kind: .context, number: number, text: text, syntax: syntax))
                 }
             }
         }
@@ -329,8 +375,11 @@ enum DiffRowBuilder {
 
     /// Runs of removed lines pair with the added lines that follow them, in order.
     static func splitRows(
-        _ lines: [DiffLine], _ texts: [String], _ highlights: [[Range<Int>]], file: Int
+        _ lines: [DiffLine], _ texts: [String], _ highlights: [[Range<Int>]], file: Int,
+        syntax: (old: [[SyntaxSpan]], new: [[SyntaxSpan]])? = nil
     ) -> [DiffRow] {
+        let oldSyntax = syntax?.old ?? Array(repeating: [], count: lines.count)
+        let newSyntax = syntax?.new ?? Array(repeating: [], count: lines.count)
         var rows: [DiffRow] = []
         var removed: [SideLine] = []
         var added: [SideLine] = []
@@ -354,12 +403,14 @@ enum DiffRowBuilder {
                 removed.append(
                     SideLine(
                         kind: .removed, number: line.oldNumber ?? 0, text: text,
-                        noNewlineAtEnd: line.noNewlineAtEnd, highlights: highlights[offset]))
+                        noNewlineAtEnd: line.noNewlineAtEnd, highlights: highlights[offset],
+                        syntax: oldSyntax[offset]))
             case .added:
                 added.append(
                     SideLine(
                         kind: .added, number: line.newNumber ?? 0, text: text,
-                        noNewlineAtEnd: line.noNewlineAtEnd, highlights: highlights[offset]))
+                        noNewlineAtEnd: line.noNewlineAtEnd, highlights: highlights[offset],
+                        syntax: newSyntax[offset]))
             case .context:
                 flush()
                 rows.append(
@@ -367,10 +418,10 @@ enum DiffRowBuilder {
                         file: file,
                         left: SideLine(
                             kind: .context, number: line.oldNumber ?? 0, text: text,
-                            noNewlineAtEnd: line.noNewlineAtEnd),
+                            noNewlineAtEnd: line.noNewlineAtEnd, syntax: oldSyntax[offset]),
                         right: SideLine(
                             kind: .context, number: line.newNumber ?? 0, text: text,
-                            noNewlineAtEnd: line.noNewlineAtEnd)))
+                            noNewlineAtEnd: line.noNewlineAtEnd, syntax: newSyntax[offset])))
             }
         }
         flush()

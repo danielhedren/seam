@@ -82,7 +82,7 @@ final class DiffCanvasView: NSView {
         layout = DiffLayout(
             rows: DiffRowBuilder.rows(
                 for: review, mode: mode, collapsed: collapsed, contents: content.contents,
-                expansions: content.expansions),
+                expansions: content.expansions, syntax: content.syntax),
             metrics: layout.metrics)
         lineCache.removeAll(keepingCapacity: true)
         selection = nil
@@ -152,7 +152,8 @@ final class DiffCanvasView: NSView {
                 textX: geometry.unifiedTextX)
             drawSide(
                 kind: line.kind, text: line.text, noNewline: line.noNewline,
-                highlights: line.highlights, column: column, row: index, side: .unified,
+                highlights: line.highlights, syntax: line.syntax, column: column, row: index,
+                side: .unified,
                 rowTop: rect.minY, palette: palette, context: context)
         case .split(_, let left, let right):
             for (line, side) in [(left, DiffSide.left), (right, DiffSide.right)] {
@@ -170,7 +171,8 @@ final class DiffCanvasView: NSView {
                 context.clip(to: bounds)
                 drawSide(
                     kind: line.kind, text: line.text, noNewline: line.noNewlineAtEnd,
-                    highlights: line.highlights, column: column, row: index, side: side,
+                    highlights: line.highlights, syntax: line.syntax, column: column, row: index,
+                    side: side,
                     rowTop: rect.minY, palette: palette, context: context)
                 context.restoreGState()
             }
@@ -189,6 +191,7 @@ final class DiffCanvasView: NSView {
 
     private func drawSide(
         kind: DiffLine.Kind, text: String, noNewline: Bool, highlights: [Range<Int>],
+        syntax: [SyntaxSpan],
         column: Column, row: Int,
         side: DiffSide, rowTop: Double, palette: DiffPalette, context: CGContext
     ) {
@@ -248,7 +251,7 @@ final class DiffCanvasView: NSView {
         }
         drawText(
             text, key: LineKey(row: row, side: side), x: column.textX, rowTop: rowTop,
-            color: palette.text, context: context)
+            color: palette.text, syntax: syntax, palette: palette, context: context)
         if noNewline {
             let x = column.textX + Double(text.count + 1) * layout.metrics.characterWidth
             drawText(
@@ -298,14 +301,20 @@ final class DiffCanvasView: NSView {
     }
 
     private func drawText(
-        _ text: String, key: LineKey?, x: Double, rowTop: Double, color: RGB, context: CGContext
+        _ text: String, key: LineKey?, x: Double, rowTop: Double, color: RGB,
+        syntax: [SyntaxSpan] = [], palette: DiffPalette? = nil, context: CGContext
     ) {
         guard !text.isEmpty else { return }
         let line: CTLine
         if let key, let cached = lineCache[key] {
             line = cached
         } else {
-            line = DiffHeaderDrawing.line(text, font: font)
+            line =
+                if let palette, !syntax.isEmpty {
+                    DiffHeaderDrawing.line(text, font: font, syntax: syntax, palette: palette)
+                } else {
+                    DiffHeaderDrawing.line(text, font: font)
+                }
             if let key {
                 if lineCache.count > 20_000 { lineCache.removeAll(keepingCapacity: true) }
                 lineCache[key] = line
@@ -316,8 +325,15 @@ final class DiffCanvasView: NSView {
         CTLineDraw(line, context)
     }
 
+    /// Cached lines carry syntax colours for the old appearance.
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
+        lineCache.removeAll(keepingCapacity: true)
+        needsDisplay = true
+    }
+
+    func appearanceOptionsChanged() {
+        lineCache.removeAll(keepingCapacity: true)
         needsDisplay = true
     }
 

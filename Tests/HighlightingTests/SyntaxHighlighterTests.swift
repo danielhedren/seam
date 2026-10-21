@@ -1,0 +1,83 @@
+import Foundation
+import SeamCore
+import Testing
+
+@testable import Highlighting
+
+@Suite struct SyntaxHighlighterTests {
+    /// One snippet per grammar, with a word on its first line and the token it must get.
+    static let samples: [(SyntaxLanguage, String, String, SyntaxToken)] = [
+        (.csharp, "public class Order { }\n", "public", .keyword),
+        (.typescript, "const total: number = 1;\n", "number", .type),
+        (.tsx, "const view = <div>hi</div>;\n", "const", .keyword),
+        (.javascript, "function add(a) { return a; }\n", "function", .keyword),
+        (.json, "{\"key\": 1}\n", "1", .number),
+        (.yaml, "name: \"seam\"\n", "\"seam\"", .string),
+        (.markdown, "# Title\n", "Title", .heading),
+        (.xml, "<Project Sdk=\"x\"></Project>\n", "Project", .tag),
+        (.swift, "let value = \"text\"\n", "let", .keyword),
+        (.rust, "fn main() {}\n", "fn", .keyword),
+        (.bash, "echo \"hi\" # note\n", "# note", .comment),
+        (.sql, "SELECT id FROM orders;\n", "SELECT", .keyword),
+        (.toml, "name = \"seam\"\n", "\"seam\"", .string),
+        (.dockerfile, "FROM swift:6\n", "FROM", .keyword),
+    ]
+
+    @Test(arguments: SyntaxLanguage.allCases)
+    func everyGrammarAndQueryHighlightsItsSample(language: SyntaxLanguage) async throws {
+        let (_, text, word, token) = try #require(Self.samples.first { $0.0 == language })
+        let lines = try #require(await SyntaxHighlighter().highlight(text, as: language))
+        let line = try #require(lines.first)
+        let start = try #require(text.range(of: word)).lowerBound
+        let offset = text.distance(from: text.startIndex, to: start)
+        let span = line.first { $0.range.contains(offset) }
+        #expect(span?.token == token, "\(language): \(line)")
+    }
+
+    @Test func aBlockCommentIsHighlightedOnEveryLineItSpans() async throws {
+        let text = "/* first\n   second */\nint x = 1;\n"
+        let lines = try #require(await SyntaxHighlighter().highlight(text, as: .csharp))
+        #expect(lines.count == 3)
+        #expect(lines[1].first == SyntaxSpan(range: 0..<12, token: .comment))
+        #expect(lines[2].contains { $0.token == .keyword || $0.token == .type })
+    }
+
+    @Test func offsetsAreCharactersEvenAfterWideOnes() async throws {
+        let text = "let 🎉 = \"å\"\n"
+        let lines = try #require(await SyntaxHighlighter().highlight(text, as: .swift))
+        #expect(lines[0].contains(SyntaxSpan(range: 8..<11, token: .string)))
+    }
+
+    @Test(arguments: [
+        ("Sources/App.cs", SyntaxLanguage.csharp), ("web/view.tsx", .tsx), ("a.mjs", .javascript),
+        ("Api.csproj", .xml), ("docker/Dockerfile", .dockerfile), ("app.Dockerfile", .dockerfile),
+        ("config.yml", .yaml), ("README.md", .markdown),
+    ])
+    func languagesAreDetectedFromFileNames(path: String, language: SyntaxLanguage) {
+        #expect(SyntaxLanguage.detect(path: path) == language)
+    }
+
+    @Test func unknownFilesArePlainText() {
+        #expect(SyntaxLanguage.detect(path: "notes.txt") == nil)
+        #expect(SyntaxLanguage.detect(path: "LICENSE") == nil)
+    }
+
+    @Test func innerCapturesPaintOverOuterOnesAndTheFirstOfEqualRangesWins() {
+        let text = "abcdef"
+        let lines = SyntaxHighlighter.lines(
+            text,
+            [
+                (NSRange(location: 0, length: 6), .string),
+                (NSRange(location: 2, length: 2), .constant),
+                (NSRange(location: 2, length: 2), .keyword),
+            ])
+        #expect(
+            lines == [
+                [
+                    SyntaxSpan(range: 0..<2, token: .string),
+                    SyntaxSpan(range: 2..<4, token: .constant),
+                    SyntaxSpan(range: 4..<6, token: .string),
+                ]
+            ])
+    }
+}

@@ -2,6 +2,7 @@ import CryptoKit
 import DiffView
 import Foundation
 import GitKit
+import Highlighting
 import SeamCore
 import os
 
@@ -94,12 +95,16 @@ public struct SeamServices: Sendable {
     public var clock: any Clock<Duration>
     public var store: any StateStore
     public var detection: DetectionSettings
+    /// Shared by every window, so its cache spans repos and reloads.
+    public var highlighter: SyntaxHighlighter
 
     public init(
         git: any GitClient, fileSystem: any FileSystem = LocalFileSystem(),
         watcher: any FileWatcher, clock: any Clock<Duration>, store: any StateStore,
-        detection: DetectionSettings = DetectionSettings()
+        detection: DetectionSettings = DetectionSettings(),
+        highlighter: SyntaxHighlighter = SyntaxHighlighter()
     ) {
+        self.highlighter = highlighter
         self.git = git
         self.fileSystem = fileSystem
         self.watcher = watcher

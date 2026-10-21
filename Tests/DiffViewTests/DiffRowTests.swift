@@ -250,6 +250,13 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
             ("added count", palette.addedMarker, palette.headerBackground),
             ("removed count", palette.removedMarker, palette.headerBackground),
         ]
+        for token in SyntaxToken.allCases {
+            guard let color = palette.color(for: token) else { continue }
+            for (index, background) in palette.textBackgrounds.enumerated() {
+                let ratio = color.contrast(with: background)
+                #expect(ratio >= 4.5, "\(name): \(token) on background \(index) is \(ratio)")
+            }
+        }
         for (label, foreground, background) in pairs {
             let ratio = foreground.contrast(with: background)
             #expect(ratio >= 4.5, "\(name): \(label) is \(ratio)")
@@ -259,5 +266,33 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
     @Test func contrastMatchesTheWCAGReferenceValues() {
         #expect(abs(RGB(0x000000).contrast(with: RGB(0xFFFFFF)) - 21) < 0.01)
         #expect(abs(RGB(0x777777).contrast(with: RGB(0xFFFFFF)) - 4.48) < 0.01)
+    }
+}
+
+@Suite struct SyntaxRowTests {
+    @Test func spansFollowTheirSideAndMoveWithTabExpansion() {
+        var hunk = Hunk(oldStart: 1, oldCount: 1, newStart: 1, newCount: 1, section: "")
+        hunk.lines = [
+            DiffLine(kind: .removed, text: "\tlet a", oldNumber: 1, newNumber: nil),
+            DiffLine(kind: .added, text: "\tvar a", oldNumber: nil, newNumber: 1),
+        ]
+        var file = FileDiff(oldPath: "a.swift", newPath: "a.swift", status: .modified)
+        file.hunks = [hunk]
+        let syntax = FileSyntax(
+            old: [[SyntaxSpan(range: 1..<4, token: .keyword)]],
+            new: [[SyntaxSpan(range: 1..<4, token: .string)]])
+
+        let rows = DiffRowBuilder.rows(
+            for: ReviewDiff(scope: .all, files: [ReviewFile(diff: file)]), mode: .unified,
+            syntax: ["a.swift": syntax])
+
+        let lines = rows.compactMap { row -> UnifiedLine? in
+            if case .line(_, let line) = row { line } else { nil }
+        }
+        #expect(
+            lines.map(\.syntax) == [
+                [SyntaxSpan(range: 4..<7, token: .keyword)],
+                [SyntaxSpan(range: 4..<7, token: .string)],
+            ])
     }
 }

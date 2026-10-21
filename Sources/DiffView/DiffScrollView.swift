@@ -70,7 +70,7 @@ public final class DiffScrollView: NSScrollView {
 
     @objc private func displayOptionsChanged() {
         sticky.increaseContrast = canvas.increaseContrast
-        canvas.needsDisplay = true
+        canvas.appearanceOptionsChanged()
         sticky.needsDisplay = true
     }
 

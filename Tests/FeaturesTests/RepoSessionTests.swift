@@ -224,6 +224,21 @@ import Testing
         #expect(review.collapsed.isEmpty)
     }
 
+    @Test func syntaxHighlightsArriveForKnownLanguagesOnly() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("main.swift", "let answer = 42\n")
+        try repo.write("notes.txt", "let answer = 42\n")
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        await session.settled()
+        let review = try #require(session.selected)
+        await review.highlighted()
+
+        let spans = try #require(review.syntax["main.swift"]?.new?.first)
+        #expect(spans.contains(SyntaxSpan(range: 0..<3, token: .keyword)))
+        #expect(review.syntax["notes.txt"] == nil)
+    }
+
     @Test func overrideWhoseRefIsGoneShowsABannerWithAWayBack() async throws {
         let repo = try await FixtureRepo()
         let session = RepoSession(directory: repo.main, services: services(repo.git))

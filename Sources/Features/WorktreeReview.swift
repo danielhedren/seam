@@ -1,6 +1,7 @@
 import DiffView
 import Foundation
 import GitKit
+import Highlighting
 import Observation
 import SeamCore
 import os
@@ -27,6 +28,9 @@ final class WorktreeReview: Identifiable {
     /// Full file contents for the current diff; empty until loaded.
     private(set) var contents: [String: FileContents] = [:]
     private(set) var contentsVersion = 0
+    private(set) var syntax: [String: FileSyntax] = [:]
+    private(set) var syntaxVersion = 0
+    private var highlightTask: Task<Void, Never>?
     private var openedByReader: Set<String> = []
     /// Whether the file list's "Generated" group is open.
     var showsGenerated = false
@@ -148,8 +152,48 @@ final class WorktreeReview: Identifiable {
         diff.map {
             DiffContent(
                 review: $0, mode: mode, collapsed: collapsed, contents: contents,
-                expansions: expansions)
+                expansions: expansions, syntax: syntax)
         }
+    }
+
+    /// Highlights every file off the main actor, the one being read first. Results publish after
+    /// that file and then in batches, since each publish rebuilds the diff's rows.
+    private func highlight(_ diff: ReviewDiff, _ contents: [String: FileContents]) {
+        highlightTask?.cancel()
+        let highlighter = services.highlighter
+        let current = currentFile
+        let files =
+            diff.files.filter { $0.diff.path == current }
+            + diff.files.filter { $0.diff.path != current }
+        highlightTask = Task { [weak self] in
+            var pending: [String: FileSyntax] = [:]
+            for (index, file) in files.enumerated() {
+                guard !Task.isCancelled else { return }
+                let path = file.diff.path
+                guard let texts = contents[path] else { continue }
+                var result = FileSyntax()
+                if let text = texts.old,
+                    let language = SyntaxLanguage.detect(path: file.diff.oldPath ?? path)
+                {
+                    result.old = await highlighter.highlight(text, as: language)
+                }
+                if let text = texts.new, let language = SyntaxLanguage.detect(path: path) {
+                    result.new = await highlighter.highlight(text, as: language)
+                }
+                if result.old != nil || result.new != nil { pending[path] = result }
+                if index == 0 || index % 25 == 24 || index == files.count - 1, !pending.isEmpty {
+                    guard let self, !Task.isCancelled else { return }
+                    self.syntax.merge(pending) { $1 }
+                    self.syntaxVersion += 1
+                    pending = [:]
+                }
+            }
+        }
+    }
+
+    /// Waits for highlighting; tests use it instead of sleeping.
+    func highlighted() async {
+        await highlightTask?.value
     }
 
     // MARK: - Loading
@@ -210,6 +254,7 @@ final class WorktreeReview: Identifiable {
 
     func cancelLoading() {
         loadTask?.cancel()
+        highlightTask?.cancel()
         loadGeneration += 1
         isLoading = false
         showsProgress = false
@@ -262,8 +307,12 @@ final class WorktreeReview: Identifiable {
                 diffVersion += 1
                 problem = nil
             }
+            // Spans of files whose text changed would paint the new lines wrongly until redone.
+            let previous = contents
+            syntax = syntax.filter { previous[$0.key] == loaded[$0.key] }
             contents = loaded
             contentsVersion += 1
+            highlight(result, loaded)
         } catch {
             guard generation == loadGeneration, error != .cancelled else { return }
             problem = .gitFailed(Self.describe(error))
