@@ -212,14 +212,16 @@ extension DiffLayout {
         return groups
     }
 
-    /// The first numbered line at or after `row` in the same file; a header row reads as the
-    /// hunk below it. Line 1 when the file has no numbered lines.
+    /// The first new-side line at or after `row` in the same file, for opening the file as it is
+    /// now: a header reads as the hunk below it, a removed line as the next line that exists.
+    /// Line 1 when the file has none (a deleted file).
     func location(atOrAfter row: Int) -> (file: Int, line: Int)? {
         guard rows.indices.contains(row) else { return nil }
         let file = rows[row].file
         for index in row..<rows.count {
             guard rows[index].file == file else { break }
-            if let number = Self.lineNumber(rows[index]).0 { return (file, number) }
+            let (number, isOld) = Self.lineNumber(rows[index])
+            if let number, !isOld { return (file, number) }
         }
         return (file, 1)
     }

@@ -675,6 +675,20 @@ import Testing
     }
 }
 
+@Suite struct ShellLauncherTests {
+    private let launcher = ShellLauncher(shell: URL(fileURLWithPath: "/bin/sh"))
+
+    @Test func aFailingCommandReportsWhatItPrinted() async {
+        await #expect(throws: LaunchFailed(message: "no such editor")) {
+            try await launcher.run("echo 'no such editor' >&2; exit 3")
+        }
+    }
+
+    @Test func aChattyCommandThatSucceedsIsFine() async throws {
+        try await launcher.run("head -c 200000 /dev/zero >&2")
+    }
+}
+
 @Suite struct EditorCommandTests {
     @Test func pathsAreQuotedSoSpacesAndQuotesStayOneArgument() {
         let line = EditorCommand(template: "code -g {path}:{line}").commandLine(

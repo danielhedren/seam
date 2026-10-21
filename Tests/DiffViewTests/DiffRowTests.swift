@@ -201,7 +201,7 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
     @Test func aHeaderRowReadsAsTheFirstLineBelowIt() {
         let layout = layout(sampleReview())
         #expect(layout.location(atOrAfter: 1)?.line == 1)
-        #expect(layout.location(atOrAfter: 4)?.line == 3)
+        #expect(layout.location(atOrAfter: 4)?.line == 2)
         #expect(layout.location(atOrAfter: 9)?.file == 1)
         #expect(layout.location(atOrAfter: 9)?.line == 1)
     }

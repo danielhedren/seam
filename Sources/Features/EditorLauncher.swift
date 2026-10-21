@@ -32,16 +32,22 @@ struct LaunchFailed: Error, Equatable {
     var message: String
 }
 
-/// Runs through the user's login shell: an app started from Finder doesn't get the shell's PATH,
-/// where editor command-line tools usually live.
+/// Runs through the user's own shell, as a login and interactive one: an app started from Finder
+/// doesn't get the shell's PATH, where editor command-line tools usually live, and many people set
+/// PATH in `.zshrc`.
 struct ShellLauncher: CommandLauncher {
+    var shell = URL(fileURLWithPath: ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh")
+
     func run(_ commandLine: String) async throws {
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        process.arguments = ["-lc", commandLine]
+        process.executableURL = shell
+        process.arguments = ["-l", "-i", "-c", commandLine]
         let errors = Pipe()
         process.standardError = errors
         process.standardOutput = FileHandle.nullDevice
+        process.standardInput = FileHandle.nullDevice
+        // Read while it runs: a full pipe would block an editor that writes a lot to stderr.
+        let output = Task.detached { errors.fileHandleForReading.readDataToEndOfFile() }
         let status: Int32 = try await withCheckedThrowingContinuation { continuation in
             process.terminationHandler = { continuation.resume(returning: $0.terminationStatus) }
             do {
@@ -52,10 +58,11 @@ struct ShellLauncher: CommandLauncher {
             }
         }
         guard status == 0 else {
-            let output = errors.fileHandleForReading.readDataToEndOfFile()
-            throw LaunchFailed(
-                message: String(decoding: output, as: UTF8.self)
-                    .trimmingCharacters(in: .whitespacesAndNewlines))
+            // bash as a login shell says "logout" as it exits; that isn't the command's message.
+            var lines = String(decoding: await output.value, as: UTF8.self)
+                .trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: "\n")
+            if lines.last == "logout" { lines.removeLast() }
+            throw LaunchFailed(message: lines.joined(separator: "\n"))
         }
     }
 }

@@ -325,6 +325,12 @@ final class RepoSession {
         else { return }
         let command = command ?? services.settings.editor
         let path = review.worktree.path.appending(path: location.0).path
+        guard FileManager.default.fileExists(atPath: path) else {
+            review.report(
+                .editorFailed(String(localized: "\(location.0) no longer exists.", bundle: .module))
+            )
+            return
+        }
         let line = command.commandLine(path: path, line: location.1)
         let launcher = services.launcher
         Task {
