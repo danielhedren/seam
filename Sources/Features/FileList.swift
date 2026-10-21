@@ -40,7 +40,7 @@ struct FileList: View {
                 .focused(filterFocus)
                 .padding(.horizontal, 8)
                 .padding(.bottom, 6)
-            List(selection: selection(files)) {
+            List(selection: selection(files, rows)) {
                 ForEach(rows) { row in
                     FileRowView(row: row, files: files) {
                         toggle(row)
@@ -52,13 +52,15 @@ struct FileList: View {
     }
 
     /// The list follows the diff's scroll position; picking a row scrolls the diff to it.
-    private func selection(_ files: [ReviewFile]) -> Binding<String?> {
+    private func selection(_ files: [ReviewFile], _ rows: [FileListRow]) -> Binding<String?> {
         Binding(
             get: { review.currentFile },
             set: { id in
-                guard let id, files.contains(where: { $0.diff.path == id }) else { return }
-                review.currentFile = id
-                session.diff.scroll(toFile: id)
+                guard let row = rows.first(where: { $0.id == id }), case .file(let index) = row.kind
+                else { return }
+                let path = files[index].diff.path
+                review.currentFile = path
+                session.diff.scroll(toFile: path)
             })
     }
 

@@ -362,6 +362,13 @@ import Testing
         #expect(open.suffix(2).map(\.name) == ["src/Generated/b.cs", "package-lock.json"])
     }
 
+    @Test func aPathListedTwiceGetsDistinctRowIDs() {
+        let rows = FileTree.rows(["link", "link"], flat: true)
+        #expect(Set(rows.map(\.id)).count == 2)
+        #expect(rows.map(\.name) == ["link", "link"])
+        #expect(Set(FileTree.rows(["a/link", "a/link"]).map(\.id)).count == 3)
+    }
+
     @Test func flatListShowsFullPathsInReviewOrder() {
         #expect(FileTree.rows(paths, flat: true).map(\.name) == paths)
     }

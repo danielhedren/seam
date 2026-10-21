@@ -18,10 +18,10 @@ struct FileListRow: Equatable, Identifiable, Sendable {
 }
 
 enum FileTree {
-    /// Rows for `paths`, as a tree grouped by directory or as a flat list. A non-empty `filter`
-    /// keeps files whose path contains it, ignoring case, and shows their directories expanded.
     static let generatedID = "generated:"
 
+    /// Rows for `paths`, as a tree grouped by directory or as a flat list. A non-empty `filter`
+    /// keeps files whose path contains it, ignoring case, and shows their directories expanded.
     /// Generated files (indices into `paths`) go under their own heading after the rest, as a
     /// flat list.
     static func rows(
@@ -35,7 +35,7 @@ enum FileTree {
         var rows = treeRows(
             paths, matching.filter { !generated.contains($0) }, flat: flat, collapsed: collapsed,
             filter: filter)
-        guard !generatedMatches.isEmpty else { return rows }
+        guard !generatedMatches.isEmpty else { return uniqued(rows) }
         let isExpanded = showsGenerated || !filter.isEmpty
         rows.append(
             FileListRow(
@@ -46,7 +46,20 @@ enum FileTree {
                 FileListRow(id: paths[$0], name: paths[$0], depth: 1, kind: .file($0))
             }
         }
-        return rows
+        return uniqued(rows)
+    }
+
+    /// A path that changed between file and symlink is listed twice (deleted and added), and
+    /// SwiftUI needs distinct ids, so a repeat gets its file index appended.
+    private static func uniqued(_ rows: [FileListRow]) -> [FileListRow] {
+        var seen = Set<String>()
+        return rows.map { row in
+            var row = row
+            if !seen.insert(row.id).inserted, case .file(let index) = row.kind {
+                row.id += "\u{0}\(index)"
+            }
+            return row
+        }
     }
 
     private static func treeRows(
