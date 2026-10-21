@@ -136,6 +136,13 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
         #expect(layout.headerRow(ofFile: 2) == nil)
     }
 
+    @Test func visibleRowsGroupUnderTheirHunkEvenWhenItsHeaderIsAboveTheView() {
+        let groups = layout.hunkGroups(4..<11)
+        #expect(groups.map(\.header) == [1, nil, nil])
+        #expect(groups.map(\.rows) == [[4, 5, 6, 7, 8], [9], [10]])
+        #expect(layout.hunkGroups(0..<3).map(\.header) == [nil, 1])
+    }
+
     @Test func longestTextSetsTheColumnCount() {
         #expect(layout.maxColumns == "@@ -1,4 +1,5 @@ func main()".count)
     }

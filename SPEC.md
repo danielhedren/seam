@@ -615,8 +615,8 @@ side-by-side views drawn without highlighting, keyboard navigation, scopes, the 
 live reload.
 *Done when:* you can review feat/b end to end from the keyboard, and editing a file in that
 worktree updates the diff within 1 s with no jump in scroll position.
-*Left for later:* VoiceOver hunk groups and the XCUITest smoke flows (M4; UI tests need
-Automation Mode enabled on the machine). Wrapping and find moved to M3.
+*Left for later:* the XCUITest smoke flows, which need Automation Mode enabled on the machine.
+Wrapping and find moved to M3; VoiceOver hunk groups were done in M4.
 
 **M3 — Reading quality.** tree-sitter highlighting, word-level highlights, context expansion,
 generated-file collapse, binary and image entries, line wrapping, find in the diff.

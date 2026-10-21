@@ -10,16 +10,37 @@ extension DiffCanvasView {
         String(localized: "Diff", bundle: .module)
     }
 
+    /// Visible rows as elements, grouped by hunk so VoiceOver can move hunk by hunk.
     override func accessibilityChildren() -> [Any]? {
-        layout.rows(in: visibleRect.minY, visibleRect.maxY).map { index in
-            let rect = NSRect(
-                x: 0, y: layout.top(of: index), width: bounds.width,
-                height: layout.height(of: index))
-            let frame = window?.convertToScreen(convert(rect, to: nil)) ?? rect
-            return NSAccessibilityElement.element(
-                withRole: .staticText, frame: frame, label: accessibilityLabel(row: index),
-                parent: self)
+        let groups = layout.hunkGroups(layout.rows(in: visibleRect.minY, visibleRect.maxY))
+        return groups.flatMap { group -> [Any] in
+            guard let header = group.header else {
+                return group.rows.map { element(for: $0, parent: self) }
+            }
+            let rows = [header] + group.rows
+            let element = NSAccessibilityElement()
+            element.setAccessibilityRole(.group)
+            element.setAccessibilityLabel(accessibilityLabel(row: header))
+            element.setAccessibilityParent(self)
+            element.setAccessibilityFrame(screenFrame(rows.first ?? header, rows.last ?? header))
+            element.setAccessibilityChildren(
+                group.rows.map { self.element(for: $0, parent: element) })
+            return [element]
         }
+    }
+
+    private func element(for row: Int, parent: Any) -> Any {
+        NSAccessibilityElement.element(
+            withRole: .staticText, frame: screenFrame(row, row),
+            label: accessibilityLabel(row: row),
+            parent: parent)
+    }
+
+    private func screenFrame(_ first: Int, _ last: Int) -> NSRect {
+        let rect = NSRect(
+            x: 0, y: layout.top(of: first), width: bounds.width,
+            height: layout.top(of: last + 1) - layout.top(of: first))
+        return window?.convertToScreen(convert(rect, to: nil)) ?? rect
     }
 
     private func accessibilityLabel(row index: Int) -> String {
