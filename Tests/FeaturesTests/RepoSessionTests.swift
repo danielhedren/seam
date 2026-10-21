@@ -374,6 +374,29 @@ import Testing
         #expect(review.staleParent == nil)
     }
 
+    @Test func reopeningRestoresTheWorktreeFileAndScrollPosition() async throws {
+        let repo = try await FixtureRepo()
+        let feature = try await repo.worktree("feature", branch: "feature", from: "origin/main")
+        for name in ["a.txt", "b.txt"] { try repo.write(name, "\(name)\n", in: feature) }
+        let store = MemoryStore()
+        let session = RepoSession(directory: repo.main, services: services(repo.git, store: store))
+        await session.open()
+        session.select(feature.path)
+        await session.settled()
+        session.selected?.currentFile = "b.txt"
+        session.selected?.savedAnchor = ScrollAnchor(path: "b.txt", line: 1, offset: 4)
+        session.close()
+        await session.settled()
+
+        let reopened = RepoSession(directory: repo.main, services: services(repo.git, store: store))
+        await reopened.open()
+        await reopened.settled()
+
+        #expect(reopened.selected?.id == feature.path)
+        #expect(reopened.selected?.currentFile == "b.txt")
+        #expect(reopened.selected?.savedAnchor == ScrollAnchor(path: "b.txt", line: 1, offset: 4))
+    }
+
     @Test func overrideWhoseRefIsGoneShowsABannerWithAWayBack() async throws {
         let repo = try await FixtureRepo()
         let session = RepoSession(directory: repo.main, services: services(repo.git))

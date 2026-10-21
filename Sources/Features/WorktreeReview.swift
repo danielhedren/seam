@@ -105,12 +105,15 @@ final class WorktreeReview: Identifiable {
         if let mode = state?.mode.flatMap(DiffLayoutMode.init) { self.mode = mode }
         if let wraps = state?.wraps { self.wraps = wraps }
         if let viewed = state?.viewed { self.viewed = viewed }
+        savedAnchor = state?.anchor
+        currentFile = state?.currentFile
         baseOverride = override
     }
 
     var persistentState: RepoState.WorktreeState {
         RepoState.WorktreeState(
-            scope: scope.rawValue, mode: mode.rawValue, wraps: wraps, viewed: viewed)
+            scope: scope.rawValue, mode: mode.rawValue, wraps: wraps, viewed: viewed,
+            anchor: savedAnchor, currentFile: currentFile)
     }
 
     // MARK: - Intents

@@ -136,7 +136,7 @@ struct DiffLayout: Equatable, Sendable {
 }
 
 /// Where the reader is, in terms that survive a reload: a file and a line in it.
-public struct ScrollAnchor: Equatable, Sendable {
+public struct ScrollAnchor: Codable, Equatable, Sendable {
     public var path: String
     /// New-side line number at the top of the view, or the old side for a deleted line.
     public var line: Int?

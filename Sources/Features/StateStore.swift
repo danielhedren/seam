@@ -13,12 +13,17 @@ public struct RepoState: Codable, Equatable, Sendable {
         public var mode: String?
         public var wraps: Bool?
         public var viewed: ViewedMarks?
+        /// Where the reader was, restored when the worktree is shown again.
+        public var anchor: ScrollAnchor?
+        public var currentFile: String?
     }
 
     /// Base override per branch: the chosen parent ref (SPEC §5.3).
     public var baseOverrides: [String: String] = [:]
     /// Keyed by worktree path.
     public var worktrees: [String: WorktreeState] = [:]
+    /// The worktree the window last showed, selected again on reopen.
+    public var selectedWorktree: String?
 
     public init() {}
 }

@@ -119,7 +119,8 @@ final class RepoSession {
             try await listWorktrees()
             guard !isClosed else { return }
             state = .open
-            select(worktree.path)
+            let last = repoState.selectedWorktree.flatMap { id in reviews.first { $0.id == id } }
+            select(last?.id ?? worktree.path)
             startMonitor()
             startBackgroundFetch()
             rowsTask = Task { [weak self] in await self?.refreshRows(skippingSelected: true) }
@@ -189,6 +190,8 @@ final class RepoSession {
         selected?.savedAnchor = diff.anchor
         selected?.cancelLoading()
         selectedID = id
+        repoState.selectedWorktree = id
+        persist()
         review.reloadDiff()
     }
 
@@ -447,6 +450,8 @@ final class RepoSession {
 
     /// Stops watching; the window is closing.
     func close() {
+        if let anchor = diff.anchor { selected?.savedAnchor = anchor }
+        persist()
         isClosed = true
         monitorTask?.cancel()
         monitorTask = nil
