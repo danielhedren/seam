@@ -98,3 +98,45 @@ import Testing
         #expect(first.text.hasPrefix("↑ 5"))
     }
 }
+
+@Suite struct LineSplittingTests {
+    @Test func crlfFilesSplitIntoTheirLinesKeepingTheCarriageReturn() {
+        #expect(DiffContent.lines("a\r\nb\r\n") == ["a\r", "b\r"])
+        #expect(DiffContent.lines("a\nb") == ["a", "b"])
+        #expect(DiffContent.lines("") == [])
+    }
+
+    @Test func aCRLFFileWithAHunkGetsGapsInsteadOfTrapping() {
+        var hunk = Hunk(oldStart: 5, oldCount: 1, newStart: 5, newCount: 1, section: "")
+        hunk.lines = [
+            DiffLine(kind: .removed, text: "five\r", oldNumber: 5, newNumber: nil),
+            DiffLine(kind: .added, text: "FIVE\r", oldNumber: nil, newNumber: 5),
+        ]
+        var file = FileDiff(oldPath: "a.cs", newPath: "a.cs", status: .modified)
+        file.hunks = [hunk]
+        let text =
+            (1...9).map { $0 == 5 ? "FIVE" : "line \($0)" }.joined(separator: "\r\n") + "\r\n"
+
+        let rows = DiffRowBuilder.rows(
+            for: ReviewDiff(scope: .all, files: [ReviewFile(diff: file)]), mode: .unified,
+            contents: ["a.cs": FileContents(new: text)])
+
+        let gaps = rows.compactMap { if case .gap(_, let gap) = $0 { gap.hidden } else { nil } }
+        #expect(gaps == [4, 4])
+    }
+
+    @Test func aFileShorterThanItsHunksGetsNoTrailingGap() {
+        var hunk = Hunk(oldStart: 1, oldCount: 3, newStart: 1, newCount: 3, section: "")
+        hunk.lines = (1...3).map { (number: Int) in
+            DiffLine(kind: .context, text: "\(number)", oldNumber: number, newNumber: number)
+        }
+        var file = FileDiff(oldPath: "a", newPath: "a", status: .modified)
+        file.hunks = [hunk]
+
+        let rows = DiffRowBuilder.rows(
+            for: ReviewDiff(scope: .all, files: [ReviewFile(diff: file)]), mode: .unified,
+            contents: ["a": FileContents(new: "1\n")])
+
+        #expect(!rows.contains { if case .gap = $0 { true } else { false } })
+    }
+}

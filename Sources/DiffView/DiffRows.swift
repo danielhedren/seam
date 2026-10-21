@@ -58,10 +58,14 @@ public struct DiffContent: Equatable, Sendable {
     /// Lines revealed per click on a gap's arrow.
     public static let expandStep = 20
 
-    /// A file's text split into lines, without the empty piece after a final newline.
+    /// A file's text split into lines, without the empty piece after a final newline. Splits on
+    /// the byte: `"\r\n"` is one Character, so a Character split would see a CRLF file as one
+    /// line. Each line keeps its `\r`, like the patch's lines do.
     static func lines(_ text: String) -> [Substring] {
-        var lines = text.split(separator: "\n", omittingEmptySubsequences: false)
-        if text.hasSuffix("\n") { lines.removeLast() }
+        guard !text.isEmpty else { return [] }
+        var lines = text.utf8.split(separator: UInt8(ascii: "\n"), omittingEmptySubsequences: false)
+            .map { Substring($0) }
+        if text.utf8.last == UInt8(ascii: "\n") { lines.removeLast() }
         return lines
     }
 }
@@ -189,8 +193,9 @@ enum DiffRowBuilder {
             var next = (old: 1, new: 1)
             func gap(_ number: Int, until end: Int) {
                 guard let lines else { return }
+                // max: a file that changed on disk since the diff can be shorter than its hunks.
                 rows += gapRows(
-                    file: index, gap: number, newRange: next.new..<end,
+                    file: index, gap: number, newRange: next.new..<max(end, next.new),
                     oldOffset: next.old - next.new, lines: lines,
                     expansion: fileExpansions[number] ?? GapExpansion(), mode: mode,
                     lookup: lookup, isFirst: number == 0,
