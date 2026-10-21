@@ -31,6 +31,15 @@ final class RepoSession {
     var diffHasFocus = false
     var fileListHasFocus = false
     var showsSwitcher = false
+    var showsPalette = false
+    /// Which of the three columns show; ⌘\ and ⌘⌥\ toggle the sidebars.
+    var columns = Columns.all
+
+    enum Columns {
+        case all
+        case filesAndDiff
+        case diffOnly
+    }
     var showsBasePicker = false
     /// Bumped by Edit › Filter Files; the window moves focus to the filter field.
     var filterFocusRequests = 0
@@ -64,7 +73,7 @@ final class RepoSession {
     /// The sheet and popover are separate windows, so the canvas keeps first responder under them;
     /// their text fields must still get every key.
     var reviewHasFocus: Bool {
-        (diffHasFocus || fileListHasFocus) && !showsSwitcher && !showsBasePicker
+        (diffHasFocus || fileListHasFocus) && !showsSwitcher && !showsBasePicker && !showsPalette
     }
 
     var selected: WorktreeReview? {

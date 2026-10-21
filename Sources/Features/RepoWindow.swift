@@ -4,7 +4,6 @@ import SwiftUI
 
 extension FocusedValues {
     @Entry var repoSession: RepoSession?
-    @Entry var columnVisibility: Binding<NavigationSplitViewVisibility>?
 }
 
 /// The three-pane review window for one repo (SPEC §7.1, §9).
@@ -12,7 +11,6 @@ struct RepoWindow: View {
     @State private var session: RepoSession
     @Environment(OpenRequests.self) private var requests
     @Environment(\.undoManager) private var undoManager
-    @State private var columns = NavigationSplitViewVisibility.all
     @FocusState private var filterFocused: Bool
     @FocusState private var fileListFocused: Bool
 
@@ -32,11 +30,33 @@ struct RepoWindow: View {
             }
             .onDisappear { session.close() }
             .focusedSceneValue(\.repoSession, session)
-            .focusedSceneValue(\.columnVisibility, $columns)
             .onChange(of: session.filterFocusRequests) { filterFocused = true }
             .sheet(isPresented: Bindable(session).showsSwitcher) {
                 WorktreeSwitcher(session: session)
             }
+            .sheet(isPresented: Bindable(session).showsPalette) {
+                CommandPalette(session: session)
+            }
+    }
+
+    /// The split view also changes visibility itself, when the user drags a column closed.
+    private var columnVisibility: Binding<NavigationSplitViewVisibility> {
+        Binding(
+            get: {
+                switch session.columns {
+                case .all: .all
+                case .filesAndDiff: .doubleColumn
+                case .diffOnly: .detailOnly
+                }
+            },
+            set: { visibility in
+                session.columns =
+                    switch visibility {
+                    case .detailOnly: .diffOnly
+                    case .doubleColumn: .filesAndDiff
+                    default: .all
+                    }
+            })
     }
 
     @ViewBuilder private var content: some View {
@@ -50,7 +70,7 @@ struct RepoWindow: View {
         case .failed(let message):
             ContentUnavailableView(message, systemImage: "folder.badge.questionmark")
         case .open:
-            NavigationSplitView(columnVisibility: $columns) {
+            NavigationSplitView(columnVisibility: columnVisibility) {
                 WorktreeList(session: session)
                     .navigationSplitViewColumnWidth(min: 200, ideal: 260)
             } content: {
