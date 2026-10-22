@@ -44,8 +44,6 @@ That repo has 20 worktrees, several outside the repo directory (`~/Code/.worktre
 
 - Not a git client: no staging, committing, rebasing, pushing, or conflict resolution.
 - No editing files in the diff.
-- Agent notes, comments, or a session API (hunk's agent integration). Not needed now. §13 keeps
-  the design from ruling it out later.
 - Hosted PRs (GitHub/Azure DevOps review threads).
 - Non-git VCS. Submodule contents (a submodule shows as one changed pointer).
 - Distribution, App Store, sandboxing, auto-update. Personal tool, built locally.
@@ -342,6 +340,9 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 | `4` | latest commit only |
 | `x` | collapse / expand the current file |
 | `o` | open the current line in the editor |
+| `c` | comment on the selected lines (§7.7) |
+| `t` | open the thread on the current line |
+| `⌥⌘0` | thread panel |
 | `b` | base picker |
 | `r` | force reload |
 | `⌘\` | toggle sidebars |
@@ -359,6 +360,39 @@ worktree.
 The command runs with `/bin/sh` and the PATH of the user's login, interactive shell, read once.
 When a preset's command isn't on that PATH, Seam uses the command-line tool inside the installed
 app instead.
+
+### 7.7 Review threads
+
+Comments on lines of a worktree's diff, in threads, as on a GitHub pull request: the reader
+reviews an agent's work and the agent answers, or an agent reviews and the reader answers.
+
+- **A thread** is anchored to a file, a side (new or old) and a line range, and holds comments in
+  order. Each comment has an author (`you`, or the agent name a `seam` call gives), a Markdown
+  body and a time. A thread is open or resolved. Only its author resolves it: the reader resolves
+  threads they opened, an agent resolves threads it opened. Anyone may reply, and a reply to a
+  resolved thread reopens it.
+- **Creating:** select lines in the diff (or put the cursor on one) and press `c`, or Review ›
+  Comment, or the diff's context menu. A composer opens in the thread panel; ⌘↩ posts.
+- **In the diff:** a commented range gets a marker in the gutter and a compact row after its last
+  line: author, the first line of the latest comment, the number of comments, and open or
+  resolved. Clicking it, or `t` on that line, opens the thread in the panel. Resolved threads
+  show only the gutter marker unless Review › Show Resolved Threads is on.
+- **The thread panel** (an inspector on the right, `⌥⌘0`) lists the worktree's threads by file,
+  open ones first, with the selected thread's conversation, a reply box, and Resolve or Reopen
+  for its author. Agent replies appear live.
+- **Following edits:** a thread keeps the text of its lines. When the file changes, it moves to
+  the nearest place where those lines still appear; when they're gone it is outdated, shown in
+  the panel with its original lines, not in the diff. Moving and outdating are decided per diff
+  load, never written back.
+- **Handing threads to an agent:** Review › Copy Prompt for Agent puts on the clipboard a short
+  prompt that tells the agent to run `seam threads`, address each open thread, and answer with
+  `seam reply`, and not to resolve threads it didn't open. Seam doesn't type into terminals.
+- **Storage:** outside the repository, which Seam never writes to: one JSON file per repo under
+  `~/Library/Application Support/Seam/threads/`, keyed by the repo's common git directory, with
+  threads grouped by worktree path. The app and the `seam` command both read and write it:
+  every change is a read-modify-write under an exclusive `flock` on a lock file beside it,
+  written to a temporary file and renamed into place. The app watches the directory and reloads
+  on change. The file carries a format version; an unknown version is refused, not overwritten.
 
 ## 8. Technical design
 
@@ -659,11 +693,25 @@ The app bundle includes a `seam` command, installed via a menu item that symlink
 seam                    # open the repo containing $PWD, select the worktree you're in
 seam <path>             # same, for <path>
 seam --base <ref>       # set the base override for this worktree, then open
+
+seam threads [--all] [--json]          # this worktree's open threads (--all: resolved too)
+seam thread <id> [--json]              # one thread with its comments
+seam reply <id> <text>                 # answer a thread; reopens a resolved one
+seam comment <file>:<line>[-<end>] [--old] <text>   # open a thread as the agent
+seam resolve <id> | seam reopen <id>   # only for threads this author opened
 ```
 
-It talks to the running app through a URL scheme (`seam://open?path=…&base=…`), launching the app
-if needed. The command is a shell script in the app's resources (`App/Seam/seam`); it resolves the
-path, percent-encodes it and opens the URL with the app the script belongs to: it follows its
+Thread commands act on the worktree containing `$PWD` (or `-C <path>`) and sign as
+`--as <name>`, else `$SEAM_AGENT`, else `agent`. They work without the app running; a running app
+picks the change up from the file. Text output is for agents to read: each thread with its id,
+file, lines, status, the quoted lines and the comments; `--json` gives the same structurally.
+Exit status is non-zero, with a message on stderr, for an unknown id or a resolve the author
+isn't allowed.
+
+Opening talks to the running app through a URL scheme (`seam://open?path=…&base=…`), launching
+the app if needed. The command is a Swift executable (swift-argument-parser) in the app's
+resources, built from the `seam-cli` target on SeamCore; it resolves the path, percent-encodes it
+and opens the URL with the app it belongs to: it follows its
 own symlinks, and from `X.app/Contents/Resources/seam` runs `open -a X.app <url>`, because a
 build-directory copy and an installed copy can coexist and `open -b` would pick whichever
 LaunchServices prefers. Anywhere else it falls back to `open -b com.danielhedren.seam <url>`. The
@@ -683,9 +731,6 @@ updates the command; it refuses to replace a file there that isn't its symlink.
 - `make dist` writes `.build/dist/Seam-<version>-<build>.zip` (`ditto -c -k --keepParent`) to
   copy to another Mac. The app is ad-hoc signed and not notarized, so on another Mac Gatekeeper
   blocks the first launch: right-click › Open, or `xattr -d com.apple.quarantine Seam.app`.
-
-Later, not in v1: if agent notes are ever wanted, the same entry point can grow a local socket
-API, as hunk has. Nothing in v1 depends on it.
 
 ## 14. Milestones
 
@@ -712,8 +757,15 @@ generated-file collapse, binary and image entries, line wrapping, find in the di
 **M4 — Review state and polish.** Viewed state with invalidation, stale-parent banner, open in
 editor, `seam` CLI, settings, command palette.
 
+**M5 — Review threads (§7.7).** Thread model, anchoring and the shared store in SeamCore; the
+`seam` command rewritten in Swift with the thread commands; threads in the diff and the thread
+panel; Copy Prompt for Agent.
+*Done when:* a reader can comment on a range, an agent in that worktree can list and answer it
+with `seam`, the answer appears in the open app without a reload, and only the opener can
+resolve.
+
 **Later:** `gh` integration (PR status for the stale-parent check, PR number in
-the worktree row), agent notes API.
+the worktree row).
 
 ## 15. Risks
 
