@@ -47,7 +47,8 @@ enum DefinitionScopes {
         }
     }
 
-    /// Definitions in document order, outer before inner.
+    /// Definitions in document order, outer before inner. A cursor rather than recursion:
+    /// generated code nests deep enough to overflow a thread's stack.
     static func scopes(in tree: MutableTree, text: String, language: SyntaxLanguage)
         -> [SyntaxScope]
     {
@@ -55,9 +56,10 @@ enum DefinitionScopes {
         guard !rules.isEmpty, let root = tree.rootNode else { return [] }
         let source = text as NSString
         var scopes: [SyntaxScope] = []
-        func visit(_ node: Node) {
-            if let type = node.nodeType, let rule = rules[type],
-                let name = name(of: node, rule, source)
+        let cursor = root.treeCursor
+        while true {
+            if let node = cursor.currentNode, node.isNamed, let type = node.nodeType,
+                let rule = rules[type], let name = name(of: node, rule, source)
             {
                 let range = node.pointRange
                 let first = Int(range.lowerBound.row)
@@ -65,12 +67,11 @@ enum DefinitionScopes {
                     SyntaxScope(
                         lines: first...max(first, Int(range.upperBound.row)), name: name))
             }
-            for index in 0..<node.namedChildCount {
-                if let child = node.namedChild(at: index) { visit(child) }
+            if cursor.goToFirstChild() { continue }
+            while !cursor.gotoNextSibling() {
+                guard cursor.gotoParent() else { return scopes }
             }
         }
-        visit(root)
-        return scopes
     }
 
     private static func name(of node: Node, _ rule: Name, _ source: NSString) -> String? {

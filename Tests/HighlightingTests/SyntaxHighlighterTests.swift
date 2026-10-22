@@ -162,4 +162,15 @@ import Testing
                 ]
             ])
     }
+
+    /// Generated and minified files nest expressions thousands deep.
+    @Test func deeplyNestedCodeStillGetsItsDefinitions() async throws {
+        let depth = 20_000
+        let text =
+            "const x = " + String(repeating: "(", count: depth) + "1"
+            + String(repeating: ")", count: depth) + ";\nfunction later() {\n  return 1;\n}\n"
+        let scopes = try #require(
+            await SyntaxHighlighter().highlight(text, as: .typescript)?.scopes)
+        #expect(SyntaxScope.names(around: 2, in: scopes) == ["later"])
+    }
 }
