@@ -32,9 +32,9 @@ struct RepoWindow: View {
                 let request = requests.take(session.directory.path)
                 Task { await handle(request) }
             }
-            .onAppear { requests.openWindows.insert(session.directory.path) }
+            .onAppear { requests.windowOpened(session.directory.path) }
             .onDisappear {
-                requests.openWindows.remove(session.directory.path)
+                requests.windowClosed(session.directory.path)
                 session.close()
             }
             .focusedSceneValue(\.repoSession, session)

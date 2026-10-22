@@ -80,8 +80,11 @@ let package = Package(
             exclude: ["__Snapshots__"], swiftSettings: strict),
         .testTarget(
             name: "FeaturesTests",
-            dependencies: ["Features", "DiffView", "SeamCore", "GitKit", "TestSupport"],
-            swiftSettings: strict),
+            dependencies: [
+                "Features", "DiffView", "SeamCore", "GitKit", "TestSupport",
+                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
+            ],
+            exclude: ["__Snapshots__"], swiftSettings: strict),
         .testTarget(
             name: "HighlightingTests", dependencies: ["Highlighting"], swiftSettings: strict),
         .testTarget(

@@ -233,6 +233,10 @@ keeps the position.
   toolbar doesn't repeat it. File › New Tab (⌘T) opens the welcome screen as a tab of the front
   window, and New Window (⌘N) as its own window. The welcome screen has a toolbar too, so the tab
   bar sits in the same place in every tab.
+- The open repos are the workspace. Quitting and relaunching reopens them, the first in the first
+  window and the rest as its tabs, in the order they were opened, with the window's last size and
+  position. Closing a repo's window takes it out of the workspace; quitting doesn't. A launch path
+  (`seam`, `make run`) opens among them.
 - Dark and light themes, following the system.
 
 ### 7.2 Worktree list

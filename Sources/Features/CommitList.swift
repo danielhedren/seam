@@ -106,8 +106,7 @@ private struct CommitRow: View {
                 Text(commit.subject).lineLimit(1).truncationMode(.tail)
                 HStack(spacing: 6) {
                     Text(commit.shortID).monospaced()
-                    Text(
-                        commit.date, format: .relative(presentation: .numeric, unitsStyle: .narrow))
+                    AgeText(date: commit.date)
                 }
                 .font(.caption).foregroundStyle(.secondary)
             }

@@ -32,10 +32,7 @@ struct WorktreeRow: View {
                 Text(review.worktree.name).bold().lineLimit(1).truncationMode(.middle)
                 Spacer(minLength: 4)
                 if let date = review.lastChange {
-                    TimelineView(.periodic(from: .now, by: 60)) { _ in
-                        Text(date, format: .relative(presentation: .numeric, unitsStyle: .narrow))
-                    }
-                    .font(.caption).foregroundStyle(.secondary)
+                    AgeText(date: date).font(.caption).foregroundStyle(.secondary)
                 }
             }
             if let branch = review.worktree.branch, branch != review.worktree.name {
