@@ -154,12 +154,7 @@ public struct SeamScenes: Scene {
     }
 
     private func choose() {
-        let panel = NSOpenPanel()
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.prompt = String(localized: "Open", bundle: .module)
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        open(url)
+        if let url = WelcomeView.chooseFolder() { open(url) }
     }
 
     /// From the menu bar, which has no window of its own to reuse.
@@ -348,10 +343,15 @@ struct WelcomeView: View {
     }
 
     private func choose() {
+        if let url = Self.chooseFolder() { start(url) }
+    }
+
+    static func chooseFolder() -> URL? {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
-        if panel.runModal() == .OK, let url = panel.url { start(url) }
+        panel.prompt = String(localized: "Open", bundle: .module)
+        return panel.runModal() == .OK ? panel.url : nil
     }
 
     private func start(_ url: URL) {
