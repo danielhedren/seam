@@ -643,11 +643,14 @@ seam --base <ref>       # set the base override for this worktree, then open
 
 It talks to the running app through a URL scheme (`seam://open?path=…&base=…`), launching the app
 if needed. The command is a shell script in the app's resources (`App/Seam/seam`); it resolves the
-path, percent-encodes it and runs `open -b com.danielhedren.seam <url>`. The URL reaches the key
-window: a window showing that repo selects the worktree (and applies `--base` as its override),
-the welcome window becomes the repo's window, and any other window brings up the repo's own.
-File › Install Command Line Tool… symlinks the script, so updating the app updates the command;
-it refuses to replace a file there that isn't its symlink.
+path, percent-encodes it and opens the URL with the app the script belongs to: it follows its
+own symlinks, and from `X.app/Contents/Resources/seam` runs `open -a X.app <url>`, because a
+build-directory copy and an installed copy can coexist and `open -b` would pick whichever
+LaunchServices prefers. Anywhere else it falls back to `open -b com.danielhedren.seam <url>`. The
+URL reaches the key window: a window showing that repo selects the worktree (and applies `--base`
+as its override), the welcome window becomes the repo's window, and any other window brings up
+the repo's own. File › Install Command Line Tool… symlinks the script, so updating the app
+updates the command; it refuses to replace a file there that isn't its symlink.
 
 Later, not in v1: if agent notes are ever wanted, the same entry point can grow a local socket
 API, as hunk has. Nothing in v1 depends on it.

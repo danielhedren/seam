@@ -29,4 +29,10 @@ path="$(cd "$path" && pwd -P)"
 encode() { printf '%s' "$1" | perl -pe 's/([^A-Za-z0-9\/._~-])/sprintf("%%%02X", ord($1))/ge'; }
 url="seam://open?path=$(encode "$path")"
 [ -z "$base" ] || url="$url&base=$(encode "$base")"
+# Open the copy this script belongs to: a build-dir app and an installed one can coexist, and
+# open -b would pick whichever LaunchServices prefers.
+self="$(realpath "$0" 2>/dev/null || true)"
+case "$self" in
+    *.app/Contents/Resources/seam) exec open -a "${self%/Contents/Resources/seam}" "$url" ;;
+esac
 exec open -b com.danielhedren.seam "$url"
