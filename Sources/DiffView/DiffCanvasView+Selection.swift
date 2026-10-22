@@ -8,12 +8,7 @@ extension DiffCanvasView {
         guard let row = layout.row(at: point.y) else { return nil }
         let side: DiffSide =
             mode == .unified ? .unified : point.x < geometry.columnWidth ? .left : .right
-        let textX =
-            switch side {
-            case .unified: geometry.unifiedTextX
-            case .left: geometry.splitTextOffset
-            case .right: geometry.columnWidth + geometry.splitTextOffset
-            }
+        let textX = geometry.textX(for: side)
         let length = layout.text(of: row, side: side)?.count ?? 0
         var column = Int(((point.x - textX) / layout.metrics.characterWidth).rounded())
         if let wrap = layout.wrapColumns {

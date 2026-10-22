@@ -45,6 +45,15 @@ struct Geometry {
         }
     }
 
+    /// Where a side's text starts.
+    func textX(for side: DiffSide) -> Double {
+        switch side {
+        case .unified: unifiedTextX
+        case .left: splitTextOffset
+        case .right: columnWidth + splitTextOffset
+        }
+    }
+
     /// At least 20 columns, so a narrow window still wraps into readable lines.
     private static func columns(_ width: Double, _ character: Double) -> Int {
         max(20, Int(width / character))

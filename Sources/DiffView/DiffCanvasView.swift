@@ -210,15 +210,10 @@ final class DiffCanvasView: NSView {
             // A tint of its own, so a thread never reads as a hunk header or a gap.
             context.setFillColor(NSColor.systemYellow.withAlphaComponent(0.14).cgColor)
             context.fill(rect)
-            let x =
-                switch (mode, marker.side) {
-                case (.unified, _): geometry.unifiedTextX
-                case (.split, .old): geometry.splitTextOffset
-                case (.split, .new): geometry.columnWidth + geometry.splitTextOffset
-                }
+            let side: DiffSide = mode == .unified ? .unified : marker.side == .old ? .left : .right
             drawText(
-                marker.text, key: LineKey(row: index, side: .unified), x: x,
-                rowTop: rect.minY,
+                marker.text, key: LineKey(row: index, side: .unified),
+                x: geometry.textX(for: side), rowTop: rect.minY,
                 color: marker.isResolved ? palette.gutterText : palette.text, context: context)
         case .gap(_, let gap):
             fill(rect, palette.hunkBackground, context)
@@ -227,21 +222,14 @@ final class DiffCanvasView: NSView {
                 x: geometry.unifiedTextX, rowTop: rect.minY, color: palette.hunkText,
                 context: context)
         case .line(_, let line):
-            let column = Column(
-                x: 0, width: rect.width, numbers: [line.old, line.new],
-                textX: geometry.unifiedTextX)
-            drawSide(
-                kind: line.kind, text: line.text, noNewline: line.noNewline,
-                highlights: line.highlights, syntax: line.syntax, column: column, row: index,
-                side: .unified,
-                rowTop: rect.minY, rowHeight: rect.height, palette: palette, context: context)
+            draw(
+                LineCell(line), side: .unified, row: index, in: rect, palette: palette,
+                context: context)
         case .split(_, let left, let right):
             for (line, side) in [(left, DiffSide.left), (right, DiffSide.right)] {
-                let x = side == .left ? 0 : geometry.columnWidth
-                let column = Column(
-                    x: x, width: geometry.columnWidth, numbers: [line?.number],
-                    textX: x + geometry.splitTextOffset)
-                let bounds = NSRect(x: x, y: rect.minY, width: column.width, height: rect.height)
+                let bounds = NSRect(
+                    x: side == .left ? 0 : geometry.columnWidth, y: rect.minY,
+                    width: geometry.columnWidth, height: rect.height)
                 guard let line else {
                     fill(bounds, palette.emptySide, context)
                     continue
@@ -249,11 +237,9 @@ final class DiffCanvasView: NSView {
                 // Long lines are clipped at the column edge rather than spilling into the other.
                 context.saveGState()
                 context.clip(to: bounds)
-                drawSide(
-                    kind: line.kind, text: line.text, noNewline: line.noNewlineAtEnd,
-                    highlights: line.highlights, syntax: line.syntax, column: column, row: index,
-                    side: side,
-                    rowTop: rect.minY, rowHeight: rect.height, palette: palette, context: context)
+                draw(
+                    LineCell(line), side: side, row: index, in: bounds, palette: palette,
+                    context: context)
                 context.restoreGState()
             }
             context.setFillColor(palette.separator.nsColor.cgColor)
@@ -296,63 +282,59 @@ final class DiffCanvasView: NSView {
         }
     }
 
-    private struct Column {
-        var x: Double
-        var width: Double
-        var numbers: [Int?]
-        var textX: Double
-    }
-
-    private func drawSide(
-        kind: DiffLine.Kind, text: String, noNewline: Bool, highlights: [Range<Int>],
-        syntax: [SyntaxSpan],
-        column: Column, row: Int,
-        side: DiffSide, rowTop: Double, rowHeight: Double, palette: DiffPalette, context: CGContext
+    /// One side's line in `bounds`: the whole row in unified mode, its column in split mode.
+    private func draw(
+        _ cell: LineCell, side: DiffSide, row: Int, in bounds: NSRect, palette: DiffPalette,
+        context: CGContext
     ) {
-        let height = rowHeight
+        let (text, syntax) = (cell.text, cell.syntax)
+        let rowTop = bounds.minY
+        let textX = geometry.textX(for: side)
         let lineHeight = layout.metrics.lineHeight
         let wrap = layout.wrapColumns
         let width = layout.metrics.characterWidth
         func rects(_ range: Range<Int>) -> [NSRect] {
             DiffLayout.segments(range, wrapColumns: wrap).map { segment in
                 NSRect(
-                    x: column.textX + Double(segment.columns.lowerBound) * width,
+                    x: textX + Double(segment.columns.lowerBound) * width,
                     y: rowTop + Double(segment.line) * lineHeight,
                     width: Double(segment.columns.count) * width, height: lineHeight)
             }
         }
-        let gutterWidth = geometry.numberWidth * Double(column.numbers.count)
-        let (background, gutter, marker, symbol): (RGB?, RGB?, RGB, String) =
-            switch kind {
-            case .added: (palette.addedBackground, palette.addedGutter, palette.addedMarker, "+")
+        let gutterWidth = geometry.numberWidth * Double(cell.numbers.count)
+        let (background, gutter, word, marker, symbol): (RGB?, RGB?, RGB?, RGB, String) =
+            switch cell.kind {
+            case .added:
+                (
+                    palette.addedBackground, palette.addedGutter, palette.addedWord,
+                    palette.addedMarker, "+"
+                )
             case .removed:
-                (palette.removedBackground, palette.removedGutter, palette.removedMarker, "−")
-            case .context: (nil, nil, palette.gutterText, " ")
+                (
+                    palette.removedBackground, palette.removedGutter, palette.removedWord,
+                    palette.removedMarker, "−"
+                )
+            case .context: (nil, nil, nil, palette.gutterText, " ")
             }
-        if let background {
-            fill(
-                NSRect(x: column.x, y: rowTop, width: column.width, height: height), background,
-                context)
-        }
+        if let background { fill(bounds, background, context) }
         if let gutter {
             fill(
-                NSRect(x: column.x, y: rowTop, width: gutterWidth, height: height), gutter, context)
+                NSRect(x: bounds.minX, y: rowTop, width: gutterWidth, height: bounds.height),
+                gutter, context)
         }
-        for (offset, number) in column.numbers.enumerated() {
+        for (offset, number) in cell.numbers.enumerated() {
             guard let number else { continue }
             let label = String(number)
-            let right = column.x + geometry.numberWidth * Double(offset + 1) - geometry.padding
+            let right = bounds.minX + geometry.numberWidth * Double(offset + 1) - geometry.padding
             drawText(
                 label, key: nil, x: right - Double(label.count) * layout.metrics.characterWidth,
                 rowTop: rowTop, color: palette.gutterText, context: context)
         }
         drawText(
-            symbol, key: nil, x: column.x + gutterWidth + geometry.padding / 2, rowTop: rowTop,
+            symbol, key: nil, x: bounds.minX + gutterWidth + geometry.padding / 2, rowTop: rowTop,
             color: marker, context: context)
-        if let word = kind == .added
-            ? palette.addedWord : kind == .removed ? palette.removedWord : nil
-        {
-            for rect in highlights.flatMap(rects) { fill(rect, word, context) }
+        if let word {
+            for rect in cell.highlights.flatMap(rects) { fill(rect, word, context) }
         }
         if let selection, selection.side == side,
             let range = selection.columns(inRow: row, length: text.count + 1), !range.isEmpty
@@ -384,12 +366,12 @@ final class DiffCanvasView: NSView {
                     return SyntaxSpan(range: (lower - start)..<(upper - start), token: span.token)
                 } : syntax
             drawText(
-                chunk, key: LineKey(row: row, side: side, chunk: piece.line), x: column.textX,
+                chunk, key: LineKey(row: row, side: side, chunk: piece.line), x: textX,
                 rowTop: rowTop + Double(piece.line) * lineHeight, color: palette.text,
                 syntax: spans, palette: palette, context: context)
         }
-        if noNewline, let last = pieces.last {
-            let x = column.textX + Double(last.columns.upperBound + 1) * width
+        if cell.noNewline, let last = pieces.last {
+            let x = textX + Double(last.columns.upperBound + 1) * width
             drawText(
                 String(localized: "⊘ no newline at end of file", bundle: .module), key: nil, x: x,
                 rowTop: rowTop + Double(last.line) * lineHeight, color: palette.gutterText,
@@ -472,6 +454,27 @@ final class DiffCanvasView: NSView {
     func appearanceOptionsChanged() {
         lineCache.removeAll(keepingCapacity: true)
         needsDisplay = true
+    }
+}
+
+/// What drawing needs from a unified line or one side of a split row.
+private struct LineCell {
+    var kind: DiffLine.Kind
+    var text: String
+    var noNewline: Bool
+    var highlights: [Range<Int>]
+    var syntax: [SyntaxSpan]
+    /// Gutter numbers, left to right; nil leaves a slot blank.
+    var numbers: [Int?]
+
+    init(_ line: UnifiedLine) {
+        (kind, text, noNewline) = (line.kind, line.text, line.noNewline)
+        (highlights, syntax, numbers) = (line.highlights, line.syntax, [line.old, line.new])
+    }
+
+    init(_ line: SideLine) {
+        (kind, text, noNewline) = (line.kind, line.text, line.noNewlineAtEnd)
+        (highlights, syntax, numbers) = (line.highlights, line.syntax, [line.number])
     }
 }
 
