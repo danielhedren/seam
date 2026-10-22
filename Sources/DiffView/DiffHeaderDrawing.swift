@@ -93,13 +93,16 @@ enum DiffHeaderDrawing {
 
     static func draw(
         _ file: ReviewFile, collapsed: Bool, viewed: ViewedMarks.Status, in rect: NSRect,
-        font: NSFont, palette: DiffPalette, context: CGContext
+        font: NSFont, palette: DiffPalette, context: CGContext, topBorder: Bool = true
     ) {
         context.setFillColor(palette.headerBackground.nsColor.cgColor)
         context.fill(rect)
         context.setFillColor(palette.separator.nsColor.cgColor)
         context.fill(NSRect(x: rect.minX, y: rect.maxY - 1, width: rect.width, height: 1))
-        context.fill(NSRect(x: rect.minX, y: rect.minY, width: rect.width, height: 1))
+        // A header right below another, a collapsed file's, shares that one's bottom border.
+        if topBorder {
+            context.fill(NSRect(x: rect.minX, y: rect.minY, width: rect.width, height: 1))
+        }
         let layout = layout(file, viewed: viewed, in: rect, font: font, palette: palette)
         drawDisclosure(in: layout.disclosure, collapsed: collapsed, palette: palette, context)
         drawCheckbox(in: layout.checkbox, viewed, palette: palette, context)

@@ -184,6 +184,31 @@ import Testing
         #expect(kind(at: NSPoint(x: textX + character, y: line)) == .text)
     }
 
+    /// Collapsed files stack their headers; each border between them is one line, not two.
+    @Test func stackedHeadersShareOneBorder() throws {
+        let view = DiffScrollView()
+        view.appearance = NSAppearance(named: .aqua)
+        view.increaseContrastOverride = false
+        view.frame = NSRect(x: 0, y: 0, width: 400, height: 200)
+        var content = DiffContent(review: review(["x"]), collapsed: ["a.txt", "b.txt"])
+        var second = content.review.files[0]
+        second.diff.newPath = "b.txt"
+        content.review.files.append(second)
+        view.show(content, position: .top)
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        let rep = try #require(canvas.bitmapImageRepForCachingDisplay(in: canvas.bounds))
+        canvas.cacheDisplay(in: canvas.bounds, to: rep)
+        let scale = Double(rep.pixelsWide) / canvas.bounds.width
+        let boundary = canvas.layout.top(of: 1)
+        let separator = DiffPalette.light.separator
+        let lines = (Int((boundary - 3) * scale)..<Int((boundary + 3) * scale)).filter { y in
+            guard let color = rep.colorAt(x: Int(200 * scale), y: y)?.usingColorSpace(.sRGB)
+            else { return false }
+            return abs(color.redComponent - separator.red) < 0.02
+        }
+        #expect(Double(lines.count) / scale == 1)
+    }
+
     private func click(_ view: NSView, at point: NSPoint) throws {
         let window = try #require(view.window)
         let event = try #require(

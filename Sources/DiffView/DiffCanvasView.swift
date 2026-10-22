@@ -215,7 +215,8 @@ final class DiffCanvasView: NSView {
             DiffHeaderDrawing.draw(
                 review.files[file], collapsed: collapsed.contains(path),
                 viewed: viewed[path] ?? .unviewed, in: chromeRect(ofRow: index), font: font,
-                palette: palette, context: context)
+                palette: palette, context: context,
+                topBorder: index == 0 || !layout.rows[index - 1].isFileHeader)
         case .hunkHeader(_, _, .hidden): break
         case .hunkHeader(_, _, .separator): fill(rect, palette.hunkBackground, context)
         case .hunkHeader(_, _, .titled(let text)):
