@@ -42,25 +42,38 @@ enum DiffHeaderDrawing {
             x: rect.minX + 10, y: rect.midY - control / 2, width: control, height: control)
         var x = disclosure.maxX + 8
         var pieces: [(line: CTLine, color: RGB, x: Double)] = []
-        func add(_ text: String, _ color: RGB, _ textFont: NSFont, at position: Double) -> Double {
-            let line = TextLine.make(text, font: textFont)
-            pieces.append((line, color, position))
-            return CTLineGetTypographicBounds(line, nil, nil, nil)
-        }
-        x += add(title(file), palette.text, bold, at: x) + gap
+        func width(_ line: CTLine) -> Double { CTLineGetTypographicBounds(line, nil, nil, nil) }
         // Binary files and pure renames have no lines to count.
-        if file.diff.additions + file.diff.deletions > 0 {
-            x += add("+\(file.diff.additions)", palette.addedMarker, font, at: x) + gap
-            x += add("−\(file.diff.deletions)", palette.removedMarker, font, at: x) + gap
-        }
-
+        let counts =
+            file.diff.additions + file.diff.deletions > 0
+            ? [
+                (TextLine.make("+\(file.diff.additions)", font: font), palette.addedMarker),
+                (TextLine.make("−\(file.diff.deletions)", font: font), palette.removedMarker),
+            ] : []
         let label =
             viewed == .changedSinceViewed
             ? String(localized: "Changed since viewed", bundle: .module)
             : String(localized: "Viewed", bundle: .module)
         let labelLine = TextLine.make(label, font: font)
-        let labelWidth = CTLineGetTypographicBounds(labelLine, nil, nil, nil)
-        let viewedWidth = control + 6 + labelWidth
+        let viewedWidth = control + 6 + width(labelLine)
+
+        // A long path gives way in the middle, as Finder's does, so the counts and the
+        // checkbox stay in a narrow pane.
+        let countsWidth = counts.reduce(0) { $0 + width($1.0) + gap }
+        let room = rect.maxX - 14 - viewedWidth - gap - countsWidth - x
+        var titleLine = TextLine.make(title(file), font: bold)
+        if width(titleLine) > room,
+            let truncated = CTLineCreateTruncatedLine(
+                titleLine, max(room, 0), .middle, TextLine.make("…", font: bold))
+        {
+            titleLine = truncated
+        }
+        pieces.append((titleLine, palette.text, x))
+        x += width(titleLine) + gap
+        for (line, color) in counts {
+            pieces.append((line, color, x))
+            x += width(line) + gap
+        }
         // A long path pushes the checkbox along rather than under it.
         let viewedX = max(x, rect.maxX - 14 - viewedWidth)
         let checkbox = NSRect(

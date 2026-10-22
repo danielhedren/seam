@@ -307,7 +307,8 @@ switches and launches.
   changes every worktree, and it is remembered.
 - A sticky file header per file: a collapse chevron, status, path, `+/−` counts (left out when
   both are 0), and the viewed checkbox with its label at the right edge, so it sits in the same
-  place on every file. The chevron and checkbox are drawn at the text's height.
+  place on every file. The chevron and checkbox are drawn at the text's height. A path too long
+  for the pane is shortened in the middle, so the counts and checkbox stay in view.
 - Syntax highlighting (§8.4).
 - **Word-level highlights within changed lines:** pair removed and added lines inside a hunk by
   similarity, then highlight the changed tokens. Unpaired lines get no word highlights.

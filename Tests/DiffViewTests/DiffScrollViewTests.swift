@@ -95,6 +95,26 @@ import Testing
         #expect(toggled == ["viewed a.txt"])
     }
 
+    @Test func aLongPathLeavesTheCountsAndViewedCheckboxInANarrowHeader() {
+        let path = "src/very/long/path/that/keeps/going/and/going/Component.swift"
+        var diff = FileDiff(oldPath: path, newPath: path, status: .modified)
+        var hunk = Hunk(oldStart: 1, oldCount: 1, newStart: 1, newCount: 1, section: "")
+        hunk.lines = [
+            DiffLine(kind: .removed, text: "a", oldNumber: 1, newNumber: nil),
+            DiffLine(kind: .added, text: "b", oldNumber: nil, newNumber: 1),
+        ]
+        diff.hunks = [hunk]
+        let font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        let rect = NSRect(x: 0, y: 0, width: 360, height: 28)
+        let header = DiffHeaderDrawing.layout(
+            ReviewFile(diff: diff), viewed: .unviewed, in: rect, font: font, palette: .light)
+
+        #expect(header.viewedFrame.maxX <= rect.maxX)
+        let ends = header.pieces.map { $0.x + CTLineGetTypographicBounds($0.line, nil, nil, nil) }
+        #expect(ends.allSatisfy { $0 <= rect.maxX })
+        #expect(header.pieces.count == 4)
+    }
+
     @Test func aClickJustLeftOfAGapsControlsExpandsNothing() throws {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 600, height: 300), styleMask: [.titled],
