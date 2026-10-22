@@ -633,7 +633,8 @@ written down here.
 - Diff colours are defined in code (`DiffPalette`) with light, dark and high-contrast variants,
   not as asset catalog colours, because `swift build` doesn't compile asset catalogs. Text,
   markers and line numbers on every diff background must reach WCAG AA contrast (4.5:1), checked
-  by a unit test against those values.
+  by a unit test against those values. That includes the threads' amber (§7.7): the wash under a
+  comment target's gutter is lighter in dark mode, and its numbers take the text colour.
 - **Colour is never the only signal:** added and removed lines also carry a `+` or `−` gutter
   marker, and file status shows as a letter.
 - Monospaced font for code (default SF Mono), system font for all chrome.

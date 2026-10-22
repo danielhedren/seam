@@ -59,5 +59,6 @@ public struct DraftMarker: Equatable, Sendable {
 public enum ThreadColor {
     public static let accent = NSColor.systemYellow
     /// Behind a thread's row and the composer, light enough for text on either appearance.
-    public static let wash = accent.withAlphaComponent(0.14)
+    public static let wash = accent.withAlphaComponent(washAlpha)
+    static let washAlpha = 0.14
 }

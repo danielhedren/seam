@@ -53,6 +53,8 @@ struct DiffPalette: Equatable, Sendable {
     var syntax = Syntax.light
     var findMatch = RGB(0xFFF1A8)
     var findCurrent = RGB(0xFFD33D)
+    /// The threads' amber over the gutter of the lines a new thread goes on.
+    var targetAlpha = 0.35
 
     /// Token colours; operators, punctuation and variables keep the plain text colour.
     struct Syntax: Equatable, Sendable {
@@ -121,7 +123,7 @@ struct DiffPalette: Equatable, Sendable {
         addedMarker: RGB(0x56D364), removedMarker: RGB(0xFF7B72),
         hunkBackground: RGB(0x1C2B3D), hunkText: RGB(0xA8B1BB),
         headerBackground: RGB(0x262626), emptySide: RGB(0x242424), separator: RGB(0x3D3D3D),
-        syntax: .dark, findMatch: RGB(0x3A3005), findCurrent: RGB(0x544500))
+        syntax: .dark, findMatch: RGB(0x3A3005), findCurrent: RGB(0x544500), targetAlpha: 0.25)
 
     static let lightHighContrast = DiffPalette(
         background: RGB(0xFFFFFF), text: RGB(0x000000), gutterText: RGB(0x3B3B3B),
@@ -141,7 +143,8 @@ struct DiffPalette: Equatable, Sendable {
         addedMarker: RGB(0x7EF08E), removedMarker: RGB(0xFFA19B),
         hunkBackground: RGB(0x0F2A45), hunkText: RGB(0xE0E0E0),
         headerBackground: RGB(0x1A1A1A), emptySide: RGB(0x141414), separator: RGB(0x9A9A9A),
-        syntax: .darkHighContrast, findMatch: RGB(0x2E2600), findCurrent: RGB(0x4A3D00))
+        syntax: .darkHighContrast, findMatch: RGB(0x2E2600), findCurrent: RGB(0x4A3D00),
+        targetAlpha: 0.25)
 
     static let all: [(name: String, palette: DiffPalette)] = [
         ("light", .light), ("dark", .dark), ("light high contrast", .lightHighContrast),

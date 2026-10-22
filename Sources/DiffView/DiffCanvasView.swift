@@ -344,15 +344,19 @@ final class DiffCanvasView: NSView {
         }
     }
 
-    /// The gutter of a line a new thread goes on, washed in the threads' colour, with its bar.
+    /// The bar beside a line a new thread goes on; its gutter's wash is drawn with the line.
     private func drawTargetMark(_ side: ThreadAnchor.Side, in rect: NSRect, _ context: CGContext) {
-        let split = mode == .split
-        let x = split && side == .new ? geometry.columnWidth : 0
-        let gutter = geometry.numberWidth * (split ? 1 : 2)
-        context.setFillColor(ThreadColor.accent.withAlphaComponent(0.35).cgColor)
-        context.fill(NSRect(x: x, y: rect.minY, width: gutter, height: rect.height))
+        let x = mode == .split && side == .new ? geometry.columnWidth : 0
         context.setFillColor(ThreadColor.accent.cgColor)
         context.fill(NSRect(x: x, y: rect.minY, width: 3, height: rect.height))
+    }
+
+    private func isCommentTarget(row: Int, side: DiffSide) -> Bool {
+        switch (targetRows[row], side) {
+        case (nil, _): false
+        case (_, .unified), (.old?, .left), (.new?, .right): true
+        default: false
+        }
     }
 
     /// One side's line in `bounds`: the whole row in unified mode, its column in split mode.
@@ -390,10 +394,15 @@ final class DiffCanvasView: NSView {
             case .context: (nil, nil, nil, palette.gutterText, " ")
             }
         if let background { fill(bounds, background, context) }
-        if let gutter {
-            fill(
-                NSRect(x: bounds.minX, y: rowTop, width: gutterWidth, height: bounds.height),
-                gutter, context)
+        let gutterRect = NSRect(
+            x: bounds.minX, y: rowTop, width: gutterWidth, height: bounds.height)
+        if let gutter { fill(gutterRect, gutter, context) }
+        // The wash goes under the numbers, which take the text colour to stay legible on it.
+        let isTarget = isCommentTarget(row: row, side: side)
+        if isTarget {
+            context.setFillColor(
+                ThreadColor.accent.withAlphaComponent(palette.targetAlpha).cgColor)
+            context.fill(gutterRect)
         }
         for (offset, number) in cell.numbers.enumerated() {
             guard let number else { continue }
@@ -401,7 +410,8 @@ final class DiffCanvasView: NSView {
             let right = bounds.minX + geometry.numberWidth * Double(offset + 1) - geometry.padding
             drawText(
                 label, key: nil, x: right - Double(label.count) * layout.metrics.characterWidth,
-                rowTop: rowTop, color: palette.gutterText, context: context)
+                rowTop: rowTop, color: isTarget ? palette.text : palette.gutterText,
+                context: context)
         }
         drawText(
             symbol, key: nil, x: bounds.minX + gutterWidth + geometry.padding / 2, rowTop: rowTop,
