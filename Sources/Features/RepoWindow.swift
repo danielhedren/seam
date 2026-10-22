@@ -141,7 +141,7 @@ struct RepoWindow: View {
     }
 }
 
-/// Only view mode and reload; the diff gets the rest of the window (SPEC §9). Disabled rather
+/// View mode, reload and the thread panel; the diff gets the rest of the window (SPEC §9). Disabled rather
 /// than left out without a worktree, so the toolbar keeps its items.
 struct ReviewToolbar: ToolbarContent {
     let session: RepoSession
@@ -180,12 +180,11 @@ struct ReviewToolbar: ToolbarContent {
             .disabled(review == nil)
         }
         ToolbarItem {
-            Button {
-                session.showsThreadPanel.toggle()
-            } label: {
-                Label(
-                    String(localized: "Threads", bundle: .module), systemImage: "text.bubble")
+            // On while the panel shows, like Xcode's inspector buttons.
+            Toggle(isOn: Bindable(session).showsThreadPanel) {
+                Label(String(localized: "Threads", bundle: .module), systemImage: "text.bubble")
             }
+            .badge(review?.openThreadCount ?? 0)
             .help(
                 CommandCatalog.help(
                     session.showsThreadPanel

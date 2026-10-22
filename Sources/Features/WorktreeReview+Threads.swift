@@ -65,6 +65,11 @@ extension WorktreeReview {
         return placed
     }
 
+    /// The toolbar's badge: open threads, whether or not the diff shows them.
+    var openThreadCount: Int {
+        threads?.threads(in: id).count { !$0.isResolved } ?? 0
+    }
+
     /// What the diff draws: placed threads, without resolved ones unless they're asked for.
     var threadMarkers: [String: [ThreadMarker]] {
         let showsResolved = services.settings.showsResolvedThreads
