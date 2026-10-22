@@ -34,3 +34,22 @@ import Testing
         #expect(requests.openWindows.isEmpty)
     }
 }
+
+@Suite struct LaunchArgumentTests {
+    @Test(
+        arguments: [
+            (["Seam", "/repo"], "/repo"),
+            (["Seam", "-NSDocumentRevisionsDebugMode", "YES", "/repo"], "/repo"),
+            (["Seam", "-NSDocumentRevisionsDebugMode", "YES"], nil),
+            (
+                [
+                    "Seam", "-ApplePersistenceIgnoreState", "YES", "-NSQuitAlwaysKeepsWindows",
+                    "NO", "/r",
+                ], "/r"
+            ),
+            (["Seam"], nil),
+        ] as [([String], String?)])
+    func defaultsPairsAreNotTakenForAPath(arguments: [String], expected: String?) {
+        #expect(WelcomeView.launchPath(arguments) == expected)
+    }
+}

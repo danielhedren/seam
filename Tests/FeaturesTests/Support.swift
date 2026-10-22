@@ -1,8 +1,11 @@
+import AppKit
+import DiffView
 import Foundation
 import GitKit
 import SeamCore
 import Synchronization
 import TestSupport
+import Testing
 
 @testable import Features
 
@@ -178,4 +181,15 @@ final class FirstWatchWatcher: FileWatcher, Sendable {
         }
         return AsyncStream { _ in }
     }
+}
+
+/// A diff view showing the selected worktree's diff, wired to the session as the window does.
+@MainActor
+@discardableResult
+func showDiff(_ session: RepoSession) throws -> DiffScrollView {
+    let view = DiffScrollView()
+    view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+    session.diff.view = view
+    view.show(try #require(session.selected?.content), position: .top)
+    return view
 }

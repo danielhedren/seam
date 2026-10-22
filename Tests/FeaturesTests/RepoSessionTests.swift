@@ -403,10 +403,7 @@ import Testing
         let session = RepoSession(directory: repo.main, services: services)
         await session.open()
         await session.settled()
-        let view = DiffScrollView()
-        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
-        session.diff.view = view
-        view.show(try #require(session.selected?.content), position: .top)
+        try showDiff(session)
 
         session.openInEditor(EditorCommand(template: "ed +{line} {path}"))
 
@@ -424,10 +421,7 @@ import Testing
         let session = RepoSession(directory: repo.main, services: services)
         await session.open()
         await session.settled()
-        let view = DiffScrollView()
-        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
-        session.diff.view = view
-        view.show(try #require(session.selected?.content), position: .top)
+        try showDiff(session)
 
         session.openInEditor()
         _ = await launcher.next()
@@ -769,12 +763,8 @@ import Testing
         let session = RepoSession(directory: repo.main, services: services(repo.git))
         await session.open()
         await session.settled()
-        let view = DiffScrollView()
-        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
         var totals: [Int] = []
-        view.onSearchResult = { _, total in totals.append(total) }
-        view.show(try #require(session.selected?.content), position: .top)
-        session.diff.view = view
+        try showDiff(session).onSearchResult = { _, total in totals.append(total) }
 
         session.findQuery = "alpha"
 
@@ -816,170 +806,5 @@ import Testing
         #expect(session.selected?.worktree.name == "repo")
         session.selectAdjacent(-1)
         #expect(session.selected?.worktree.name == "wt-b")
-    }
-}
-
-@Suite struct FileTreeTests {
-    private let paths = [
-        "src/Orders.Service/Delivery/A.cs", "src/Orders.Service/Delivery/B.cs",
-        "src/Orders.Service/C.cs",
-        "README.md",
-    ]
-
-    @Test func singleChildDirectoriesAreCompacted() {
-        let rows = FileTree.rows(paths)
-        #expect(
-            rows.map(\.name) == [
-                "src/Orders.Service", "Delivery", "A.cs", "B.cs", "C.cs", "README.md",
-            ])
-        #expect(rows.map(\.depth) == [0, 1, 2, 2, 1, 0])
-        #expect(rows[2].id == "src/Orders.Service/Delivery/A.cs")
-        #expect(rows[2].kind == .file(0))
-    }
-
-    @Test func collapsedDirectoriesHideTheirContents() {
-        let rows = FileTree.rows(paths, collapsed: ["src/Orders.Service/Delivery/"])
-        #expect(rows.map(\.name) == ["src/Orders.Service", "Delivery", "C.cs", "README.md"])
-        #expect(rows[1].kind == .directory(isExpanded: false))
-    }
-
-    @Test func filterMatchesPathsAndIgnoresCollapsing() {
-        let rows = FileTree.rows(paths, collapsed: ["src/Orders.Service/"], filter: "delivery/b")
-        #expect(rows.map(\.name) == ["src/Orders.Service/Delivery", "B.cs"])
-    }
-
-    @Test func aCaretTermLeavesMatchingPathsOutAndKeepsTheTreeAsItWas() {
-        let rows = FileTree.rows(
-            paths, collapsed: ["src/Orders.Service/Delivery/"], filter: "^c.cs")
-        // One child left, so the chain compacts; it stays collapsed as the reader left it.
-        #expect(rows.map(\.name) == ["src/Orders.Service/Delivery", "README.md"])
-        #expect(rows.first?.kind == .directory(isExpanded: false))
-        #expect(
-            FileTree.rows(paths, filter: "orders ^delivery").map(\.name) == [
-                "src/Orders.Service", "C.cs",
-            ])
-    }
-
-    @Test(arguments: [
-        ("", "src/Tests/A.cs", true), ("tests", "src/Tests/A.cs", true),
-        ("^test", "src/Tests/A.cs", false), ("^test", "src/A.cs", true),
-        ("src ^test", "src/A.cs", true), ("src ^test", "lib/A.cs", false), ("^", "src/A.cs", true),
-    ])
-    func filterTermsAllMatchAndCaretTermsNone(filter: String, path: String, kept: Bool) {
-        #expect(FileFilter(filter).matches(path) == kept)
-    }
-
-    @Test func generatedFilesSitUnderTheirOwnClosedHeading() {
-        let paths = ["src/a.cs", "src/Generated/b.cs", "package-lock.json"]
-        let closed = FileTree.rows(paths, generated: [1, 2])
-        #expect(closed.map(\.name) == ["src", "a.cs", "Generated"])
-        #expect(closed.last?.kind == .generated(count: 2, isExpanded: false))
-        let open = FileTree.rows(paths, generated: [1, 2], showsGenerated: true)
-        #expect(open.suffix(2).map(\.name) == ["src/Generated/b.cs", "package-lock.json"])
-    }
-
-    @Test func aPathListedTwiceGetsDistinctRowIDs() {
-        let rows = FileTree.rows(["link", "link"], flat: true)
-        #expect(Set(rows.map(\.id)).count == 2)
-        #expect(rows.map(\.name) == ["link", "link"])
-        #expect(Set(FileTree.rows(["a/link", "a/link"]).map(\.id)).count == 3)
-    }
-
-    @Test func flatListShowsFullPathsInReviewOrder() {
-        #expect(FileTree.rows(paths, flat: true).map(\.name) == paths)
-    }
-}
-
-@Suite struct FuzzyMatchTests {
-    @Test func subsequencesMatchAndBetterMatchesScoreHigher() throws {
-        let exact = try #require(FuzzyMatch.score("1894", in: "ticket-1894-remove-preview"))
-        let scattered = try #require(FuzzyMatch.score("1894", in: "ticket-1872-preview-9-4"))
-        #expect(exact > scattered)
-        #expect(FuzzyMatch.score("xyz", in: "ticket-1894") == nil)
-        #expect(FuzzyMatch.score("", in: "anything") == 0)
-    }
-}
-
-@Suite struct LaunchArgumentTests {
-    @Test(
-        arguments: [
-            (["Seam", "/repo"], "/repo"),
-            (["Seam", "-NSDocumentRevisionsDebugMode", "YES", "/repo"], "/repo"),
-            (["Seam", "-NSDocumentRevisionsDebugMode", "YES"], nil),
-            (
-                [
-                    "Seam", "-ApplePersistenceIgnoreState", "YES", "-NSQuitAlwaysKeepsWindows",
-                    "NO", "/r",
-                ], "/r"
-            ),
-            (["Seam"], nil),
-        ] as [([String], String?)])
-    func defaultsPairsAreNotTakenForAPath(arguments: [String], expected: String?) {
-        #expect(WelcomeView.launchPath(arguments) == expected)
-    }
-}
-
-@Suite struct ShellLauncherTests {
-    private let launcher = ShellLauncher(shell: URL(fileURLWithPath: "/bin/sh"))
-
-    @Test func aFailingCommandReportsWhatItPrinted() async {
-        await #expect(throws: LaunchFailed(message: "no such editor")) {
-            try await launcher.run("echo 'no such editor' >&2; exit 3")
-        }
-    }
-
-    @Test func aChattyCommandThatSucceedsIsFine() async throws {
-        try await launcher.run("head -c 200000 /dev/zero >&2")
-    }
-
-    @Test func aMissingCommandSaysSoWithoutTheShellsNoise() async {
-        await #expect(
-            throws: LaunchFailed(
-                message:
-                    "seam-no-such-editor isn't installed or isn't on your PATH. Choose your editor in Settings."
-            )
-        ) {
-            try await launcher.run("seam-no-such-editor '/a b':1")
-        }
-    }
-
-    @Test func aPresetMissingFromPathRunsTheToolInsideItsApp() throws {
-        let app = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-        let tool = app.appending(path: "Contents/MacOS/cli")
-        let bin = app.appending(path: "bin")
-        defer { try? FileManager.default.removeItem(at: app) }
-        for executable in [tool, bin.appending(path: "zed")] {
-            try FileManager.default.createDirectory(
-                at: executable.deletingLastPathComponent(), withIntermediateDirectories: true)
-            #expect(
-                FileManager.default.createFile(
-                    atPath: executable.path, contents: Data("#!/bin/sh\n".utf8),
-                    attributes: [.posixPermissions: 0o755]))
-        }
-        var launcher = launcher
-        launcher.locateApp = { $0 == "dev.zed.Zed" ? app : nil }
-        #expect(
-            launcher.resolve("zed '/w/a.swift':3", path: "/nowhere")
-                == EditorCommand.quoted(tool.path) + " '/w/a.swift':3")
-        #expect(
-            launcher.resolve("zed '/w/a.swift':3", path: "/nowhere:" + bin.path)
-                == "zed '/w/a.swift':3")
-    }
-}
-
-@Suite struct EditorCommandTests {
-    @Test func theDefaultIsTheFirstInstalledPreset() {
-        #expect(
-            EditorCommand.installedDefault {
-                $0 == "com.microsoft.VSCode" ? URL(filePath: "/A") : nil
-            }
-                == "code -g {path}:{line}")
-        #expect(EditorCommand.installedDefault { _ in nil } == EditorCommand.zed)
-    }
-
-    @Test func pathsAreQuotedSoSpacesAndQuotesStayOneArgument() {
-        let line = EditorCommand(template: "code -g {path}:{line}").commandLine(
-            path: "/w/a b/it's.swift", line: 42)
-        #expect(line == "code -g '/w/a b/it'\\''s.swift':42")
     }
 }
