@@ -126,7 +126,16 @@ public actor SyntaxHighlighter {
                 let url = Bundle.module.url(
                     forResource: language.rawValue, withExtension: "scm", subdirectory: "Queries")
             else { throw CocoaError(.fileNoSuchFile) }
-            query = try Query(language: language.language, data: try Data(contentsOf: url))
+            var source = try Data(contentsOf: url)
+            // Seam's own patterns for what the vendored query misses; the vendoring script
+            // rewrites `Queries`, so they live apart.
+            if let additions = Bundle.module.url(
+                forResource: language.rawValue, withExtension: "scm",
+                subdirectory: "QueryAdditions")
+            {
+                source += Data("\n".utf8) + (try Data(contentsOf: additions))
+            }
+            query = try Query(language: language.language, data: source)
         } catch {
             logger.error("query for \(language.rawValue, privacy: .public) failed: \(error)")
         }

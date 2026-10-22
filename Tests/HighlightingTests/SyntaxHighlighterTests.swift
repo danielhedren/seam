@@ -65,6 +65,35 @@ import Testing
         #expect(SyntaxScope.names(around: 1, in: scopes) == ["handle"])
     }
 
+    @Test func cSharpCallsReturnTypesAndNamespacesAreHighlighted() async throws {
+        let text = """
+            namespace Shop.Orders;
+
+            class T
+            {
+                public async Task Run()
+                {
+                    await TakeAwayAsync(data);
+                    Map<int>(x);
+                }
+            }
+
+            """
+        let lines = try #require(await SyntaxHighlighter().highlight(text, as: .csharp)?.lines)
+        let source = text.components(separatedBy: "\n").map(Array.init)
+        func token(_ word: String, line: Int) -> SyntaxToken? {
+            let characters = source[line]
+            let start = (0...(characters.count - word.count)).first {
+                String(characters[$0..<($0 + word.count)]) == word
+            }
+            return start.flatMap { start in lines[line].first { $0.range.contains(start) }?.token }
+        }
+        #expect(token("Orders", line: 0) == .type)
+        #expect(token("Task", line: 4) == .type)
+        #expect(token("TakeAwayAsync", line: 6) == .function)
+        #expect(token("Map", line: 7) != nil)
+    }
+
     @Test func aBlockCommentIsHighlightedOnEveryLineItSpans() async throws {
         let text = "/* first\n   second */\nint x = 1;\n"
         let lines = try #require(await SyntaxHighlighter().highlight(text, as: .csharp)?.lines)

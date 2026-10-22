@@ -512,6 +512,10 @@ seam-debug (M1)       ─ SeamCore
   which pins each repository's ref and records the commit in `VERSIONS.md`. Only `parser.c`, the
   scanner, the headers, the highlight query and the licence are kept. Their C warnings are
   silenced (`-w`): generated third-party code isn't ours to fix, and the build stays clean.
+- Where a vendored query misses common constructs, Seam's own patterns in
+  `Sources/Highlighting/QueryAdditions/<language>.scm` are appended to it; the vendoring script
+  doesn't touch them. C#: return types, calls without a receiver, generic calls, namespaces and
+  `using` names.
 - The token types (`SyntaxToken`, `SyntaxSpan`) live in SeamCore, so Highlighting produces them
   and DiffView draws them without either importing the other. Syntax colours are part of
   `DiffPalette`, contrast-tested on every diff background.

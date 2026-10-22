@@ -54,7 +54,7 @@ let package = Package(
             dependencies: [
                 "SeamCore", .product(name: "SwiftTreeSitter", package: "SwiftTreeSitter"),
             ] + grammars.map { .target(name: $0.target) },
-            resources: [.copy("Queries")], swiftSettings: strict),
+            resources: [.copy("Queries"), .copy("QueryAdditions")], swiftSettings: strict),
         .target(name: "SeamCore", dependencies: ["GitKit"], swiftSettings: strict),
         .target(
             name: "DiffView", dependencies: ["SeamCore", "GitKit"],
