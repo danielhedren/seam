@@ -26,7 +26,7 @@ import Testing
     @Test(arguments: SyntaxLanguage.allCases)
     func everyGrammarAndQueryHighlightsItsSample(language: SyntaxLanguage) async throws {
         let (_, text, word, token) = try #require(Self.samples.first { $0.0 == language })
-        let lines = try #require(await SyntaxHighlighter().highlight(text, as: language))
+        let lines = try #require(await SyntaxHighlighter().highlight(text, as: language)?.lines)
         let line = try #require(lines.first)
         let start = try #require(text.range(of: word)).lowerBound
         let offset = text.distance(from: text.startIndex, to: start)
@@ -34,9 +34,47 @@ import Testing
         #expect(span?.token == token, "\(language): \(line)")
     }
 
+    @Test(arguments: [
+        (
+            SyntaxLanguage.csharp,
+            "namespace A;\npublic sealed class Handler(int x)\n{\n    public int Handle()\n    {\n        return x;\n    }\n}\n",
+            ["Handler", "Handle"]
+        ),
+        (
+            .typescript,
+            "export class Cart {\n  total(): number {\n    return 1;\n  }\n}\nconst f = () => {\n  return 2;\n};\n",
+            ["Cart", "total"]
+        ),
+        (
+            .swift, "extension Cart {\n    func total() -> Int {\n        1\n    }\n}\n",
+            ["Cart", "total"]
+        ),
+        (
+            .rust, "impl Cart {\n    fn total(&self) -> i32 {\n        1\n    }\n}\n",
+            ["Cart", "total"]
+        ),
+    ])
+    func definitionsAroundALineAreNamedOutermostFirst(
+        language: SyntaxLanguage, text: String, expected: [String]
+    ) async throws {
+        let scopes = try #require(await SyntaxHighlighter().highlight(text, as: language)?.scopes)
+        let line = try #require(
+            text.split(separator: "\n", omittingEmptySubsequences: false).firstIndex {
+                $0.contains("return") || $0.trimmingCharacters(in: .whitespaces) == "1"
+            })
+        #expect(SyntaxScope.names(around: line, in: scopes) == expected)
+    }
+
+    @Test func aFunctionHeldInAVariableIsNamed() async throws {
+        let text = "const handle = async () => {\n  return 1;\n};\n"
+        let scopes = try #require(
+            await SyntaxHighlighter().highlight(text, as: .typescript)?.scopes)
+        #expect(SyntaxScope.names(around: 1, in: scopes) == ["handle"])
+    }
+
     @Test func aBlockCommentIsHighlightedOnEveryLineItSpans() async throws {
         let text = "/* first\n   second */\nint x = 1;\n"
-        let lines = try #require(await SyntaxHighlighter().highlight(text, as: .csharp))
+        let lines = try #require(await SyntaxHighlighter().highlight(text, as: .csharp)?.lines)
         #expect(lines.count == 3)
         #expect(lines[1].first == SyntaxSpan(range: 0..<12, token: .comment))
         #expect(lines[2].contains { $0.token == .keyword || $0.token == .type })
@@ -44,7 +82,7 @@ import Testing
 
     @Test func offsetsAreCharactersEvenAfterWideOnes() async throws {
         let text = "let 🎉 = \"å\"\n"
-        let lines = try #require(await SyntaxHighlighter().highlight(text, as: .swift))
+        let lines = try #require(await SyntaxHighlighter().highlight(text, as: .swift)?.lines)
         #expect(lines[0].contains(SyntaxSpan(range: 8..<11, token: .string)))
     }
 

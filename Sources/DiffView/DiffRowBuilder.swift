@@ -59,7 +59,8 @@ enum DiffRowBuilder {
             let first = Self.first(hunk)
             gap(hunkIndex, until: first.new)
             next = Self.next(hunk)
-            rows.append(.hunkHeader(file: index, hunk: hunkIndex, text: header(hunk)))
+            rows.append(
+                .hunkHeader(file: index, hunk: hunkIndex, text: header(hunk, lookup.syntax)))
             let texts = hunk.lines.map { TabStops.expand($0.text, width: tabWidth) }
             let highlights = wordHighlights(hunk.lines, texts)
             let oldSyntax = hunk.lines.map { lookup.old($0.oldNumber, raw: $0.text) }
@@ -89,10 +90,22 @@ enum DiffRowBuilder {
         return rows
     }
 
-    static func header(_ hunk: Hunk) -> String {
-        let section = hunk.section.isEmpty ? "" : " \(hunk.section)"
-        return "@@ -\(hunk.oldStart),\(hunk.oldCount) +\(hunk.newStart),\(hunk.newCount) @@"
-            + section
+    /// The definitions around the hunk's first change, from the syntax tree. Git's own section
+    /// heading is a guess (the last line starting in column 0), which in most C# or Swift names
+    /// the class or namespace rather than the method; the line ranges repeat the gutter.
+    static func header(_ hunk: Hunk, _ syntax: FileSyntax?) -> String {
+        guard let syntax, let change = hunk.lines.first(where: { $0.kind != .context }) else {
+            return ""
+        }
+        let names =
+            if change.kind == .removed, let number = change.oldNumber {
+                SyntaxScope.names(around: number - 1, in: syntax.oldScopes)
+            } else if let number = change.newNumber {
+                SyntaxScope.names(around: number - 1, in: syntax.newScopes)
+            } else {
+                [String]()
+            }
+        return names.joined(separator: " › ")
     }
 
     static func notice(for file: ReviewFile, contents: FileContents? = nil) -> String? {

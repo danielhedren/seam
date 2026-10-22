@@ -19,6 +19,13 @@ struct DiffSnapshotTests {
         DiffLine(kind: kind, text: text, oldNumber: old, newNumber: new)
     }
 
+    /// `Order` ends before the second hunk, so it shows a header with no name.
+    private static let syntax = [
+        "Sources/Order.swift": FileSyntax(
+            oldScopes: [SyntaxScope(lines: 0...39, name: "Order")],
+            newScopes: [SyntaxScope(lines: 0...40, name: "Order")])
+    ]
+
     private static let review: ReviewDiff = {
         var first = Hunk(
             oldStart: 8, oldCount: 6, newStart: 8, newCount: 7, section: "struct Order {")
@@ -71,7 +78,9 @@ struct DiffSnapshotTests {
         view.increaseContrastOverride = highContrast
         view.frame = NSRect(x: 0, y: 0, width: 900, height: 460)
         view.show(
-            DiffContent(review: Self.review, mode: mode, collapsed: collapsed), position: .top)
+            DiffContent(
+                review: Self.review, mode: mode, collapsed: collapsed, syntax: Self.syntax),
+            position: .top)
         view.layoutSubtreeIfNeeded()
         return view
     }
@@ -158,7 +167,8 @@ struct DiffSnapshotTests {
         view.appearance = NSAppearance(named: .aqua)
         view.increaseContrastOverride = false
         view.frame = NSRect(x: 0, y: 0, width: 520, height: 460)
-        view.show(DiffContent(review: Self.review, wraps: true), position: .top)
+        view.show(
+            DiffContent(review: Self.review, syntax: Self.syntax, wraps: true), position: .top)
         view.layoutSubtreeIfNeeded()
         assertSnapshot(of: view, as: .image, named: "wrapped-\(Self.os)")
     }

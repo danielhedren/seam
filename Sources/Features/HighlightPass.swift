@@ -24,10 +24,14 @@ struct HighlightPass {
                 if let text = texts.old,
                     let language = SyntaxLanguage.detect(path: file.diff.oldPath ?? path)
                 {
-                    result.old = await highlighter.highlight(text, as: language)
+                    let highlighted = await highlighter.highlight(text, as: language)
+                    result.old = highlighted?.lines
+                    result.oldScopes = highlighted?.scopes ?? []
                 }
                 if let text = texts.new, let language = SyntaxLanguage.detect(path: path) {
-                    result.new = await highlighter.highlight(text, as: language)
+                    let highlighted = await highlighter.highlight(text, as: language)
+                    result.new = highlighted?.lines
+                    result.newScopes = highlighted?.scopes ?? []
                 }
                 if result.old != nil || result.new != nil { pending[path] = result }
             }

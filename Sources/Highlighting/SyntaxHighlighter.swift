@@ -72,12 +72,18 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
     }
 }
 
+/// One file's highlighting: spans per line, and the definitions hunk headers name.
+public struct HighlightedText: Equatable, Sendable {
+    public var lines: [[SyntaxSpan]]
+    public var scopes: [SyntaxScope]
+}
+
 /// Parses whole files and maps the highlight query's captures onto lines (SPEC §8.4). Queries
 /// compile once per language; a query that fails to compile leaves that language plain.
 public actor SyntaxHighlighter {
     private var queries: [SyntaxLanguage: Query?] = [:]
     /// Results by language and content hash, so unchanged files aren't parsed again on reload.
-    private var cache: [String: [[SyntaxSpan]]] = [:]
+    private var cache: [String: HighlightedText] = [:]
     private var cacheOrder: [String] = []
     private let cacheLimit = 400
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Highlighting")
@@ -86,8 +92,8 @@ public actor SyntaxHighlighter {
 
     public init() {}
 
-    /// Spans per line of `text`, or nil when the language can't be highlighted.
-    public func highlight(_ text: String, as language: SyntaxLanguage) -> [[SyntaxSpan]]? {
+    /// Nil when the language can't be highlighted.
+    public func highlight(_ text: String, as language: SyntaxLanguage) -> HighlightedText? {
         let key =
             language.rawValue + ":"
             + SHA256.hash(data: Data(text.utf8)).map { String(format: "%02x", $0) }.joined()
@@ -99,7 +105,7 @@ public actor SyntaxHighlighter {
         return lines
     }
 
-    private func parse(_ text: String, as language: SyntaxLanguage) -> [[SyntaxSpan]]? {
+    private func parse(_ text: String, as language: SyntaxLanguage) -> HighlightedText? {
         let interval = signposter.beginInterval("highlight", "\(language.rawValue)")
         defer { signposter.endInterval("highlight", interval) }
         guard let query = query(for: language) else { return nil }
@@ -112,11 +118,14 @@ public actor SyntaxHighlighter {
         }
         guard let tree = parser.parse(text) else { return nil }
         let ranges = query.execute(in: tree).resolve(with: .init(string: text)).highlights()
-        return Self.lines(
+        let lines = Self.lines(
             text,
             ranges.compactMap { range in
                 Self.token(range.nameComponents).map { (range.range, $0) }
             })
+        return HighlightedText(
+            lines: lines,
+            scopes: DefinitionScopes.scopes(in: tree, text: text, language: language))
     }
 
     private func query(for language: SyntaxLanguage) -> Query? {

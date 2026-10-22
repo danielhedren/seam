@@ -33,7 +33,7 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
         let rows = DiffRowBuilder.rows(for: sampleReview(), mode: .unified)
         #expect(rows.count == 1 + 1 + 7 + 1 + 1)
         #expect(rows[0] == .fileHeader(file: 0))
-        #expect(rows[1] == .hunkHeader(file: 0, hunk: 0, text: "@@ -1,4 +1,5 @@ func main()"))
+        #expect(rows[1] == .hunkHeader(file: 0, hunk: 0, text: ""))
         #expect(
             rows[3]
                 == .line(
@@ -144,7 +144,7 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
     }
 
     @Test func longestTextSetsTheColumnCount() {
-        #expect(layout.maxColumns == "@@ -1,4 +1,5 @@ func main()".count)
+        #expect(layout.maxColumns == "Renamed without changes".count)
     }
 }
 
@@ -285,6 +285,25 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
 }
 
 @Suite struct SyntaxRowTests {
+    @Test func aHunkHeaderNamesTheDefinitionsAroundItsFirstChange() {
+        let scopes = [
+            SyntaxScope(lines: 0...9, name: "Handler"), SyntaxScope(lines: 1...2, name: "Setup"),
+            SyntaxScope(lines: 2...8, name: "Handle"),
+        ]
+        let syntax = FileSyntax(newScopes: scopes)
+        let rows = DiffRowBuilder.rows(
+            for: sampleReview(), mode: .unified, syntax: ["a.txt": FileSyntax(oldScopes: scopes)])
+
+        #expect(rows[1] == .hunkHeader(file: 0, hunk: 0, text: "Handler › Setup"))
+        var added = Hunk(oldStart: 4, oldCount: 1, newStart: 4, newCount: 2, section: "")
+        added.lines = [
+            DiffLine(kind: .context, text: "a", oldNumber: 4, newNumber: 4),
+            DiffLine(kind: .added, text: "b", oldNumber: nil, newNumber: 5),
+        ]
+        #expect(DiffRowBuilder.header(added, syntax) == "Handler › Handle")
+        #expect(DiffRowBuilder.header(added, nil) == "")
+    }
+
     @Test func spansFollowTheirSideAndMoveWithTabExpansion() {
         var hunk = Hunk(oldStart: 1, oldCount: 1, newStart: 1, newCount: 1, section: "")
         hunk.lines = [

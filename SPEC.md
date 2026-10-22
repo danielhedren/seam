@@ -294,7 +294,12 @@ switches and launches.
   lines at the column edge, so both sides stay in view.
 - Text selection and copy work in both modes. In side-by-side mode a selection stays within one
   side.
-- Hunk header context (function name), as git shows it.
+- Each hunk's header names the definitions around its first change, outermost first
+  (`GetOrderOptionsHandler › Handle`), from the tree-sitter parse: types, functions, methods,
+  constructors and properties in C#, TypeScript, JavaScript, Swift and Rust. Git's line ranges
+  and section heading aren't shown; the ranges repeat the gutter, and the heading is git's guess
+  at the last unindented line, which in C# names the class or namespace. Other languages get an
+  unlabelled separator.
 
 ### 7.5 Keyboard
 
