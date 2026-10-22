@@ -85,7 +85,7 @@ struct SettingsView: View {
                 TextField(
                     String(localized: "Command", bundle: .module), text: $settings.editorTemplate)
                 Text(
-                    "{path} and {line} are filled in; the command runs in your login shell.",
+                    "{path} and {line} are filled in; the command runs with your login shell's PATH.",
                     bundle: .module
                 )
                 .font(.caption).foregroundStyle(.secondary)

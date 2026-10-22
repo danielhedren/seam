@@ -298,9 +298,14 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 
 ### 7.6 Open in editor
 
-Configurable command template. Default: `zed {path}:{line}`. Presets for VS Code
-(`code -g {path}:{line}`) and Rider. `{path}` is the path inside the worktree being reviewed, so
-the file opens in that worktree.
+Configurable command template. Presets for Zed (`zed {path}:{line}`), VS Code
+(`code -g {path}:{line}`), Rider and Cursor; the default is the first of those that is installed,
+else Zed. `{path}` is the path inside the worktree being reviewed, so the file opens in that
+worktree.
+
+The command runs with `/bin/sh` and the PATH of the user's login, interactive shell, read once.
+When a preset's command isn't on that PATH, Seam uses the command-line tool inside the installed
+app instead.
 
 ## 8. Technical design
 

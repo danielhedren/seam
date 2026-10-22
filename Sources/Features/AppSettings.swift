@@ -34,7 +34,7 @@ public final class AppSettings {
         defaultBase = value("defaultBase", "")
         ignoredRefs = value("ignoredRefs", DetectionSettings().ignoredRefs.map(\.pattern))
         generatedGlobs = value("generatedGlobs", DiffOptions.defaultGeneratedGlobs.map(\.pattern))
-        editorTemplate = value("editorTemplate", EditorCommand.zed)
+        editorTemplate = value("editorTemplate", EditorCommand.installedDefault())
         fontName = value("fontName", "")
         fontSize = value("fontSize", 12)
         tabWidth = value("tabWidth", 4)

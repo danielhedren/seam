@@ -10,6 +10,9 @@
     "%@ is not in a git repository." : {
 
     },
+    "%@ isn't installed or isn't on your PATH. Choose your editor in Settings." : {
+
+    },
     "%@ no longer exists." : {
 
     },
@@ -476,7 +479,7 @@
     "vs %@" : {
 
     },
-    "{path} and {line} are filled in; the command runs in your login shell." : {
+    "{path} and {line} are filled in; the command runs with your login shell's PATH." : {
 
     }
   },
