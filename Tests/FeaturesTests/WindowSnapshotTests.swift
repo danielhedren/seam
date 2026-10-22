@@ -12,13 +12,14 @@ import Testing
 /// outside their List: AppKit draws a sidebar's selection with a layer effect that an off-screen
 /// render shows as solid black. Record with `SNAPSHOT_TESTING_RECORD=all swift test`.
 @MainActor
-@Suite(.snapshots(record: .missing))
+@Suite(
+    .snapshots(record: .missing),
+    .enabled("the references are drawn on a 2x display") {
+        await MainActor.run { retinaScreen() != nil }
+    })
 struct WindowSnapshotTests {
-    /// An off-screen window draws at the main display's scale, so references are kept per
-    /// scale as well as per macOS version.
     private static let os =
-        "macOS\(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)"
-        + "-\(Int(NSScreen.main?.backingScaleFactor ?? 2))x"
+        "macOS\(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)-2x"
     /// The fixture's clock starts here (`HermeticGit`); ages are measured three hours later.
     private static let fixtureEpoch = Date(timeIntervalSince1970: 1_767_225_600)
     private static let now = fixtureEpoch.addingTimeInterval(3 * 3600)
@@ -173,9 +174,10 @@ struct WindowSnapshotTests {
             .environment(OpenRequests(defaults: try scratchDefaults()))
             .environment(\.ageReference, Self.now)
         let host = NSHostingView(rootView: root)
+        let screen = try #require(retinaScreen())
         let window = NSWindow(
-            contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless],
-            backing: .buffered, defer: false)
+            contentRect: NSRect(origin: screen.frame.origin, size: size),
+            styleMask: [.borderless], backing: .buffered, defer: false, screen: screen)
         window.appearance = NSAppearance(named: appearance)
         window.contentView = host
         settle()
@@ -202,6 +204,13 @@ struct WindowSnapshotTests {
     private func scratchDefaults() throws -> UserDefaults {
         try #require(UserDefaults(suiteName: "seam-snapshots-\(UUID().uuidString)"))
     }
+}
+
+/// A window draws at its screen's scale, so the references are drawn on a 2x screen (a Mac's
+/// built-in one) whichever display is main: one set of references, not one per scale.
+@MainActor
+private func retinaScreen() -> NSScreen? {
+    NSScreen.screens.first { $0.backingScaleFactor == 2 }
 }
 
 /// Lets SwiftUI and AppKit finish the layout and drawing they schedule on the run loop; a plain
