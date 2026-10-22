@@ -102,7 +102,7 @@ public struct WorktreeActivityService: Sendable {
         guard let size = try? fileSystem.size(of: url), size <= ReviewDiffBuilder.deferredSize,
             let data = try? fileSystem.contents(of: url), !ReviewDiffBuilder.isBinary(data)
         else { return 0 }
-        let newlines = data.reduce(0) { $0 + ($1 == UInt8(ascii: "\n") ? 1 : 0) }
+        let newlines = data.count { $0 == UInt8(ascii: "\n") }
         return newlines + (data.last.map { $0 == UInt8(ascii: "\n") ? 0 : 1 } ?? 0)
     }
 }
