@@ -44,4 +44,13 @@ import Testing
         #expect(hunk.lines.count == 4)
         #expect(content.tabWidths["a.cs"] == 2)
     }
+
+    @Test func fontPickerListsFixedPitchFamiliesAndKeepsAnUnlistedChoice() {
+        let fonts = MonospacedFont.installed(keeping: "Some-Missing-Font")
+
+        #expect(fonts.contains { $0.family == "Menlo" && $0.name == "Menlo-Regular" })
+        #expect(!fonts.contains { $0.family == "Helvetica" })
+        #expect(fonts.contains { $0.name == "Some-Missing-Font" })
+        #expect(!MonospacedFont.installed(keeping: "").contains { $0.name.isEmpty })
+    }
 }

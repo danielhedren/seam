@@ -750,7 +750,9 @@ come from the repository's root `.editorconfig` (`tab_width`, or a numeric `inde
 section matches, else the setting; nested `.editorconfig` files aren't read.
 
 The Settings window has three tabs: Review (the base and the diff), Display and Editor. Each
-group says under it what its settings do. Lists of patterns take one per line.
+group says under it what its settings do. Lists of patterns take one per line. Font offers the
+installed fixed-pitch fonts, SF Mono first; a font set before that isn't installed stays listed
+under its name.
 
 ## 13. CLI
 

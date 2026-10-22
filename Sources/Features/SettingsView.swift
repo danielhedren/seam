@@ -1,3 +1,4 @@
+import AppKit
 import DiffView
 import SeamCore
 import SwiftUI
@@ -82,13 +83,16 @@ struct ReviewSettings: View {
 
 struct DisplaySettings: View {
     @Bindable var settings: AppSettings
+    @State private var fonts: [MonospacedFont] = []
 
     var body: some View {
         Form {
             Section {
-                TextField(
-                    String(localized: "Font", bundle: .module), text: $settings.fontName,
-                    prompt: Text("SF Mono", bundle: .module))
+                Picker(String(localized: "Font", bundle: .module), selection: $settings.fontName) {
+                    Text("SF Mono", bundle: .module).tag("")
+                    Divider()
+                    ForEach(fonts) { font in Text(font.family).tag(font.name) }
+                }
                 NumberStepper(
                     title: String(localized: "Size", bundle: .module),
                     value: Binding(
@@ -115,6 +119,7 @@ struct DisplaySettings: View {
                 .pickerStyle(.segmented)
             }
         }
+        .onAppear { fonts = MonospacedFont.installed(keeping: settings.fontName) }
     }
 }
 
@@ -147,6 +152,42 @@ struct EditorSettings: View {
                 .settingsFootnote()
             }
         }
+    }
+}
+
+/// A fixed-pitch family for the Font picker, by the PostScript name of its regular face, which
+/// `AppSettings.font` loads.
+struct MonospacedFont: Identifiable, Hashable {
+    var family: String
+    var name: String
+    var id: String { name }
+
+    /// Every installed fixed-pitch family, plus `current` when it's a font that isn't among them,
+    /// so a setting from before the picker still shows.
+    @MainActor
+    static func installed(keeping current: String) -> [MonospacedFont] {
+        let manager = NSFontManager.shared
+        var fonts = manager.availableFontFamilies.compactMap { family -> MonospacedFont? in
+            guard family != "SF Mono", !family.hasPrefix("."),
+                let members = manager.availableMembers(ofFontFamily: family),
+                let regular = members.first(where: isRegular) ?? members.first,
+                let name = regular.first as? String,
+                NSFont(name: name, size: 12)?.isFixedPitch == true
+            else { return nil }
+            return MonospacedFont(family: family, name: name)
+        }
+        if !current.isEmpty, !fonts.contains(where: { $0.name == current }) {
+            fonts.append(MonospacedFont(family: current, name: current))
+        }
+        return fonts.sorted { $0.family.localizedStandardCompare($1.family) == .orderedAscending }
+    }
+
+    /// `availableMembers` rows are [PostScript name, style, weight, traits]; 5 is regular weight.
+    private static func isRegular(_ member: [Any]) -> Bool {
+        guard member.count >= 4, let weight = member[2] as? Int,
+            let traits = member[3] as? UInt
+        else { return false }
+        return weight == 5 && NSFontTraitMask(rawValue: traits).isDisjoint(with: .italicFontMask)
     }
 }
 
