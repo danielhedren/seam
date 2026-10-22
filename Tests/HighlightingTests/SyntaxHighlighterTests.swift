@@ -97,7 +97,7 @@ import Testing
         #expect(token("Orders", line: 0) == .type)
         #expect(token("Task", line: 4) == .type)
         #expect(token("TakeAwayAsync", line: 6) == .function)
-        #expect(token("Map", line: 7) != nil)
+        #expect(token("Map", line: 7) == .function)
     }
 
     @Test func phpClassNamesBeforeDoubleColonsAreTypes() async throws {

@@ -1,5 +1,5 @@
-;; Seam's additions to the vendored query, for what it misses (SPEC §8.4). Appended after it, so
-;; the vendored captures win where both match the same node.
+;; Seam's additions to the vendored query, for what it misses (SPEC §8.4). Put before it, so
+;; these captures win where both match the same node.
 
 ;; A method's return type is its `returns` field, not `type`.
 (method_declaration returns: (identifier) @type)

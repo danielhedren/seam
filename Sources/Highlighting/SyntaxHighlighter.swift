@@ -131,13 +131,13 @@ public actor SyntaxHighlighter {
                     forResource: language.rawValue, withExtension: "scm", subdirectory: "Queries")
             else { throw CocoaError(.fileNoSuchFile) }
             var source = try Data(contentsOf: url)
-            // Seam's own patterns for what the vendored query misses; the vendoring script
-            // rewrites `Queries`, so they live apart.
+            // Seam's own patterns, kept apart because the vendoring script rewrites `Queries`.
+            // They go first so they win where both capture the same text (see `lines`).
             if let additions = Bundle.module.url(
                 forResource: language.rawValue, withExtension: "scm",
                 subdirectory: "QueryAdditions")
             {
-                source += Data("\n".utf8) + (try Data(contentsOf: additions))
+                source = (try Data(contentsOf: additions)) + Data("\n".utf8) + source
             }
             query = try Query(language: language.language, data: source)
         } catch {
