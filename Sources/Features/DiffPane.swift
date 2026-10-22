@@ -94,7 +94,7 @@ struct DiffPane: View {
                 ProblemBanner(problem: problem, session: session)
             }
             if let stale = review.staleParent {
-                StaleParentBanner(stale: stale, session: session, review: review)
+                StaleParentBanner(stale: stale, session: session)
             }
             if session.showsFind {
                 FindBar(session: session)
@@ -233,7 +233,6 @@ struct FindBar: View {
 struct StaleParentBanner: View {
     let stale: StaleParent
     let session: RepoSession
-    let review: WorktreeReview
 
     var body: some View {
         HStack(spacing: 8) {
