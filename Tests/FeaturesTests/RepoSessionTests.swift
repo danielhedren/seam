@@ -121,6 +121,27 @@ import Testing
         #expect(session.selected?.activity?.uncommittedFiles == 1)
     }
 
+    @Test func aHiddenWorktreesCountsCatchUpAtTheEndOfTheQuietPeriod() async throws {
+        let repo = try await FixtureRepo()
+        let other = try await repo.worktree("other", branch: "other", from: "origin/main")
+        let clock = ManualClock()
+        let session = RepoSession(directory: repo.main, services: services(repo.git, clock: clock))
+        await session.open()
+        await session.settled()
+        let hidden = try #require(session.reviews.first { $0.id == other.path })
+
+        try repo.write("a.txt", "a\n", in: other)
+        await session.apply(RepoChange(worktrees: [other.path]))
+        await until { hidden.activity?.uncommittedFiles == 1 }
+        await clock.sleepers()
+        try repo.write("b.txt", "b\n", in: other)
+        await session.apply(RepoChange(worktrees: [other.path]))
+        clock.advance(by: .seconds(5))
+
+        await until { hidden.activity?.uncommittedFiles == 2 }
+        session.close()
+    }
+
     @Test func aRefChangeRedetectsTheParent() async throws {
         let repo = try await FixtureRepo()
         let b = try await repo.worktree("b", branch: "b", from: "origin/main")
