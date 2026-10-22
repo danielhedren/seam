@@ -52,6 +52,7 @@ final class WorktreeReview: Identifiable {
     private(set) var staleParent: StaleParent?
     /// The worktree's root `.editorconfig`, for per-file tab widths (SPEC §12).
     private var editorConfig: EditorConfig?
+    private var tabWidths: [String: Int] = [:]
     private var dismissedStaleParents: Set<String> = []
     private var detectionRuns = 0
     private var staleCheckedAt = -1
@@ -264,11 +265,7 @@ final class WorktreeReview: Identifiable {
                 viewed: Dictionary(
                     $0.files.map { ($0.diff.path, viewed.status(of: $0)) },
                     uniquingKeysWith: { first, _ in first }),
-                tabWidth: services.settings.tabWidth,
-                tabWidths: Dictionary(
-                    $0.files.compactMap { file in
-                        editorConfig?.tabWidth(for: file.diff.path).map { (file.diff.path, $0) }
-                    }, uniquingKeysWith: { first, _ in first }))
+                tabWidth: services.settings.tabWidth, tabWidths: tabWidths)
         }
     }
 
@@ -415,11 +412,9 @@ final class WorktreeReview: Identifiable {
             ).build(
                 worktree: worktree.path, base: base.commit, scope: scope,
                 options: diffOptions)
-            editorConfig =
-                (try? services.fileSystem.contents(
-                    of: worktree.path.appending(path: ".editorconfig")))
-                .map { EditorConfig(String(decoding: $0, as: UTF8.self)) }
+            let config = await Self.editorConfig(in: worktree.path, services.fileSystem)
             guard generation == loadGeneration, !Task.isCancelled else { return }
+            editorConfig = config
             // A first load shows the diff before its contents arrive. A reload waits for both,
             // so the new hunks are never drawn with the old files' gap lines.
             let isReload = !contents.isEmpty
@@ -442,8 +437,21 @@ final class WorktreeReview: Identifiable {
         finish(generation)
     }
 
+    /// Off the main actor: a nonisolated async function runs on the global executor.
+    nonisolated private static func editorConfig(in worktree: URL, _ fileSystem: any FileSystem)
+        async -> EditorConfig?
+    {
+        (try? fileSystem.contents(of: worktree.appending(path: ".editorconfig")))
+            .map { EditorConfig(String(decoding: $0, as: UTF8.self)) }
+    }
+
     private func present(_ diff: ReviewDiff) {
         applyDefaultCollapse(diff)
+        // Glob matching per file, so worked out once per diff rather than on every redraw.
+        tabWidths = Dictionary(
+            diff.files.compactMap { file in
+                editorConfig?.tabWidth(for: file.diff.path).map { (file.diff.path, $0) }
+            }, uniquingKeysWith: { first, _ in first })
         self.diff = diff
         diffVersion += 1
         problem = nil
