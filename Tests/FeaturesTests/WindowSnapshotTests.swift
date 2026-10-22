@@ -146,6 +146,22 @@ struct WindowSnapshotTests {
         }
     }
 
+    @Test func aDraftOnAnotherWorktreeLeavesThePanelsEmptyState() async throws {
+        let (session, _) = try await session()
+        let review = try #require(session.selected)
+        let other = try #require(session.sortedReviews.first { $0.id != review.id })
+        let size = CGSize(width: 340, height: 300)
+        let empty = try render(ThreadPanel(session: session, review: review), size: size, .aqua)
+
+        session.draft = ThreadDraft(
+            worktree: other.id,
+            anchor: ThreadAnchor(path: "notes.md", side: .new, lines: 1...1, text: ["# Notes"]))
+        let withDraft = try render(
+            ThreadPanel(session: session, review: review), size: size, .aqua)
+
+        #expect(withDraft.tiffRepresentation == empty.tiffRepresentation)
+    }
+
     @Test func welcome() async throws {
         let repo = try await FixtureRepo()
         let view = WelcomeView(services: services(repo.git)) { _ in true }

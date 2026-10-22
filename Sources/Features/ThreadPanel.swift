@@ -9,6 +9,8 @@ struct ThreadPanel: View {
 
     var body: some View {
         let placed = review.placedThreads
+        // The draft stays with its worktree while others are shown.
+        let draft = session.draft.flatMap { $0.worktree == review.id ? $0 : nil }
         VStack(spacing: 0) {
             header(placed)
             Divider()
@@ -18,10 +20,10 @@ struct ThreadPanel: View {
             }
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 10) {
-                    if let draft = session.draft, draft.worktree == review.id {
+                    if let draft {
                         DraftComposer(session: session, draft: draft)
                     }
-                    if placed.isEmpty, session.draft == nil {
+                    if placed.isEmpty, draft == nil {
                         ContentUnavailableView(
                             String(localized: "No threads", bundle: .module),
                             systemImage: "text.bubble",
