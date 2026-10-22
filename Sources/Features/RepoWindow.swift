@@ -72,58 +72,68 @@ struct RepoWindow: View {
             })
     }
 
-    @ViewBuilder private var content: some View {
+    /// The split view and its toolbar are there from the first frame, whatever the state: a
+    /// toolbar that appears once the repo opens grows the titlebar and moves the content down.
+    private var content: some View {
+        NavigationSplitView(columnVisibility: columnVisibility) {
+            SidebarSplit {
+                WorktreeList(session: session)
+            } bottom: {
+                if let review = session.selected {
+                    CommitList(session: session, review: review)
+                }
+            }
+            .navigationSplitViewColumnWidth(min: 200, ideal: 260)
+        } content: {
+            Group {
+                if let review = session.selected {
+                    FileList(session: session, review: review, filterFocus: $filterFocused)
+                        .focused($fileListFocused)
+                } else if session.state == .open {
+                    Text("Select a worktree", bundle: .module).foregroundStyle(.secondary)
+                }
+            }
+            .navigationSplitViewColumnWidth(min: 200, ideal: 300)
+        } detail: {
+            detail
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .toolbar { ReviewToolbar(session: session, review: session.selected) }
+        }
+        .onChange(of: fileListFocused) { _, focused in
+            session.fileListHasFocus = focused && !filterFocused
+        }
+        .onChange(of: filterFocused) { _, focused in
+            session.fileListHasFocus = fileListFocused && !focused
+        }
+    }
+
+    @ViewBuilder private var detail: some View {
         switch session.state {
         case .opening:
             ProgressView(
                 String(
-                    localized: "Opening \(session.directory.lastPathComponent)…", bundle: .module)
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    localized: "Opening \(session.directory.lastPathComponent)…", bundle: .module))
         case .failed(let message):
             ContentUnavailableView(message, systemImage: "folder.badge.questionmark")
         case .open:
-            NavigationSplitView(columnVisibility: columnVisibility) {
-                SidebarSplit {
-                    WorktreeList(session: session)
-                } bottom: {
-                    if let review = session.selected {
-                        CommitList(session: session, review: review)
-                    }
-                }
-                .navigationSplitViewColumnWidth(min: 200, ideal: 260)
-            } content: {
-                if let review = session.selected {
-                    FileList(session: session, review: review, filterFocus: $filterFocused)
-                        .focused($fileListFocused)
-                        .navigationSplitViewColumnWidth(min: 200, ideal: 300)
-                } else {
-                    Text("Select a worktree", bundle: .module).foregroundStyle(.secondary)
-                }
-            } detail: {
-                if let review = session.selected {
-                    DiffPane(session: session, review: review)
-                        .toolbar { ReviewToolbar(session: session, review: review) }
-                } else {
-                    ContentUnavailableView(
-                        String(localized: "No worktree selected", bundle: .module),
-                        systemImage: "square.split.3x1")
-                }
-            }
-            .onChange(of: fileListFocused) { _, focused in
-                session.fileListHasFocus = focused && !filterFocused
-            }
-            .onChange(of: filterFocused) { _, focused in
-                session.fileListHasFocus = fileListFocused && !focused
+            if let review = session.selected {
+                DiffPane(session: session, review: review)
+            } else {
+                ContentUnavailableView(
+                    String(localized: "No worktree selected", bundle: .module),
+                    systemImage: "square.split.3x1")
             }
         }
     }
 }
 
-/// Only view mode and reload; the diff gets the rest of the window (SPEC §9).
+/// Only view mode and reload; the diff gets the rest of the window (SPEC §9). Disabled rather
+/// than left out without a worktree, so the toolbar keeps its items.
 struct ReviewToolbar: ToolbarContent {
     let session: RepoSession
-    let review: WorktreeReview
+    let review: WorktreeReview?
+
+    private var unified: Bool { session.settings.layoutMode == .unified }
 
     var body: some ToolbarContent {
         ToolbarItem {
@@ -131,12 +141,13 @@ struct ReviewToolbar: ToolbarContent {
                 session.toggleMode()
             } label: {
                 Label(
-                    review.mode == .unified
+                    unified
                         ? String(localized: "Side by Side", bundle: .module)
                         : String(localized: "Unified", bundle: .module),
-                    systemImage: review.mode == .unified ? "rectangle.split.2x1" : "rectangle")
+                    systemImage: unified ? "rectangle.split.2x1" : "rectangle")
             }
             .help(String(localized: "Toggle side-by-side (s)", bundle: .module))
+            .disabled(review == nil)
         }
         ToolbarItem {
             Button {
@@ -145,6 +156,7 @@ struct ReviewToolbar: ToolbarContent {
                 Label(String(localized: "Reload", bundle: .module), systemImage: "arrow.clockwise")
             }
             .help(String(localized: "Reload (r)", bundle: .module))
+            .disabled(review == nil)
         }
     }
 }

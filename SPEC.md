@@ -234,6 +234,8 @@ keeps the position.
   toolbar doesn't repeat it. File › New Tab (⌘T) opens the welcome screen as a tab of the front
   window, and New Window (⌘N) as its own window. The welcome screen has a toolbar too, so the tab
   bar sits in the same place in every tab.
+- A repo window's frame, titlebar and toolbar are the same from its first frame: while the repo
+  opens, the split view and its toolbar are already there, the toolbar's buttons disabled.
 - The open repos are the workspace. Quitting and relaunching reopens them, the first in the first
   window and the rest as its tabs, in the order they were opened, with the window's last size and
   position. Closing a repo's window takes it out of the workspace; quitting doesn't. A launch path
@@ -634,6 +636,7 @@ Every layer gets the cheapest test that can catch its failures. Test names descr
 | DiffView | Image snapshot | swift-snapshot-testing | ~10 snapshots: unified/side-by-side × light/dark/high contrast, word highlights, wrapped rows. Recorded per macOS major version |
 | Features | Unit | Swift Testing | Models driven through intents with fakes: switching worktrees cancels the old work, reloads keep the selection, banner states |
 | Features | Window snapshot | swift-snapshot-testing | The window's panes rendered in-process from a fixture repo, light and dark: worktree rows, commit rows, file list with the diff, the welcome screen. Ages are measured from a fixed time. Sidebar rows render outside their List, because an off-screen render draws a sidebar's selection solid black. Needs no screen or automation permission |
+| Features | Window layout | Swift Testing | Real `NSWindow`s that are never ordered on screen: a repo window's frame, content area and toolbar items don't change while the repo opens |
 | App | UI smoke, run by hand | XCUITest | 5 flows on a fixture repo passed as a launch argument: open, `⌘2` switch, `j`/`n` navigation, `v` viewed + `⌘Z`, base override, plus tabs and window size. Automation Mode isn't left enabled, so `xcodebuild test` asks for approval each run |
 | Performance | Benchmarks | XCTest `measure` with baselines | Detection on a generated repo with 400 refs, parsing and laying out a 20k-line diff. Fails on a >20% regression against the stored baseline. Baselines need `xcodebuild`, so until the Xcode project exists (M2) an opt-in Swift Testing check (`SEAM_BENCH=1`) asserts the absolute §8.7 budget |
 | Real repo | Acceptance, opt-in | Swift Testing, gated by `SEAM_REAL_REPO` | The stacked-branch check from §5.2, configured in `local.mk` |
