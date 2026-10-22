@@ -296,7 +296,8 @@ switches and launches.
 - A tree grouped by directory with single-child directories compacted (`src/Orders.Service/…`),
   or a flat list (toggle). Status letter (A/M/D/R/C), `+/−` counts, and a viewed checkmark per
   file.
-- The header shows totals and the viewed count ("7/19 viewed").
+- The header shows totals and the viewed count ("7/19 viewed"), with a checkmark once every file
+  is viewed. With no changed files it shows only the count.
 - Filter field (`⌘F` while the file list has focus) matching on path: space-separated terms,
   ignoring case, not a regex. Every plain term must appear in the path; a term starting with `^`
   must not (`^test` hides test files, `delivery ^test` shows delivery files except tests). Only

@@ -14,13 +14,12 @@ struct FileList: View {
             HStack {
                 if let diff = review.diff {
                     Text(verbatim: Counted.files(diff.files.count))
-                    Text(verbatim: "+\(diff.additions)").foregroundStyle(.green)
-                    Text(verbatim: "−\(diff.deletions)").foregroundStyle(.red)
-                    Text(
-                        "\(review.viewed.viewedCount(in: diff))/\(diff.files.count) viewed",
-                        bundle: .module
-                    )
-                    .foregroundStyle(.secondary)
+                    if !diff.files.isEmpty {
+                        Text(verbatim: "+\(diff.additions)").foregroundStyle(.green)
+                        Text(verbatim: "−\(diff.deletions)").foregroundStyle(.red)
+                        ViewedProgress(
+                            viewed: review.viewed.viewedCount(in: diff), of: diff.files.count)
+                    }
                 }
                 Spacer()
                 Toggle(isOn: $review.flatFileList) {
@@ -48,6 +47,7 @@ struct FileList: View {
                         toggle(row)
                     }
                     .tag(row.id)
+                    .listRowSeparator(.hidden)
                     .contextMenu {
                         if case .file(let index) = row.kind {
                             FileContextMenu(path: files[index].diff.path, session: session)
@@ -105,6 +105,22 @@ struct FileList: View {
         case .file:
             break
         }
+    }
+}
+
+/// "3/7 viewed", and a checkmark once every file is.
+private struct ViewedProgress: View {
+    let viewed: Int
+    let of: Int
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Text("\(viewed)/\(of) viewed", bundle: .module)
+            if viewed == of {
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+            }
+        }
+        .foregroundStyle(.secondary)
     }
 }
 
