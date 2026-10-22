@@ -14,7 +14,11 @@ import Testing
 @MainActor
 @Suite(.snapshots(record: .missing))
 struct WindowSnapshotTests {
-    private static let os = "macOS\(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)"
+    /// An off-screen window draws at the main display's scale, so references are kept per
+    /// scale as well as per macOS version.
+    private static let os =
+        "macOS\(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)"
+        + "-\(Int(NSScreen.main?.backingScaleFactor ?? 2))x"
     /// The fixture's clock starts here (`HermeticGit`); ages are measured three hours later.
     private static let fixtureEpoch = Date(timeIntervalSince1970: 1_767_225_600)
     private static let now = fixtureEpoch.addingTimeInterval(3 * 3600)

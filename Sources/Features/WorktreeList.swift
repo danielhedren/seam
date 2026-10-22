@@ -6,8 +6,13 @@ struct WorktreeList: View {
 
     var body: some View {
         List(selection: Binding(get: { session.selectedID }, set: { session.select($0) })) {
-            ForEach(session.sortedReviews) { review in
-                WorktreeRow(review: review).tag(review.id)
+            Section {
+                ForEach(session.sortedReviews) { review in
+                    WorktreeRow(review: review).tag(review.id)
+                }
+            } header: {
+                Text(verbatim: session.repositoryName).lineLimit(1).truncationMode(.middle)
+                    .help(session.directory.path)
             }
         }
         .contextMenu {

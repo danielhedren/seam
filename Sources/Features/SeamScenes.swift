@@ -208,7 +208,11 @@ struct WindowRoot: View {
                 }
             }
         }
+        // The Window menu, Mission Control and ⌘` still name the window. The toolbar shows no
+        // title: macOS 26's toolbar title takes clicks without moving the window, which left
+        // a dead spot in the bar; the worktree list names the repo instead.
         .navigationTitle(url?.lastPathComponent ?? String(localized: "Seam", bundle: .module))
+        .toolbar(removing: .title)
         .background(
             WindowReader { window in
                 // The launch window turns into the workspace's first repo (`launch()`).

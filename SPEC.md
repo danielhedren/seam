@@ -232,7 +232,10 @@ keeps the position.
 - One window per repo, listing only that repo's worktrees. Opening another repo opens another
   window; ``⌘` `` and the Window menu move between them. Window tabs are off: with a sidebar, macOS
   puts the tab bar beside it, so the tab bar moves between tabs whose sidebars differ. A window's
-  title is the repo's name. File › New Window (⌘N) opens the welcome screen.
+  title is the repo's name, for the Window menu, Mission Control and ``⌘` ``; the toolbar doesn't
+  show it, because macOS 26's toolbar title takes clicks without moving the window, which left a
+  spot in the bar that wouldn't drag. The worktree list's header names the repo instead. File ›
+  New Window (⌘N) opens the welcome screen.
 - A window's frame, titlebar and toolbar are the same from its first frame: while the repo opens,
   the split view and its toolbar are already there, the toolbar's buttons disabled. The welcome
   screen has the same toolbar height, so opening a repo in it moves nothing.
