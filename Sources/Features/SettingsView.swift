@@ -8,58 +8,122 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
-            Form {
+            ReviewSettings(settings: settings)
+                .frame(width: 520, height: 600)
+                .tabItem { Label(String(localized: "Review", bundle: .module), systemImage: "eye") }
+            DisplaySettings(settings: settings)
+                .frame(width: 520, height: 300)
+                .tabItem {
+                    Label(String(localized: "Display", bundle: .module), systemImage: "textformat")
+                }
+            EditorSettings(settings: settings)
+                .frame(width: 520, height: 200)
+                .tabItem {
+                    Label(String(localized: "Editor", bundle: .module), systemImage: "pencil")
+                }
+        }
+        .formStyle(.grouped)
+    }
+}
+
+struct ReviewSettings: View {
+    @Bindable var settings: AppSettings
+
+    var body: some View {
+        Form {
+            Section {
                 TextField(
                     String(localized: "Default base", bundle: .module), text: $settings.defaultBase,
-                    prompt: Text("origin/HEAD, then origin/main, then main", bundle: .module))
-                lines(
-                    String(localized: "Never use as a parent", bundle: .module),
-                    $settings.ignoredRefs)
-                lines(
-                    String(localized: "Generated files", bundle: .module), $settings.generatedGlobs)
+                    prompt: Text("Automatic", bundle: .module))
+                LineListEditor(
+                    title: String(localized: "Never use as a parent", bundle: .module),
+                    values: $settings.ignoredRefs)
+            } header: {
+                Text("Base", bundle: .module)
+            } footer: {
+                Text(
+                    "Automatic tries origin/HEAD, then origin/main, then main. Refs matching a pattern, one per line, are never picked as a worktree's parent.",
+                    bundle: .module
+                )
+                .settingsFootnote()
+            }
+
+            Section {
                 Picker(
                     String(localized: "Whitespace", bundle: .module),
                     selection: $settings.whitespace
                 ) {
-                    Text("Show changes", bundle: .module).tag(WhitespaceMode.show)
+                    Text("Show all changes", bundle: .module).tag(WhitespaceMode.show)
                     Text("Ignore changes in amount", bundle: .module).tag(
                         WhitespaceMode.ignoreAmount)
-                    Text("Ignore all", bundle: .module).tag(WhitespaceMode.ignoreAll)
+                    Text("Ignore all whitespace", bundle: .module).tag(WhitespaceMode.ignoreAll)
                 }
+                NumberStepper(
+                    title: String(localized: "Context lines", bundle: .module),
+                    value: $settings.contextLines, range: 0...20)
                 Toggle(
                     String(localized: "Collapse files when marked viewed", bundle: .module),
                     isOn: $settings.collapsesViewed)
-                Stepper(value: $settings.contextLines, in: 0...20) {
-                    Text("Context lines: \(settings.contextLines)", bundle: .module)
-                }
+                LineListEditor(
+                    title: String(localized: "Generated files", bundle: .module),
+                    values: $settings.generatedGlobs)
+            } header: {
+                Text("Diff", bundle: .module)
+            } footer: {
+                Text(
+                    "Files matching a pattern, one per line, or marked linguist-generated in .gitattributes start collapsed under Generated. Changes apply the next time a worktree loads.",
+                    bundle: .module
+                )
+                .settingsFootnote()
             }
-            .tabItem { Label(String(localized: "Review", bundle: .module), systemImage: "eye") }
+        }
+    }
+}
 
-            Form {
+struct DisplaySettings: View {
+    @Bindable var settings: AppSettings
+
+    var body: some View {
+        Form {
+            Section {
                 TextField(
                     String(localized: "Font", bundle: .module), text: $settings.fontName,
                     prompt: Text("SF Mono", bundle: .module))
-                Stepper(value: $settings.fontSize, in: 8...32) {
-                    Text("Size: \(Int(settings.fontSize))", bundle: .module)
-                }
-                Stepper(value: $settings.tabWidth, in: 1...16) {
-                    Text("Tab width: \(settings.tabWidth)", bundle: .module)
-                }
-                Text("A repository's .editorconfig overrides the tab width.", bundle: .module)
-                    .font(.caption).foregroundStyle(.secondary)
+                NumberStepper(
+                    title: String(localized: "Size", bundle: .module),
+                    value: Binding(
+                        get: { Int(settings.fontSize) }, set: { settings.fontSize = Double($0) }),
+                    range: 8...32)
+                NumberStepper(
+                    title: String(localized: "Tab width", bundle: .module),
+                    value: $settings.tabWidth, range: 1...16)
+            } footer: {
+                Text(
+                    "View › Make Text Bigger and Make Text Smaller change the size too. A repository's .editorconfig overrides the tab width.",
+                    bundle: .module
+                )
+                .settingsFootnote()
+            }
+            Section {
                 Picker(
-                    String(localized: "Diff view", bundle: .module),
+                    String(localized: "Diff layout", bundle: .module),
                     selection: $settings.layoutMode
                 ) {
                     Text("Unified", bundle: .module).tag(DiffLayoutMode.unified)
                     Text("Side by side", bundle: .module).tag(DiffLayoutMode.split)
                 }
+                .pickerStyle(.segmented)
             }
-            .tabItem {
-                Label(String(localized: "Display", bundle: .module), systemImage: "textformat")
-            }
+        }
+    }
+}
 
-            Form {
+struct EditorSettings: View {
+    @Bindable var settings: AppSettings
+
+    var body: some View {
+        Form {
+            Section {
                 Picker(
                     String(localized: "Editor", bundle: .module),
                     selection: $settings.editorTemplate
@@ -75,40 +139,62 @@ struct SettingsView: View {
                 }
                 TextField(
                     String(localized: "Command", bundle: .module), text: $settings.editorTemplate)
+            } footer: {
                 Text(
-                    "{path} and {line} are filled in; the command runs with your login shell's PATH.",
+                    "Review › Open in Editor (O) runs the command with {path} and {line} filled in, using your login shell's PATH.",
                     bundle: .module
                 )
-                .font(.caption).foregroundStyle(.secondary)
-            }
-            .tabItem {
-                Label(String(localized: "Editor", bundle: .module), systemImage: "pencil")
+                .settingsFootnote()
             }
         }
-        .formStyle(.grouped)
-        .frame(width: 520, height: 420)
     }
+}
 
-    private func lines(_ title: String, _ values: Binding<[String]>) -> some View {
-        LabeledContent(title) { LineListEditor(values: values) }
+/// A number with a stepper beside it, as macOS settings show one.
+private struct NumberStepper: View {
+    let title: String
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+
+    var body: some View {
+        LabeledContent(title) {
+            HStack(spacing: 6) {
+                Text(value, format: .number).monospacedDigit()
+                Stepper(title, value: $value, in: range).labelsHidden()
+            }
+        }
     }
 }
 
 /// One entry per line. The text is kept as typed, so a new empty line survives until it has
 /// content; only the parsed entries go to the setting.
 private struct LineListEditor: View {
+    let title: String
     @Binding var values: [String]
     @State private var text = ""
 
     var body: some View {
-        TextEditor(text: $text)
-            .font(.body.monospaced())
-            .frame(height: 60)
-            .onAppear { text = values.joined(separator: "\n") }
-            .onChange(of: text) {
-                values = text.split(separator: "\n").map {
-                    $0.trimmingCharacters(in: .whitespaces)
-                }.filter { !$0.isEmpty }
-            }
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+            TextEditor(text: $text)
+                .font(.body.monospaced())
+                .scrollContentBackground(.hidden)
+                .padding(4)
+                .frame(height: 76)
+                .background(.background, in: RoundedRectangle(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.separator))
+        }
+        .onAppear { text = values.joined(separator: "\n") }
+        .onChange(of: text) {
+            values = text.split(separator: "\n").map {
+                $0.trimmingCharacters(in: .whitespaces)
+            }.filter { !$0.isEmpty }
+        }
+    }
+}
+
+extension Text {
+    fileprivate func settingsFootnote() -> some View {
+        font(.footnote).foregroundStyle(.secondary)
     }
 }

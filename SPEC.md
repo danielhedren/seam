@@ -749,6 +749,9 @@ in the View menu too). The default base may be a short name (`origin/develop`, `
 come from the repository's root `.editorconfig` (`tab_width`, or a numeric `indent_size`) where a
 section matches, else the setting; nested `.editorconfig` files aren't read.
 
+The Settings window has three tabs: Review (the base and the diff), Display and Editor. Each
+group says under it what its settings do. Lists of patterns take one per line.
+
 ## 13. CLI
 
 The app bundle includes a `seam` command, installed via a menu item that symlinks it into
