@@ -19,14 +19,15 @@ spec disagree, stop and ask; do not pick one silently.
 - `make check` must pass before every commit: format lint, build, `swift test`. Run `make setup`
   once per clone to install the pre-commit hook. Never bypass it with `--no-verify`.
 - `make format` rewrites files with `swift format`. Don't hand-format against it.
-- No new dependency without the user's approval. Allowed today: SwiftTreeSitter + grammars,
-  swift-argument-parser, swift-snapshot-testing (tests only). Pin exact versions.
+- No new dependency without the user's approval. Allowed today: SwiftTreeSitter,
+  swift-argument-parser, swift-snapshot-testing (tests only), and the tree-sitter grammars
+  vendored by `Scripts/vendor-grammars.sh`. Pin exact versions.
 
 ## Architecture (SPEC §8.2)
 
 - Module dependencies point downward only:
   `SeamApp → Features → DiffView / Highlighting → SeamCore → GitKit`. Never import upward or
-  sideways. `seam-debug` may use `SeamCore` and `GitKit`.
+  sideways. `seam-debug` and the `seam` command may use `SeamCore` and `GitKit`, nothing above them.
 - **Functional core, imperative shell.** Parsing, detection ranking, diff assembly, layout and
   viewed-state logic are pure functions over value types. I/O (processes, files, FSEvents,
   persistence) lives at the edges behind protocols.
