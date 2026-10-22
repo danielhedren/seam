@@ -34,6 +34,12 @@ final class DiffCanvasView: NSView {
     private var threadedRows: [Int: Set<ThreadAnchor.Side>] = [:]
     var menuForFile: ((String) -> NSMenu?)?
     var menuForLines: (() -> NSMenu?)?
+    /// The draft's text when its composer appears; edits go back through `onDraftChange`.
+    var draftText: (() -> String)?
+    var onDraftChange: ((String) -> Void)?
+    var onDraftSubmit: (() -> Void)?
+    var onDraftCancel: (() -> Void)?
+    private var draftEditor: DraftEditor?
     /// Nil follows the system's Increase Contrast setting; snapshot tests force it.
     var increaseContrastOverride: Bool?
     var increaseContrast: Bool {
@@ -97,22 +103,28 @@ final class DiffCanvasView: NSView {
         threads = content.threads
         defer { shown = content }
         selection = nil
-        if let shown, let files = Self.collapseOnlyChange(from: shown, to: content) {
+        if let shown, let files = Self.spliceableChange(from: shown, to: content) {
             relayout(splicing: files, in: content)
             return
         }
         relayout(DiffRowBuilder.rows(for: content), width: geometry.visibleWidth)
     }
 
-    /// The files whose collapse changed, when that (and viewed marks) is all that changed.
-    static func collapseOnlyChange(from old: DiffContent, to new: DiffContent) -> [Int]? {
+    /// The files to rebuild when collapses, viewed marks and the draft are all that changed.
+    static func spliceableChange(from old: DiffContent, to new: DiffContent) -> [Int]? {
         var same = old
         same.collapsed = new.collapsed
         same.viewed = new.viewed
+        same.draft = new.draft
         guard same == new else { return nil }
-        let changed = old.collapsed.symmetricDifference(new.collapsed)
+        var changed = old.collapsed.symmetricDifference(new.collapsed)
+        if old.draft != new.draft {
+            for draft in [old.draft, new.draft] { if let draft { changed.insert(draft.path) } }
+        }
         return new.review.files.indices.filter { changed.contains(new.review.files[$0].diff.path) }
     }
+
+    var shownDraft: DraftMarker? { shown?.draft }
 
     /// Rebuilds only `files`, last first so earlier files' row positions stay valid: marking a
     /// file viewed collapses it, and rebuilding every row would cost a 20k-line diff tens of
@@ -156,6 +168,7 @@ final class DiffCanvasView: NSView {
         }
         threadedRows = DiffRowBuilder.threadedRows(rows, paths: paths, threads: threads)
         resize()
+        updateDraftEditor()
     }
 
     private func resize() {
@@ -206,6 +219,8 @@ final class DiffCanvasView: NSView {
                 rowTop: rect.minY, color: palette.gutterText, context: context)
         case .image(let file):
             drawImages(file: file, in: chromeRect(ofRow: index), palette: palette, context: context)
+        case .draft(_, let marker):
+            drawDraft(marker, row: index, palette: palette, context: context)
         case .thread(_, let marker):
             // A tint of its own, so a thread never reads as a hunk header or a gap.
             context.setFillColor(NSColor.systemYellow.withAlphaComponent(0.14).cgColor)
@@ -261,7 +276,7 @@ final class DiffCanvasView: NSView {
     func horizontalScrollDidChange() {
         for row in layout.rows(in: visibleRect.minY, visibleRect.maxY) {
             switch layout.rows[row] {
-            case .fileHeader, .image:
+            case .fileHeader, .image, .draft:
                 setNeedsDisplay(
                     NSRect(
                         x: 0, y: layout.top(of: row), width: bounds.width,
@@ -269,6 +284,7 @@ final class DiffCanvasView: NSView {
             default: break
             }
         }
+        updateDraftEditor()
     }
 
     /// A bar at the left of the gutter beside a thread's lines, on the side the thread is on.
@@ -483,4 +499,95 @@ private struct LineKey: Hashable {
     var side: DiffSide
     /// The visual line within a wrapped row.
     var chunk = 0
+}
+
+// MARK: - Draft composer
+
+extension DiffCanvasView {
+    /// The composer's frame: the draft's column in split mode, the visible width in unified.
+    private func draftFrame(row: Int, side: ThreadAnchor.Side) -> NSRect {
+        var rect = chromeRect(ofRow: row)
+        if mode == .split {
+            rect.origin.x = side == .old ? 0 : geometry.columnWidth
+            rect.size.width = geometry.columnWidth
+        }
+        return rect.insetBy(dx: 8, dy: 4)
+    }
+
+    fileprivate func drawDraft(
+        _ marker: DraftMarker, row: Int, palette: DiffPalette, context: CGContext
+    ) {
+        if mode == .split {
+            let rect = chromeRect(ofRow: row)
+            fill(
+                NSRect(x: geometry.columnWidth, y: rect.minY, width: 1, height: rect.height),
+                palette.separator, context)
+        }
+        let frame = draftFrame(row: row, side: marker.side)
+        let shape = CGPath(
+            roundedRect: frame, cornerWidth: 6, cornerHeight: 6, transform: nil)
+        context.addPath(shape)
+        context.setFillColor(palette.background.nsColor.cgColor)
+        context.fillPath()
+        context.addPath(shape)
+        context.setStrokeColor(NSColor.controlAccentColor.cgColor)
+        context.setLineWidth(1)
+        context.strokePath()
+        let lines =
+            marker.lines.count == 1
+            ? "\(marker.lines.lowerBound)"
+            : "\(marker.lines.lowerBound)–\(marker.lines.upperBound)"
+        let title =
+            marker.side == .old
+            ? String(localized: "New thread on \(marker.path), old line \(lines)", bundle: .module)
+            : String(localized: "New thread on \(marker.path), line \(lines)", bundle: .module)
+        let lineHeight = layout.metrics.lineHeight
+        drawText(
+            title, key: nil, x: frame.minX + 10, rowTop: frame.minY + 2,
+            color: palette.gutterText, context: context)
+        let hint = String(localized: "⌘↩ comment   esc cancel", bundle: .module)
+        drawText(
+            hint, key: nil,
+            x: frame.maxX - 10 - Double(hint.count) * layout.metrics.characterWidth,
+            rowTop: frame.maxY - lineHeight - 2, color: palette.gutterText, context: context)
+    }
+
+    /// Keeps the editor on the draft's row, and removes it with the row, handing focus back.
+    fileprivate func updateDraftEditor() {
+        guard let row = draftRow, case .draft(_, let marker) = layout.rows[row] else {
+            guard let editor = draftEditor else { return }
+            let hadFocus = window?.firstResponder === editor.textView
+            editor.removeFromSuperview()
+            draftEditor = nil
+            if hadFocus { window?.makeFirstResponder(self) }
+            return
+        }
+        let editor = draftEditor ?? makeDraftEditor()
+        if editor.textView.font != font { editor.textView.font = font }
+        let lineHeight = layout.metrics.lineHeight
+        editor.frame =
+            draftFrame(row: row, side: marker.side).insetBy(dx: 8, dy: 0)
+            .divided(atDistance: lineHeight + 4, from: .minYEdge).remainder
+            .divided(atDistance: lineHeight + 4, from: .maxYEdge).remainder
+    }
+
+    private func makeDraftEditor() -> DraftEditor {
+        let editor = DraftEditor(text: draftText?() ?? "", font: font)
+        editor.textView.placeholder = String(localized: "Write a comment…", bundle: .module)
+        editor.onChange = { [weak self] text in self?.onDraftChange?(text) }
+        editor.textView.onSubmit = { [weak self] in self?.onDraftSubmit?() }
+        editor.textView.onCancel = { [weak self] in self?.onDraftCancel?() }
+        addSubview(editor)
+        draftEditor = editor
+        return editor
+    }
+
+    func focusDraft() {
+        guard let draftEditor else { return }
+        window?.makeFirstResponder(draftEditor.textView)
+    }
+
+    var draftRow: Int? {
+        layout.rows.firstIndex { if case .draft = $0 { true } else { false } }
+    }
 }

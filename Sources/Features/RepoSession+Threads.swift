@@ -1,4 +1,5 @@
 import AppKit
+import DiffView
 import SeamCore
 
 /// A thread being written, before it's posted (SPEC §7.7). Kept in the session, not the
@@ -12,14 +13,28 @@ struct ThreadDraft: Equatable {
 /// Review threads from the reader's side: writing, answering, resolving, and handing them to an
 /// agent (SPEC §7.7).
 extension RepoSession {
-    /// `c`: a draft on the selected lines, or the one being read, in the thread panel.
+    /// `c`: a draft on the selected lines, or the one being read, written in the diff.
     func comment() {
         guard let review = selected, let target = diff.commentTarget,
             let anchor = review.anchor(path: target.path, side: target.side, lines: target.lines)
         else { return }
         draft = ThreadDraft(worktree: review.id, anchor: anchor)
         selectedThreadID = nil
-        showsThreadPanel = true
+    }
+
+    /// Where the diff opens the composer: the draft, when it's on the worktree shown.
+    func draftMarker(for review: WorktreeReview) -> DraftMarker? {
+        guard let draft, draft.worktree == review.id else { return nil }
+        return DraftMarker(
+            path: draft.anchor.path, side: draft.anchor.side, lines: draft.anchor.lines)
+    }
+
+    /// ⌘↩ in the composer; an empty draft isn't posted.
+    func submitDraft() async {
+        guard let body = draft?.body,
+            !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else { return }
+        await post(body)
     }
 
     func post(_ body: String) async {

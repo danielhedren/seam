@@ -149,7 +149,7 @@ import Testing
 
         content.collapsed = ["a.txt"]
         #expect(
-            DiffCanvasView.collapseOnlyChange(
+            DiffCanvasView.spliceableChange(
                 from: DiffContent(review: content.review), to: content) == [0])
         canvas.show(content)
         #expect(canvas.layout.rows == DiffRowBuilder.rows(for: content))
@@ -160,7 +160,7 @@ import Testing
 
         content.mode = .split
         #expect(
-            DiffCanvasView.collapseOnlyChange(
+            DiffCanvasView.spliceableChange(
                 from: DiffContent(review: content.review), to: content) == nil)
     }
 }

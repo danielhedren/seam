@@ -22,6 +22,7 @@ struct DiffRepresentable: NSViewRepresentable {
             var wraps: Bool
             var viewed: ViewedMarks
             var expansions: [String: [Int: GapExpansion]]
+            var draft: DraftMarker?
         }
         var shown: Shown?
     }
@@ -40,6 +41,10 @@ struct DiffRepresentable: NSViewRepresentable {
             session.find.result = (current, total)
         }
         view.onOpenThread = { [session] id in session.openThread(id) }
+        view.draftText = { [session] in session.draft?.body ?? "" }
+        view.onDraftChange = { [session] text in session.draft?.body = text }
+        view.onDraftSubmit = { [session] in Task { await session.submitDraft() } }
+        view.onDraftCancel = { [session] in session.draft = nil }
         view.menuForLines = { [session] in FileActions.lineMenu(in: session) }
         view.onExpand = { [session] path, gap, direction in
             session.selected?.expand(path, gap: gap, direction)
@@ -57,11 +62,11 @@ struct DiffRepresentable: NSViewRepresentable {
             mode: review.mode,
             collapsed: review.collapsed, contentsVersion: review.contentsVersion,
             syntaxVersion: review.syntaxVersion, wraps: review.wraps, viewed: review.viewed,
-            expansions: review.expansions)
+            expansions: review.expansions, draft: session.draftMarker(for: review))
         guard shown != context.coordinator.shown else { return }
         let previous = context.coordinator.shown
         // The view itself rebuilds only what a collapse or viewed toggle changes.
-        guard let content = review.content else {
+        guard var content = review.content else {
             // Not loaded yet, or the worktree's directory went missing: show nothing stale.
             if previous != nil {
                 view.show(
@@ -79,6 +84,7 @@ struct DiffRepresentable: NSViewRepresentable {
             } else {
                 .top
             }
+        content.draft = shown.draft
         view.show(content, position: position)
         context.coordinator.shown = shown
     }

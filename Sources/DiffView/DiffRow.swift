@@ -53,12 +53,14 @@ enum DiffRow: Equatable, Sendable {
     case gap(file: Int, GapRow)
     /// A review thread's summary, after the last line it's on (SPEC §7.7).
     case thread(file: Int, ThreadMarker)
+    /// The composer for a new thread, after its last line and that line's threads.
+    case draft(file: Int, DraftMarker)
 
     var file: Int {
         switch self {
         case .fileHeader(let file), .hunkHeader(let file, _, _), .line(let file, _),
             .split(let file, _, _), .notice(let file, _), .gap(let file, _), .image(let file),
-            .thread(let file, _):
+            .thread(let file, _), .draft(let file, _):
             file
         }
     }

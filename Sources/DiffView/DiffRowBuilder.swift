@@ -15,9 +15,11 @@ enum DiffRowBuilder {
 
     /// One file's rows, from its header on; lets a collapse rebuild only that file.
     static func rows(forFile index: Int, in content: DiffContent) -> [DiffRow] {
-        insertingThreads(
-            content.threads[content.review.files[index].diff.path] ?? [],
-            into: fileRows(index, in: content), file: index)
+        let path = content.review.files[index].diff.path
+        let rows = insertingThreads(
+            content.threads[path] ?? [], into: fileRows(index, in: content), file: index)
+        guard let draft = content.draft, draft.path == path else { return rows }
+        return insertingDraft(draft, into: rows, file: index)
     }
 
     private static func fileRows(_ index: Int, in content: DiffContent) -> [DiffRow] {

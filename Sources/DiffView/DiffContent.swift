@@ -25,15 +25,18 @@ public struct DiffContent: Equatable, Sendable {
     public var tabWidths: [String: Int]
     /// Review threads by path, placed on the lines they're on now (SPEC §7.7).
     public var threads: [String: [ThreadMarker]]
+    public var draft: DraftMarker?
 
     public init(
         review: ReviewDiff, mode: DiffLayoutMode = .unified, collapsed: Set<String> = [],
         contents: [String: FileContents] = [:], expansions: [String: [Int: GapExpansion]] = [:],
         syntax: [String: FileSyntax] = [:], wraps: Bool = false,
         viewed: [String: ViewedMarks.Status] = [:], tabWidth: Int = 4,
-        tabWidths: [String: Int] = [:], threads: [String: [ThreadMarker]] = [:]
+        tabWidths: [String: Int] = [:], threads: [String: [ThreadMarker]] = [:],
+        draft: DraftMarker? = nil
     ) {
         self.threads = threads
+        self.draft = draft
         self.tabWidth = tabWidth
         self.tabWidths = tabWidths
         self.wraps = wraps

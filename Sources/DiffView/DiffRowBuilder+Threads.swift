@@ -32,6 +32,21 @@ extension DiffRowBuilder {
         return result
     }
 
+    /// A draft's composer goes after the row showing its last line, below that line's threads.
+    /// Like a thread, it gets no row when its last line isn't shown.
+    static func insertingDraft(_ draft: DraftMarker, into rows: [DiffRow], file: Int) -> [DiffRow] {
+        guard
+            var index = rows.firstIndex(where: {
+                number(of: $0, on: draft.side) == draft.lines.upperBound
+            })
+        else { return rows }
+        index += 1
+        while index < rows.count, case .thread = rows[index] { index += 1 }
+        var result = rows
+        result.insert(.draft(file: file, draft), at: index)
+        return result
+    }
+
     /// The rows inside a thread's range, and the side the range is on, for the gutter mark.
     static func threadedRows(_ rows: [DiffRow], paths: [String], threads: [String: [ThreadMarker]])
         -> [Int: Set<ThreadAnchor.Side>]

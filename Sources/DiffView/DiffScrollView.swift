@@ -107,6 +107,7 @@ public final class DiffScrollView: NSScrollView {
     public func show(_ content: DiffContent, position: Position) {
         let kept = position == .keep ? anchor : nil
         let matchRow = currentMatch.map { matches[$0].row }
+        let previousDraft = canvas.shownDraft
         canvas.show(content)
         if !query.isEmpty { refreshMatches(near: matchRow ?? 0, reveal: false) }
         canvas.setVisibleWidth(contentSize.width)
@@ -117,7 +118,21 @@ public final class DiffScrollView: NSScrollView {
         case .anchor(let anchor): restore(anchor)
         case .file(let path): scroll(toFile: path)
         }
+        if let draft = content.draft, draft != previousDraft { revealDraft() }
         updateSticky()
+    }
+
+    /// Scrolls a new draft's composer fully into view and puts the cursor in it.
+    private func revealDraft() {
+        guard let row = canvas.draftRow else { return }
+        let top = layout.top(of: row)
+        let bottom = top + layout.height(of: row)
+        if top < visibleTop + headerHeight {
+            scroll(toY: top - headerHeight)
+        } else if bottom > visibleTop + contentSize.height {
+            scroll(toY: bottom - contentSize.height)
+        }
+        canvas.focusDraft()
     }
 
     /// The line just below the sticky header, which is what the reader is looking at.
@@ -133,6 +148,22 @@ public final class DiffScrollView: NSScrollView {
 
     public var onOpenThread: ((String) -> Void)? {
         didSet { canvas.onOpenThread = onOpenThread }
+    }
+
+    /// The draft's text when its composer appears (SPEC §7.7).
+    public var draftText: (() -> String)? {
+        didSet { canvas.draftText = draftText }
+    }
+    public var onDraftChange: ((String) -> Void)? {
+        didSet { canvas.onDraftChange = onDraftChange }
+    }
+    /// ⌘↩ in the composer.
+    public var onDraftSubmit: (() -> Void)? {
+        didSet { canvas.onDraftSubmit = onDraftSubmit }
+    }
+    /// Escape in the composer.
+    public var onDraftCancel: (() -> Void)? {
+        didSet { canvas.onDraftCancel = onDraftCancel }
     }
 
     /// Where `c` puts a new thread (SPEC §7.7): the selected lines, else the one being read.

@@ -381,8 +381,9 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
 - **Creating:** select lines in the diff (or put the cursor on one) and press `c`, or Review ›
   Comment, or right-click: "Comment on Line N" for the clicked line, or "Comment on Lines N–M"
   when the click is inside a selection, which a right-click elsewhere replaces with the clicked
-  line. A composer opens in the thread panel; ⌘↩ posts. An unposted draft, text included, stays
-  while the reader looks at other worktrees and is there again on coming back.
+  line. A composer opens in the diff under the last of those lines (in their column side by
+  side), with the cursor in it; ⌘↩ posts and Escape cancels. An unposted draft, text included,
+  stays while the reader looks at other worktrees and is there again on coming back.
 - **Old or new side:** a thread goes on the new side unless its lines are only removed ones,
   which exist only in the old file. Unchanged lines go on the new side whichever column of the
   side-by-side view they were picked in, so the thread follows the code as it's edited and

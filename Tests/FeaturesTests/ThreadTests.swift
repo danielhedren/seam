@@ -1,4 +1,5 @@
 import AppKit
+import DiffView
 import Foundation
 import GitKit
 import SeamCore
@@ -46,6 +47,29 @@ import Testing
         await reviewed.loaded()
         #expect(reviewed.placedThreads.map(\.placement) == [.outdated])
         #expect(reviewed.content?.threads.isEmpty == true)
+    }
+
+    @Test func cOpensTheComposerInTheDiffAndCommandReturnPostsIt() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\ntwo\n")
+        let (session, review, _) = await session(repo)
+        let reviewed = try #require(review)
+        try showDiff(session)
+
+        session.comment()
+
+        let draft = try #require(session.draft)
+        #expect(!session.showsThreadPanel)
+        #expect(
+            session.draftMarker(for: reviewed)
+                == DraftMarker(path: "a.txt", side: .new, lines: draft.anchor.lines))
+        await session.submitDraft()
+        #expect(session.draft != nil, "an empty draft isn't posted")
+        session.draft?.body = "Why two?"
+        await session.submitDraft()
+        #expect(session.draft == nil)
+        #expect(session.draftMarker(for: reviewed) == nil)
+        #expect(reviewed.placedThreads.map(\.thread.comments.first?.body) == ["Why two?"])
     }
 
     @Test func anUnpostedDraftAndItsTextSurviveSwitchingWorktrees() async throws {

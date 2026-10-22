@@ -35,3 +35,16 @@ public struct ThreadMarker: Equatable, Sendable {
         return "\(latestAuthor): \(latest)   \(count)\(status)"
     }
 }
+
+/// A thread being written (SPEC §7.7): the diff opens its composer under the last line.
+public struct DraftMarker: Equatable, Sendable {
+    public var path: String
+    public var side: ThreadAnchor.Side
+    public var lines: ClosedRange<Int>
+
+    public init(path: String, side: ThreadAnchor.Side, lines: ClosedRange<Int>) {
+        self.path = path
+        self.side = side
+        self.lines = lines
+    }
+}

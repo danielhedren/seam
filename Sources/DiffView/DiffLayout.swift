@@ -9,6 +9,9 @@ struct DiffLayout: Equatable, Sendable {
         var fileHeaderHeight: Double
         var characterWidth: Double
         var imageHeight = 240.0
+
+        /// A title line, four lines of text and the key hints.
+        var draftHeight: Double { (lineHeight * 7).rounded() }
     }
 
     let rows: [DiffRow]
@@ -34,6 +37,7 @@ struct DiffLayout: Equatable, Sendable {
                 switch row {
                 case .fileHeader: metrics.fileHeaderHeight
                 case .image: metrics.imageHeight
+                case .draft: metrics.draftHeight
                 case .hunkHeader(_, _, .separator): (metrics.lineHeight / 3).rounded()
                 case .hunkHeader(_, _, .hidden): 0.0
                 case .line(_, let line):
@@ -133,7 +137,7 @@ struct DiffLayout: Equatable, Sendable {
         case .hunkHeader(_, _, .titled(let text)), .notice(_, let text): text.count
         case .gap(_, let gap): DiffRowBuilder.gapLabel(gap).text.count
         case .thread(_, let marker): marker.text.count
-        case .fileHeader, .image, .hunkHeader: 0
+        case .fileHeader, .image, .hunkHeader, .draft: 0
         }
     }
 }

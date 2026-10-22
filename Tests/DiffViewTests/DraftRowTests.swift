@@ -1,0 +1,112 @@
+import AppKit
+import GitKit
+import SeamCore
+import SnapshotTesting
+import Testing
+
+@testable import DiffView
+
+/// a.txt: line 2 replaced by two lines, so new 2-3 are added and old 2 is removed.
+private func review() -> ReviewDiff {
+    var hunk = Hunk(oldStart: 1, oldCount: 3, newStart: 1, newCount: 4, section: "")
+    hunk.lines = [
+        DiffLine(kind: .context, text: "one", oldNumber: 1, newNumber: 1),
+        DiffLine(kind: .removed, text: "two", oldNumber: 2, newNumber: nil),
+        DiffLine(kind: .added, text: "two a", oldNumber: nil, newNumber: 2),
+        DiffLine(kind: .added, text: "two b", oldNumber: nil, newNumber: 3),
+        DiffLine(kind: .context, text: "three", oldNumber: 3, newNumber: 4),
+    ]
+    var file = FileDiff(oldPath: "a.txt", newPath: "a.txt", status: .modified)
+    file.hunks = [hunk]
+    return ReviewDiff(scope: .all, files: [ReviewFile(diff: file)])
+}
+
+private func texts(_ rows: [DiffRow]) -> [String] {
+    rows.compactMap {
+        switch $0 {
+        case .line(_, let line): line.text
+        case .thread(_, let marker): "[\(marker.id)]"
+        case .draft: "[draft]"
+        default: nil
+        }
+    }
+}
+
+@MainActor @Suite struct DraftRowTests {
+    private let draft = DraftMarker(path: "a.txt", side: .new, lines: 2...3)
+
+    @Test func theComposerFollowsItsLastLineBelowThatLinesThreads() {
+        let thread = ThreadMarker(
+            id: "t", side: .new, lines: 3...3, latestAuthor: "you", latest: "Why?",
+            commentCount: 1, isResolved: false)
+        let rows = DiffRowBuilder.rows(
+            for: DiffContent(review: review(), threads: ["a.txt": [thread]], draft: draft))
+        #expect(texts(rows) == ["one", "two", "two a", "two b", "[t]", "[draft]", "three"])
+        let elsewhere = DiffContent(
+            review: review(), draft: DraftMarker(path: "b.txt", side: .new, lines: 1...1))
+        #expect(!texts(DiffRowBuilder.rows(for: elsewhere)).contains("[draft]"))
+    }
+
+    @Test func aDraftComingOrGoingRebuildsOnlyItsFile() {
+        let content = DiffContent(review: review())
+        var drafted = content
+        drafted.draft = draft
+        #expect(DiffCanvasView.spliceableChange(from: content, to: drafted) == [0])
+        #expect(DiffCanvasView.spliceableChange(from: drafted, to: content) == [0])
+    }
+
+    @Test func theEditorStartsWithTheDraftsTextAndReportsEditsSubmitAndCancel() throws {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 400), styleMask: [.titled],
+            backing: .buffered, defer: false)
+        let view = DiffScrollView()
+        window.contentView = view
+        var edits: [String] = []
+        var submits = 0
+        var cancels = 0
+        view.draftText = { "Half" }
+        view.onDraftChange = { edits.append($0) }
+        view.onDraftSubmit = { submits += 1 }
+        view.onDraftCancel = { cancels += 1 }
+
+        view.show(DiffContent(review: review(), draft: draft), position: .top)
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        let editor = try #require(canvas.subviews.compactMap { $0 as? DraftEditor }.first)
+        #expect(editor.textView.string == "Half")
+        #expect(window.firstResponder === editor.textView)
+        let row = try #require(canvas.draftRow)
+        let rowTop = canvas.layout.top(of: row)
+        #expect(editor.frame.minY > rowTop)
+        #expect(editor.frame.maxY < rowTop + canvas.layout.height(of: row))
+
+        editor.textView.insertText(" a thought", replacementRange: editor.textView.selectedRange())
+        #expect(edits.last == "Half a thought")
+        let submit = try #require(
+            NSEvent.keyEvent(
+                with: .keyDown, location: .zero, modifierFlags: .command, timestamp: 0,
+                windowNumber: window.windowNumber, context: nil, characters: "\r",
+                charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
+        #expect(editor.textView.performKeyEquivalent(with: submit))
+        #expect(submits == 1)
+        editor.textView.cancelOperation(nil)
+        #expect(cancels == 1)
+
+        view.show(DiffContent(review: review()), position: .keep)
+        #expect(canvas.subviews.compactMap { $0 as? DraftEditor }.isEmpty)
+        #expect(window.firstResponder === canvas)
+    }
+
+    @Test(arguments: [DiffLayoutMode.unified, .split])
+    func theComposerSitsInItsColumn(mode: DiffLayoutMode) {
+        let view = DiffScrollView()
+        view.appearance = NSAppearance(named: .aqua)
+        view.scrollerStyle = .overlay
+        view.increaseContrastOverride = false
+        view.frame = NSRect(x: 0, y: 0, width: 700, height: 300)
+        view.draftText = { "Why two lines?" }
+        view.show(DiffContent(review: review(), mode: mode, draft: draft), position: .top)
+        view.layoutSubtreeIfNeeded()
+        let os = "macOS\(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)"
+        assertSnapshot(of: view, as: .image, named: "draft-\(mode)-\(os)")
+    }
+}

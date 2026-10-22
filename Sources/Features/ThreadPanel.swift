@@ -1,16 +1,14 @@
 import SeamCore
 import SwiftUI
 
-/// The thread panel (SPEC §7.7): a worktree's threads by file, open ones first, the selected one
-/// with its conversation and a reply box, and the composer for a new one.
+/// The thread panel (SPEC §7.7): a worktree's threads by file, open ones first, and the selected
+/// one with its conversation and a reply box.
 struct ThreadPanel: View {
     let session: RepoSession
     let review: WorktreeReview
 
     var body: some View {
         let placed = review.placedThreads
-        // The draft stays with its worktree while others are shown.
-        let draft = session.draft.flatMap { $0.worktree == review.id ? $0 : nil }
         VStack(spacing: 0) {
             header(placed)
             Divider()
@@ -20,10 +18,7 @@ struct ThreadPanel: View {
             }
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 10) {
-                    if let draft {
-                        DraftComposer(session: session, draft: draft)
-                    }
-                    if placed.isEmpty, draft == nil {
+                    if placed.isEmpty {
                         ContentUnavailableView(
                             String(localized: "No threads", bundle: .module),
                             systemImage: "text.bubble",
@@ -228,47 +223,5 @@ private struct ThreadCard: View {
             markdown: text,
             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
             ?? AttributedString(text)
-    }
-}
-
-private struct DraftComposer: View {
-    let session: RepoSession
-    let draft: ThreadDraft
-    @FocusState private var focused: Bool
-
-    private var text: Binding<String> {
-        Binding(get: { session.draft?.body ?? "" }, set: { session.draft?.body = $0 })
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(
-                String(
-                    localized: "New thread on \(draft.anchor.path)", bundle: .module)
-            )
-            .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            .lineLimit(1).truncationMode(.middle)
-            QuotedLines(anchor: draft.anchor)
-            TextField(
-                String(localized: "Comment", bundle: .module), text: text, axis: .vertical
-            )
-            .lineLimit(3...10)
-            .textFieldStyle(.roundedBorder)
-            .focused($focused)
-            HStack {
-                Button(String(localized: "Cancel", bundle: .module)) { session.draft = nil }
-                    .keyboardShortcut(.cancelAction)
-                Spacer()
-                Button(String(localized: "Comment", bundle: .module)) {
-                    Task { await session.post(draft.body) }
-                }
-                .keyboardShortcut(.return, modifiers: .command)
-                .disabled(draft.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-            .controlSize(.small)
-        }
-        .padding(8)
-        .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(.tint))
-        .onAppear { focused = true }
     }
 }
