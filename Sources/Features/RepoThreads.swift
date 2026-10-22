@@ -121,6 +121,8 @@ final class RepoThreads {
                 bundle: .module)
         case .unreadable(let message):
             String(localized: "Couldn't read the threads: \(message)", bundle: .module)
+        case .unwritable(let message):
+            String(localized: "Couldn't save the threads: \(message)", bundle: .module)
         }
     }
 }

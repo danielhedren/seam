@@ -41,13 +41,13 @@ public struct ThreadStore: Sendable {
             try FileManager.default.createDirectory(
                 at: directory, withIntermediateDirectories: true)
         } catch {
-            throw .unreadable(error.localizedDescription)
+            throw .unwritable(error.localizedDescription)
         }
         let lock = open(url.path + ".lock", O_CREAT | O_RDWR, 0o644)
-        guard lock >= 0 else { throw .unreadable(String(cString: strerror(errno))) }
+        guard lock >= 0 else { throw .unwritable(String(cString: strerror(errno))) }
         defer { close(lock) }
         guard flock(lock, LOCK_EX) == 0 else {
-            throw .unreadable(String(cString: strerror(errno)))
+            throw .unwritable(String(cString: strerror(errno)))
         }
         defer { flock(lock, LOCK_UN) }
         var threads = try read(url)
@@ -87,12 +87,12 @@ public struct ThreadStore: Sendable {
             let data = try encoder.encode(Contents(version: Self.formatVersion, threads: threads))
             try data.write(to: temporary)
         } catch {
-            throw .unreadable(error.localizedDescription)
+            throw .unwritable(error.localizedDescription)
         }
         guard rename(temporary.path, url.path) == 0 else {
             let message = String(cString: strerror(errno))
             try? FileManager.default.removeItem(at: temporary)
-            throw .unreadable(message)
+            throw .unwritable(message)
         }
     }
 }

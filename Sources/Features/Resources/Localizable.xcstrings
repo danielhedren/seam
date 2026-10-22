@@ -157,6 +157,9 @@
     "Couldn't run git: %@" : {
 
     },
+    "Couldn't save the threads: %@" : {
+
+    },
     "Custom" : {
 
     },

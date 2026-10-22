@@ -149,6 +149,22 @@ private func ids() -> () -> String {
         }
         #expect(try Data(contentsOf: file) == newer)
     }
+
+    @Test func aStoreThatCantBeWrittenSaysSoRatherThanUnreadable() throws {
+        let directory = try TemporaryDirectory()
+        // A file where the store's folder should be, so creating the folder fails.
+        let blocked = directory.url.appending(path: "threads")
+        try Data().write(to: blocked)
+        let store = ThreadStore(directory: blocked)
+
+        let error = #expect(throws: ThreadError.self) {
+            try store.update(repository) { _ throws(ThreadError) in }
+        }
+        guard case .unwritable = error else {
+            Issue.record("expected .unwritable, got \(String(describing: error))")
+            return
+        }
+    }
 }
 
 @Suite struct ThreadTextTests {

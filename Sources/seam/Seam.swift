@@ -259,6 +259,7 @@ extension ThreadError: CustomStringConvertible {
         case .unsupportedVersion(let version):
             "the thread store was written by a newer Seam (format \(version))"
         case .unreadable(let message): "can't read the thread store: \(message)"
+        case .unwritable(let message): "can't write the thread store: \(message)"
         }
     }
 }

@@ -92,6 +92,7 @@ public enum ThreadError: Error, Equatable, Sendable {
     /// The store was written by a newer Seam; it isn't touched.
     case unsupportedVersion(Int)
     case unreadable(String)
+    case unwritable(String)
 }
 
 /// The rules for changing threads, as pure functions over the list (SPEC §7.7).
