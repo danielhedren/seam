@@ -7,8 +7,7 @@ struct WorktreeList: View {
     var body: some View {
         List(selection: Binding(get: { session.selectedID }, set: { session.select($0) })) {
             ForEach(session.sortedReviews) { review in
-                WorktreeRow(review: review, isSelected: review.id == session.selectedID)
-                    .tag(review.id)
+                WorktreeRow(review: review).tag(review.id)
             }
         }
         .navigationTitle(session.repositoryName)
@@ -27,17 +26,10 @@ struct WorktreeList: View {
 
 struct WorktreeRow: View {
     let review: WorktreeReview
-    let isSelected: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 4) {
-                Text(review.worktree.name).bold().lineLimit(1).truncationMode(.middle)
-                if isSelected {
-                    Image(systemName: "diamond.fill").font(.caption2).foregroundStyle(.tint)
-                        .accessibilityHidden(true)
-                }
-            }
+            Text(review.worktree.name).bold().lineLimit(1).truncationMode(.middle)
             if let branch = review.worktree.branch, branch != review.worktree.name {
                 Text(branch).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     .truncationMode(.middle)

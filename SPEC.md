@@ -217,7 +217,7 @@ keeps the position.
 ```
 ┌ Worktrees ─────────────┬ Files ────────────┬ Diff ──────────────────────────────────┐
 │ work-repo       │ 19 files +454 −948│ vs origin/feat/a · 5 commits ▾│
-│ ● feat-b  ◆ │ ▾ src/Orders.Svc   │                              ⇆  ≡      │
+│ ● feat-b    │ ▾ src/Orders.Svc   │                              ⇆  ≡      │
 │   +5  ✎2  2m           │   M Delivery…cs ✓ │                                        │
 │ ● feat-a      │   M Options.cs    │  (side-by-side or unified diff)        │
 │   +12      1h          │ ▾ contracts/…     │                                        │
@@ -241,7 +241,6 @@ Each row shows:
   files' modification times (from `git status`), and the last watcher event for it.
 - State markers: detached, locked, prunable (from porcelain output), missing directory, stale
   parent (§5.4).
-- `◆` marks the selected worktree.
 
 Sorting: most recently changed first (default), or by name. The main worktree is pinned to the
 top. Worktrees whose directory is missing are listed dimmed, and can be hidden.
