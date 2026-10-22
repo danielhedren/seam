@@ -232,8 +232,11 @@ private struct ThreadCard: View {
 private struct DraftComposer: View {
     let session: RepoSession
     let draft: ThreadDraft
-    @State private var text = ""
     @FocusState private var focused: Bool
+
+    private var text: Binding<String> {
+        Binding(get: { session.draft?.body ?? "" }, set: { session.draft?.body = $0 })
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -245,7 +248,7 @@ private struct DraftComposer: View {
             .lineLimit(1).truncationMode(.middle)
             QuotedLines(anchor: draft.anchor)
             TextField(
-                String(localized: "Comment", bundle: .module), text: $text, axis: .vertical
+                String(localized: "Comment", bundle: .module), text: text, axis: .vertical
             )
             .lineLimit(3...10)
             .textFieldStyle(.roundedBorder)
@@ -255,11 +258,10 @@ private struct DraftComposer: View {
                     .keyboardShortcut(.cancelAction)
                 Spacer()
                 Button(String(localized: "Comment", bundle: .module)) {
-                    let body = text
-                    Task { await session.post(body) }
+                    Task { await session.post(draft.body) }
                 }
                 .keyboardShortcut(.return, modifiers: .command)
-                .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(draft.body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             .controlSize(.small)
         }

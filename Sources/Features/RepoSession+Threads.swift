@@ -1,10 +1,12 @@
 import AppKit
 import SeamCore
 
-/// A thread being written, before it's posted (SPEC §7.7).
+/// A thread being written, before it's posted (SPEC §7.7). Kept in the session, not the
+/// composer, so the text survives switching worktrees and back.
 struct ThreadDraft: Equatable {
     var worktree: String
     var anchor: ThreadAnchor
+    var body = ""
 }
 
 /// Review threads from the reader's side: writing, answering, resolving, and handing them to an

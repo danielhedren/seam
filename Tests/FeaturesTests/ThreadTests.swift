@@ -48,6 +48,24 @@ import Testing
         #expect(reviewed.content?.threads.isEmpty == true)
     }
 
+    @Test func anUnpostedDraftAndItsTextSurviveSwitchingWorktrees() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\n")
+        let other = try await repo.worktree("other", branch: "other", from: "origin/main")
+        let (session, review, _) = await session(repo)
+        let reviewed = try #require(review)
+        session.draft = ThreadDraft(
+            worktree: reviewed.id,
+            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
+        session.draft?.body = "Half a thought"
+
+        session.select(other.path)
+        session.select(reviewed.id)
+
+        #expect(session.draft?.worktree == reviewed.id)
+        #expect(session.draft?.body == "Half a thought")
+    }
+
     @Test func anAgentsReplyArrivesWithoutAReload() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\n")
