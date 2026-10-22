@@ -148,7 +148,11 @@ struct WindowSnapshotTests {
 
     @Test func welcome() async throws {
         let repo = try await FixtureRepo()
-        let view = WelcomeView(services: services(repo.git)) { _ in true }
+        // Under the home folder, so the rows read the same "~/…" on any machine.
+        let recent = ["seam", "website"].map {
+            FileManager.default.homeDirectoryForCurrentUser.appending(path: "Code/\($0)")
+        }
+        let view = WelcomeView(services: services(repo.git), recent: recent) { _ in true }
         assertSnapshot(
             of: try render(view, size: CGSize(width: 900, height: 500), .aqua),
             as: .image(precision: 0.99, perceptualPrecision: 0.98),

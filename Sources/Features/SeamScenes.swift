@@ -187,13 +187,14 @@ struct WindowRoot: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismiss) private var dismiss
     @State private var frame = WindowFrameKeeper()
+    @State private var dropping = false
 
     var body: some View {
         Group {
             if let url {
                 RepoWindow(session: RepoSession(directory: url, services: services)).id(url)
             } else {
-                WelcomeView(services: services) { target in
+                WelcomeView(services: services, dropping: dropping) { target in
                     await route(SeamURL(path: target.path))
                 }
             }
@@ -220,11 +221,13 @@ struct WindowRoot: View {
         }
 
         // A folder dropped on any window opens like `seam <folder>` would.
-        .dropDestination(for: URL.self) { urls, _ in
-            guard let folder = urls.first(where: \.hasDirectoryPath) else { return false }
-            Task { await route(SeamURL(path: folder.path)) }
-            return true
-        }
+        .dropDestination(
+            for: URL.self,
+            action: { urls, _ in
+                guard let folder = urls.first(where: \.hasDirectoryPath) else { return false }
+                Task { await route(SeamURL(path: folder.path)) }
+                return true
+            }, isTargeted: { dropping = $0 })
     }
 
     /// The first window reopens the last workspace, the first repo in itself and the rest in
@@ -290,35 +293,68 @@ struct WelcomeView: View {
     let services: SeamServices
     /// Turns this window into the repo's window; false when `url` isn't in a repository.
     let open: (URL) async -> Bool
+    /// A folder is being dragged over the window, which opens it when dropped.
+    var dropping = false
     @Environment(OpenRequests.self) private var requests
-    @State private var recent: [URL] = []
+    @State private var recent: [URL]
     @State private var opening: URL?
     @State private var failure: String?
 
+    /// `recent` shows until the store's list arrives.
+    init(
+        services: SeamServices, recent: [URL] = [], dropping: Bool = false,
+        open: @escaping (URL) async -> Bool
+    ) {
+        self.services = services
+        self.open = open
+        self.dropping = dropping
+        _recent = State(initialValue: recent)
+    }
+
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Seam", bundle: .module).font(.largeTitle.bold())
+        VStack(spacing: 24) {
+            VStack(spacing: 6) {
+                Text("Seam", bundle: .module).font(.largeTitle.bold())
+                Text(
+                    "Review each worktree against the branch it was cut from.", bundle: .module
+                )
+                .foregroundStyle(.secondary)
+            }
             if let opening {
                 ProgressView(
                     String(localized: "Opening \(opening.lastPathComponent)…", bundle: .module))
             } else {
-                Text("Open a repository to review its worktrees.", bundle: .module)
-                    .foregroundStyle(.secondary)
-                if let failure {
-                    Text(failure).foregroundStyle(.red)
+                VStack(spacing: 8) {
+                    Button(String(localized: "Open Repository…", bundle: .module), action: choose)
+                        .keyboardShortcut(.defaultAction)
+                        .controlSize(.large)
+                    Text("or drop a folder here", bundle: .module)
+                        .font(.callout).foregroundStyle(.secondary)
+                    if let failure {
+                        Text(failure).foregroundStyle(.red)
+                    }
                 }
-                Button(String(localized: "Open Repository…", bundle: .module), action: choose)
-                    .keyboardShortcut(.defaultAction)
                 if !recent.isEmpty {
-                    Divider().frame(width: 280)
-                    ForEach(recent, id: \.self) { url in
-                        Button(url.path) { start(url) }.buttonStyle(.link)
+                    // A short window lists fewer; File › Open Recent has them all.
+                    ViewThatFits(in: .vertical) {
+                        RecentRepositoryList(urls: recent, open: start)
+                        RecentRepositoryList(urls: Array(recent.prefix(5)), open: start)
+                        RecentRepositoryList(urls: Array(recent.prefix(2)), open: start)
                     }
                 }
             }
         }
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay {
+            if dropping {
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(
+                        Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [6, 4])
+                    )
+                    .padding(12)
+            }
+        }
         // A toolbar like a repo window's, so opening a repo here doesn't change the titlebar.
         .toolbar {
             ToolbarItem {
@@ -377,5 +413,55 @@ struct WelcomeView: View {
             return argument
         }
         return nil
+    }
+}
+
+/// The welcome window's recent repositories, newest first: name, then where it is.
+private struct RecentRepositoryList: View {
+    let urls: [URL]
+    let open: (URL) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Recent", bundle: .module)
+                .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                .padding(.leading, 10)
+            VStack(spacing: 0) {
+                ForEach(urls, id: \.self) { url in RecentRepositoryRow(url: url) { open(url) } }
+            }
+            .padding(4)
+            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+        }
+        .frame(width: 440)
+    }
+}
+
+private struct RecentRepositoryRow: View {
+    let url: URL
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: "folder").foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(url.lastPathComponent).fontWeight(.medium)
+                    Text((url.path as NSString).abbreviatingWithTildeInPath)
+                        .font(.caption).foregroundStyle(.secondary)
+                        .lineLimit(1).truncationMode(.middle)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+            .background(
+                hovering ? Color.primary.opacity(0.06) : .clear,
+                in: RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .help(url.path)
     }
 }

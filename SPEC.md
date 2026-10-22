@@ -236,6 +236,10 @@ keeps the position.
   show it, because macOS 26's toolbar title takes clicks without moving the window, which left a
   spot in the bar that wouldn't drag. The worktree list's header names the repo instead. File ›
   New Window (⌘N) opens the welcome screen.
+- The welcome screen says what Seam does, offers Open Repository… (⌘O, or Return), and lists
+  the recent repos by name and location, newest first, as many as fit; File › Open Recent has
+  them all. A folder dropped on any window opens like `seam <folder>`; the welcome screen
+  outlines itself while one is dragged over it.
 - A window's frame, titlebar and toolbar are the same from its first frame: while the repo opens,
   the split view and its toolbar are already there, the toolbar's buttons disabled. The welcome
   screen has the same toolbar height, so opening a repo in it moves nothing.
