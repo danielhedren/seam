@@ -112,9 +112,8 @@ struct RepoWindow: View {
     @ViewBuilder private var detail: some View {
         switch session.state {
         case .opening:
-            ProgressView(
-                String(
-                    localized: "Opening \(session.directory.lastPathComponent)…", bundle: .module))
+            OpeningProgress(
+                name: session.directory.lastPathComponent, clock: session.services.clock)
         case .failed(let message):
             ContentUnavailableView(message, systemImage: "folder.badge.questionmark")
         case .open:
@@ -185,5 +184,21 @@ struct ReviewToolbar: ToolbarContent {
             )
             .disabled(review == nil)
         }
+    }
+}
+
+/// Shown only once opening takes 150 ms, so a fast open doesn't flash it (SPEC §9).
+struct OpeningProgress: View {
+    let name: String
+    let clock: any Clock<Duration>
+    @State private var isShown = false
+
+    var body: some View {
+        ProgressView(String(localized: "Opening \(name)…", bundle: .module))
+            .opacity(isShown ? 1 : 0)
+            .task {
+                try? await clock.sleep(for: .milliseconds(150))
+                if !Task.isCancelled { isShown = true }
+            }
     }
 }
