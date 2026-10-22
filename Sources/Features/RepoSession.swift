@@ -46,7 +46,10 @@ final class RepoSession {
     var filterFocusRequests = 0
     /// Find in the diff (SPEC §8.5): the bar, its query, and "current of total".
     var showsFind = false
-    var findQuery = ""
+    /// Searches whenever it changes, typed or filled in from a selection before the bar exists.
+    var findQuery = "" {
+        didSet { if findQuery != oldValue { diff.search(findQuery) } }
+    }
     var findResult: (current: Int?, total: Int) = (nil, 0)
     /// Bumped by Edit › Find while the bar is already open, to focus its field again.
     var findFocusRequests = 0
@@ -250,7 +253,6 @@ final class RepoSession {
     func closeFind() {
         showsFind = false
         findQuery = ""
-        diff.search("")
         diff.focus()
     }
 

@@ -671,6 +671,24 @@ import Testing
         #expect(shown() == ["src/a.cs", "tests/a_test.cs"])
     }
 
+    @Test func aQuerySetBeforeTheFindBarExistsStillSearches() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "alpha\nbeta\nalpha\n")
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        await session.settled()
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        var totals: [Int] = []
+        view.onSearchResult = { _, total in totals.append(total) }
+        view.show(try #require(session.selected?.content), position: .top)
+        session.diff.view = view
+
+        session.findQuery = "alpha"
+
+        #expect(totals.last == 2)
+    }
+
     @Test(
         arguments: [
             ("total", "total"), ("  total  ", "total"), ("first line\nsecond", "first line"),

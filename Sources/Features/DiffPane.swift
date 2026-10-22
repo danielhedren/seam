@@ -179,7 +179,6 @@ struct FindBar: View {
                 .textFieldStyle(.plain)
                 .focused($focused)
                 .onSubmit { session.diff.moveToMatch(by: 1) }
-                .onChange(of: session.findQuery) { _, query in session.diff.search(query) }
             Text(status).foregroundStyle(.secondary).monospacedDigit()
             Button {
                 session.diff.moveToMatch(by: -1)
