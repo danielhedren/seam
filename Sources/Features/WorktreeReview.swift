@@ -39,14 +39,6 @@ final class WorktreeReview: Identifiable {
         options.whitespace = effectiveWhitespace
         return options
     }
-
-    /// Between showing whitespace and the configured way of hiding it (all of it, by default).
-    func toggleWhitespace() {
-        let hidden =
-            services.settings.whitespace == .show ? .ignoreAll : services.settings.whitespace
-        whitespace = effectiveWhitespace == .show ? hidden : .show
-        reloadDiff()
-    }
     /// Files marked viewed, by path (SPEC §11).
     private(set) var viewed = ViewedMarks()
     /// A detected parent that looks merged (SPEC §5.4); nil once dismissed or overridden.
@@ -55,6 +47,11 @@ final class WorktreeReview: Identifiable {
     private var editorConfig: EditorConfig?
     private var tabWidths: [String: Int] = [:]
     private var dismissedStaleParents: Set<String> = []
+    private var lastEvent: Date?
+    private var overrideCommitCount: Int?
+    /// The chosen parent's merge base, once a load has resolved it.
+    private var overrideBase: String?
+    private var activityBase: String?
     private var detectionRuns = 0
     private var staleCheckedAt = -1
     /// Full file contents for the current diff; empty until loaded.
@@ -129,11 +126,6 @@ final class WorktreeReview: Identifiable {
     var lastChange: Date? {
         [activity?.lastChange, lastEvent].compactMap(\.self).max()
     }
-    private var lastEvent: Date?
-    private var overrideCommitCount: Int?
-    /// The chosen parent's merge base, once a load has resolved it.
-    private var overrideBase: String?
-    private var activityBase: String?
 
     /// What the row's totals are measured from: the same base the diff uses.
     private var statsBase: String? {
@@ -214,9 +206,21 @@ final class WorktreeReview: Identifiable {
         wraps.toggle()
     }
 
+    /// Between showing whitespace and the configured way of hiding it (all of it, by default).
+    func toggleWhitespace() {
+        let hidden =
+            services.settings.whitespace == .show ? .ignoreAll : services.settings.whitespace
+        whitespace = effectiveWhitespace == .show ? hidden : .show
+        reloadDiff()
+    }
+
+    private func file(_ path: String) -> ReviewFile? {
+        diff?.files.first { $0.diff.path == path }
+    }
+
     /// Returns the mark the file had before, for undo; nil when there's no such file.
     func toggleViewed(_ path: String) -> String?? {
-        guard let file = diff?.files.first(where: { $0.diff.path == path }) else { return nil }
+        guard let file = file(path) else { return nil }
         let previous = viewed.marks[path]
         viewed.toggle(file)
         collapseIfViewed(path)
@@ -230,7 +234,7 @@ final class WorktreeReview: Identifiable {
 
     /// With the setting on, a viewed file folds away and opens again once unmarked or changed.
     private func collapseIfViewed(_ path: String) {
-        guard let file = diff?.files.first(where: { $0.diff.path == path }) else { return }
+        guard let file = file(path) else { return }
         lastStatuses[path] = viewed.status(of: file)
         guard services.settings.collapsesViewed else { return }
         if viewed.status(of: file) == .viewed {
@@ -243,13 +247,12 @@ final class WorktreeReview: Identifiable {
 
     /// Where "open in editor" lands for a whole file: its first hunk's first new line.
     func firstChangedLine(of path: String) -> Int {
-        guard let hunk = diff?.files.first(where: { $0.diff.path == path })?.diff.hunks.first
-        else { return 1 }
+        guard let hunk = file(path)?.diff.hunks.first else { return 1 }
         return max(hunk.newStart, 1)
     }
 
     func viewedStatus(_ path: String) -> ViewedMarks.Status {
-        diff?.files.first { $0.diff.path == path }.map(viewed.status) ?? .unviewed
+        file(path).map(viewed.status) ?? .unviewed
     }
 
     /// The next file after `path`, in review order and wrapping, that isn't viewed.
