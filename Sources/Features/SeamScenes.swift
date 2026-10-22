@@ -28,6 +28,8 @@ final class OpenRequests {
     func adopt(_ window: NSWindow) {
         defer { tabHost = nil }
         guard let host = tabHost, host !== window else { return }
+        // A tab group takes on the size of the window that joins it, so match the host first.
+        window.setFrame(host.frame, display: false)
         host.addTabbedWindow(window, ordered: .above)
         window.makeKeyAndOrderFront(nil)
     }
