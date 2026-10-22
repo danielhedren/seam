@@ -230,16 +230,18 @@ keeps the position.
 - Three panes: worktrees | files | diff. `⌘\` hides or shows both sidebars, `⌘⌥\` only the
   worktree list. Pane widths are remembered.
 - One window per repo, listing only that repo's worktrees. Opening another repo opens another
-  window (standard tabs work). A window's title, which names its tab, is the repo's name; the
-  toolbar doesn't repeat it. File › New Tab (⌘T) opens the welcome screen as a tab of the front
-  window, and New Window (⌘N) as its own window. The welcome screen has a toolbar too, so the tab
-  bar sits in the same place in every tab.
-- A repo window's frame, titlebar and toolbar are the same from its first frame: while the repo
-  opens, the split view and its toolbar are already there, the toolbar's buttons disabled.
-- The open repos are the workspace. Quitting and relaunching reopens them, the first in the first
-  window and the rest as its tabs, in the order they were opened, with the window's last size and
-  position. Closing a repo's window takes it out of the workspace; quitting doesn't. A launch path
-  (`seam`, `make run`) opens among them.
+  window; ``⌘` `` and the Window menu move between them. Window tabs are off: with a sidebar, macOS
+  puts the tab bar beside it, so the tab bar moves between tabs whose sidebars differ. A window's
+  title is the repo's name. File › New Window (⌘N) opens the welcome screen.
+- A window's frame, titlebar and toolbar are the same from its first frame: while the repo opens,
+  the split view and its toolbar are already there, the toolbar's buttons disabled. The welcome
+  screen has the same toolbar height, so opening a repo in it moves nothing.
+- The open repos are the workspace. Quitting and relaunching reopens them, the first in the
+  launch window and each of the rest in its own window, in the order they were opened. Each repo
+  remembers its window's frame, also after its window closes, and its window opens in that
+  frame; a frame on a display that's gone is ignored. A welcome window that opens a repo keeps
+  its frame. Closing a repo's window takes it out of the workspace; quitting doesn't. A launch
+  path (`seam`, `make run`) opens among them.
 - Dark and light themes, following the system.
 
 ### 7.2 Worktree list
@@ -573,9 +575,9 @@ written down here.
   shortcut on top of that.
 - Toolbar in the unified style, holding only: view mode, reload. The diff gets the
   rest of the window.
-- Standard scenes: `WindowGroup` per repo, a `Settings` scene (`⌘,`), File › Open Recent, native
-  window tabs and full screen. Windows and their selection are restored on relaunch
-  (`SceneStorage` plus §11 state).
+- Standard scenes: `WindowGroup` per repo, a `Settings` scene (`⌘,`), File › Open Recent and full
+  screen. Window tabs are off, the one deviation here (§7.1). The workspace reopens the windows on
+  relaunch, each in its repo's frame, and §11 state restores their selection.
 
 **Commands and keyboard**
 - **Every action is in the menu bar**, with its shortcut shown (File, Edit, View, Go, Review,
@@ -636,8 +638,8 @@ Every layer gets the cheapest test that can catch its failures. Test names descr
 | DiffView | Image snapshot | swift-snapshot-testing | ~10 snapshots: unified/side-by-side × light/dark/high contrast, word highlights, wrapped rows. Recorded per macOS major version |
 | Features | Unit | Swift Testing | Models driven through intents with fakes: switching worktrees cancels the old work, reloads keep the selection, banner states |
 | Features | Window snapshot | swift-snapshot-testing | The window's panes rendered in-process from a fixture repo, light and dark: worktree rows, commit rows, file list with the diff, the welcome screen. Ages are measured from a fixed time. Sidebar rows render outside their List, because an off-screen render draws a sidebar's selection solid black. Needs no screen or automation permission |
-| Features | Window layout | Swift Testing | Real `NSWindow`s that are never ordered on screen: a repo window's frame, content area and toolbar items don't change while the repo opens |
-| App | UI smoke, run by hand | XCUITest | 5 flows on a fixture repo passed as a launch argument: open, `⌘2` switch, `j`/`n` navigation, `v` viewed + `⌘Z`, base override, plus tabs and window size. Automation Mode isn't left enabled, so `xcodebuild test` asks for approval each run |
+| Features | Window layout | Swift Testing | Real `NSWindow`s that are never ordered on screen: a repo window's frame, content area and toolbar items don't change while the repo opens; a repo's window opens in its saved frame even though SwiftUI cascades it; frames save on move and resize once shown |
+| App | UI smoke, run by hand | XCUITest | 5 flows on a fixture repo passed as a launch argument: open, `⌘2` switch, `j`/`n` navigation, `v` viewed + `⌘Z`, base override, plus windows and their frames. Automation Mode isn't left enabled, so `xcodebuild test` asks for approval each run |
 | Performance | Benchmarks | XCTest `measure` with baselines | Detection on a generated repo with 400 refs, parsing and laying out a 20k-line diff. Fails on a >20% regression against the stored baseline. Baselines need `xcodebuild`, so until the Xcode project exists (M2) an opt-in Swift Testing check (`SEAM_BENCH=1`) asserts the absolute §8.7 budget |
 | Real repo | Acceptance, opt-in | Swift Testing, gated by `SEAM_REAL_REPO` | The stacked-branch check from §5.2, configured in `local.mk` |
 

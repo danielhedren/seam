@@ -25,15 +25,13 @@ final class OpenRequests {
     var recent: [URL] = []
     /// The workspace and launch argument open once, not in every new welcome window.
     var launchHandled = false
-    /// The window the next `tabsToAdopt` new windows join as tabs: File › New Tab, and a
-    /// restored workspace.
-    @ObservationIgnored weak var tabHost: NSWindow?
-    @ObservationIgnored var tabsToAdopt = 0
+    /// The repo whose window `openWindow(for:)` is opening, for `placement()`.
+    @ObservationIgnored var placing: String?
     @ObservationIgnored private var isTerminating = false
     @ObservationIgnored private let defaults: UserDefaults
     private static let workspaceKey = "seam.workspace"
-    /// The frame AppKit saves and restores; the first window to claim it holds it.
-    private static let frameName = "Seam"
+    /// Each repo's last window frame, kept after its window closes for when it opens again.
+    private static let framesKey = "seam.windowFrames"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -64,19 +62,25 @@ final class OpenRequests {
         isTerminating = true
     }
 
-    func adopt(_ window: NSWindow) {
-        _ = window.setFrameAutosaveName(Self.frameName)
-        guard tabsToAdopt > 0, let host = tabHost, host !== window else { return }
-        tabsToAdopt -= 1
-        if tabsToAdopt == 0 { tabHost = nil }
-        // SwiftUI sizes a new window once it's on screen, and a tab group takes the size of a
-        // window joining it; joining on the next turn and matching the host keeps the group's.
-        Task { @MainActor in
-            let frame = host.frame
-            host.addTabbedWindow(window, ordered: .above)
-            window.setFrame(frame, display: true)
-            window.makeKeyAndOrderFront(nil)
+    func savedFrame(for main: String) -> NSRect? {
+        guard let text = defaults.dictionary(forKey: Self.framesKey)?[main] as? String else {
+            return nil
         }
+        let frame = NSRectFromString(text)
+        return frame.isEmpty ? nil : frame
+    }
+
+    func saveFrame(_ frame: NSRect, for main: String) {
+        var frames = defaults.dictionary(forKey: Self.framesKey) ?? [:]
+        let text = NSStringFromRect(frame)
+        guard frames[main] as? String != text else { return }
+        frames[main] = text
+        defaults.set(frames, forKey: Self.framesKey)
+    }
+
+    /// The repos the launch window and its siblings reopen, skipping any deleted since.
+    var reopenedWorkspace: [String] {
+        workspace.filter { FileManager.default.fileExists(atPath: $0) }
     }
 
     func take(_ main: String) -> Request? {
@@ -92,6 +96,8 @@ public struct SeamScenes: Scene {
 
     public init(services: SeamServices) {
         self.services = services
+        // One window per repo (SPEC §7.1); this also takes the tab items out of the menus.
+        NSWindow.allowsAutomaticWindowTabbing = false
     }
 
     private static let windowID = "repository"
@@ -102,6 +108,10 @@ public struct SeamScenes: Scene {
                 .environment(requests)
                 .frame(minWidth: 900, minHeight: 500)
         }
+        .defaultSize(width: 1280, height: 800)
+        .defaultWindowPlacement { _, _ in requests.placement() }
+        // The workspace reopens the windows, each in its repo's frame (WindowFrames.swift).
+        .restorationBehavior(.disabled)
         .commands {
             SeamCommands(
                 requests: requests, openRepository: choose, openRecent: open,
@@ -110,19 +120,12 @@ public struct SeamScenes: Scene {
                         await services.store.clearRecent()
                         requests.recent = []
                     }
-                }, installCommandLineTool: installTool, newTab: newTab,
+                }, installCommandLineTool: installTool,
                 newWindow: { openWindow(id: Self.windowID) })
         }
         Settings {
             SettingsView(settings: services.settings)
         }
-    }
-
-    /// ⌘T, as in Safari: a welcome window, as a tab of the frontmost one.
-    private func newTab() {
-        requests.tabHost = NSApp.keyWindow
-        requests.tabsToAdopt = 1
-        openWindow(id: Self.windowID)
     }
 
     /// A one-off answer to an explicit menu command, so an alert is the right shape (SPEC §9).
@@ -167,7 +170,7 @@ public struct SeamScenes: Scene {
                 return
             }
             requests.pending[resolved.main.path] = .init(worktree: resolved.worktree.path)
-            openWindow(value: resolved.main)
+            requests.openWindow(for: resolved.main) { openWindow(value: resolved.main) }
         }
     }
 }
@@ -193,7 +196,7 @@ struct WindowRoot: View {
     @Environment(OpenRequests.self) private var requests
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismiss) private var dismiss
-    @State private var window: NSWindow?
+    @State private var frame = WindowFrameKeeper()
 
     var body: some View {
         Group {
@@ -205,15 +208,15 @@ struct WindowRoot: View {
                 }
             }
         }
-        // The window's title names its tab; the toolbar has no room to repeat it.
-        .navigationTitle(url?.lastPathComponent ?? String(localized: "New Tab", bundle: .module))
-        .toolbar(removing: .title)
+        .navigationTitle(url?.lastPathComponent ?? String(localized: "Seam", bundle: .module))
         .background(
-            WindowReader { found in
-                window = found
-                requests.adopt(found)
+            WindowReader { window in
+                // The launch window turns into the workspace's first repo (`launch()`).
+                let launching = requests.launchHandled ? nil : requests.reopenedWorkspace.first
+                frame.attach(window, repo: url?.path ?? launching, frames: requests)
             }
         )
+        .onChange(of: url) { frame.track(url?.path) }
         .task { await launch() }
         // Existing windows take seam:// URLs rather than SwiftUI opening one per URL.
         .handlesExternalEvents(preferring: ["seam"], allowing: ["*"])
@@ -229,18 +232,18 @@ struct WindowRoot: View {
         }
     }
 
-    /// The first window reopens the last workspace, the first repo in itself and the rest as its
-    /// tabs, then opens the launch argument (`seam`, `make run`) among them.
+    /// The first window reopens the last workspace, the first repo in itself and the rest in
+    /// windows of their own, then opens the launch argument (`seam`, `make run`) among them.
     private func launch() async {
         guard !requests.launchHandled else { return }
         requests.launchHandled = true
-        let saved = requests.workspace.filter { FileManager.default.fileExists(atPath: $0) }
+        let saved = requests.reopenedWorkspace
         if url == nil, let first = saved.first {
-            let rest = saved.dropFirst()
-            requests.tabHost = window
-            requests.tabsToAdopt = window == nil ? 0 : rest.count
             url = URL(fileURLWithPath: first, isDirectory: true)
-            for path in rest { openWindow(value: URL(fileURLWithPath: path, isDirectory: true)) }
+            for path in saved.dropFirst() {
+                let main = URL(fileURLWithPath: path, isDirectory: true)
+                requests.openWindow(for: main) { openWindow(value: main) }
+            }
         }
         if let path = WelcomeView.launchPath() { _ = await route(SeamURL(path: path)) }
     }
@@ -260,7 +263,7 @@ struct WindowRoot: View {
             url = resolved.main
             return true
         }
-        openWindow(value: resolved.main)
+        requests.openWindow(for: resolved.main) { openWindow(value: resolved.main) }
         if url == nil { dismiss() }
         return true
     }
@@ -321,7 +324,7 @@ struct WelcomeView: View {
         }
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // A toolbar like a repo window's, so the tab bar stays put when switching tabs.
+        // A toolbar like a repo window's, so opening a repo here doesn't change the titlebar.
         .toolbar {
             ToolbarItem {
                 Button {

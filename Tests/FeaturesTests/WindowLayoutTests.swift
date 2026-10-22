@@ -6,8 +6,8 @@ import Testing
 
 @testable import Features
 
-/// SPEC §7.1: a window keeps its frame, titlebar and toolbar while its repo opens. Windows here
-/// are real but never ordered on screen.
+/// SPEC §7.1: a window keeps its frame, titlebar and toolbar while its repo opens, and a repo's
+/// window comes back in its own frame. Windows here are real but never ordered on screen.
 @MainActor
 @Suite struct WindowLayoutTests {
     /// What moves the content when it changes: the frame, the titlebar's height and the toolbar.
@@ -41,6 +41,90 @@ import Testing
         window.close()
     }
 
+    @Test func aRepoWindowOpensInTheFrameItsRepoLastHad() throws {
+        let requests = OpenRequests(defaults: try scratchDefaults())
+        let saved = try onScreen(width: 1100, height: 700)
+        requests.saveFrame(saved, for: "/r/a")
+        let front = plainWindow()
+        var windows = [front]
+
+        requests.openWindow(
+            for: URL(filePath: "/r/a"), windows: { windows },
+            open: {
+                #expect(requests.placement() == placement(saved))
+                // SwiftUI cascades the new window from the front one.
+                let new = plainWindow(saved)
+                new.cascadeTopLeft(from: NSPoint(x: front.frame.minX, y: front.frame.maxY))
+                windows.append(new)
+            })
+
+        #expect(windows[1].frame == saved)
+        #expect(front.frame == plainWindow().frame)
+        #expect(requests.placement() == WindowPlacement())
+    }
+
+    @Test func aRepoWithoutASavedFrameOpensWhereSwiftUIPutsIt() throws {
+        let requests = OpenRequests(defaults: try scratchDefaults())
+        let placed = NSRect(x: 40, y: 60, width: 1280, height: 800)
+        var windows: [NSWindow] = []
+
+        requests.openWindow(
+            for: URL(filePath: "/r/a"), windows: { windows },
+            open: { windows.append(plainWindow(placed)) })
+
+        #expect(windows[0].frame == placed)
+    }
+
+    @Test func theLaunchWindowIsPlacedInTheFirstReopenedRepoFrame() throws {
+        let defaults = try scratchDefaults()
+        let first = FileManager.default.temporaryDirectory.path
+        OpenRequests(defaults: defaults).windowOpened(first)
+        let requests = OpenRequests(defaults: defaults)
+        let saved = try onScreen(width: 1000, height: 650)
+        requests.saveFrame(saved, for: first)
+
+        #expect(requests.placement() == placement(saved))
+        requests.launchHandled = true
+        #expect(requests.placement() == WindowPlacement())
+    }
+
+    @Test func movingAShownWindowSavesItsFrameUnderItsRepo() throws {
+        let requests = OpenRequests(defaults: try scratchDefaults())
+        let window = plainWindow()
+        let keeper = WindowFrameKeeper(isShown: { _ in true })
+        keeper.attach(window, repo: "/r/a", frames: requests)
+
+        let moved = NSRect(x: 60, y: 80, width: 1000, height: 640)
+        window.setFrame(moved, display: false)
+
+        #expect(requests.savedFrame(for: "/r/a") == moved)
+        #expect(requests.savedFrame(for: "/r/b") == nil)
+        #expect(window.tabbingMode == .disallowed)
+    }
+
+    @Test func aWelcomeWindowThatOpensARepoKeepsItsFrameAndSavesItForTheRepo() throws {
+        let requests = OpenRequests(defaults: try scratchDefaults())
+        requests.saveFrame(NSRect(x: 0, y: 0, width: 950, height: 600), for: "/r/a")
+        let welcome = NSRect(x: 200, y: 220, width: 1280, height: 800)
+        let window = plainWindow(welcome)
+        let keeper = WindowFrameKeeper(isShown: { _ in true })
+        keeper.attach(window, repo: nil, frames: requests)
+
+        keeper.track("/r/a")
+
+        #expect(window.frame == welcome)
+        #expect(requests.savedFrame(for: "/r/a") == welcome)
+    }
+
+    @Test func aWindowSavesNothingBeforeItIsShown() throws {
+        let requests = OpenRequests(defaults: try scratchDefaults())
+        let window = plainWindow()
+        WindowFrameKeeper().attach(window, repo: "/r/a", frames: requests)
+        window.setFrame(NSRect(x: 10, y: 10, width: 999, height: 599), display: false)
+        window.close()
+        #expect(requests.savedFrame(for: "/r/a") == nil)
+    }
+
     private func window(showing view: some View) throws -> NSWindow {
         let host = NSHostingController(
             rootView: view.environment(OpenRequests(defaults: try scratchDefaults())))
@@ -62,6 +146,17 @@ import Testing
         window.isReleasedWhenClosed = false
         window.setFrame(frame, display: false)
         return window
+    }
+
+    /// Saved frames off every display are ignored, so these sit on the main one.
+    private func onScreen(width: Double, height: Double) throws -> NSRect {
+        let screen = try #require(NSScreen.screens.first).visibleFrame
+        return NSRect(x: screen.minX + 50, y: screen.minY + 40, width: width, height: height)
+    }
+
+    private func placement(_ frame: NSRect) -> WindowPlacement {
+        let top = NSScreen.screens.first?.frame.maxY ?? 0
+        return WindowPlacement(CGPoint(x: frame.minX, y: top - frame.maxY), size: frame.size)
     }
 
     private func scratchDefaults() throws -> UserDefaults {

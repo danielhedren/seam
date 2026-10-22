@@ -9,21 +9,18 @@ struct SeamCommands: Commands {
     private let openRecent: (URL) -> Void
     private let clearRecent: () -> Void
     private let installCommandLineTool: () -> Void
-    private let newTab: () -> Void
     private let newWindow: () -> Void
 
     init(
         requests: OpenRequests, openRepository: @escaping () -> Void,
         openRecent: @escaping (URL) -> Void, clearRecent: @escaping () -> Void,
-        installCommandLineTool: @escaping () -> Void, newTab: @escaping () -> Void,
-        newWindow: @escaping () -> Void
+        installCommandLineTool: @escaping () -> Void, newWindow: @escaping () -> Void
     ) {
         self.requests = requests
         self.openRepository = openRepository
         self.openRecent = openRecent
         self.clearRecent = clearRecent
         self.installCommandLineTool = installCommandLineTool
-        self.newTab = newTab
         self.newWindow = newWindow
     }
 
@@ -31,8 +28,6 @@ struct SeamCommands: Commands {
         CommandGroup(replacing: .newItem) {
             Button(String(localized: "New Window", bundle: .module), action: newWindow)
                 .keyboardShortcut("n")
-            Button(String(localized: "New Tab", bundle: .module), action: newTab)
-                .keyboardShortcut("t")
             Divider()
             Button(String(localized: "Open Repository…", bundle: .module), action: openRepository)
                 .keyboardShortcut("o")
