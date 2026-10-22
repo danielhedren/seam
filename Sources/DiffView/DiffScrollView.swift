@@ -388,9 +388,16 @@ extension DiffCanvasView {
         default:
             if event.charactersIgnoringModifiers == " " {
                 scroll.page(by: shift ? -1 : 1)
+            } else if event.keyCode == 53 {
+                cancelOperation(nil)
             } else {
                 super.keyDown(with: event)
             }
         }
+    }
+
+    /// Escape drops the selection, and with it what `c` would comment on, as it drops a draft.
+    override func cancelOperation(_ sender: Any?) {
+        selection = nil
     }
 }

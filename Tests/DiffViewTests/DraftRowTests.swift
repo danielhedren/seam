@@ -127,6 +127,30 @@ private func texts(_ rows: [DiffRow]) -> [String] {
         #expect(marked() == ["two b": .new, "three": .new])
     }
 
+    @Test func escapeInTheDiffDropsTheSelectionAndItsMarks() throws {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 400), styleMask: [.titled],
+            backing: .buffered, defer: false)
+        let view = DiffScrollView()
+        window.contentView = view
+        view.show(DiffContent(review: review()), position: .top)
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        let row = try #require(canvas.layout.rows.firstIndex { texts([$0]) == ["two a"] })
+        let caret = TextPosition(row: row, column: 1)
+        canvas.selection = DiffSelection(side: .unified, anchor: caret, head: caret)
+        #expect(!canvas.targetRows.isEmpty)
+
+        let escape = try #require(
+            NSEvent.keyEvent(
+                with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+                windowNumber: window.windowNumber, context: nil, characters: "\u{1b}",
+                charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53))
+        canvas.keyDown(with: escape)
+
+        #expect(canvas.selection == nil)
+        #expect(canvas.targetRows.isEmpty)
+    }
+
     @Test(arguments: [DiffLayoutMode.unified, .split])
     func theComposerSitsInItsColumn(mode: DiffLayoutMode) {
         let view = DiffScrollView()

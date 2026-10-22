@@ -348,6 +348,7 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 | `x` | collapse / expand the current file |
 | `o` | open the current line in the editor |
 | `c` | comment on the selected lines (§7.7) |
+| `esc` | drop the selection, and with it the lines `c` would comment on |
 | `t` | open the thread on the current line |
 | `⌥⌘0` | thread panel |
 | `b` | base picker |
