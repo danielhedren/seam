@@ -66,6 +66,7 @@ final class RepoSession {
     private var saveTask: Task<Void, Never>?
     private var isClosed = false
     private var rowsTask: Task<Void, Never>?
+    private var reloadTask: Task<Void, Never>?
     private var deferredActivity: [String: Task<Void, Never>] = [:]
     private var staleActivity: Set<String> = []
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
@@ -380,9 +381,11 @@ final class RepoSession {
 
     func reload() {
         guard let review = selected else { return }
-        Task {
+        reloadTask = Task { [weak self] in
             await review.refreshDetection()
             await review.refreshActivity()
+            // Only the selected worktree loads its diff (SPEC §8.6).
+            guard self?.selectedID == review.id else { return }
             review.reloadDiff()
         }
     }
@@ -528,6 +531,7 @@ final class RepoSession {
 
     /// Waits for in-flight work; tests use it instead of sleeping.
     func settled() async {
+        await reloadTask?.value
         await selected?.loaded()
         await rowsTask?.value
         await saveTask?.value

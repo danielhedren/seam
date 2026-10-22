@@ -81,6 +81,30 @@ import Testing
         #expect(!slowReview.isLoading)
     }
 
+    @Test func switchingAwayDuringAReloadLeavesTheOldWorktreeUnloaded() async throws {
+        let repo = try await FixtureRepo()
+        let other = try await repo.worktree("other", branch: "other", from: "origin/main")
+        let git = GatedGit(repo.git, holding: repo.main, command: "status")
+        git.release()
+        let session = RepoSession(directory: repo.main, services: services(git))
+        await session.open()
+        await session.settled()
+        let main = try #require(session.selected)
+        let version = main.diffVersion
+
+        git.close()
+        let held = git.heldCount
+        session.reload()
+        while git.heldCount == held { await Task.yield() }
+        session.select(other.path)
+        git.release()
+        await session.settled()
+        await main.loaded()
+
+        #expect(session.selected?.id == other.path)
+        #expect(main.diffVersion == version)
+    }
+
     @Test func aWorkingTreeChangeReloadsTheSelectedDiffAndKeepsTheSelection() async throws {
         let repo = try await FixtureRepo()
         let session = RepoSession(directory: repo.main, services: services(repo.git))
