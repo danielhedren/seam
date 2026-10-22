@@ -117,13 +117,15 @@ struct DiffLayout: Equatable, Sendable {
         return low < rows.count && rows[low].file == file ? low : nil
     }
 
-    /// The first row after `row` that starts a hunk (or a file, when `files` is true).
-    func nextStop(after row: Int, files: Bool) -> Int? {
-        rows.indices.dropFirst(row + 1).first { isStop($0, files: files) }
+    /// The first hunk (or file, when `files` is true) that starts below `y`. By position, not
+    /// row order: a hidden hunk header has no height and shares its first line's top, so from
+    /// that line the header would count as the previous stop and `p` would stay put.
+    func nextStop(below y: Double, files: Bool) -> Int? {
+        rows.indices.first { isStop($0, files: files) && top(of: $0) > y }
     }
 
-    func previousStop(before row: Int, files: Bool) -> Int? {
-        rows.indices.prefix(max(row, 0)).last { isStop($0, files: files) }
+    func previousStop(above y: Double, files: Bool) -> Int? {
+        rows.indices.last { isStop($0, files: files) && top(of: $0) < y }
     }
 
     private func isStop(_ index: Int, files: Bool) -> Bool {

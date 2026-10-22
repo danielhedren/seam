@@ -1,3 +1,4 @@
+import AppKit
 import GitKit
 import SeamCore
 import Testing
@@ -84,7 +85,7 @@ import Testing
             metrics: DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, characterWidth: 7))
         let header = layout.rows.firstIndex { $0.isHunkHeader }
         #expect(header.map(layout.height) == 0)
-        #expect(layout.nextStop(after: 0, files: false) == header)
+        #expect(layout.nextStop(below: 0, files: false) == header)
     }
 
     @Test func hiddenLinesAboveAndBelowTheHunkBecomeGapRows() {
@@ -170,5 +171,34 @@ import Testing
             contents: ["a": FileContents(new: "1\n")])
 
         #expect(!rows.contains { if case .gap = $0 { true } else { false } })
+    }
+}
+
+extension GapRowTests {
+    /// Each file's hunk sits under a gap row, so its header is hidden: no height, at its first
+    /// line's top. `p` from a hunk has to go to the one before, not to its own header.
+    @MainActor
+    @Test func previousHunkLeavesTheHunkWhoseHeaderIsHidden() throws {
+        var content = content
+        let file = content.review.files[0]
+        var other = file.diff
+        other.oldPath = "other.txt"
+        other.newPath = "other.txt"
+        content.review.files.append(ReviewFile(diff: other))
+        content.contents["other.txt"] = content.contents[path]
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 150)
+        view.show(content, position: .top)
+        func reading() -> String? { view.anchor.map { "\($0.path):\($0.line ?? 0)" } }
+
+        view.moveHunk(by: 1)
+        let first = reading()
+        view.moveHunk(by: 1)
+        let second = reading()
+        view.moveHunk(by: -1)
+
+        #expect(first == "big.txt:47")
+        #expect(second == "other.txt:47")
+        #expect(reading() == first)
     }
 }

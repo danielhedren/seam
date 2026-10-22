@@ -227,21 +227,20 @@ public final class DiffScrollView: NSScrollView {
 
     /// Next or previous file header, relative to the file under the sticky header.
     public func moveFile(by delta: Int) {
-        guard let current = layout.row(at: visibleTop + 1) else { return }
         let target =
             delta > 0
-            ? layout.nextStop(after: current, files: true)
-            : layout.previousStop(before: current, files: true)
+            ? layout.nextStop(below: visibleTop + 1, files: true)
+            : layout.previousStop(above: visibleTop - 1, files: true)
         if let target { scroll(toY: layout.top(of: target)) }
     }
 
     /// Next or previous hunk across files, placed just below the sticky header.
     public func moveHunk(by delta: Int) {
-        guard let current = layout.row(at: visibleTop + headerHeight + 1) else { return }
+        let reading = visibleTop + headerHeight
         let target =
             delta > 0
-            ? layout.nextStop(after: current, files: false)
-            : layout.previousStop(before: current, files: false)
+            ? layout.nextStop(below: reading + 1, files: false)
+            : layout.previousStop(above: reading - 1, files: false)
         if let target { scroll(toY: layout.top(of: target) - headerHeight) }
     }
 

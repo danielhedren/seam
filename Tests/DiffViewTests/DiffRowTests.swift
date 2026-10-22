@@ -136,10 +136,10 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
     }
 
     @Test func navigationStopsAtHunksAndFiles() {
-        #expect(layout.nextStop(after: 0, files: false) == 1)
-        #expect(layout.nextStop(after: 1, files: false) == nil)
-        #expect(layout.nextStop(after: 0, files: true) == 9)
-        #expect(layout.previousStop(before: 9, files: true) == 0)
+        #expect(layout.nextStop(below: 0, files: false) == 1)
+        #expect(layout.nextStop(below: 20, files: false) == nil)
+        #expect(layout.nextStop(below: 0, files: true) == 9)
+        #expect(layout.previousStop(above: 100, files: true) == 0)
         #expect(layout.headerRow(ofFile: 1) == 9)
         #expect(layout.headerRow(ofFile: 2) == nil)
     }
