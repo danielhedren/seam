@@ -52,25 +52,16 @@ echo "$grammars" | while read -r name repo ref dir symbol extra; do
 done
 
 # Highlight queries, combined where a grammar extends another (tree-sitter.json "highlights").
-q() { printf '%s\n' "$work/$1"; }
+# The clone the loop above made for a grammar, so the refs live only in the table.
+clone() { echo "$grammars" | awk -v name="$1" '$1 == name { sub(".*/", "", $2); print $2 "-" $3 }'; }
 copy_query() { cat "$@" > "$queries/$name.scm"; }
 for name in csharp javascript json yaml rust toml dockerfile php; do
-    case $name in
-        csharp) src=tree-sitter-c-sharp-v0.23.5 ;;
-        javascript) src=tree-sitter-javascript-v0.25.0 ;;
-        json) src=tree-sitter-json-v0.24.8 ;;
-        yaml) src=tree-sitter-yaml-v0.7.2 ;;
-        rust) src=tree-sitter-rust-v0.24.2 ;;
-        toml) src=tree-sitter-toml-v0.7.0 ;;
-        dockerfile) src=tree-sitter-dockerfile-v0.2.0 ;;
-        php) src=tree-sitter-php-v0.24.2 ;;
-    esac
-    copy_query "$work/$src/queries/highlights.scm"
+    copy_query "$work/$(clone "$name")/queries/highlights.scm"
 done
-name=markdown; copy_query "$work/tree-sitter-markdown-v0.5.3/tree-sitter-markdown/queries/highlights.scm"
-name=xml; copy_query "$work/tree-sitter-xml-v0.7.0/queries/xml/highlights.scm"
+name=markdown; copy_query "$work/$(clone markdown)/tree-sitter-markdown/queries/highlights.scm"
+name=xml; copy_query "$work/$(clone xml)/queries/xml/highlights.scm"
 for name in typescript tsx; do
-    copy_query "$work/tree-sitter-typescript-v0.23.2/queries/highlights.scm" \
-        "$work/tree-sitter-javascript-v0.25.0/queries/highlights.scm"
+    copy_query "$work/$(clone typescript)/queries/highlights.scm" \
+        "$work/$(clone javascript)/queries/highlights.scm"
 done
 echo "vendored $(ls "$out" | grep -vc VERSIONS) grammars into $out"
