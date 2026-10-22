@@ -75,7 +75,7 @@ final class RepoThreads {
     @discardableResult
     func setResolved(_ resolved: Bool, id: String) async -> Bool {
         await change { threads throws(ThreadError) in
-            try ThreadRules.setResolved(resolved, &threads, id: id, by: ReviewThread.reader)
+            try ThreadRules.setResolved(resolved, &threads, id: id)
         } != nil
     }
 
@@ -120,8 +120,6 @@ final class RepoThreads {
         switch error {
         case .unknownThread(let id):
             String(localized: "Thread \(id) no longer exists.", bundle: .module)
-        case .notAuthor(_, let author):
-            String(localized: "Only \(author), who opened it, can resolve it.", bundle: .module)
         case .emptyComment: String(localized: "Write something first.", bundle: .module)
         case .unsupportedVersion:
             String(

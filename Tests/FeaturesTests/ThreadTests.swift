@@ -143,7 +143,7 @@ import Testing
         #expect(reviewed.content?.threads["a.txt"]?.first?.latestAuthor == "claude")
     }
 
-    @Test func theReaderResolvesTheirOwnThreadsButNotAnAgents() async throws {
+    @Test func theReaderResolvesAnyThreadAndResolvedOnesLeaveTheDiff() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\n")
         let (session, review, store) = await session(repo)
@@ -160,13 +160,13 @@ import Testing
         await session.post("Mine.")
         let mine = try #require(reviewed.placedThreads.first { $0.thread.author == "you" })
 
-        await session.setResolved(true, thread: agents.id)
-        #expect(session.threads?.failure != nil)
         await session.setResolved(true, thread: mine.id)
         #expect(session.threads?.failure == nil)
-        let resolved = reviewed.placedThreads.filter(\.thread.isResolved).map(\.id)
-        #expect(resolved == [mine.id])
         #expect(reviewed.content?.threads["a.txt"]?.map(\.id) == [agents.id])
+        await session.setResolved(true, thread: agents.id)
+        let resolved = Set(reviewed.placedThreads.filter(\.thread.isResolved).map(\.id))
+        #expect(resolved == [mine.id, agents.id])
+        #expect(reviewed.content?.threads["a.txt"] == nil)
         session.settings.showsResolvedThreads = true
         #expect(reviewed.content?.threads["a.txt"]?.count == 2)
     }

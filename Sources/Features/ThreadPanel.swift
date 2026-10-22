@@ -200,14 +200,12 @@ private struct ThreadCard: View {
                 Task { await session.deleteThread(thread.id) }
             }
             .help(String(localized: "Delete this thread; Undo brings it back", bundle: .module))
-            if thread.author == ReviewThread.reader {
-                Button(
-                    thread.isResolved
-                        ? String(localized: "Reopen", bundle: .module)
-                        : String(localized: "Resolve", bundle: .module)
-                ) {
-                    Task { await session.setResolved(!thread.isResolved, thread: thread.id) }
-                }
+            Button(
+                thread.isResolved
+                    ? String(localized: "Reopen", bundle: .module)
+                    : String(localized: "Resolve", bundle: .module)
+            ) {
+                Task { await session.setResolved(!thread.isResolved, thread: thread.id) }
             }
             Spacer()
             Button(String(localized: "Reply", bundle: .module)) { send() }

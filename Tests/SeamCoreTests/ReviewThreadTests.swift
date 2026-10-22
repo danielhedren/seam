@@ -23,7 +23,7 @@ private func ids() -> () -> String {
         let thread = try ThreadRules.open(
             &threads, worktree: "/w", anchor: anchor, author: ReviewThread.reader,
             body: "  Why?  ", now: start, newID: newID)
-        try ThreadRules.setResolved(true, &threads, id: thread.id, by: ReviewThread.reader)
+        try ThreadRules.setResolved(true, &threads, id: thread.id)
         try ThreadRules.reply(
             &threads, to: thread.id, author: "claude", body: "Because.", now: start,
             newID: newID)
@@ -34,7 +34,7 @@ private func ids() -> () -> String {
         #expect(!threads[0].isResolved)
     }
 
-    @Test func onlyTheOpenerResolvesOrReopens() throws {
+    @Test func anyoneResolvesOrReopensAnyThread() throws {
         var threads: [ReviewThread] = []
         let mine = try ThreadRules.open(
             &threads, worktree: "/w", anchor: anchor, author: ReviewThread.reader, body: "x",
@@ -42,14 +42,10 @@ private func ids() -> () -> String {
         let agents = try ThreadRules.open(
             &threads, worktree: "/w", anchor: anchor, author: "claude", body: "y", now: start)
 
-        #expect(throws: ThreadError.notAuthor(thread: mine.id, author: "you")) {
-            try ThreadRules.setResolved(true, &threads, id: mine.id, by: "claude")
-        }
-        try ThreadRules.setResolved(true, &threads, id: agents.id, by: "claude")
-        #expect(throws: ThreadError.notAuthor(thread: agents.id, author: "claude")) {
-            try ThreadRules.setResolved(false, &threads, id: agents.id, by: ReviewThread.reader)
-        }
-        #expect(threads.map(\.isResolved) == [false, true])
+        try ThreadRules.setResolved(true, &threads, id: mine.id)
+        try ThreadRules.setResolved(true, &threads, id: agents.id)
+        try ThreadRules.setResolved(false, &threads, id: agents.id)
+        #expect(threads.map(\.isResolved) == [true, false])
     }
 
     @Test func emptyCommentsAndUnknownThreadsAreRefused() throws {
@@ -63,7 +59,7 @@ private func ids() -> () -> String {
         }
     }
 
-    @Test func theReaderDeletesAnyThreadTheCommandOnlyItsAuthorsAndUndoPutsItBack() throws {
+    @Test func anyThreadCanBeDeletedAndPutBackWhereItWas() throws {
         var threads: [ReviewThread] = []
         let next = ids()
         let first = try ThreadRules.open(
@@ -73,9 +69,6 @@ private func ids() -> () -> String {
             &threads, worktree: "/w", anchor: anchor, author: "you", body: "Two", now: start,
             newID: next)
 
-        #expect(throws: ThreadError.notAuthor(thread: first.id, author: "claude")) {
-            try ThreadRules.delete(&threads, id: first.id, by: "you")
-        }
         let deleted = try ThreadRules.delete(&threads, id: first.id)
         #expect(deleted.index == 0)
         #expect(threads.map(\.id) == [second.id])
@@ -86,7 +79,7 @@ private func ids() -> () -> String {
         ThreadRules.restore(deleted.thread, at: deleted.index, in: &threads)
         ThreadRules.restore(deleted.thread, at: deleted.index, in: &threads)
         #expect(threads.map(\.id) == [first.id, second.id])
-        try ThreadRules.delete(&threads, id: second.id, by: "you")
+        try ThreadRules.delete(&threads, id: second.id)
         #expect(threads.map(\.id) == [first.id])
     }
 

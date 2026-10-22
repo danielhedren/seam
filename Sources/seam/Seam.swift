@@ -228,7 +228,7 @@ struct Comment: AsyncParsableCommand {
 
 struct Resolve: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Resolve a thread you opened.")
+        abstract: "Resolve a thread.")
 
     @OptionGroup var options: ThreadOptions
     @Argument var id: String
@@ -238,7 +238,7 @@ struct Resolve: AsyncParsableCommand {
 
 struct Reopen: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Reopen a thread you opened.")
+        abstract: "Reopen a thread.")
 
     @OptionGroup var options: ThreadOptions
     @Argument var id: String
@@ -248,17 +248,16 @@ struct Reopen: AsyncParsableCommand {
 
 struct Delete: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Delete a thread you opened, with its comments.")
+        abstract: "Delete a thread with its comments.")
 
     @OptionGroup var options: ThreadOptions
     @Argument var id: String
 
     func run() async throws {
         let (repository, _) = try await options.worktree()
-        let author = options.signature
         let id = String(id.trimmingPrefix("#"))
         try threadStore().update(repository) { threads throws(ThreadError) in
-            try ThreadRules.delete(&threads, id: id, by: author)
+            try ThreadRules.delete(&threads, id: id)
         }
         print("Deleted #\(id).")
     }
@@ -266,10 +265,9 @@ struct Delete: AsyncParsableCommand {
 
 private func setResolved(_ resolved: Bool, _ id: String, _ options: ThreadOptions) async throws {
     let (repository, _) = try await options.worktree()
-    let author = options.signature
     let id = String(id.trimmingPrefix("#"))
     try threadStore().update(repository) { threads throws(ThreadError) in
-        try ThreadRules.setResolved(resolved, &threads, id: id, by: author)
+        try ThreadRules.setResolved(resolved, &threads, id: id)
     }
     print(resolved ? "Resolved #\(id)." : "Reopened #\(id).")
 }
@@ -293,8 +291,6 @@ extension ThreadError: CustomStringConvertible {
     public var description: String {
         switch self {
         case .unknownThread(let id): "no thread #\(id) in this repository"
-        case .notAuthor(let thread, let author):
-            "only \(author), who opened #\(thread), can resolve, reopen or delete it"
         case .emptyComment: "the comment is empty"
         case .unsupportedVersion(let version):
             "the thread store was written by a newer Seam (format \(version))"

@@ -375,10 +375,10 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
 
 - **A thread** is anchored to a file, a side (new or old) and a line range, and holds comments in
   order. Each comment has an author (`you`, or the agent name a `seam` call gives), a Markdown
-  body and a time. A thread is open or resolved. Only its author resolves it: the reader resolves
-  threads they opened, an agent resolves threads it opened. Anyone may reply, and a reply to a
-  resolved thread reopens it. The reader may delete any thread, which is how they dismiss an
-  agent's; an agent deletes only threads it opened.
+  body and a time. A thread is open or resolved. Anyone may reply, resolve, reopen or delete any
+  thread, in the app or with `seam`; a reply to a resolved thread reopens it. Seam doesn't
+  police authorship: the agent prompt asks agents to leave the reader's threads to the reader,
+  and the reader can ask an agent to do anything with them.
 - **Creating:** select lines in the diff (or put the cursor on one) and press `c`, or Review ›
   Comment, or right-click: "Comment on Line N" for the clicked line, or "Comment on Lines N–M"
   when the click is inside a selection, which a right-click elsewhere replaces with the clicked
@@ -397,10 +397,9 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   resolved. Clicking it, or `t` on that line, opens the thread in the panel. Resolved threads
   show only the gutter marker unless Review › Show Resolved Threads is on.
 - **The thread panel** (an inspector on the right, `⌥⌘0`) lists the worktree's threads by file,
-  open ones first, with the selected thread's conversation, a reply box, Resolve or Reopen for
-  its author, and Delete (also Review › Delete Thread; Undo brings it back). Agent replies
-  appear live. Its header has Copy Prompt for Agent and a close
-  button.
+  open ones first, with the selected thread's conversation, a reply box, Resolve or Reopen, and
+  Delete (also Review › Delete Thread; Undo brings it back). Agent replies appear live. Its
+  header has Copy Prompt for Agent and a close button.
 - **Following edits:** a thread keeps the text of its lines. When the file changes, it moves to
   the nearest place where those lines still appear; when they're gone it is outdated, shown in
   the panel with its original lines, not in the diff. Moving and outdating are decided per diff
@@ -727,17 +726,17 @@ seam threads [--all] [--json]          # this worktree's open threads (--all: re
 seam thread <id> [--json]              # one thread with its comments
 seam reply <id> <text>                 # answer a thread; reopens a resolved one
 seam comment <file>:<line>[-<end>] [--old] <text>   # open a thread as the agent
-seam resolve <id> | seam reopen <id>   # only for threads this author opened
-seam delete <id>                       # remove a thread this author opened, with its comments
+seam resolve <id> | seam reopen <id>
+seam delete <id>                       # remove a thread with its comments
 ```
 
 Thread commands act on the worktree containing `$PWD` (or `-C <path>`) and sign as
 `--as <name>`, else `$SEAM_AGENT`, else `agent`. They work without the app running; a running app
 picks the change up from the file. Text output is for agents to read: each thread with its id,
 file, lines, status, the quoted lines and the comments; `--json` gives the same structurally.
-Exit status is non-zero, with a message on stderr, for an unknown id or a resolve or delete
-the author isn't allowed. `comment --old` anchors on the base the app shows for the worktree: the app's
-default base and ignored refs, and the parent picked for the branch in the base picker.
+Exit status is non-zero, with a message on stderr, for an unknown id. `comment --old` anchors on
+the base the app shows for the worktree: the app's default base and ignored refs, and the parent
+picked for the branch in the base picker.
 
 Opening talks to the running app through a URL scheme (`seam://open?path=…&base=…`), launching
 the app if needed. The command is a Swift executable (swift-argument-parser) in the app's
