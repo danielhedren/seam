@@ -22,6 +22,15 @@ final class OpenRequests {
     var recent: [URL] = []
     /// The launch argument opens a repo once, not in every new welcome window.
     var launchHandled = false
+    /// File › New Tab: the window the next new window joins as a tab.
+    @ObservationIgnored weak var tabHost: NSWindow?
+
+    func adopt(_ window: NSWindow) {
+        defer { tabHost = nil }
+        guard let host = tabHost, host !== window else { return }
+        host.addTabbedWindow(window, ordered: .above)
+        window.makeKeyAndOrderFront(nil)
+    }
 
     func take(_ main: String) -> Request? {
         pending.removeValue(forKey: main)
@@ -38,8 +47,10 @@ public struct SeamScenes: Scene {
         self.services = services
     }
 
+    private static let windowID = "repository"
+
     public var body: some Scene {
-        WindowGroup(for: URL.self) { $url in
+        WindowGroup(id: Self.windowID, for: URL.self) { $url in
             WindowRoot(url: $url, services: services)
                 .environment(requests)
                 .frame(minWidth: 900, minHeight: 500)
@@ -52,11 +63,18 @@ public struct SeamScenes: Scene {
                         await services.store.clearRecent()
                         requests.recent = []
                     }
-                }, installCommandLineTool: installTool)
+                }, installCommandLineTool: installTool, newTab: newTab,
+                newWindow: { openWindow(id: Self.windowID) })
         }
         Settings {
             SettingsView(settings: services.settings)
         }
+    }
+
+    /// ⌘T, as in Safari: a welcome window, as a tab of the frontmost one.
+    private func newTab() {
+        requests.tabHost = NSApp.keyWindow
+        openWindow(id: Self.windowID)
     }
 
     /// A one-off answer to an explicit menu command, so an alert is the right shape (SPEC §9).
@@ -138,6 +156,10 @@ struct WindowRoot: View {
                 }
             }
         }
+        // The window's title names its tab; the toolbar has no room to repeat it.
+        .navigationTitle(url?.lastPathComponent ?? String(localized: "New Tab", bundle: .module))
+        .toolbar(removing: .title)
+        .background(WindowReader { requests.adopt($0) })
         // Existing windows take seam:// URLs rather than SwiftUI opening one per URL.
         .handlesExternalEvents(preferring: ["seam"], allowing: ["*"])
         .onOpenURL { incoming in
@@ -173,6 +195,28 @@ struct WindowRoot: View {
     }
 }
 
+/// Hands over the window a view lands in, for the AppKit calls SwiftUI has no word for.
+struct WindowReader: NSViewRepresentable {
+    let found: (NSWindow) -> Void
+
+    final class Reader: NSView {
+        var found: ((NSWindow) -> Void)?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let window { found?(window) }
+        }
+    }
+
+    func makeNSView(context: Context) -> Reader {
+        let view = Reader()
+        view.found = found
+        return view
+    }
+
+    func updateNSView(_ view: Reader, context: Context) {}
+}
+
 struct WelcomeView: View {
     let services: SeamServices
     /// Turns this window into the repo's window; false when `url` isn't in a repository.
@@ -194,13 +238,8 @@ struct WelcomeView: View {
                 if let failure {
                     Text(failure).foregroundStyle(.red)
                 }
-                Button(String(localized: "Open Repository…", bundle: .module)) {
-                    let panel = NSOpenPanel()
-                    panel.canChooseDirectories = true
-                    panel.canChooseFiles = false
-                    if panel.runModal() == .OK, let url = panel.url { start(url) }
-                }
-                .keyboardShortcut(.defaultAction)
+                Button(String(localized: "Open Repository…", bundle: .module), action: choose)
+                    .keyboardShortcut(.defaultAction)
                 if !recent.isEmpty {
                     Divider().frame(width: 280)
                     ForEach(recent, id: \.self) { url in
@@ -211,6 +250,19 @@ struct WelcomeView: View {
         }
         .padding(40)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // A toolbar like a repo window's, so the tab bar stays put when switching tabs.
+        .toolbar {
+            ToolbarItem {
+                Button {
+                    choose()
+                } label: {
+                    Label(
+                        String(localized: "Open Repository…", bundle: .module),
+                        systemImage: "folder")
+                }
+                .help(String(localized: "Open Repository… (⌘O)", bundle: .module))
+            }
+        }
         .task {
             if !requests.launchHandled, let path = Self.launchPath() {
                 requests.launchHandled = true
@@ -219,6 +271,13 @@ struct WelcomeView: View {
             recent = await services.store.recentRepositories()
             requests.recent = recent
         }
+    }
+
+    private func choose() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        if panel.runModal() == .OK, let url = panel.url { start(url) }
     }
 
     private func start(_ url: URL) {

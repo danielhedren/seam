@@ -22,7 +22,17 @@ struct CommitList: View {
                         Text("Older commits not shown", bundle: .module)
                             .font(.caption).foregroundStyle(.secondary).selectionDisabled()
                     }
-                    BaseRow(commit: log.base, parent: review.parentName).selectionDisabled()
+                    Button {
+                        session.showsBasePicker.toggle()
+                    } label: {
+                        BaseRow(commit: log.base, parent: review.parentName)
+                    }
+                    .buttonStyle(.plain)
+                    .selectionDisabled()
+                    .help(String(localized: "Choose what to compare with (b)", bundle: .module))
+                    .popover(isPresented: Bindable(session).showsBasePicker, arrowEdge: .trailing) {
+                        BasePicker(session: session, review: review)
+                    }
                 } header: {
                     header(log)
                 }
@@ -128,6 +138,12 @@ private struct BaseRow: View {
         } icon: {
             Image(systemName: "arrow.triangle.branch").foregroundStyle(.tint)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .trailing) {
+            Image(systemName: "chevron.up.chevron.down").font(.caption)
+                .foregroundStyle(.secondary).accessibilityHidden(true)
+        }
+        .contentShape(Rectangle())
         .padding(.vertical, 4)
         .padding(.horizontal, 6)
         .background(.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))

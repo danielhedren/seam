@@ -10,7 +10,6 @@ struct WorktreeList: View {
                 WorktreeRow(review: review).tag(review.id)
             }
         }
-        .navigationTitle(session.repositoryName)
         .contextMenu {
             Picker(String(localized: "Sort By", bundle: .module), selection: Bindable(session).sort)
             {

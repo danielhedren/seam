@@ -5,3 +5,4 @@
 DerivedData/
 *.xcresult
 xcuserdata/
+/.claude/worktrees/

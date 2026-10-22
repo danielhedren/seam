@@ -141,9 +141,9 @@ pins the commit and stops working once that parent ref is deleted.
 
 ### 5.3 Overrides
 
-- The diff header shows the chosen parent ("vs origin/feat/a · 5
-  commits"). Clicking it opens a picker listing all candidates with their commit counts, plus
-  "Choose ref or commit…".
+- The commit list's base row shows the chosen parent ("Branched from
+  origin/feat/a"). Clicking it, or `b`, opens a picker listing all
+  candidates with their commit counts, plus a field for any other ref or commit.
 - A manual choice is saved per repo and branch (§11) and wins over detection until it's cleared.
   If the saved ref disappears, fall back to detection and show a notice.
 
@@ -229,7 +229,10 @@ keeps the position.
 - Three panes: worktrees | files | diff. `⌘\` hides or shows both sidebars, `⌘⌥\` only the
   worktree list. Pane widths are remembered.
 - One window per repo, listing only that repo's worktrees. Opening another repo opens another
-  window (standard tabs work).
+  window (standard tabs work). A window's title, which names its tab, is the repo's name; the
+  toolbar doesn't repeat it. File › New Tab (⌘T) opens the welcome screen as a tab of the front
+  window, and New Window (⌘N) as its own window. The welcome screen has a toolbar too, so the tab
+  bar sits in the same place in every tab.
 - Dark and light themes, following the system.
 
 ### 7.2 Worktree list
@@ -279,8 +282,9 @@ switches and launches.
 
 - Side-by-side and unified modes (`⇆` toggles, key `s`). The mode is global: toggling it
   changes every worktree, and it is remembered.
-- A sticky file header per file: path, status, counts, viewed checkbox, a collapse toggle, and
-  "Open in editor".
+- A sticky file header per file: a collapse chevron, status, path, `+/−` counts (left out when
+  both are 0), and the viewed checkbox with its label at the right edge, so it sits in the same
+  place on every file. The chevron and checkbox are drawn at the text's height.
 - Syntax highlighting (§8.4).
 - **Word-level highlights within changed lines:** pair removed and added lines inside a hunk by
   similarity, then highlight the changed tokens. Unpaired lines get no word highlights.
@@ -298,8 +302,11 @@ switches and launches.
   (`GetOrderOptionsHandler › Handle`), from the tree-sitter parse: types, functions, methods,
   constructors and properties in C#, TypeScript, JavaScript and Rust. Git's line ranges
   and section heading aren't shown; the ranges repeat the gutter, and the heading is git's guess
-  at the last unindented line, which in C# names the class or namespace. Other languages get an
-  unlabelled separator.
+  at the last unindented line, which in C# names the class or namespace. A header without a name
+  shows only as a thin band where nothing else marks a jump in line numbers (the file's text isn't
+  loaded): not above the first hunk, and not where a gap row already separates the hunks. Once a
+  gap is fully expanded, the hunk below it has no header at all. The header rows stay in the row
+  model at no height, so hunk navigation still stops at them.
 
 ### 7.5 Keyboard
 
@@ -503,7 +510,7 @@ written down here.
 - The window is a three-column `NavigationSplitView` (sidebar | content | detail). Column
   collapsing, resizing and the sidebar toggle all behave natively. `⌘\` is the one custom
   shortcut on top of that.
-- Toolbar in the unified style, holding only: base picker, view mode, reload. The diff gets the
+- Toolbar in the unified style, holding only: view mode, reload. The diff gets the
   rest of the window.
 - Standard scenes: `WindowGroup` per repo, a `Settings` scene (`⌘,`), File › Open Recent, native
   window tabs and full screen. Windows and their selection are restored on relaunch

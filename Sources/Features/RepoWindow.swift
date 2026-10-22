@@ -104,8 +104,6 @@ struct RepoWindow: View {
                 if let review = session.selected {
                     DiffPane(session: session, review: review)
                         .toolbar { ReviewToolbar(session: session, review: review) }
-                        .navigationTitle(review.worktree.name)
-                        .navigationSubtitle(review.worktree.branch ?? "")
                 } else {
                     ContentUnavailableView(
                         String(localized: "No worktree selected", bundle: .module),
@@ -122,15 +120,12 @@ struct RepoWindow: View {
     }
 }
 
-/// Only base, view mode and reload; the diff gets the rest of the window (SPEC §9).
+/// Only view mode and reload; the diff gets the rest of the window (SPEC §9).
 struct ReviewToolbar: ToolbarContent {
     let session: RepoSession
     let review: WorktreeReview
 
     var body: some ToolbarContent {
-        ToolbarItem(placement: .navigation) {
-            BasePicker(session: session, review: review)
-        }
         ToolbarItem {
             Button {
                 session.toggleMode()

@@ -1,9 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    " · %lld commits" : {
-
-    },
     "%@ already exists and isn't Seam's. Remove it and try again." : {
 
     },
@@ -75,7 +72,7 @@
     "Choose Base…" : {
 
     },
-    "Choose the base this worktree is compared with (b)" : {
+    "Choose what to compare with (b)" : {
 
     },
     "Clear Menu" : {
@@ -228,6 +225,12 @@
     "Never use as a parent" : {
 
     },
+    "New Tab" : {
+
+    },
+    "New Window" : {
+
+    },
     "Next File" : {
 
     },
@@ -238,9 +241,6 @@
 
     },
     "Next match" : {
-
-    },
-    "No base" : {
 
     },
     "No changes against %@" : {
@@ -274,6 +274,9 @@
 
     },
     "Open Repository…" : {
+
+    },
+    "Open Repository… (⌘O)" : {
 
     },
     "Open a repository to review its worktrees." : {
@@ -468,9 +471,6 @@
 
     },
     "the base" : {
-
-    },
-    "vs %@" : {
 
     },
     "{path} and {line} are filled in; the command runs with your login shell's PATH." : {

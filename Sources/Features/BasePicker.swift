@@ -2,67 +2,48 @@ import SeamCore
 import SwiftUI
 
 /// The toolbar's "vs <parent>" control and its candidate list (SPEC §5.3).
+/// The parents a worktree can be compared with (SPEC §5.3), shown from the commit list's base row.
 struct BasePicker: View {
     let session: RepoSession
     let review: WorktreeReview
     @State private var otherRef = ""
 
     var body: some View {
-        Button {
-            session.showsBasePicker.toggle()
-        } label: {
-            Text(title).lineLimit(1).truncationMode(.middle)
-        }
-        .help(
-            String(localized: "Choose the base this worktree is compared with (b)", bundle: .module)
-        )
-        .popover(isPresented: Bindable(session).showsBasePicker, arrowEdge: .bottom) {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Compare against", bundle: .module).font(.headline)
-                ForEach(review.detection?.candidates ?? [], id: \.ref) { candidate in
-                    Button {
-                        session.setBaseOverride(candidate.ref)
-                        session.showsBasePicker = false
-                    } label: {
-                        HStack {
-                            Image(systemName: "checkmark").opacity(isCurrent(candidate) ? 1 : 0)
-                                .accessibilityHidden(true)
-                            Text(candidate.name)
-                            Spacer()
-                            Text("\(candidate.commitCount) commits", bundle: .module)
-                                .foregroundStyle(.secondary).monospacedDigit()
-                            if candidate.ref == review.detection?.parent?.ref {
-                                Text("detected", bundle: .module).font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Compare against", bundle: .module).font(.headline)
+            ForEach(review.detection?.candidates ?? [], id: \.ref) { candidate in
+                Button {
+                    session.setBaseOverride(candidate.ref)
+                    session.showsBasePicker = false
+                } label: {
+                    HStack {
+                        Image(systemName: "checkmark").opacity(isCurrent(candidate) ? 1 : 0)
+                            .accessibilityHidden(true)
+                        Text(candidate.name)
+                        Spacer()
+                        Text("\(candidate.commitCount) commits", bundle: .module)
+                            .foregroundStyle(.secondary).monospacedDigit()
+                        if candidate.ref == review.detection?.parent?.ref {
+                            Text("detected", bundle: .module).font(.caption)
+                                .foregroundStyle(.secondary)
                         }
-                        .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(isCurrent(candidate) ? .isSelected : [])
+                    .contentShape(Rectangle())
                 }
-                Divider()
-                HStack {
-                    TextField(String(localized: "Other ref", bundle: .module), text: $otherRef)
-                        .textFieldStyle(.roundedBorder)
-                        .onSubmit(useOtherRef)
-                    Button(String(localized: "Use", bundle: .module), action: useOtherRef)
-                        .disabled(otherRef.isEmpty)
-                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(isCurrent(candidate) ? .isSelected : [])
             }
-            .padding()
-            .frame(minWidth: 340)
+            Divider()
+            HStack {
+                TextField(String(localized: "Other ref", bundle: .module), text: $otherRef)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(useOtherRef)
+                Button(String(localized: "Use", bundle: .module), action: useOtherRef)
+                    .disabled(otherRef.isEmpty)
+            }
         }
-    }
-
-    private var title: String {
-        guard let parent = review.parentName else {
-            return String(localized: "No base", bundle: .module)
-        }
-        let commits = review.uniqueCommitCount.map {
-            String(localized: " · \($0) commits", bundle: .module)
-        }
-        return String(localized: "vs \(parent)", bundle: .module) + (commits ?? "")
+        .padding()
+        .frame(minWidth: 340)
     }
 
     private func isCurrent(_ candidate: ParentCandidate) -> Bool {

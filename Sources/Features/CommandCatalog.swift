@@ -235,7 +235,12 @@ enum CommandCatalog {
             section: 1, shortcut: .single("x"), run: { $0.toggleCollapsed() }),
         SeamCommand(
             id: "base", title: localized("Choose Base…"), menu: .review, section: 2,
-            shortcut: .single("b"), run: { $0.showsBasePicker.toggle() }),
+            shortcut: .single("b"),
+            run: { session in
+                // The picker opens from the commit list, so that has to be showing.
+                session.columns = .all
+                session.showsBasePicker.toggle()
+            }),
         SeamCommand(
             id: "keep-parent", title: localized("Keep Parent That Looks Merged"), menu: .review,
             section: 2, shortcut: .none, isEnabled: { $0.selected?.staleParent != nil },
