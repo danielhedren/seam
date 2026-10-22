@@ -604,6 +604,8 @@ written down here.
 - Standard scenes: `WindowGroup` per repo, a `Settings` scene (`⌘,`), File › Open Recent and full
   screen. Window tabs are off, the one deviation here (§7.1). The workspace reopens the windows on
   relaunch, each in its repo's frame, and §11 state restores their selection.
+- The recent repos are also in Spotlight: typing part of a repo's name there lists it, and picking
+  it opens the repo as `seam <path>` would. Clearing Open Recent clears them from Spotlight too.
 
 **Commands and keyboard**
 - **Every action is in the menu bar**, with its shortcut shown (File, Edit, View, Go, Review,

@@ -59,6 +59,8 @@ final class RepoSession {
     private var isClosed = false
     private var rowsTask: Task<Void, Never>?
     private var reloadTask: Task<Void, Never>?
+    /// The recent repos going to Spotlight; tests wait on it.
+    @ObservationIgnored private(set) var spotlightTask: Task<Void, Never>?
     /// An undone thread deletion being written back; tests wait on it.
     @ObservationIgnored var restoringThreads: Task<Void, Never>?
     private var deferredActivity: [String: Task<Void, Never>] = [:]
@@ -123,6 +125,10 @@ final class RepoSession {
             threads = RepoThreads(repository: repository, store: services.threads)
             repoState = await services.store.load(repository)
             await services.store.noteOpened(directory)
+            // Spotlight lists what Open Recent does, and never holds up the window.
+            spotlightTask = Task { [services] in
+                await services.spotlight.replace(with: await services.store.recentRepositories())
+            }
             // The list shows as soon as it's known; rows fill in their counts as they arrive.
             try await listWorktrees()
             guard !isClosed else { return }

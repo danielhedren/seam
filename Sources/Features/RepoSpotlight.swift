@@ -1,0 +1,52 @@
+import CoreSpotlight
+import Foundation
+import UniformTypeIdentifiers
+import os
+
+/// Recent repositories in Spotlight (SPEC §7.1): typing part of a repo's name there lists it,
+/// and picking it opens the repo in Seam.
+public protocol RepoIndex: Sendable {
+    /// Makes Seam's Spotlight entries exactly these repos.
+    func replace(with repositories: [URL]) async
+}
+
+/// Indexes nothing, for tests and previews.
+public struct NoRepoIndex: RepoIndex {
+    public init() {}
+    public func replace(with repositories: [URL]) async {}
+}
+
+public struct SpotlightRepoIndex: RepoIndex {
+    static let domain = "com.danielhedren.seam.repositories"
+    private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
+
+    public init() {}
+
+    public func replace(with repositories: [URL]) async {
+        let index = CSSearchableIndex.default()
+        do {
+            try await index.deleteSearchableItems(withDomainIdentifiers: [Self.domain])
+            try await index.indexSearchableItems(Self.items(for: repositories))
+        } catch {
+            logger.error("spotlight: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    static func items(for repositories: [URL]) -> [CSSearchableItem] {
+        repositories.map { url in
+            let attributes = CSSearchableItemAttributeSet(contentType: .folder)
+            attributes.title = url.lastPathComponent
+            attributes.displayName = url.lastPathComponent
+            attributes.contentDescription = (url.path as NSString).abbreviatingWithTildeInPath
+            attributes.keywords = [url.lastPathComponent, "repository", "worktree"]
+            return CSSearchableItem(
+                uniqueIdentifier: url.path, domainIdentifier: domain, attributeSet: attributes)
+        }
+    }
+
+    /// The repo a Spotlight pick asks for: its item's identifier is the repo's path.
+    static func path(from activity: NSUserActivity) -> String? {
+        guard activity.activityType == CSSearchableItemActionType else { return nil }
+        return activity.userInfo?[CSSearchableItemActivityIdentifier] as? String
+    }
+}
