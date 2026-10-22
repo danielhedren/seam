@@ -393,7 +393,7 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   police authorship: the agent prompt asks agents to leave the reader's threads to the reader,
   and the reader can ask an agent to do anything with them.
 - **Creating:** select lines in the diff (or put the cursor on one) and press `c`, or Review ›
-  Comment, or right-click: "Comment on Line N" for the clicked line, or "Comment on Lines N–M"
+  Comment…, or right-click: "Comment on Line N" for the clicked line, or "Comment on Lines N–M"
   when the click is inside a selection, which a right-click elsewhere replaces with the clicked
   line. A composer opens in the diff under the last of those lines (in their column side by
   side), with the cursor in it; ⌘↩ posts and Escape cancels. The lines a selection or a clicked
@@ -412,8 +412,8 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   shortened before its count. Clicking it, or `t` on that line, opens the thread in the panel. Resolved threads
   show only the gutter marker unless Review › Show Resolved Threads is on.
 - **The thread panel** (an inspector on the right, `⌥⌘0`) lists the worktree's threads by file,
-  open ones first, with the selected thread's conversation, a reply box, Resolve or Reopen, and
-  Delete (also Review › Delete Thread; Undo brings it back). Agent replies appear live. Its
+  open ones first, with the selected thread's conversation, a reply box, Resolve or Reopen (also
+  Review › Resolve Thread), and Delete (also Review › Delete Thread; Undo brings it back). Agent replies appear live. Its
   header has Copy Prompt for Agent and a close button.
 - **Following edits:** a thread keeps the text of its lines. When the file changes, it moves to
   the nearest place where those lines still appear; when they're gone it is outdated, shown in
@@ -625,6 +625,11 @@ written down here.
 - **Every action is in the menu bar**, with its shortcut shown (File, Edit, View, Go, Review,
   Window, Help). This is how macOS users discover shortcuts. The command palette and single-key
   bindings supplement the menus and never replace them.
+- Find, Find Next, Find Previous and Filter Files sit in Edit › Find, as in other Mac apps. An
+  item that shows or hides something, or flips a state, is named for what it will do now (Hide
+  Sidebars / Show Sidebars, Collapse File / Expand File, Mark as Viewed / Mark as Not Viewed,
+  Resolve Thread / Reopen Thread) rather than "Toggle …". A checkmark marks a mode that stays on
+  (Side by Side, Wrap Lines, the scope). Go › ⌘1…⌘9 are named after the worktrees they pick.
 - `⌘`-shortcuts follow system conventions and never override standard ones (`⌘F` find, `⌘C`
   copy, `⌘+`/`⌘−` font size, `⌘W`, `⌘,`).
 - Single-letter keys (§7.5) only work while the diff or file list has focus, and not while a

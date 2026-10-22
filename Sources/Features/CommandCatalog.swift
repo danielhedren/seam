@@ -3,7 +3,20 @@ import SwiftUI
 
 /// One action, shared by the menu bar and the command palette so the two can't drift (SPEC §9).
 struct SeamCommand: Identifiable {
-    enum Menu { case edit, view, go, review }
+    /// `find` is Edit › Find, the submenu macOS apps keep their find commands in.
+    enum Menu {
+        case find, view, go, review
+
+        /// Where the palette says a command lives.
+        var name: String {
+            switch self {
+            case .find: String(localized: "Find", bundle: .module)
+            case .view: String(localized: "View", bundle: .module)
+            case .go: String(localized: "Go", bundle: .module)
+            case .review: String(localized: "Review", bundle: .module)
+            }
+        }
+    }
 
     enum Shortcut {
         case none
@@ -26,7 +39,15 @@ struct SeamCommand: Identifiable {
     var isEnabled: @MainActor (RepoSession) -> Bool = { $0.selected != nil }
     /// Set for commands that show a checkmark in the menu.
     var isOn: (@MainActor (RepoSession) -> Bool)?
+    /// Set for commands whose title says what they'll do now, as the HIG prefers to a "Toggle":
+    /// Hide Sidebars or Show Sidebars.
+    var currentTitle: (@MainActor (RepoSession) -> String?)?
     let run: @MainActor (RepoSession) -> Void
+
+    @MainActor
+    func title(for session: RepoSession?) -> String {
+        session.flatMap { currentTitle?($0) } ?? title
+    }
 
     @MainActor
     func keyboardShortcut(for session: RepoSession?) -> KeyboardShortcut? {
@@ -71,7 +92,7 @@ enum CommandCatalog {
         String(localized: key, bundle: .module)
     }
 
-    static let all: [SeamCommand] = edit + view + go + review
+    static let all: [SeamCommand] = find + view + go + review
 
     /// File › Open Repository, which the File menu builds itself.
     static let openRepository = KeyboardShortcut("o")
@@ -89,32 +110,40 @@ enum CommandCatalog {
         "\(text) (\(SeamCommand.label(shortcut.key, shortcut.modifiers)))"
     }
 
-    static let edit: [SeamCommand] = [
+    static let find: [SeamCommand] = [
         SeamCommand(
-            id: "find", title: localized("Find…"), menu: .edit, section: 0,
+            id: "find", title: localized("Find…"), menu: .find, section: 0,
             shortcut: .commandWhen("f", { !$0.fileListHasFocus }), run: { $0.find.show() }),
         SeamCommand(
-            id: "find-next", title: localized("Find Next"), menu: .edit, section: 0,
+            id: "find-next", title: localized("Find Next"), menu: .find, section: 0,
             shortcut: .command("g"), isEnabled: { $0.find.result.total > 0 },
             run: { $0.find.move(by: 1) }),
         SeamCommand(
-            id: "find-previous", title: localized("Find Previous"), menu: .edit, section: 0,
+            id: "find-previous", title: localized("Find Previous"), menu: .find, section: 0,
             shortcut: .command("g", [.command, .shift]), isEnabled: { $0.find.result.total > 0 },
             run: { $0.find.move(by: -1) }),
         SeamCommand(
-            id: "filter-files", title: localized("Filter Files"), menu: .edit, section: 0,
+            id: "filter-files", title: localized("Filter Files"), menu: .find, section: 1,
             shortcut: .commandWhen("f", { $0.fileListHasFocus }),
             run: { $0.filterFocusRequests += 1 }),
     ]
 
     static let view: [SeamCommand] = [
         SeamCommand(
-            id: "toggle-sidebars", title: localized("Toggle Sidebars"), menu: .view, section: 0,
+            id: "toggle-sidebars", title: localized("Hide Sidebars"), menu: .view, section: 0,
             shortcut: .command("\\"), isEnabled: { _ in true },
+            currentTitle: { $0.columns == .diffOnly ? localized("Show Sidebars") : nil },
             run: { $0.columns = $0.columns == .diffOnly ? .all : .diffOnly }),
         SeamCommand(
-            id: "toggle-worktrees", title: localized("Toggle Worktree List"), menu: .view,
+            id: "toggle-worktrees", title: localized("Hide Worktree List"), menu: .view,
             section: 0, shortcut: .command("\\", [.command, .option]), isEnabled: { _ in true },
+            currentTitle: { session in
+                switch session.columns {
+                case .all: nil
+                case .filesAndDiff: localized("Show Worktree List")
+                case .diffOnly: localized("Show File List")
+                }
+            },
             run: { $0.columns = $0.columns == .filesAndDiff ? .all : .filesAndDiff }),
         SeamCommand(
             id: "bigger", title: localized("Make Text Bigger"), menu: .view, section: 1,
@@ -176,6 +205,11 @@ enum CommandCatalog {
                 id: "worktree-\(position)", title: localized("Worktree \(position)"), menu: .go,
                 section: 1, shortcut: .command(KeyEquivalent(Character(String(position)))),
                 isEnabled: { $0.sortedReviews.count >= position },
+                currentTitle: { session in
+                    let reviews = session.sortedReviews
+                    return reviews.indices.contains(position - 1)
+                        ? reviews[position - 1].worktree.name : nil
+                },
                 run: { $0.select(position: position - 1) })
         }
         + [
@@ -205,12 +239,14 @@ enum CommandCatalog {
             shortcut: .single("1"), isOn: { $0.selected?.isShowing(.all) == true },
             run: { $0.setScope(.all) }),
         SeamCommand(
-            id: "scope-committed", title: localized("Committed"), menu: .review, section: 0,
-            shortcut: .single("2"), isOn: { $0.selected?.isShowing(.committed) == true },
+            id: "scope-committed", title: localized("Committed Changes"), menu: .review,
+            section: 0, shortcut: .single("2"),
+            isOn: { $0.selected?.isShowing(.committed) == true },
             run: { $0.setScope(.committed) }),
         SeamCommand(
-            id: "scope-uncommitted", title: localized("Uncommitted"), menu: .review, section: 0,
-            shortcut: .single("3"), isOn: { $0.selected?.isShowing(.uncommitted) == true },
+            id: "scope-uncommitted", title: localized("Uncommitted Changes"), menu: .review,
+            section: 0, shortcut: .single("3"),
+            isOn: { $0.selected?.isShowing(.uncommitted) == true },
             run: { $0.setScope(.uncommitted) }),
         SeamCommand(
             id: "latest-commit", title: localized("Latest Commit Only"), menu: .review,
@@ -224,7 +260,14 @@ enum CommandCatalog {
             run: { $0.toggleWhitespace() }),
         SeamCommand(
             id: "viewed", title: localized("Mark as Viewed"), menu: .review, section: 1,
-            shortcut: .single("v"), run: { $0.toggleViewed() }),
+            shortcut: .single("v"),
+            currentTitle: { session in
+                guard let review = session.selected, let path = review.currentFile,
+                    review.viewedStatus(path) == .viewed
+                else { return nil }
+                return localized("Mark as Not Viewed")
+            },
+            run: { $0.toggleViewed() }),
         SeamCommand(
             id: "editor", title: localized("Open in Editor"), menu: .review, section: 1,
             shortcut: .single("o"), run: { $0.openInEditor() }),
@@ -248,8 +291,15 @@ enum CommandCatalog {
             isEnabled: { $0.selected?.currentFile != nil },
             run: { session in session.selected?.currentFile.map(session.revealInFinder) }),
         SeamCommand(
-            id: "collapse", title: localized("Collapse or Expand File"), menu: .review,
-            section: 1, shortcut: .single("x"), run: { $0.toggleCollapsed() }),
+            id: "collapse", title: localized("Collapse File"), menu: .review, section: 1,
+            shortcut: .single("x"),
+            currentTitle: { session in
+                guard let review = session.selected, let path = review.currentFile,
+                    review.collapsed.contains(path)
+                else { return nil }
+                return localized("Expand File")
+            },
+            run: { $0.toggleCollapsed() }),
         SeamCommand(
             id: "base", title: localized("Choose Base…"), menu: .review, section: 2,
             shortcut: .single("b"),
@@ -270,7 +320,7 @@ enum CommandCatalog {
             id: "reload", title: localized("Reload"), menu: .review, section: 3,
             shortcut: .single("r"), run: { $0.reload() }),
         SeamCommand(
-            id: "comment", title: localized("Comment"), menu: .review, section: 4,
+            id: "comment", title: localized("Comment…"), menu: .review, section: 4,
             shortcut: .single("c"), isEnabled: { $0.threads != nil && $0.selected?.diff != nil },
             run: { $0.comment() }),
         SeamCommand(
@@ -279,6 +329,16 @@ enum CommandCatalog {
             isEnabled: { $0.selected?.placedThreads.isEmpty == false },
             run: { $0.openThreadAtCursor() }),
         SeamCommand(
+            id: "resolve-thread", title: localized("Resolve Thread"), menu: .review, section: 4,
+            shortcut: .none, isEnabled: { $0.selectedThread != nil },
+            currentTitle: {
+                $0.selectedThread?.isResolved == true ? localized("Reopen Thread") : nil
+            },
+            run: { session in
+                guard let thread = session.selectedThread else { return }
+                Task { await session.setResolved(!thread.isResolved, thread: thread.id) }
+            }),
+        SeamCommand(
             id: "delete-thread", title: localized("Delete Thread"), menu: .review, section: 4,
             shortcut: .none, isEnabled: { $0.selectedThreadID != nil },
             run: { session in
@@ -286,19 +346,27 @@ enum CommandCatalog {
                 Task { await session.deleteThread(id) }
             }),
         SeamCommand(
-            id: "thread-panel", title: localized("Show Threads"), menu: .review, section: 4,
-            shortcut: .command("0", [.command, .option]), isOn: { $0.showsThreadPanel },
+            id: "thread-panel", title: localized("Show Threads"), menu: .review, section: 5,
+            shortcut: .command("0", [.command, .option]),
+            currentTitle: { $0.showsThreadPanel ? localized("Hide Threads") : nil },
             run: { $0.showsThreadPanel.toggle() }),
         SeamCommand(
             id: "resolved-threads", title: localized("Show Resolved Threads"), menu: .review,
-            section: 4, shortcut: .none, isOn: { $0.settings.showsResolvedThreads },
+            section: 5, shortcut: .none, isOn: { $0.settings.showsResolvedThreads },
             run: { $0.settings.showsResolvedThreads.toggle() }),
         SeamCommand(
             id: "agent-prompt", title: localized("Copy Prompt for Agent"), menu: .review,
-            section: 4, shortcut: .none, run: { $0.copyAgentPrompt() }),
+            section: 5, shortcut: .none, run: { $0.copyAgentPrompt() }),
     ]
 
     static func items(in menu: SeamCommand.Menu) -> [SeamCommand] {
         all.filter { $0.menu == menu }
+    }
+}
+
+extension RepoSession {
+    /// The thread the panel shows.
+    fileprivate var selectedThread: ReviewThread? {
+        selectedThreadID.flatMap { id in threads?.threads.first { $0.id == id } }
     }
 }

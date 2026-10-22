@@ -53,7 +53,9 @@ struct CommandPalette: View {
 
     private var entries: [Entry] {
         let commands = CommandCatalog.all.filter { $0.isEnabled(session) }.map { command in
-            Entry(id: command.id, title: command.title, shortcut: command.shortcutLabel) {
+            Entry(
+                id: command.id, title: command.title(for: session), shortcut: command.shortcutLabel
+            ) {
                 command.run(session)
             }
         }

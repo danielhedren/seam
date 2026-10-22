@@ -44,7 +44,9 @@ struct SeamCommands: Commands {
                 String(localized: "Install Command Line Tool…", bundle: .module),
                 action: installCommandLineTool)
         }
-        CommandGroup(after: .textEditing) { items(.edit) }
+        CommandGroup(after: .textEditing) {
+            Menu(SeamCommand.Menu.find.name) { items(.find) }
+        }
         CommandGroup(after: .sidebar) { items(.view) }
         CommandMenu(String(localized: "Go", bundle: .module)) { items(.go) }
         CommandMenu(String(localized: "Review", bundle: .module)) { items(.review) }
@@ -64,7 +66,7 @@ struct SeamCommands: Commands {
         let enabled = session.map(command.isEnabled) ?? false
         if let isOn = command.isOn {
             Toggle(
-                command.title,
+                command.title(for: session),
                 isOn: Binding(
                     get: { session.map(isOn) ?? false },
                     set: { _ in if let session { command.run(session) } })
@@ -72,7 +74,7 @@ struct SeamCommands: Commands {
             .keyboardShortcut(command.keyboardShortcut(for: session))
             .disabled(!enabled)
         } else {
-            Button(command.title) { if let session { command.run(session) } }
+            Button(command.title(for: session)) { if let session { command.run(session) } }
                 .keyboardShortcut(command.keyboardShortcut(for: session))
                 .disabled(!enabled)
         }
