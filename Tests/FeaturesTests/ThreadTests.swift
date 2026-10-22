@@ -99,6 +99,25 @@ import Testing
         #expect(reviewed.content?.threads["a.txt"]?.count == 2)
     }
 
+    @Test func reloadingUnchangedThreadsKeepsPlacementsCached() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\n")
+        let (session, review, _) = await session(repo)
+        let reviewed = try #require(review)
+        let threads = try #require(session.threads)
+        session.draft = ThreadDraft(
+            worktree: reviewed.id,
+            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
+        await session.post("Why?")
+        await threads.load()
+        let version = threads.version
+
+        await threads.load()
+
+        #expect(threads.version == version)
+        #expect(reviewed.placedThreads.count == 1)
+    }
+
     @Test func theAgentPromptSaysHowToReadAndAnswer() async throws {
         let repo = try await FixtureRepo()
         let (session, _, _) = await session(repo)

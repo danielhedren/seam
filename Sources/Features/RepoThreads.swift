@@ -10,7 +10,7 @@ import os
 @Observable
 final class RepoThreads {
     private(set) var threads: [ReviewThread] = []
-    /// Bumped on every load, so placements are worked out again only when something changed.
+    /// Bumped when the threads change, so placements are worked out again only then.
     private(set) var version = 0
     private(set) var failure: String?
 
@@ -97,13 +97,15 @@ final class RepoThreads {
     private func apply(_ outcome: Result<Void, ThreadError>, threads: [ReviewThread]?) {
         switch outcome {
         case .success:
-            if let threads, threads != self.threads { self.threads = threads }
-            failure = nil
+            if let threads, threads != self.threads {
+                self.threads = threads
+                version += 1
+            }
+            if failure != nil { failure = nil }
         case .failure(let error):
             logger.error("threads: \(String(describing: error), privacy: .public)")
             failure = Self.describe(error)
         }
-        version += 1
     }
 
     static func describe(_ error: ThreadError) -> String {
