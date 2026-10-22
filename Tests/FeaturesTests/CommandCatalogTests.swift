@@ -1,4 +1,6 @@
+import Foundation
 import SwiftUI
+import TestSupport
 import Testing
 
 @testable import Features
@@ -44,5 +46,19 @@ import Testing
         #expect(try label("next-file") == "j")
         #expect(try label("page-up") == "⇧Space")
         #expect(try label("detected-base") == "")
+    }
+
+    @Test func worktreePositionsCountOnlyTheListedWorktrees() async throws {
+        let repo = try await FixtureRepo()
+        let gone = try await repo.worktree("gone", branch: "gone", from: "origin/main")
+        try FileManager.default.removeItem(at: gone)
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        let second = try #require(CommandCatalog.all.first { $0.id == "worktree-2" })
+        #expect(second.isEnabled(session))
+
+        session.hidesMissing = true
+
+        #expect(!second.isEnabled(session))
     }
 }

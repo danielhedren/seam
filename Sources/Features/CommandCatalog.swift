@@ -158,7 +158,7 @@ enum CommandCatalog {
             SeamCommand(
                 id: "worktree-\(position)", title: localized("Worktree \(position)"), menu: .go,
                 section: 1, shortcut: .command(KeyEquivalent(Character(String(position)))),
-                isEnabled: { $0.reviews.count >= position },
+                isEnabled: { $0.sortedReviews.count >= position },
                 run: { $0.select(position: position - 1) })
         }
         + [
