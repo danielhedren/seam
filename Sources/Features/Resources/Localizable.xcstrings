@@ -115,9 +115,6 @@
         }
       }
     },
-    "Commits" : {
-
-    },
     "Committed" : {
 
     },
@@ -146,6 +143,9 @@
 
     },
     "Couldn't open the editor: %@" : {
+
+    },
+    "Couldn't read the commits" : {
 
     },
     "Couldn't read the threads: %@" : {
@@ -455,10 +455,16 @@
     "Tab width: %lld" : {
 
     },
+    "The base %@ no longer exists" : {
+
+    },
     "The chosen base %@ no longer exists." : {
 
     },
     "The threads were saved by a newer Seam; update to change them." : {
+
+    },
+    "The worktree's directory is missing" : {
 
     },
     "This worktree's directory is missing." : {

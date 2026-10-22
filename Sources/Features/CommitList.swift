@@ -8,7 +8,8 @@ struct CommitList: View {
     let review: WorktreeReview
 
     var body: some View {
-        if let log = review.commitLog {
+        // A log loaded before the directory or the chosen base went is no longer true.
+        if let log = review.commitLog, Self.status(of: review)?.keepsLog ?? true {
             List(selection: selection(log)) {
                 Section {
                     if uncommittedFiles > 0 {
@@ -34,16 +35,61 @@ struct CommitList: View {
                             String(localized: "Choose what to compare with", bundle: .module),
                             command: "base")
                     )
-                    .popover(isPresented: Bindable(session).showsBasePicker, arrowEdge: .trailing) {
-                        BasePicker(session: session, review: review)
-                    }
+                    .modifier(BasePickerPopover(session: session, review: review))
                 } header: {
                     header(log)
                 }
             }
         } else {
-            Text("Commits", bundle: .module).foregroundStyle(.secondary)
+            placeholder
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal, 16)
+        }
+    }
+
+    /// Says why there are no commits; the diff's banner carries the details and fixes.
+    @ViewBuilder private var placeholder: some View {
+        switch Self.status(of: review) {
+        case nil:
+            Color.clear
+        case .loading:
+            ProgressView().controlSize(.small)
+        case .missingDirectory:
+            message(String(localized: "The worktree's directory is missing", bundle: .module))
+        case .failed:
+            message(String(localized: "Couldn't read the commits", bundle: .module))
+        case .baseGone(let ref):
+            VStack(spacing: 6) {
+                message(String(localized: "The base \(ref) no longer exists", bundle: .module))
+                // Without a base row, `b` and Review › Choose Base… open the picker from here.
+                Button(String(localized: "Choose Base…", bundle: .module)) {
+                    session.showsBasePicker.toggle()
+                }
+                .buttonStyle(.link)
+                .font(.callout)
+                .modifier(BasePickerPopover(session: session, review: review))
+            }
+        }
+    }
+
+    private func message(_ text: String) -> some View {
+        Text(text).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+    }
+
+    enum Status: Equatable {
+        case loading, missingDirectory, failed
+        case baseGone(String)
+
+        var keepsLog: Bool { self == .loading || self == .failed }
+    }
+
+    /// What the list says while it has no commits; nil while a load is too young to mention.
+    static func status(of review: WorktreeReview) -> Status? {
+        switch review.problem {
+        case .missingDirectory: .missingDirectory
+        case .overrideGone(let ref): .baseGone(ref)
+        case .gitFailed: .failed
+        case .editorFailed, nil: review.showsProgress ? .loading : nil
         }
     }
 
@@ -152,5 +198,16 @@ struct BaseRow: View {
             RoundedRectangle(cornerRadius: 6).fill(.tint.opacity(0.12)).padding(.horizontal, -6)
         )
         .help(commit.subject)
+    }
+}
+
+private struct BasePickerPopover: ViewModifier {
+    let session: RepoSession
+    let review: WorktreeReview
+
+    func body(content: Content) -> some View {
+        content.popover(isPresented: Bindable(session).showsBasePicker, arrowEdge: .trailing) {
+            BasePicker(session: session, review: review)
+        }
     }
 }
