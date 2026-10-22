@@ -2,7 +2,10 @@ import Foundation
 
 /// `seam threads` output, written for an agent to read (SPEC §13).
 public enum ThreadText {
-    public static func format(_ thread: ReviewThread, timeZone: TimeZone = .current) -> String {
+    /// `showsWorktree` names the thread's worktree, for listings that span the repo.
+    public static func format(
+        _ thread: ReviewThread, showsWorktree: Bool = false, timeZone: TimeZone = .current
+    ) -> String {
         let anchor = thread.anchor
         let lines =
             anchor.lines.count == 1
@@ -12,6 +15,7 @@ public enum ThreadText {
         var text = [
             "#\(thread.id)  \(thread.isResolved ? "resolved" : "open")  "
                 + "\(anchor.path):\(lines)\(side)  opened by \(thread.author)"
+                + (showsWorktree ? "  in \(thread.worktree)" : "")
         ]
         let width = String(anchor.lines.upperBound).count
         for (offset, line) in anchor.text.enumerated() {

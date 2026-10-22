@@ -75,7 +75,7 @@ final class RepoThreads {
     @discardableResult
     func setResolved(_ resolved: Bool, id: String) async -> Bool {
         await change { threads throws(ThreadError) in
-            try ThreadRules.setResolved(resolved, &threads, id: id)
+            try ThreadRules.setResolved(resolved, &threads, id: id, now: .now)
         } != nil
     }
 

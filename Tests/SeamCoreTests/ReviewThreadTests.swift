@@ -23,7 +23,7 @@ private func ids() -> () -> String {
         let thread = try ThreadRules.open(
             &threads, worktree: "/w", anchor: anchor, author: ReviewThread.reader,
             body: "  Why?  ", now: start, newID: newID)
-        try ThreadRules.setResolved(true, &threads, id: thread.id)
+        try ThreadRules.setResolved(true, &threads, id: thread.id, now: start)
         try ThreadRules.reply(
             &threads, to: thread.id, author: "claude", body: "Because.", now: start,
             newID: newID)
@@ -42,9 +42,9 @@ private func ids() -> () -> String {
         let agents = try ThreadRules.open(
             &threads, worktree: "/w", anchor: anchor, author: "claude", body: "y", now: start)
 
-        try ThreadRules.setResolved(true, &threads, id: mine.id)
-        try ThreadRules.setResolved(true, &threads, id: agents.id)
-        try ThreadRules.setResolved(false, &threads, id: agents.id)
+        try ThreadRules.setResolved(true, &threads, id: mine.id, now: start)
+        try ThreadRules.setResolved(true, &threads, id: agents.id, now: start)
+        try ThreadRules.setResolved(false, &threads, id: agents.id, now: start)
         #expect(threads.map(\.isResolved) == [true, false])
     }
 
@@ -222,5 +222,16 @@ private func ids() -> () -> String {
     @Test(arguments: ["src/a.cs", "src/a.cs:", "src/a.cs:0", "src/a.cs:5-3", ":3", "a:x"])
     func badLocationsAreRefused(argument: String) {
         #expect(ThreadText.location(argument) == nil)
+    }
+
+    @Test func aRepoWideListingNamesEachThreadsWorktree() throws {
+        var threads: [ReviewThread] = []
+        _ = try ThreadRules.open(
+            &threads, worktree: "/w/feature", anchor: anchor, author: "you", body: "Why?",
+            now: start, newID: ids())
+        let header = ThreadText.format(threads[0], showsWorktree: true, timeZone: .gmt)
+            .split(separator: "\n").first
+        #expect(header?.hasSuffix("opened by you  in /w/feature") == true)
+        #expect(ThreadText.format(threads[0], timeZone: .gmt).contains("/w/feature") == false)
     }
 }

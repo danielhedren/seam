@@ -12,7 +12,7 @@ struct Seam: AsyncParsableCommand {
         commandName: "seam", abstract: "Review git worktrees in Seam.",
         subcommands: [
             Open.self, Threads.self, ShowThread.self, Reply.self, Comment.self, Resolve.self,
-            Reopen.self, Delete.self,
+            Reopen.self, Delete.self, Wait.self,
         ],
         defaultSubcommand: Open.self)
 }
@@ -93,20 +93,84 @@ struct Threads: AsyncParsableCommand {
 
     @OptionGroup var options: ThreadOptions
     @Flag(help: "Include resolved threads.") var all = false
+    @Flag(help: "Every worktree of the repo, not just this one.") var repo = false
+    @Option(help: sinceHelp, transform: parseTime) var since: Date?
     @Flag(help: "Print JSON.") var json = false
 
     func run() async throws {
         let (repository, worktree) = try await options.worktree()
-        let threads = try threadStore().threads(for: repository).filter {
-            $0.worktree == worktree.path && (all || !$0.isResolved)
-        }
+        let scope = ThreadScope(
+            worktree: repo ? nil : worktree.path, includesResolved: all, since: since)
+        let threads = try threadStore().threads(for: repository).filter(scope.contains)
         if json {
             try printJSON(threads)
         } else if threads.isEmpty {
-            print(all ? "No threads." : "No open threads.")
+            print(
+                since.map { "No threads changed since \($0.formatted(.iso8601))." }
+                    ?? (all ? "No threads." : "No open threads."))
         } else {
-            print(threads.map { ThreadText.format($0) }.joined(separator: "\n\n"))
+            print(
+                threads.map { ThreadText.format($0, showsWorktree: repo) }.joined(separator: "\n\n")
+            )
         }
+    }
+}
+
+struct Wait: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Wait until threads change, then print what changed.",
+        discussion: """
+            Ends with "As of <time>": pass it as --since to the next wait, and no change between \
+            the two is missed. Exits with status 2 when --timeout passes first.
+            """)
+
+    @OptionGroup var options: ThreadOptions
+    @Flag(help: "Every worktree of the repo, not just this one.") var repo = false
+    @Option(help: sinceHelp, transform: parseTime) var since: Date?
+    @Option(help: "Give up after this many seconds.") var timeout: Int?
+    @Flag(help: "Print JSON.") var json = false
+
+    private struct Output: Encodable {
+        var asOf: Date
+        var changed: [ReviewThread]
+        var deleted: [String]
+    }
+
+    func run() async throws {
+        let (repository, worktree) = try await options.worktree()
+        let store = threadStore()
+        try FileManager.default.createDirectory(
+            at: store.directory, withIntermediateDirectories: true)
+        // Watching starts before the first read, so a write in between still wakes the wait.
+        let events = FSEventsWatcher().events(for: [store.directory])
+        guard
+            let (changes, asOf) = try await ThreadWait.next(
+                in: ThreadScope(worktree: repo ? nil : worktree.path, since: since),
+                read: { () throws(ThreadError) in try store.threads(for: repository) },
+                events: events, clock: ContinuousClock(), timeout: timeout.map { .seconds($0) })
+        else {
+            FileHandle.standardError.write(Data("No change in \(timeout ?? 0) s.\n".utf8))
+            throw ExitCode(2)
+        }
+        if json {
+            try printJSON(Output(asOf: asOf, changed: changes.changed, deleted: changes.deleted))
+            return
+        }
+        var parts = changes.changed.map { ThreadText.format($0, showsWorktree: repo) }
+        parts += changes.deleted.map { "#\($0) deleted" }
+        parts.append("As of \(asOf.formatted(.iso8601))")
+        print(parts.joined(separator: "\n\n"))
+    }
+}
+
+private let sinceHelp = ArgumentHelp(
+    "Only threads with activity at or after this ISO 8601 time, as `seam wait` prints it.")
+
+private func parseTime(_ text: String) throws -> Date {
+    do {
+        return try Date(text, strategy: .iso8601)
+    } catch {
+        throw ValidationError("expected an ISO 8601 time like 2026-10-22T18:30:00Z, got \(text)")
     }
 }
 
@@ -267,7 +331,7 @@ private func setResolved(_ resolved: Bool, _ id: String, _ options: ThreadOption
     let (repository, _) = try await options.worktree()
     let id = String(id.trimmingPrefix("#"))
     try threadStore().update(repository) { threads throws(ThreadError) in
-        try ThreadRules.setResolved(resolved, &threads, id: id)
+        try ThreadRules.setResolved(resolved, &threads, id: id, now: .now)
     }
     print(resolved ? "Resolved #\(id)." : "Reopened #\(id).")
 }

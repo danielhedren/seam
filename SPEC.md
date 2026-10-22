@@ -722,7 +722,11 @@ seam                    # open the repo containing $PWD, select the worktree you
 seam <path>             # same, for <path>
 seam --base <ref>       # set the base override for this worktree, then open
 
-seam threads [--all] [--json]          # this worktree's open threads (--all: resolved too)
+seam threads [--all] [--repo] [--since <time>] [--json]
+                                       # this worktree's open threads (--all: resolved too,
+                                       # --repo: every worktree, --since: changed since then)
+seam wait [--repo] [--since <time>] [--timeout <s>] [--json]
+                                       # block until threads change; print them and "As of"
 seam thread <id> [--json]              # one thread with its comments
 seam reply <id> <text>                 # answer a thread; reopens a resolved one
 seam comment <file>:<line>[-<end>] [--old] <text>   # open a thread as the agent
@@ -737,6 +741,14 @@ file, lines, status, the quoted lines and the comments; `--json` gives the same 
 Exit status is non-zero, with a message on stderr, for an unknown id. `comment --old` anchors on
 the base the app shows for the worktree: the app's default base and ignored refs, and the parent
 picked for the branch in the base picker.
+
+`seam wait` is how an agent that oversees several worktrees follows them: it watches the thread
+file, then prints the threads that changed (new, replied to, resolved or reopened, and the ids
+of deleted ones) and ends with "As of <time>". Passed as `--since` to the next wait, that time
+brings back anything that changed in between, so nothing is missed; a change in the same second
+can come back twice. Each thread keeps the time it last changed for this. `--timeout` ends the
+wait with status 2. `--repo` widens `threads` and `wait` to every worktree, naming each
+thread's worktree.
 
 Opening talks to the running app through a URL scheme (`seam://open?path=…&base=…`), launching
 the app if needed. The command is a Swift executable (swift-argument-parser) in the app's

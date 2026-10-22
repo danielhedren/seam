@@ -66,15 +66,24 @@ public struct ReviewThread: Codable, Equatable, Sendable, Identifiable {
     /// The worktree's path; one repo's file holds every worktree's threads.
     public var worktree: String
     public var anchor: ThreadAnchor
-    /// Whoever opened it, and so the only one who may resolve it.
+    /// Whoever opened it.
     public var author: String
     public var isResolved = false
     public var comments: [ThreadComment]
+    /// The last change of any kind; files written before it was kept have none.
+    public var updated: Date?
+
+    /// When the thread last changed, for `seam threads --since`: the latest comment when an
+    /// older file has no `updated`.
+    public var lastActivity: Date {
+        updated ?? comments.map(\.date).max() ?? .distantPast
+    }
 
     public init(
         id: String, worktree: String, anchor: ThreadAnchor, author: String,
-        isResolved: Bool = false, comments: [ThreadComment]
+        isResolved: Bool = false, comments: [ThreadComment], updated: Date? = nil
     ) {
+        self.updated = updated
         self.id = id
         self.worktree = worktree
         self.anchor = anchor
@@ -104,7 +113,8 @@ public enum ThreadRules {
         while threads.contains(where: { $0.id == id }) { id = newID() }
         let thread = ReviewThread(
             id: id, worktree: worktree, anchor: anchor, author: author,
-            comments: [ThreadComment(id: newID(), author: author, body: body, date: now)])
+            comments: [ThreadComment(id: newID(), author: author, body: body, date: now)],
+            updated: now)
         threads.append(thread)
         return thread
     }
@@ -119,14 +129,17 @@ public enum ThreadRules {
         threads[index].comments.append(
             ThreadComment(id: newID(), author: author, body: body, date: now))
         threads[index].isResolved = false
+        threads[index].updated = now
     }
 
     /// Anyone may resolve, reopen or delete a thread: the agent prompt says whose to leave
     /// alone, and the reader can ask an agent to do any of it.
     public static func setResolved(
-        _ resolved: Bool, _ threads: inout [ReviewThread], id: String
+        _ resolved: Bool, _ threads: inout [ReviewThread], id: String, now: Date
     ) throws(ThreadError) {
-        threads[try position(of: id, in: threads)].isResolved = resolved
+        let index = try position(of: id, in: threads)
+        threads[index].isResolved = resolved
+        threads[index].updated = now
     }
 
     /// Removes a thread, returning it and where it was so it can be put back.
