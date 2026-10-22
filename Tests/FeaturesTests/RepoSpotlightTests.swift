@@ -1,5 +1,7 @@
+import AppKit
 import CoreSpotlight
 import Foundation
+import SeamCore
 import Synchronization
 import TestSupport
 import Testing
@@ -36,6 +38,20 @@ private final class RecordingIndex: RepoIndex {
         #expect(item.domainIdentifier == SpotlightRepoIndex.domain)
         #expect(item.attributeSet.title == "shop")
         #expect(item.attributeSet.contentType == "public.folder")
+    }
+
+    @Test func theDelegateOpensThePickedRepoAsTheCommandWould() throws {
+        let delegate = SeamAppDelegate()
+        var sent: [URL] = []
+        delegate.send = { sent.append($0) }
+        let pick = NSUserActivity(activityType: CSSearchableItemActionType)
+        pick.userInfo = [CSSearchableItemActivityIdentifier: "/Users/me/Code/second"]
+
+        #expect(delegate.application(NSApplication.shared, continue: pick) { _ in })
+        #expect(sent.map { SeamURL($0) } == [SeamURL(path: "/Users/me/Code/second")])
+        let other = NSUserActivity(activityType: "com.example.other")
+        #expect(!delegate.application(NSApplication.shared, continue: other) { _ in })
+        #expect(sent.count == 1)
     }
 
     @Test func aSpotlightPickOpensItsPathAndOtherActivitiesNothing() {

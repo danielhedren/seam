@@ -1,5 +1,7 @@
+import AppKit
 import CoreSpotlight
 import Foundation
+import SeamCore
 import UniformTypeIdentifiers
 import os
 
@@ -48,5 +50,29 @@ public struct SpotlightRepoIndex: RepoIndex {
     static func path(from activity: NSUserActivity) -> String? {
         guard activity.activityType == CSSearchableItemActionType else { return nil }
         return activity.userInfo?[CSSearchableItemActivityIdentifier] as? String
+    }
+}
+
+/// Takes Spotlight picks, which AppKit hands the app delegate, not SwiftUI's windows, and opens
+/// them as `seam <path>` does: a `seam://` URL sent to this app, which routes it to the repo's
+/// window or a new one.
+public final class SeamAppDelegate: NSObject, NSApplicationDelegate {
+    var send: @MainActor (URL) -> Void = { url in
+        NSWorkspace.shared.open(
+            [url], withApplicationAt: Bundle.main.bundleURL,
+            configuration: NSWorkspace.OpenConfiguration())
+    }
+    private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
+
+    public func application(
+        _ application: NSApplication, continue userActivity: NSUserActivity,
+        restorationHandler: @escaping ([any NSUserActivityRestoring]) -> Void
+    ) -> Bool {
+        guard let path = SpotlightRepoIndex.path(from: userActivity),
+            let url = SeamURL(path: path).url
+        else { return false }
+        logger.info("spotlight opens \(path, privacy: .public)")
+        send(url)
+        return true
     }
 }

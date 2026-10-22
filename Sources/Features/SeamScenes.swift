@@ -1,5 +1,4 @@
 import AppKit
-import CoreSpotlight
 import DiffView
 import Observation
 import SeamCore
@@ -225,11 +224,7 @@ struct WindowRoot: View {
             guard let request = SeamURL(incoming) else { return }
             Task { await route(request) }
         }
-        // A recent repo picked in Spotlight (RepoSpotlight.swift).
-        .onContinueUserActivity(CSSearchableItemActionType) { activity in
-            guard let path = SpotlightRepoIndex.path(from: activity) else { return }
-            Task { await route(SeamURL(path: path)) }
-        }
+
         // A folder dropped on any window opens like `seam <folder>` would.
         .dropDestination(for: URL.self) { urls, _ in
             guard let folder = urls.first(where: \.hasDirectoryPath) else { return false }
