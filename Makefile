@@ -5,11 +5,13 @@ setup:
 
 check: lint build test
 
+SWIFT_SOURCES = Package.swift Sources Tests App
+
 lint:
-	swift format lint --strict --recursive Package.swift Sources Tests App
+	swift format lint --strict --recursive $(SWIFT_SOURCES)
 
 format:
-	swift format --in-place --recursive Package.swift Sources Tests App
+	swift format --in-place --recursive $(SWIFT_SOURCES)
 
 build:
 	Scripts/build.sh swift build
