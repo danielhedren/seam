@@ -577,6 +577,57 @@ import Testing
         #expect(reopened.selected?.scope == .uncommitted)
     }
 
+    @Test func pickingTheLatestCommitDiffsOnlyThatCommit() async throws {
+        let repo = try await FixtureRepo()
+        let tree = try await repo.worktree("a", branch: "a", from: "origin/main")
+        try await repo.commit("first.txt", "1\n", "first", in: tree)
+        try await repo.commit("second.txt", "2\n", "second", in: tree)
+        try repo.write("dirty.txt", "x\n", in: tree)
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        session.select(tree.path)
+        let review = try #require(session.selected)
+        await review.loaded()
+        #expect(review.commitLog?.commits.map(\.subject) == ["second", "first"])
+
+        session.selectLatestCommit()
+        await review.loaded()
+
+        #expect(review.diff?.files.map(\.diff.path) == ["second.txt"])
+        #expect(review.isShowingLatestCommit && !review.isShowing(.all))
+
+        let log = try #require(review.commitLog)
+        session.selectCommits(
+            CommitSelection(newest: .workingTree, oldest: try #require(log.ends.last)))
+        await review.loaded()
+
+        #expect(review.isShowing(.all))
+        #expect(review.diff?.files.map(\.diff.path) == ["dirty.txt", "first.txt", "second.txt"])
+    }
+
+    @Test func pickedCommitsARebaseRemovedFallBackToTheScope() async throws {
+        let repo = try await FixtureRepo()
+        let tree = try await repo.worktree("a", branch: "a", from: "origin/main")
+        try await repo.commit("first.txt", "1\n", "first", in: tree)
+        try await repo.commit("second.txt", "2\n", "second", in: tree)
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        session.select(tree.path)
+        let review = try #require(session.selected)
+        await review.loaded()
+        session.selectLatestCommit()
+        await review.loaded()
+        #expect(review.commitSelection != nil)
+
+        try await repo.run("commit", "-q", "--amend", "-m", "amended", in: tree)
+        review.reloadDiff()
+        await review.loaded()
+
+        #expect(review.commitSelection == nil)
+        #expect(review.isShowing(.all))
+        #expect(review.diff?.files.map(\.diff.path) == ["first.txt", "second.txt"])
+    }
+
     @Test func theViewModeIsTheSameForEveryWorktree() async throws {
         let repo = try await FixtureRepo()
         _ = try await repo.worktree("a", branch: "a", from: "origin/main")

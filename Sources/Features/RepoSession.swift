@@ -216,6 +216,14 @@ final class RepoSession {
 
     // MARK: - Review intents
 
+    func selectCommits(_ selection: CommitSelection) {
+        selected?.selectCommits(selection)
+    }
+
+    func selectLatestCommit() {
+        selected?.selectLatestCommit()
+    }
+
     func setScope(_ scope: ReviewScope) {
         selected?.setScope(scope)
         persist()

@@ -63,6 +63,12 @@
     "All Changes" : {
 
     },
+    "Base" : {
+
+    },
+    "Branched from %@" : {
+
+    },
     "Cancelled" : {
 
     },
@@ -91,6 +97,9 @@
 
     },
     "Command Palette…" : {
+
+    },
+    "Commits" : {
 
     },
     "Committed" : {
@@ -222,6 +231,9 @@
     "Keep Parent That Looks Merged" : {
 
     },
+    "Latest Commit Only" : {
+
+    },
     "Make Text Bigger" : {
 
     },
@@ -258,6 +270,9 @@
     "No changes against %@" : {
 
     },
+    "No changes in the selected commits" : {
+
+    },
     "No commits since %@" : {
 
     },
@@ -270,10 +285,16 @@
     "No worktree selected" : {
 
     },
+    "None" : {
+
+    },
     "Not a git repository. Choose another folder." : {
 
     },
     "Off" : {
+
+    },
+    "Older commits not shown" : {
 
     },
     "Open" : {
@@ -361,6 +382,12 @@
     "Select a worktree" : {
 
     },
+    "Show All" : {
+
+    },
+    "Show all changes (1)" : {
+
+    },
     "Show as Flat List" : {
 
     },
@@ -413,6 +440,9 @@
 
     },
     "Uncommitted" : {
+
+    },
+    "Uncommitted changes" : {
 
     },
     "Unexpected output from git: %@" : {

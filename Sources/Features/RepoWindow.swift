@@ -84,8 +84,15 @@ struct RepoWindow: View {
             ContentUnavailableView(message, systemImage: "folder.badge.questionmark")
         case .open:
             NavigationSplitView(columnVisibility: columnVisibility) {
-                WorktreeList(session: session)
-                    .navigationSplitViewColumnWidth(min: 200, ideal: 260)
+                VSplitView {
+                    WorktreeList(session: session)
+                        .frame(minHeight: 120)
+                    if let review = session.selected {
+                        CommitList(session: session, review: review)
+                            .frame(minHeight: 120, idealHeight: 240)
+                    }
+                }
+                .navigationSplitViewColumnWidth(min: 200, ideal: 260)
             } content: {
                 if let review = session.selected {
                     FileList(session: session, review: review, filterFocus: $filterFocused)

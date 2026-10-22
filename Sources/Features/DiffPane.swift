@@ -110,6 +110,9 @@ struct DiffPane: View {
     private var emptyMessage: String? {
         guard let diff = review.diff, diff.files.isEmpty, review.problem == nil else { return nil }
         let parent = review.parentName ?? String(localized: "the base", bundle: .module)
+        if review.commitSelection != nil {
+            return String(localized: "No changes in the selected commits", bundle: .module)
+        }
         switch review.scope {
         case .all: return String(localized: "No changes against \(parent)", bundle: .module)
         case .committed: return String(localized: "No commits since \(parent)", bundle: .module)

@@ -189,6 +189,12 @@ A segmented control picks the scope (keys `1`/`2`/`3` when the diff has focus):
 | **Committed** | base → HEAD | |
 | **Uncommitted** | HEAD → working tree (+ untracked) | |
 
+The commit list (§7.2.1) generalises the scopes: each scope is a run of its rows, and the reader
+can pick any other run instead, such as only the latest commit. A picked run diffs from its oldest
+commit's first parent to its newest commit, or to the working tree when the run includes
+"Uncommitted changes". A run that covers the same rows as a scope is that scope. Picked commits
+are not persisted, and a rebase or reset that removes one falls back to the scope.
+
 ### 6.3 Diff options
 
 - Whitespace: show / ignore changes in amount (`-b`) / ignore all (`-w`). Default: show.
@@ -242,6 +248,20 @@ Switching: `⌘1`…`⌘9` pick by position, `⌘[`/`⌘]` go to the previous or
 opens fuzzy search over worktree and branch names. Each worktree keeps its own scroll position,
 selected file, and scope.
 
+### 7.2.1 Commit list
+
+Under the worktree list, the selected worktree's commits since the base, newest first, following
+first parents (a merge from main is one row):
+
+- An "Uncommitted changes" row on top, with the number of changed files.
+- One row per commit: subject, short SHA, age. At most 500 are listed.
+- The base at the bottom, marked as the branch point ("Branched from origin/main", its SHA and
+  subject). It is not selectable: every range is measured from it or from a commit above it.
+
+The rows the diff covers are selected; selecting other rows (click, ⇧-click, arrow keys) picks a
+new run (§6.2), and a ⌘-click selection is filled to a contiguous run. "Show All" returns to the
+All scope.
+
 ### 7.3 File list
 
 - A tree grouped by directory with single-child directories compacted (`src/Orders.Service/…`),
@@ -286,6 +306,7 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 | `s` | side-by-side / unified |
 | `w` | wrap |
 | `1` `2` `3` | scope |
+| `4` | latest commit only |
 | `x` | collapse / expand the current file |
 | `o` | open the current line in the editor |
 | `b` | base picker |

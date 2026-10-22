@@ -25,6 +25,9 @@ final class WorktreeReview: Identifiable {
     /// The parent ref chosen in the base picker, overriding detection (SPEC §5.3).
     private(set) var baseOverride: String?
     private(set) var scope = ReviewScope.all
+    /// Commits picked in the commit list, in place of `scope` until a scope is picked again.
+    private(set) var commitSelection: CommitSelection?
+    private(set) var commitLog: CommitLog?
     private(set) var collapsed: Set<String> = []
     private(set) var wraps = false
     /// Starts from the setting; Review › Hide Whitespace Changes flips it for this worktree.
@@ -147,9 +150,41 @@ final class WorktreeReview: Identifiable {
     // MARK: - Intents
 
     func setScope(_ scope: ReviewScope) {
-        guard scope != self.scope else { return }
+        guard scope != self.scope || commitSelection != nil else { return }
         self.scope = scope
+        commitSelection = nil
         reloadDiff()
+    }
+
+    /// The commit list's highlighted rows: the picked commits, or the ones the scope covers.
+    var shownSelection: CommitSelection? {
+        commitSelection ?? commitLog?.selection(for: scope)
+    }
+
+    func selectCommits(_ selection: CommitSelection) {
+        guard selection != shownSelection, let log = commitLog else { return }
+        if let scope = log.scope(matching: selection) {
+            setScope(scope)
+            return
+        }
+        commitSelection = selection
+        reloadDiff()
+    }
+
+    func isShowing(_ scope: ReviewScope) -> Bool {
+        commitSelection == nil && self.scope == scope
+    }
+
+    var isShowingLatestCommit: Bool {
+        guard let latest = commitLog?.commits.first else { return false }
+        return commitSelection
+            == CommitSelection(newest: .commit(latest.id), oldest: .commit(latest.id))
+    }
+
+    /// Only the newest commit; nothing to do on a branch with no commits of its own.
+    func selectLatestCommit() {
+        guard let latest = commitLog?.commits.first else { return }
+        selectCommits(CommitSelection(newest: .commit(latest.id), oldest: .commit(latest.id)))
     }
 
     func toggleWrap() {
@@ -401,11 +436,18 @@ final class WorktreeReview: Identifiable {
             }
             overrideCommitCount = base.commitCount
             await checkStaleParent(detection)
+            let log = try await CommitLog.load(
+                base: base.commit, in: worktree.path, git: services.git)
             guard generation == loadGeneration else { return }
+            commitLog = log
+            // Picked commits a rebase or reset removed fall back to the scope.
+            let picked = commitSelection.flatMap(log.range)
+            if picked == nil { commitSelection = nil }
+            let range = picked ?? (base.commit, "HEAD", scope)
             let result = try await ReviewDiffBuilder(
                 git: services.git, fileSystem: services.fileSystem
             ).build(
-                worktree: worktree.path, base: base.commit, scope: scope,
+                worktree: worktree.path, base: range.base, head: range.head, scope: range.scope,
                 options: diffOptions)
             let config = await Self.editorConfig(in: worktree.path, services.fileSystem)
             guard generation == loadGeneration, !Task.isCancelled else { return }

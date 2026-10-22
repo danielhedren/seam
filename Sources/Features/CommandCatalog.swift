@@ -185,16 +185,22 @@ enum CommandCatalog {
     static let review: [SeamCommand] = [
         SeamCommand(
             id: "scope-all", title: localized("All Changes"), menu: .review, section: 0,
-            shortcut: .single("1"), isOn: { $0.selected?.scope == .all },
+            shortcut: .single("1"), isOn: { $0.selected?.isShowing(.all) == true },
             run: { $0.setScope(.all) }),
         SeamCommand(
             id: "scope-committed", title: localized("Committed"), menu: .review, section: 0,
-            shortcut: .single("2"), isOn: { $0.selected?.scope == .committed },
+            shortcut: .single("2"), isOn: { $0.selected?.isShowing(.committed) == true },
             run: { $0.setScope(.committed) }),
         SeamCommand(
             id: "scope-uncommitted", title: localized("Uncommitted"), menu: .review, section: 0,
-            shortcut: .single("3"), isOn: { $0.selected?.scope == .uncommitted },
+            shortcut: .single("3"), isOn: { $0.selected?.isShowing(.uncommitted) == true },
             run: { $0.setScope(.uncommitted) }),
+        SeamCommand(
+            id: "latest-commit", title: localized("Latest Commit Only"), menu: .review,
+            section: 0, shortcut: .single("4"),
+            isEnabled: { $0.selected?.commitLog?.commits.isEmpty == false },
+            isOn: { $0.selected?.isShowingLatestCommit == true },
+            run: { $0.selectLatestCommit() }),
         SeamCommand(
             id: "whitespace", title: localized("Hide Whitespace Changes"), menu: .review,
             section: 0, shortcut: .none, isOn: { $0.selected?.effectiveWhitespace != .show },
