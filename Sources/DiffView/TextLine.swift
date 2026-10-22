@@ -15,15 +15,18 @@ enum TextLine {
             NSAttributedString(string: text, attributes: attributes))
     }
 
-    /// Unhighlighted runs take the context's fill colour; spans carry their own.
+    /// Every run carries its colour, `plain` where no span says otherwise. A highlighted line
+    /// can't leave plain runs to the context's fill: drawing a coloured run sets that fill, so
+    /// the text after `ShouldBe(` would take the function colour.
     static func make(
-        _ text: String, font: NSFont, syntax: [SyntaxSpan], palette: DiffPalette
+        _ text: String, font: NSFont, syntax: [SyntaxSpan], palette: DiffPalette, plain: RGB
     ) -> CTLine {
         let string = NSMutableAttributedString(
             string: text,
             attributes: [
                 .font: font,
-                NSAttributedString.Key(kCTForegroundColorFromContextAttributeName as String): true,
+                NSAttributedString.Key(kCTForegroundColorAttributeName as String):
+                    plain.nsColor.cgColor,
             ])
         let length = text.count
         var utf16Offsets: [Int] = []
@@ -40,9 +43,6 @@ enum TextLine {
             let lower = utf16Offsets[span.range.lowerBound]
             let upper = utf16Offsets[min(span.range.upperBound, length)]
             let range = NSRange(location: lower, length: upper - lower)
-            string.removeAttribute(
-                NSAttributedString.Key(kCTForegroundColorFromContextAttributeName as String),
-                range: range)
             string.addAttribute(
                 NSAttributedString.Key(kCTForegroundColorAttributeName as String),
                 value: color.nsColor.cgColor, range: range)

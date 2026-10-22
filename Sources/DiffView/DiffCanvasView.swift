@@ -430,7 +430,8 @@ final class DiffCanvasView: NSView {
         } else {
             line =
                 if let palette, !syntax.isEmpty {
-                    TextLine.make(text, font: font, syntax: syntax, palette: palette)
+                    TextLine.make(
+                        text, font: font, syntax: syntax, palette: palette, plain: color)
                 } else {
                     TextLine.make(text, font: font)
                 }
