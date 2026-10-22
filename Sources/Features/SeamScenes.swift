@@ -333,7 +333,10 @@ struct WelcomeView: View {
                         String(localized: "Open Repository…", bundle: .module),
                         systemImage: "folder")
                 }
-                .help(String(localized: "Open Repository… (⌘O)", bundle: .module))
+                .help(
+                    CommandCatalog.help(
+                        String(localized: "Open Repository…", bundle: .module),
+                        shortcut: CommandCatalog.openRepository))
             }
         }
         .task {

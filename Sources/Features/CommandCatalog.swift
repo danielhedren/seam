@@ -42,14 +42,15 @@ struct SeamCommand: Identifiable {
 
     /// How the palette shows the shortcut: "⌘K", "⇧⌘G", "j".
     var shortcutLabel: String {
-        let (key, modifiers): (KeyEquivalent, EventModifiers) =
-            switch shortcut {
-            case .none: (KeyEquivalent(" "), [])
-            case .command(let key, let modifiers), .single(let key, let modifiers):
-                (key, modifiers)
-            case .commandWhen(let key, _): (key, .command)
-            }
-        if case .none = shortcut { return "" }
+        switch shortcut {
+        case .none: ""
+        case .command(let key, let modifiers), .single(let key, let modifiers):
+            Self.label(key, modifiers)
+        case .commandWhen(let key, _): Self.label(key, .command)
+        }
+    }
+
+    static func label(_ key: KeyEquivalent, _ modifiers: EventModifiers) -> String {
         var label = ""
         if modifiers.contains(.control) { label += "⌃" }
         if modifiers.contains(.option) { label += "⌥" }
@@ -71,6 +72,22 @@ enum CommandCatalog {
     }
 
     static let all: [SeamCommand] = edit + view + go + review
+
+    /// File › Open Repository, which the File menu builds itself.
+    static let openRepository = KeyboardShortcut("o")
+
+    private static let byID = Dictionary(all.map { ($0.id, $0) }) { first, _ in first }
+
+    /// A tooltip ending in the command's shortcut, read from the catalog so the two can't
+    /// drift: "Reload (r)".
+    static func help(_ text: String, command id: String) -> String {
+        guard let label = byID[id]?.shortcutLabel, !label.isEmpty else { return text }
+        return "\(text) (\(label))"
+    }
+
+    static func help(_ text: String, shortcut: KeyboardShortcut) -> String {
+        "\(text) (\(SeamCommand.label(shortcut.key, shortcut.modifiers)))"
+    }
 
     static let edit: [SeamCommand] = [
         SeamCommand(

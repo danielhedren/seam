@@ -152,7 +152,11 @@ struct ReviewToolbar: ToolbarContent {
                         : String(localized: "Unified", bundle: .module),
                     systemImage: unified ? "rectangle.split.2x1" : "rectangle")
             }
-            .help(String(localized: "Toggle side-by-side (s)", bundle: .module))
+            .help(
+                CommandCatalog.help(
+                    String(localized: "Toggle side-by-side", bundle: .module),
+                    command: "side-by-side")
+            )
             .disabled(review == nil)
         }
         ToolbarItem {
@@ -161,7 +165,10 @@ struct ReviewToolbar: ToolbarContent {
             } label: {
                 Label(String(localized: "Reload", bundle: .module), systemImage: "arrow.clockwise")
             }
-            .help(String(localized: "Reload (r)", bundle: .module))
+            .help(
+                CommandCatalog.help(
+                    String(localized: "Reload", bundle: .module), command: "reload")
+            )
             .disabled(review == nil)
         }
         ToolbarItem {
@@ -171,7 +178,11 @@ struct ReviewToolbar: ToolbarContent {
                 Label(
                     String(localized: "Threads", bundle: .module), systemImage: "text.bubble")
             }
-            .help(String(localized: "Show or hide review threads (⌥⌘0)", bundle: .module))
+            .help(
+                CommandCatalog.help(
+                    String(localized: "Show or hide review threads", bundle: .module),
+                    command: "thread-panel")
+            )
             .disabled(review == nil)
         }
     }

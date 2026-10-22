@@ -30,7 +30,7 @@ struct SeamCommands: Commands {
                 .keyboardShortcut("n")
             Divider()
             Button(String(localized: "Open Repository…", bundle: .module), action: openRepository)
-                .keyboardShortcut("o")
+                .keyboardShortcut(CommandCatalog.openRepository)
             Menu(String(localized: "Open Recent", bundle: .module)) {
                 ForEach(requests.recent, id: \.self) { url in
                     Button(url.lastPathComponent) { openRecent(url) }

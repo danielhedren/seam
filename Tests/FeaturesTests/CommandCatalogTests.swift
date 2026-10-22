@@ -61,4 +61,15 @@ import Testing
 
         #expect(!second.isEnabled(session))
     }
+
+    @Test func tooltipsNameTheShortcutTheMenuUses() {
+        #expect(CommandCatalog.help("Reload", command: "reload") == "Reload (r)")
+        #expect(CommandCatalog.help("Threads", command: "thread-panel") == "Threads (⌥⌘0)")
+        #expect(
+            CommandCatalog.help("Open", shortcut: CommandCatalog.openRepository) == "Open (⌘O)")
+        // Every command a tooltip names exists and has a shortcut to show.
+        for id in ["side-by-side", "reload", "thread-panel", "base", "scope-all"] {
+            #expect(CommandCatalog.help("x", command: id) != "x", "\(id)")
+        }
+    }
 }

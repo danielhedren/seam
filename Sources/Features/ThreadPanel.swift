@@ -74,7 +74,9 @@ struct ThreadPanel: View {
             }
             .labelStyle(.iconOnly)
             .buttonStyle(.borderless)
-            .help(String(localized: "Hide Threads (⌥⌘0)", bundle: .module))
+            .help(
+                CommandCatalog.help(
+                    String(localized: "Hide Threads", bundle: .module), command: "thread-panel"))
         }
         .padding(.horizontal, 10)
         .frame(height: PaneHeader.height(session) - 1)

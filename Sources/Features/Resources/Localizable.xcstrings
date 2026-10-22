@@ -81,7 +81,7 @@
     "Choose Base…" : {
 
     },
-    "Choose what to compare with (b)" : {
+    "Choose what to compare with" : {
 
     },
     "Clear Menu" : {
@@ -223,9 +223,6 @@
     "Hide Threads" : {
 
     },
-    "Hide Threads (⌥⌘0)" : {
-
-    },
     "Hide Whitespace Changes" : {
 
     },
@@ -328,9 +325,6 @@
     "Open Repository…" : {
 
     },
-    "Open Repository… (⌘O)" : {
-
-    },
     "Open Thread on This Line" : {
 
     },
@@ -377,9 +371,6 @@
     "Reload" : {
 
     },
-    "Reload (r)" : {
-
-    },
     "Reopen" : {
 
     },
@@ -422,7 +413,7 @@
     "Show Threads" : {
 
     },
-    "Show all changes (1)" : {
+    "Show all changes" : {
 
     },
     "Show as Flat List" : {
@@ -431,7 +422,7 @@
     "Show changes" : {
 
     },
-    "Show or hide review threads (⌥⌘0)" : {
+    "Show or hide review threads" : {
 
     },
     "Side by Side" : {
@@ -485,7 +476,7 @@
     "Toggle Worktree List" : {
 
     },
-    "Toggle side-by-side (s)" : {
+    "Toggle side-by-side" : {
 
     },
     "Uncommitted" : {

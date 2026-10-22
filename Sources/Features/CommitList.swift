@@ -29,7 +29,11 @@ struct CommitList: View {
                     }
                     .buttonStyle(.plain)
                     .selectionDisabled()
-                    .help(String(localized: "Choose what to compare with (b)", bundle: .module))
+                    .help(
+                        CommandCatalog.help(
+                            String(localized: "Choose what to compare with", bundle: .module),
+                            command: "base")
+                    )
                     .popover(isPresented: Bindable(session).showsBasePicker, arrowEdge: .trailing) {
                         BasePicker(session: session, review: review)
                     }
@@ -55,7 +59,10 @@ struct CommitList: View {
                 }
                 .buttonStyle(.link)
                 .font(.caption)
-                .help(String(localized: "Show all changes (1)", bundle: .module))
+                .help(
+                    CommandCatalog.help(
+                        String(localized: "Show all changes", bundle: .module),
+                        command: "scope-all"))
             }
         }
     }
