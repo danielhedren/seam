@@ -437,7 +437,7 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
 - **App icon:** an Icon Composer document (`App/Seam/AppIcon.icon`: `icon.json` plus SVG layers)
   that actool compiles into the bundle. Two panes, old and new, with red and green lines, joined
   by a stitched seam.
-- **Versions:** `CFBundleShortVersionString` is `MARKETING_VERSION` in the project.
+- **Versions:** `CFBundleShortVersionString` is `MARKETING_VERSION` in `App/Seam/Seam.xcconfig`.
   `CFBundleVersion` is the commit count (`git rev-list --count HEAD`), which the Makefile passes
   to every app build, so builds from different commits are distinguishable.
 
@@ -648,7 +648,7 @@ Every layer gets the cheapest test that can catch its failures. Test names descr
 
 | Layer | Kind | Framework | What it covers |
 |---|---|---|---|
-| GitKit parsers | Unit, golden files | Swift Testing | Real `git` outputs checked in under `Tests/Fixtures/`: renames, copies, binary files, mode changes, `\ No newline`, quoted and unicode paths, CRLF, empty files, porcelain v2 status, worktree porcelain with locked, prunable and detached entries |
+| GitKit parsers | Unit, golden files | Swift Testing | Real `git` outputs checked in under `Tests/GitKitTests/Fixtures/`: renames, copies, binary files, mode changes, `\ No newline`, quoted and unicode paths, CRLF, empty files, porcelain v2 status, worktree porcelain with locked, prunable and detached entries |
 | GitKit parsers | Round-trip property | Swift Testing, seeded generator | Generate random old/new file pairs, run real `git diff`, parse it, apply the parsed hunks to old → must equal new. 500 cases per run, with the seed printed on failure |
 | SeamCore | Unit | Swift Testing, parameterised | Ranking and tie-breaks (§5.1) as a pure function, intra-line pairing, viewed-state invalidation, scope assembly, generated-file matching |
 | Base detection | Integration, real git | Swift Testing | Fixtures F1–F14: the fixture builder (`Tests/TestSupport/FixtureRepo.swift`) creates each repo in a temp dir, with a local bare repo as `origin` so remote refs are real. The test asserts parent, base and file list. The ordinary path (F1) is tested as carefully as the edge cases |
@@ -671,9 +671,9 @@ Rules:
 - No coverage percentage target. The table above is the required coverage, and reviews check new
   code against it.
 - `make check` runs everything except the opt-in and UI tests: format lint, build with warnings
-  as errors, and `swift test`. `make test-all` adds `xcodebuild test` (UI tests and performance
-  baselines). A pre-commit hook runs `make check`. If the repo goes to GitHub, a macOS Actions
-  workflow runs `make test-all`.
+  as errors, and `swift test`. `make test-all` also builds the app and runs the opt-in tests:
+  the real-repo tests and the performance budgets in a release build. A pre-commit hook runs
+  `make check`. If the repo goes to GitHub, a macOS Actions workflow runs `make test-all`.
 
 **Commits:** Conventional Commits (`feat:`, `fix:`, `test:`, …), each one building and passing
 `make check`.
@@ -733,7 +733,7 @@ isn't allowed.
 
 Opening talks to the running app through a URL scheme (`seam://open?path=…&base=…`), launching
 the app if needed. The command is a Swift executable (swift-argument-parser) in the app's
-resources, built from the `seam-cli` target on SeamCore; it resolves the path, percent-encodes it
+resources, built from the `seam` target on SeamCore; it resolves the path, percent-encodes it
 and opens the URL with the app it belongs to: it follows its
 own symlinks, and from `X.app/Contents/Resources/seam` runs `open -a X.app <url>`, because a
 build-directory copy and an installed copy can coexist and `open -b` would pick whichever
