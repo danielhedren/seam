@@ -780,7 +780,10 @@ Thread commands act on the worktree containing `$PWD` (or `-C <path>`) and sign 
 `--as <name>`, else `$SEAM_AGENT`, else `agent`. They work without the app running; a running app
 picks the change up from the file. Text output is for agents to read: each thread with its id,
 file, lines, status, the quoted lines and the comments; `--json` gives the same structurally.
-Exit status is non-zero, with a message on stderr, for an unknown id. `comment --old` anchors on
+Errors print `Error: <message>` on stderr: a mistake in the arguments exits with status 64 and
+the command's usage, anything else (an unknown id, a folder outside a worktree, a line past the
+end of the file) with status 1. `seam --help` explains the thread workflow, and `--as` is
+listed only on the commands that write a comment (the others accept and ignore it). `comment --old` anchors on
 the base the app shows for the worktree: the app's default base and ignored refs, and the parent
 picked for the branch in the base picker.
 

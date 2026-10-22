@@ -9,32 +9,51 @@ import SeamCore
 @main
 struct Seam: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "seam", abstract: "Review git worktrees in Seam.",
-        subcommands: [
-            Open.self, Threads.self, ShowThread.self, Reply.self, Comment.self, Resolve.self,
-            Reopen.self, Delete.self, Wait.self,
+        commandName: "seam", abstract: "Review git worktrees in Seam, and answer review threads.",
+        discussion: """
+            Run seam in a worktree to open its repository in Seam with that worktree selected.
+
+            The thread commands read and write the review comments left in Seam. They act on \
+            the worktree containing the current folder (or -C <path>), work without the app \
+            running, and sign what they write as --as <name>, else $SEAM_AGENT, else "agent". \
+            Thread ids are as `seam threads` prints them, with or without the leading #.
+
+            A typical round: `seam threads`, make the changes, then \
+            `seam reply <id> "Done: ..." --as <name>` for each thread.
+            """,
+        subcommands: [Open.self],
+        groupedSubcommands: [
+            CommandGroup(
+                name: "Review threads",
+                subcommands: [
+                    Threads.self, ShowThread.self, Wait.self, Comment.self, Reply.self,
+                    Resolve.self, Reopen.self, Delete.self,
+                ])
         ],
         defaultSubcommand: Open.self)
 }
 
 struct Open: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Open the repo containing a folder and select its worktree.")
+        abstract: "Open the repository containing a folder in Seam and select its worktree.")
 
-    @Argument(help: "A folder in the worktree; the current one by default.")
+    @Argument(help: "A folder in the worktree; the current folder by default.")
     var path: String?
 
-    @Option(help: "Compare the worktree with this ref instead of the detected parent.")
+    @Option(
+        help: ArgumentHelp(
+            "Diff the worktree against this ref instead of the detected parent.",
+            valueName: "ref"))
     var base: String?
 
     func run() throws {
         let folder = URL(fileURLWithPath: path ?? FileManager.default.currentDirectoryPath)
         guard let real = realpath(folder.path, nil) else {
-            throw ValidationError("no such folder: \(folder.path)")
+            throw Failure("no such folder: \(folder.path)")
         }
         defer { free(real) }
         guard let url = SeamURL(path: String(cString: real), base: base).url else {
-            throw ValidationError("can't build the URL")
+            throw Failure("can't build a seam:// URL for \(folder.path)")
         }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
@@ -62,19 +81,13 @@ struct Open: AsyncParsableCommand {
     }
 }
 
-/// What every thread command shares: which worktree, and who is writing.
+/// Which worktree every thread command acts on.
 struct ThreadOptions: ParsableArguments {
-    @Option(name: .customShort("C"), help: "Act on the worktree containing this folder.")
+    @Option(
+        name: .customShort("C"),
+        help: ArgumentHelp(
+            "Act on the worktree containing this folder, not the current one.", valueName: "path"))
     var directory: String?
-
-    @Option(name: .customLong("as"), help: "Sign as this name ($SEAM_AGENT, else \"agent\").")
-    var author: String?
-
-    var signature: String {
-        author ?? ProcessInfo.processInfo.environment["SEAM_AGENT"].flatMap {
-            $0.isEmpty ? nil : $0
-        } ?? "agent"
-    }
 
     func worktree() async throws -> (Repository, URL) {
         let folder = URL(
@@ -83,19 +96,42 @@ struct ThreadOptions: ParsableArguments {
         do {
             return try await RepositoryService(git: CLIGitClient()).open(folder)
         } catch {
-            throw ValidationError("\(folder.path) is not in a git worktree")
+            throw Failure("\(folder.path) is not in a git worktree")
         }
     }
 }
 
+/// Who a comment is from. Commands that don't write a comment still accept `--as`, hidden, so
+/// an agent that passes it everywhere isn't refused.
+struct Signature: ParsableArguments {
+    @Option(
+        name: .customLong("as"),
+        help: ArgumentHelp(
+            "Sign the comment as this name; default $SEAM_AGENT, else \"agent\".",
+            valueName: "name"))
+    var author: String?
+
+    var name: String {
+        author ?? ProcessInfo.processInfo.environment["SEAM_AGENT"].flatMap {
+            $0.isEmpty ? nil : $0
+        } ?? "agent"
+    }
+}
+
 struct Threads: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(abstract: "List this worktree's threads.")
+    static let configuration = CommandConfiguration(
+        abstract: "List this worktree's open threads.",
+        discussion: """
+            Each thread shows its id, status, file and lines, who opened it, the lines it is \
+            on, and its comments, oldest first.
+            """)
 
     @OptionGroup var options: ThreadOptions
+    @OptionGroup(visibility: .hidden) var signature: Signature
     @Flag(help: "Include resolved threads.") var all = false
-    @Flag(help: "Every worktree of the repo, not just this one.") var repo = false
+    @Flag(help: repoHelp) var repo = false
     @Option(help: sinceHelp, transform: parseTime) var since: Date?
-    @Flag(help: "Print JSON.") var json = false
+    @Flag(help: jsonHelp) var json = false
 
     func run() async throws {
         let (repository, worktree) = try await options.worktree()
@@ -120,15 +156,19 @@ struct Wait: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Wait until threads change, then print what changed.",
         discussion: """
-            Ends with "As of <time>": pass it as --since to the next wait, and no change between \
-            the two is missed. Exits with status 2 when --timeout passes first.
+            Prints the threads that are new, replied to, resolved or reopened, and the ids of \
+            deleted ones, then "As of <time>". Pass that time as --since to the next wait and \
+            no change between the two is missed. Exits with status 2 when --timeout passes \
+            first.
             """)
 
     @OptionGroup var options: ThreadOptions
-    @Flag(help: "Every worktree of the repo, not just this one.") var repo = false
+    @OptionGroup(visibility: .hidden) var signature: Signature
+    @Flag(help: repoHelp) var repo = false
     @Option(help: sinceHelp, transform: parseTime) var since: Date?
-    @Option(help: "Give up after this many seconds.") var timeout: Int?
-    @Flag(help: "Print JSON.") var json = false
+    @Option(help: ArgumentHelp("Give up after this many seconds.", valueName: "seconds"))
+    var timeout: Int?
+    @Flag(help: jsonHelp) var json = false
 
     private struct Output: Encodable {
         var asOf: Date
@@ -149,7 +189,10 @@ struct Wait: AsyncParsableCommand {
                 read: { () throws(ThreadError) in try store.threads(for: repository) },
                 events: events, clock: ContinuousClock(), timeout: timeout.map { .seconds($0) })
         else {
-            FileHandle.standardError.write(Data("No change in \(timeout ?? 0) s.\n".utf8))
+            let seconds = timeout ?? 0
+            FileHandle.standardError.write(
+                Data("No thread changed within \(seconds) second\(seconds == 1 ? "" : "s").\n".utf8)
+            )
             throw ExitCode(2)
         }
         if json {
@@ -164,23 +207,29 @@ struct Wait: AsyncParsableCommand {
 }
 
 private let sinceHelp = ArgumentHelp(
-    "Only threads with activity at or after this ISO 8601 time, as `seam wait` prints it.")
+    "Only threads changed at or after this ISO 8601 time, as `seam wait` prints it.",
+    valueName: "time")
+private let repoHelp = ArgumentHelp("Every worktree of the repository, not just this one.")
+private let jsonHelp = ArgumentHelp("Print JSON instead of text.")
+private let textHelp = ArgumentHelp("The comment, in Markdown. Quote it for the shell.")
+private let idHelp = ArgumentHelp("The thread's id, as `seam threads` prints it.")
 
 private func parseTime(_ text: String) throws -> Date {
     do {
         return try Date(text, strategy: .iso8601)
     } catch {
-        throw ValidationError("expected an ISO 8601 time like 2026-10-22T18:30:00Z, got \(text)")
+        throw ValidationError("expected an ISO 8601 time such as 2026-10-22T18:30:00Z")
     }
 }
 
 struct ShowThread: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "thread", abstract: "Show one thread with its comments.")
+        commandName: "thread", abstract: "Show one thread with all its comments.")
 
     @OptionGroup var options: ThreadOptions
-    @Argument(help: "The thread's id, as `seam threads` prints it.") var id: String
-    @Flag(help: "Print JSON.") var json = false
+    @OptionGroup(visibility: .hidden) var signature: Signature
+    @Argument(help: idHelp) var id: String
+    @Flag(help: jsonHelp) var json = false
 
     func run() async throws {
         let (repository, _) = try await options.worktree()
@@ -193,15 +242,16 @@ struct ShowThread: AsyncParsableCommand {
 
 struct Reply: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Answer a thread; a reply to a resolved thread reopens it.")
+        abstract: "Answer a thread. A reply to a resolved thread reopens it.")
 
     @OptionGroup var options: ThreadOptions
-    @Argument var id: String
-    @Argument(help: "Markdown; quote it in the shell.") var text: String
+    @OptionGroup var signature: Signature
+    @Argument(help: idHelp) var id: String
+    @Argument(help: textHelp) var text: String
 
     func run() async throws {
         let (repository, _) = try await options.worktree()
-        let author = options.signature
+        let author = signature.name
         let id = String(id.trimmingPrefix("#"))
         try threadStore().update(repository) { threads throws(ThreadError) in
             try ThreadRules.reply(&threads, to: id, author: author, body: text, now: .now)
@@ -215,24 +265,33 @@ struct Comment: AsyncParsableCommand {
         abstract: "Open a thread on lines of a file, as a reviewer.")
 
     @OptionGroup var options: ThreadOptions
-    @Argument(help: "file:line or file:first-last, relative to the worktree or this folder.")
+    @OptionGroup var signature: Signature
+    @Argument(
+        help: ArgumentHelp(
+            "The file and lines, relative to the worktree or the current folder.",
+            valueName: "file:line[-end]"))
     var location: String
     @Flag(help: "The lines are on the old side: the base the diff starts from.") var old = false
-    @Argument(help: "Markdown; quote it in the shell.") var text: String
+    @Argument(help: textHelp) var text: String
+
+    func validate() throws {
+        guard ThreadText.location(location) != nil else {
+            throw ValidationError("expected file:line or file:first-last, got \(location)")
+        }
+    }
 
     func run() async throws {
         let (repository, worktree) = try await options.worktree()
-        guard let (path, lines) = ThreadText.location(location) else {
-            throw ValidationError("expected file:line or file:first-last, got \(location)")
-        }
+        guard let (path, lines) = ThreadText.location(location) else { return }
         let relative = relativePath(path, in: worktree)
         let side: ThreadAnchor.Side = old ? .old : .new
         let file = TextLines.split(
             try await contents(of: relative, side: side, in: worktree, repository))
         guard let anchor = ThreadAnchor(path: relative, side: side, lines: lines, in: file) else {
-            throw ValidationError("\(relative) has \(file.count) lines")
+            throw Failure(
+                "\(relative) has \(file.count) lines on the \(old ? "old" : "new") side")
         }
-        let author = options.signature
+        let author = signature.name
         let thread = try threadStore().update(repository) { threads throws(ThreadError) in
             try ThreadRules.open(
                 &threads, worktree: worktree.path, anchor: anchor, author: author, body: text,
@@ -259,7 +318,7 @@ struct Comment: AsyncParsableCommand {
         case .new:
             guard
                 let data = FileManager.default.contents(atPath: worktree.appending(path: path).path)
-            else { throw ValidationError("no file \(path) in \(worktree.path)") }
+            else { throw Failure("no file \(path) in \(worktree.path)") }
             return String(decoding: data, as: UTF8.self)
         case .old:
             let base = try await shownBase(of: worktree, in: repository)
@@ -284,38 +343,39 @@ struct Comment: AsyncParsableCommand {
             let base = try await ReviewBase.resolve(
                 detection: detection, override: override, in: worktree, git: git)
         else {
-            throw ValidationError("the base picked in Seam, \(override ?? ""), no longer resolves")
+            throw Failure("the base picked in Seam, \(override ?? ""), no longer resolves")
         }
         return base.commit
     }
 }
 
 struct Resolve: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(
-        abstract: "Resolve a thread.")
+    static let configuration = CommandConfiguration(abstract: "Resolve a thread.")
 
     @OptionGroup var options: ThreadOptions
-    @Argument var id: String
+    @OptionGroup(visibility: .hidden) var signature: Signature
+    @Argument(help: idHelp) var id: String
 
     func run() async throws { try await setResolved(true, id, options) }
 }
 
 struct Reopen: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(
-        abstract: "Reopen a thread.")
+    static let configuration = CommandConfiguration(abstract: "Reopen a resolved thread.")
 
     @OptionGroup var options: ThreadOptions
-    @Argument var id: String
+    @OptionGroup(visibility: .hidden) var signature: Signature
+    @Argument(help: idHelp) var id: String
 
     func run() async throws { try await setResolved(false, id, options) }
 }
 
 struct Delete: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Delete a thread with its comments.")
+        abstract: "Delete a thread with all its comments.")
 
     @OptionGroup var options: ThreadOptions
-    @Argument var id: String
+    @OptionGroup(visibility: .hidden) var signature: Signature
+    @Argument(help: idHelp) var id: String
 
     func run() async throws {
         let (repository, _) = try await options.worktree()
@@ -334,6 +394,16 @@ private func setResolved(_ resolved: Bool, _ id: String, _ options: ThreadOption
         try ThreadRules.setResolved(resolved, &threads, id: id, now: .now)
     }
     print(resolved ? "Resolved #\(id)." : "Reopened #\(id).")
+}
+
+/// A failure while running, not in the arguments: printed as "Error: …" with status 1, without
+/// the usage text a `ValidationError` brings.
+struct Failure: Error, CustomStringConvertible {
+    let description: String
+
+    init(_ description: String) {
+        self.description = description
+    }
 }
 
 /// `SEAM_THREAD_DIR` points the commands at another store, for trying them without touching
