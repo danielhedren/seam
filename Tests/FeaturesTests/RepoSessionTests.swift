@@ -605,6 +605,27 @@ import Testing
         #expect(review.diff?.files.map(\.diff.path) == ["dirty.txt", "first.txt", "second.txt"])
     }
 
+    @Test func anotherRangeIsANewDiffButAReloadIsNot() async throws {
+        let repo = try await FixtureRepo()
+        let tree = try await repo.worktree("a", branch: "a", from: "origin/main")
+        try await repo.commit("first.txt", "1\n", "first", in: tree)
+        try await repo.commit("second.txt", "2\n", "second", in: tree)
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        session.select(tree.path)
+        let review = try #require(session.selected)
+        await review.loaded()
+        let opened = review.shownRangeVersion
+
+        review.reloadDiff()
+        await review.loaded()
+        #expect(review.shownRangeVersion == opened)
+
+        session.selectLatestCommit()
+        await review.loaded()
+        #expect(review.shownRangeVersion != opened)
+    }
+
     @Test func pickedCommitsARebaseRemovedFallBackToTheScope() async throws {
         let repo = try await FixtureRepo()
         let tree = try await repo.worktree("a", branch: "a", from: "origin/main")

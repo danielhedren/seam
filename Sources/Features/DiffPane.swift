@@ -12,6 +12,7 @@ struct DiffRepresentable: NSViewRepresentable {
         struct Shown: Equatable {
             var id: String
             var version: Int
+            var range: Int
             var mode: DiffLayoutMode
             var collapsed: Set<String>
             var contentsVersion: Int
@@ -47,7 +48,8 @@ struct DiffRepresentable: NSViewRepresentable {
         view.isStale = review.showsProgress
         view.setFont(session.settings.font)
         let shown = Coordinator.Shown(
-            id: review.id, version: review.diffVersion, mode: review.mode,
+            id: review.id, version: review.diffVersion, range: review.shownRangeVersion,
+            mode: review.mode,
             collapsed: review.collapsed, contentsVersion: review.contentsVersion,
             syntaxVersion: review.syntaxVersion, wraps: review.wraps, viewed: review.viewed,
             expansions: review.expansions)
@@ -66,7 +68,7 @@ struct DiffRepresentable: NSViewRepresentable {
         }
         let position: DiffScrollView.Position =
             if previous?.id == review.id {
-                .keep
+                previous?.range == shown.range ? .keep : .top
             } else if let anchor = review.savedAnchor {
                 .anchor(anchor)
             } else {

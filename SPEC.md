@@ -193,7 +193,9 @@ The commit list (§7.2.1) generalises the scopes: each scope is a run of its row
 can pick any other run instead, such as only the latest commit. A picked run diffs from its oldest
 commit's first parent to its newest commit, or to the working tree when the run includes
 "Uncommitted changes". A run that covers the same rows as a scope is that scope. Picked commits
-are not persisted, and a rebase or reset that removes one falls back to the scope.
+are not persisted, and a rebase or reset that removes one falls back to the scope. Picking another
+range (scope, commits or parent) scrolls the diff to the top; a live reload of the same range
+keeps the position.
 
 ### 6.3 Diff options
 

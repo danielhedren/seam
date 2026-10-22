@@ -74,6 +74,10 @@ final class WorktreeReview: Identifiable {
     private(set) var diff: ReviewDiff?
     /// Bumped on every new diff, so the view knows to redraw even when the content is equal.
     private(set) var diffVersion = 0
+    /// Bumped when the reader picks another range (scope, commits or parent); the shown diff
+    /// carries the one it was built for, and a new range starts at the top.
+    private var rangeVersion = 0
+    private(set) var shownRangeVersion = 0
     private(set) var isLoading = false
     /// Turns on only once a load has taken 150 ms, so fast loads don't flicker (SPEC §9).
     private(set) var showsProgress = false
@@ -153,6 +157,7 @@ final class WorktreeReview: Identifiable {
         guard scope != self.scope || commitSelection != nil else { return }
         self.scope = scope
         commitSelection = nil
+        rangeVersion += 1
         reloadDiff()
     }
 
@@ -168,6 +173,7 @@ final class WorktreeReview: Identifiable {
             return
         }
         commitSelection = selection
+        rangeVersion += 1
         reloadDiff()
     }
 
@@ -242,6 +248,7 @@ final class WorktreeReview: Identifiable {
         let ref = ref == detection?.parent?.ref ? nil : ref
         guard ref != baseOverride else { return }
         baseOverride = ref
+        rangeVersion += 1
         reloadDiff()
     }
 
@@ -418,6 +425,7 @@ final class WorktreeReview: Identifiable {
     private func load(_ generation: Int) async {
         let interval = signposter.beginInterval("loadDiff")
         defer { signposter.endInterval("loadDiff", interval) }
+        let rangeVersion = rangeVersion
         if detection == nil { await refreshDetection() }
         guard generation == loadGeneration, let detection else {
             finish(generation)
@@ -455,12 +463,12 @@ final class WorktreeReview: Identifiable {
             // A first load shows the diff before its contents arrive. A reload waits for both,
             // so the new hunks are never drawn with the old files' gap lines.
             let isReload = !contents.isEmpty
-            if !isReload { present(result) }
+            if !isReload { present(result, rangeVersion) }
             let loaded = try await FileContentLoader(
                 git: services.git, fileSystem: services.fileSystem
             ).load(result, worktree: worktree.path)
             guard generation == loadGeneration, !Task.isCancelled else { return }
-            if isReload { present(result) }
+            if isReload { present(result, rangeVersion) }
             // Spans of files whose text changed would paint the new lines wrongly until redone.
             let previous = contents
             syntax = syntax.filter { previous[$0.key] == loaded[$0.key] }
@@ -482,7 +490,8 @@ final class WorktreeReview: Identifiable {
             .map { EditorConfig(String(decoding: $0, as: UTF8.self)) }
     }
 
-    private func present(_ diff: ReviewDiff) {
+    private func present(_ diff: ReviewDiff, _ rangeVersion: Int) {
+        shownRangeVersion = rangeVersion
         applyDefaultCollapse(diff)
         // Glob matching per file, so worked out once per diff rather than on every redraw.
         tabWidths = Dictionary(
