@@ -18,11 +18,13 @@ struct PlacedThread: Equatable, Identifiable {
     var id: String { thread.id }
 }
 
-/// Placements per (threads, diff, contents) version: working them out splits each file's text,
-/// and the diff's content is read on every redraw.
+/// Placements and markers per (threads, diff, contents) version: placing splits each file's text,
+/// a marker parses its comment's Markdown, and the diff view asks for both on every update.
 final class ThreadPlacementCache {
     var key: [Int] = []
     var placed: [PlacedThread] = []
+    var markersKey: [Int] = []
+    var markers: [String: [ThreadMarker]] = [:]
 }
 
 extension WorktreeReview {
@@ -66,6 +68,10 @@ extension WorktreeReview {
     /// What the diff draws: placed threads, without resolved ones unless they're asked for.
     var threadMarkers: [String: [ThreadMarker]] {
         let showsResolved = services.settings.showsResolvedThreads
+        let placedThreads = placedThreads
+        guard threads != nil else { return [:] }
+        let key = placementCache.key + [showsResolved ? 1 : 0]
+        if placementCache.markersKey == key { return placementCache.markers }
         var markers: [String: [ThreadMarker]] = [:]
         for placed in placedThreads {
             guard case .lines(let lines) = placed.placement,
@@ -85,6 +91,8 @@ extension WorktreeReview {
                     commentCount: placed.thread.comments.count,
                     isResolved: placed.thread.isResolved))
         }
+        placementCache.markersKey = key
+        placementCache.markers = markers
         return markers
     }
 
