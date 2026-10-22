@@ -102,6 +102,11 @@ extension DiffCanvasView {
             head: TextPosition(row: position.row, column: end))
     }
 
+    var selectedText: String? {
+        guard let selection, !selection.isEmpty else { return nil }
+        return layout.text(of: selection)
+    }
+
     @objc func copy(_ sender: Any?) {
         guard let selection, !selection.isEmpty else { return }
         NSPasteboard.general.clearContents()

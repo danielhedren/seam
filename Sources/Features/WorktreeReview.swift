@@ -85,7 +85,13 @@ final class WorktreeReview: Identifiable {
     var currentFile: String?
     /// Where the reader was when they last left this worktree.
     var savedAnchor: ScrollAnchor?
-    var fileFilter = ""
+    var fileFilter = "" {
+        didSet { scheduleDiffFilter() }
+    }
+    /// The filter the diff shows; it follows `fileFilter` once typing pauses, so the diff isn't
+    /// rebuilt on every keystroke. Clearing applies at once.
+    private(set) var diffFilter = ""
+    private var filterTask: Task<Void, Never>?
     var flatFileList = false
     var collapsedDirectories: Set<String> = []
 
@@ -300,9 +306,31 @@ final class WorktreeReview: Identifiable {
         expansions[path, default: [:]][gap] = expansion
     }
 
-    /// What the diff view shows; nil until the diff has loaded.
+    static let filterDelay = Duration.milliseconds(300)
+
+    private func scheduleDiffFilter() {
+        filterTask?.cancel()
+        guard !fileFilter.isEmpty else {
+            diffFilter = ""
+            return
+        }
+        let clock = services.clock
+        filterTask = Task { [weak self] in
+            try? await clock.sleep(for: Self.filterDelay)
+            guard !Task.isCancelled, let self else { return }
+            self.diffFilter = self.fileFilter
+        }
+    }
+
+    /// What the diff view shows, narrowed by the filter; nil until the diff has loaded.
     var content: DiffContent? {
-        diff.map {
+        let filter = FileFilter(diffFilter)
+        return diff.map { diff in
+            filter.isEmpty
+                ? diff
+                : ReviewDiff(
+                    scope: diff.scope, files: diff.files.filter { filter.matches($0.diff.path) })
+        }.map {
             DiffContent(
                 review: $0, mode: mode, collapsed: collapsed, contents: contents,
                 expansions: expansions, syntax: syntax, wraps: wraps,

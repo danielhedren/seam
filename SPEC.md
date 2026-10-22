@@ -288,7 +288,9 @@ switches and launches.
   ignoring case, not a regex. Every plain term must appear in the path; a term starting with `^`
   must not (`^test` hides test files, `delivery ^test` shows delivery files except tests). Only
   plain terms expand the tree; a filter that only leaves files out keeps folders as they were.
-  The filter narrows the file list, not the diff.
+  The filter narrows the diff to the same files. The file list follows every keystroke; the diff
+  follows once typing pauses for 300 ms, and scrolls to the top. Clearing the filter applies at
+  once.
 - The diff lists files in the file list's order: at each level folders before files, then by
   name, with generated files last.
 - Selecting a file scrolls the diff to it. The diff is one continuous scroll of all files, and
@@ -492,7 +494,8 @@ This is where the project's performance risk lies.
 - Typesetting results (`CTLine`) are cached per row and theme, and the cache is dropped on width
   or font changes.
 - Selection, copy, and find in the diff (`⌘F` while the diff has focus) are implemented on the
-  row model, not on a text storage.
+  row model, not on a text storage. `⌘F` with text selected in the diff starts the search from
+  the selection's first line, selected in the field so typing replaces it.
 - Rejected: a SwiftUI `LazyVStack` of `Text` (hitches beyond a few thousand rows, and selection is
   poor); one big `NSTextView` (side-by-side alignment and per-row decorations fight TextKit).
 

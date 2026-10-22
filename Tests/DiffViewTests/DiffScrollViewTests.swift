@@ -33,6 +33,22 @@ import Testing
         #expect(results == ["1/2", "2/2", "1/2", "1/3", "0/0"])
     }
 
+    @Test func theSelectionIsTheTextOnScreen() throws {
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        view.show(DiffContent(review: review(["alpha", "beta"])), position: .top)
+        #expect(view.selectedText == nil)
+
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        let row = try #require(
+            canvas.layout.rows.firstIndex { if case .line = $0 { true } else { false } })
+        canvas.selection = DiffSelection(
+            side: .unified, anchor: TextPosition(row: row, column: 1),
+            head: TextPosition(row: row, column: 4))
+
+        #expect(view.selectedText == "lph")
+    }
+
     @Test func theDiffTakesFocusInAWindowWhereNothingHasIt() {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 400, height: 300), styleMask: [.titled],

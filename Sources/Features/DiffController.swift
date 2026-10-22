@@ -18,5 +18,6 @@ final class DiffController {
     func focus() { view?.focus() }
     func search(_ query: String) { view?.search(query) }
     var readingLocation: (path: String, line: Int)? { view?.readingLocation }
+    var selectedText: String? { view?.selectedText }
     func moveToMatch(by delta: Int) { view?.moveToMatch(by: delta) }
 }

@@ -127,6 +127,9 @@ public final class DiffScrollView: NSScrollView {
 
     /// The file and line the reader is on, for "open in editor": the selection's line if there
     /// is one, else the line under the sticky header.
+    /// The selected text, for ⌘F to search for.
+    public var selectedText: String? { canvas.selectedText }
+
     public var readingLocation: (path: String, line: Int)? {
         let y = canvas.selection.map { layout.top(of: $0.head.row) } ?? visibleTop + headerHeight
         guard let row = layout.row(at: y), let location = layout.location(atOrAfter: row) else {

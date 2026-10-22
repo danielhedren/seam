@@ -649,6 +649,37 @@ import Testing
         #expect(review.diff?.files.map(\.diff.path) == ["first.txt", "second.txt"])
     }
 
+    @Test func theDiffFollowsTheFilterOnceTypingPauses() async throws {
+        let repo = try await FixtureRepo()
+        for name in ["src/a.cs", "tests/a_test.cs"] { try repo.write(name, "x\n") }
+        let clock = ManualClock()
+        let session = RepoSession(directory: repo.main, services: services(repo.git, clock: clock))
+        await session.open()
+        await session.settled()
+        let review = try #require(session.selected)
+        func shown() -> [String]? { review.content?.review.files.map(\.diff.path) }
+        #expect(shown() == ["src/a.cs", "tests/a_test.cs"])
+
+        review.fileFilter = "^tes"
+        review.fileFilter = "^test"
+        await clock.sleepers()
+        #expect(shown() == ["src/a.cs", "tests/a_test.cs"])
+        clock.advance(by: WorktreeReview.filterDelay)
+        await until { shown() == ["src/a.cs"] }
+
+        review.fileFilter = ""
+        #expect(shown() == ["src/a.cs", "tests/a_test.cs"])
+    }
+
+    @Test(
+        arguments: [
+            ("total", "total"), ("  total  ", "total"), ("first line\nsecond", "first line"),
+            ("\n", nil), ("   ", nil),
+        ] as [(String, String?)])
+    func findStartsFromTheSelectionsFirstLine(selection: String, query: String?) {
+        #expect(RepoSession.findQuery(from: selection) == query)
+    }
+
     @Test func theViewModeIsTheSameForEveryWorktree() async throws {
         let repo = try await FixtureRepo()
         _ = try await repo.worktree("a", branch: "a", from: "origin/main")

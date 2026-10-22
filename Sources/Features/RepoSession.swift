@@ -233,9 +233,18 @@ final class RepoSession {
         settings.layoutMode = settings.layoutMode == .unified ? .split : .unified
     }
 
+    /// ⌘F starts from the diff's selection, as text views do.
     func showFind() {
+        if let query = diff.selectedText.flatMap(Self.findQuery) { findQuery = query }
         showsFind = true
         findFocusRequests += 1
+    }
+
+    /// A search field holds one line: the selection's first, without surrounding spaces.
+    nonisolated static func findQuery(from selection: String) -> String? {
+        guard let line = selection.split(whereSeparator: \.isNewline).first else { return nil }
+        let query = line.trimmingCharacters(in: .whitespaces)
+        return query.isEmpty ? nil : query
     }
 
     func closeFind() {

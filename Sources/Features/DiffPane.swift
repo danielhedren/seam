@@ -13,6 +13,7 @@ struct DiffRepresentable: NSViewRepresentable {
             var id: String
             var version: Int
             var range: Int
+            var filter: String
             var mode: DiffLayoutMode
             var collapsed: Set<String>
             var contentsVersion: Int
@@ -49,6 +50,7 @@ struct DiffRepresentable: NSViewRepresentable {
         view.setFont(session.settings.font)
         let shown = Coordinator.Shown(
             id: review.id, version: review.diffVersion, range: review.shownRangeVersion,
+            filter: review.diffFilter,
             mode: review.mode,
             collapsed: review.collapsed, contentsVersion: review.contentsVersion,
             syntaxVersion: review.syntaxVersion, wraps: review.wraps, viewed: review.viewed,
@@ -68,7 +70,7 @@ struct DiffRepresentable: NSViewRepresentable {
         }
         let position: DiffScrollView.Position =
             if previous?.id == review.id {
-                previous?.range == shown.range ? .keep : .top
+                previous?.range == shown.range && previous?.filter == shown.filter ? .keep : .top
             } else if let anchor = review.savedAnchor {
                 .anchor(anchor)
             } else {
@@ -199,8 +201,21 @@ struct FindBar: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .onAppear { focused = true }
-        .onChange(of: session.findFocusRequests) { focused = true }
+        .onChange(of: session.findFocusRequests) {
+            focused = true
+            selectFieldText()
+        }
         .onExitCommand { session.closeFind() }
+    }
+
+    /// A field selects its text when it gains focus, but not when ⌘F is pressed again while it
+    /// already has it; then the new query must still be selected so typing replaces it.
+    private func selectFieldText() {
+        Task { @MainActor in
+            guard let editor = NSApp.keyWindow?.firstResponder as? NSTextView, editor.isFieldEditor
+            else { return }
+            editor.selectAll(nil)
+        }
     }
 
     private var status: String {
