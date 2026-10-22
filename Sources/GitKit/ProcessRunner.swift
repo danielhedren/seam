@@ -42,6 +42,8 @@ enum ProcessRunner {
 
         return try await withTaskCancellationHandler {
             try process.run()
+            // A cancel that lands before run() finds nothing running to terminate.
+            if Task.isCancelled { process.terminate() }
             // Drain both pipes and feed stdin concurrently, or a full pipe buffer deadlocks git.
             async let out = Task.detached { stdout.fileHandleForReading.readDataToEndOfFile() }
                 .value
