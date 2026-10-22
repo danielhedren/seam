@@ -235,7 +235,7 @@ struct WelcomeView: View {
 
     /// `open -a Seam --args <path>` opens that repo. `-Key value` pairs are user defaults that
     /// AppKit and Xcode pass, so their values are skipped.
-    static func launchPath(_ arguments: [String] = CommandLine.arguments) -> String? {
+    nonisolated static func launchPath(_ arguments: [String] = CommandLine.arguments) -> String? {
         var remaining = arguments.dropFirst()[...]
         while let argument = remaining.popFirst() {
             if argument.hasPrefix("-") {

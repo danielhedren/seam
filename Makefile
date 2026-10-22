@@ -15,7 +15,8 @@ build:
 	Scripts/build.sh swift build
 
 test:
-	swift test
+	Scripts/build.sh swift build --build-tests
+	swift test --skip-build
 
 # The thin Xcode app target (SPEC §8.1); everything else builds with SwiftPM.
 app:
