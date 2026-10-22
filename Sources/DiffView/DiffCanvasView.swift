@@ -220,11 +220,11 @@ final class DiffCanvasView: NSView {
         case .hunkHeader(_, _, .titled(let text)):
             fill(rect, palette.hunkBackground, context)
             drawText(
-                text, key: LineKey(row: index, side: .unified), x: geometry.unifiedTextX,
+                text, key: LineKey(row: index, side: .unified), x: geometry.chromeTextX,
                 rowTop: rect.minY, color: palette.hunkText, context: context)
         case .notice(_, let text):
             drawText(
-                text, key: LineKey(row: index, side: .unified), x: geometry.unifiedTextX,
+                text, key: LineKey(row: index, side: .unified), x: geometry.chromeTextX,
                 rowTop: rect.minY, color: palette.gutterText, context: context)
         case .image(let file):
             drawImages(file: file, in: chromeRect(ofRow: index), palette: palette, context: context)
@@ -243,7 +243,7 @@ final class DiffCanvasView: NSView {
             fill(rect, palette.hunkBackground, context)
             drawText(
                 DiffRowBuilder.gapLabel(gap).text, key: LineKey(row: index, side: .unified),
-                x: geometry.unifiedTextX, rowTop: rect.minY, color: palette.hunkText,
+                x: geometry.chromeTextX, rowTop: rect.minY, color: palette.hunkText,
                 context: context)
         case .line(_, let line):
             draw(

@@ -9,6 +9,7 @@ struct Geometry {
     var splitTextOffset = 0.0
     var columnWidth = 0.0
     var documentWidth = 0.0
+    var isSplit = false
     /// Characters per visual line when wrapping; nil when lines don't wrap.
     var wrapColumns: Int?
 
@@ -19,6 +20,7 @@ struct Geometry {
         wraps: Bool
     ) {
         self.visibleWidth = visibleWidth
+        isSplit = mode == .split
         let character = metrics.characterWidth
         let digits = max(3, String(Self.largestNumber(rows)).count)
         numberWidth = Double(digits) * character + padding * 2
@@ -53,6 +55,10 @@ struct Geometry {
         case .right: columnWidth + splitTextOffset
         }
     }
+
+    /// Where full-width rows (hunk titles, gaps, notices) put their text: in line with the code,
+    /// which in split mode is the left column's.
+    var chromeTextX: Double { isSplit ? splitTextOffset : unifiedTextX }
 
     /// At least 20 columns, so a narrow window still wraps into readable lines.
     private static func columns(_ width: Double, _ character: Double) -> Int {

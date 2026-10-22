@@ -115,7 +115,8 @@ import Testing
         #expect(header.pieces.count == 4)
     }
 
-    @Test func aClickJustLeftOfAGapsControlsExpandsNothing() throws {
+    @Test(arguments: [DiffLayoutMode.unified, .split])
+    func aClickJustLeftOfAGapsControlsExpandsNothing(mode: DiffLayoutMode) throws {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 600, height: 300), styleMask: [.titled],
             backing: .buffered, defer: false)
@@ -124,7 +125,7 @@ import Testing
         window.contentView = view
         var expanded: [ExpandDirection] = []
         view.onExpand = { _, _, direction in expanded.append(direction) }
-        var content = DiffContent(review: review(["x"]))
+        var content = DiffContent(review: review(["x"]), mode: mode)
         content.review.files[0].diff.hunks[0] = {
             var hunk = Hunk(oldStart: 30, oldCount: 0, newStart: 30, newCount: 1, section: "")
             hunk.lines = [DiffLine(kind: .added, text: "x", oldNumber: nil, newNumber: 30)]
@@ -138,10 +139,12 @@ import Testing
             canvas.layout.rows.firstIndex { if case .gap = $0 { true } else { false } })
         let y = canvas.layout.top(of: gap) + 2
         let characterWidth = canvas.layout.metrics.characterWidth
+        // In split mode the controls line up with the left column's text.
+        let textX = canvas.geometry.textX(for: mode == .unified ? .unified : .left)
 
-        try click(canvas, at: NSPoint(x: canvas.geometry.unifiedTextX - characterWidth / 2, y: y))
+        try click(canvas, at: NSPoint(x: textX - characterWidth / 2, y: y))
         #expect(expanded.isEmpty)
-        try click(canvas, at: NSPoint(x: canvas.geometry.unifiedTextX + characterWidth / 2, y: y))
+        try click(canvas, at: NSPoint(x: textX + characterWidth / 2, y: y))
         #expect(expanded == [.up])
     }
 

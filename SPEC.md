@@ -317,7 +317,8 @@ switches and launches.
   worktree, starting from the whitespace setting.
 - **Expanding context:** each gap between hunks has controls for "↑ 20 lines", "↓ 20 lines" and
   "all". These use the full file contents from the base and the working tree.
-- Line numbers for both sides. Line wrapping is off by default (toggle `w`). Without wrapping,
+- Line numbers for both sides. Hunk names, gap controls and notices line up with the code: in
+  side-by-side mode, with the left column's. Line wrapping is off by default (toggle `w`). Without wrapping,
   unified mode scrolls horizontally; split mode keeps each side at half the width and clips long
   lines at the column edge, so both sides stay in view.
 - Text selection and copy work in both modes. In side-by-side mode a selection stays within one

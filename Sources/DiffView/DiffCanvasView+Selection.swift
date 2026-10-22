@@ -39,7 +39,7 @@ extension DiffCanvasView {
             return
         case .gap(let file, let gap):
             let column = Int(
-                ((point.x - geometry.unifiedTextX) / layout.metrics.characterWidth).rounded(.down))
+                ((point.x - geometry.chromeTextX) / layout.metrics.characterWidth).rounded(.down))
             if let control = DiffRowBuilder.gapLabel(gap).controls.first(where: {
                 $0.0.contains(column)
             }) {
