@@ -140,6 +140,26 @@ import Testing
         #expect(reopened.selected?.baseOverride == "refs/remotes/origin/main")
     }
 
+    @Test func anOverrideThatNoLongerResolvesKeepsNoCountsFromTheOneBefore() async throws {
+        let repo = try await FixtureRepo()
+        let b = try await repo.worktree("b", branch: "b", from: "origin/main")
+        try await repo.commit("b.txt", "b\n", "b1", in: b)
+        let c = try await repo.worktree("c", branch: "c", from: "b")
+        try await repo.commit("c.txt", "c\n", "c1", in: c)
+        let session = RepoSession(directory: c, services: services(repo.git))
+        await session.open()
+        session.setBaseOverride("refs/remotes/origin/main")
+        await session.settled()
+        #expect(session.selected?.uniqueCommitCount == 2)
+
+        session.setBaseOverride("refs/heads/deleted")
+        await session.settled()
+
+        #expect(session.selected?.problem == .overrideGone("deleted"))
+        #expect(session.selected?.uniqueCommitCount == nil)
+        #expect(session.selected?.activity?.changes == nil)
+    }
+
     @Test func aTypedShortRefIsStoredByItsFullName() async throws {
         let repo = try await FixtureRepo()
         let b = try await repo.worktree("b", branch: "b", from: "origin/main")

@@ -480,6 +480,10 @@ final class WorktreeReview: Identifiable {
                     git: services.git)
             else {
                 guard generation == loadGeneration else { return }
+                overrideCommitCount = nil
+                overrideBase = nil
+                if statsBase != activityBase { await refreshActivity() }
+                guard generation == loadGeneration else { return }
                 problem = baseOverride.map { .overrideGone(RefName.short($0)) }
                 finish(generation)
                 return
