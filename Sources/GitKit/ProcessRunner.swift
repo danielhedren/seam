@@ -28,7 +28,8 @@ enum ProcessRunner {
         let stdin = Pipe()
         process.executableURL = executable
         process.arguments = arguments
-        process.currentDirectoryURL = directory
+        // Process can't launch in a relative URL that starts with "..", as `seam -C ../x` makes.
+        process.currentDirectoryURL = directory.absoluteURL
         process.environment = environment
         process.standardOutput = stdout
         process.standardError = stderr

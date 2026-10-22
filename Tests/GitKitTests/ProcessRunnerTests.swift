@@ -23,6 +23,27 @@ import Testing
         #expect(result.stdout == input)
     }
 
+    /// `seam -C ../other` makes a URL relative to the current folder.
+    @Test func aRelativeFolderURLRunsInTheFolderItNames() async throws {
+        let parent = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        let folder = parent.appending(path: "worktree")
+        let here = parent.appending(path: "here/")
+        for directory in [folder, here] {
+            try FileManager.default.createDirectory(
+                at: directory, withIntermediateDirectories: true)
+        }
+        defer { try? FileManager.default.removeItem(at: parent) }
+        let relative = URL(fileURLWithPath: "../worktree", relativeTo: here)
+
+        let result = try await ProcessRunner.run(
+            executable: URL(fileURLWithPath: "/bin/pwd"), arguments: ["-P"], directory: relative,
+            environment: [:], input: nil)
+
+        let real = try #require(realpath(folder.path, nil))
+        defer { free(real) }
+        #expect(String(decoding: result.stdout, as: UTF8.self) == String(cString: real) + "\n")
+    }
+
     @Test func exitStatusAndStandardErrorAreReported() async throws {
         let result = try await run("/bin/sh", ["-c", "echo oops >&2; exit 3"])
         #expect(result.status == 3)
