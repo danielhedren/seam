@@ -73,7 +73,7 @@ struct DiffSnapshotTests {
         _ mode: DiffLayoutMode, _ appearance: NSAppearance.Name, highContrast: Bool = false,
         collapsed: Set<String> = [], viewed: [String: ViewedMarks.Status] = [:]
     ) -> DiffScrollView {
-        let view = DiffScrollView()
+        let view = DiffScrollView.forSnapshot()
         view.appearance = NSAppearance(named: appearance)
         view.increaseContrastOverride = highContrast
         view.frame = NSRect(x: 0, y: 0, width: 900, height: 460)
@@ -125,7 +125,7 @@ struct DiffSnapshotTests {
             review: ReviewDiff(scope: .all, files: [ReviewFile(diff: file)]),
             contents: ["a.txt": FileContents(old: nil, new: lines.joined(separator: "\n") + "\n")],
             expansions: ["a.txt": [0: GapExpansion(bottom: 3)]])
-        let view = DiffScrollView()
+        let view = DiffScrollView.forSnapshot()
         view.appearance = NSAppearance(named: .aqua)
         view.increaseContrastOverride = false
         view.frame = NSRect(x: 0, y: 0, width: 700, height: 300)
@@ -154,7 +154,7 @@ struct DiffSnapshotTests {
                     oldImage: try png(.systemBlue, NSSize(width: 80, height: 40)),
                     newImage: try png(.systemOrange, NSSize(width: 40, height: 80)))
             ])
-        let view = DiffScrollView()
+        let view = DiffScrollView.forSnapshot()
         view.appearance = NSAppearance(named: .aqua)
         view.increaseContrastOverride = false
         view.frame = NSRect(x: 0, y: 0, width: 700, height: 340)
@@ -164,7 +164,7 @@ struct DiffSnapshotTests {
     }
 
     @Test func wrappedLinesContinueOnTheirOwnRows() {
-        let view = DiffScrollView()
+        let view = DiffScrollView.forSnapshot()
         view.appearance = NSAppearance(named: .aqua)
         view.increaseContrastOverride = false
         view.frame = NSRect(x: 0, y: 0, width: 520, height: 460)
@@ -186,5 +186,15 @@ struct DiffSnapshotTests {
     @Test func collapsedFileShowsOnlyItsHeader() {
         let view = view(.unified, .aqua, collapsed: ["Sources/Order.swift"])
         assertSnapshot(of: view, as: .image, named: "collapsed-\(Self.os)")
+    }
+}
+
+extension DiffScrollView {
+    /// While a mouse is connected the system switches to legacy scrollers, which narrow the
+    /// document, so references are drawn with overlay scrollers whatever is plugged in.
+    fileprivate static func forSnapshot() -> DiffScrollView {
+        let view = DiffScrollView()
+        view.scrollerStyle = .overlay
+        return view
     }
 }
