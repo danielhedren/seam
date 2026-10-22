@@ -231,14 +231,7 @@ final class DiffCanvasView: NSView {
         case .draft(_, let marker):
             drawDraft(marker, row: index, palette: palette, context: context)
         case .thread(_, let marker):
-            // A tint of its own, so a thread never reads as a hunk header or a gap.
-            context.setFillColor(ThreadColor.wash.cgColor)
-            context.fill(rect)
-            let side: DiffSide = mode == .unified ? .unified : marker.side == .old ? .left : .right
-            drawText(
-                marker.text, key: LineKey(row: index, side: .unified),
-                x: geometry.textX(for: side), rowTop: rect.minY,
-                color: marker.isResolved ? palette.gutterText : palette.text, context: context)
+            drawThreadRow(marker, row: index, in: rect, palette: palette, context: context)
         case .gap(_, let gap):
             fill(rect, palette.hunkBackground, context)
             drawText(
@@ -294,6 +287,48 @@ final class DiffCanvasView: NSView {
             }
         }
         updateDraftEditor()
+    }
+
+    /// A tint of its own, so a thread never reads as a hunk header or a gap. Side by side it
+    /// keeps to its column, the other left empty as beside an unpaired line.
+    private func drawThreadRow(
+        _ marker: ThreadMarker, row: Int, in rect: NSRect, palette: DiffPalette,
+        context: CGContext
+    ) {
+        var band = rect
+        var side = DiffSide.unified
+        if mode == .split {
+            side = marker.side == .old ? .left : .right
+            let (own, other) = rect.divided(
+                atDistance: geometry.columnWidth, from: side == .left ? .minXEdge : .maxXEdge)
+            band = own
+            fill(other, palette.emptySide, context)
+        }
+        context.setFillColor(ThreadColor.wash.cgColor)
+        context.fill(band)
+        let x = geometry.textX(for: side)
+        let color = marker.isResolved ? palette.gutterText : palette.text
+        let columns = Int((band.maxX - geometry.padding - x) / layout.metrics.characterWidth)
+        if mode == .unified || marker.text.count <= columns {
+            drawText(marker.text, key: nil, x: x, rowTop: rect.minY, color: color, context: context)
+        } else {
+            let tally = "   " + marker.tally
+            let room = Double(max(columns - tally.count, 1)) * layout.metrics.characterWidth
+            let summary = TextLine.make(marker.summary, font: font)
+            let line =
+                CTLineCreateTruncatedLine(summary, room, .end, TextLine.make("…", font: font))
+                ?? summary
+            context.setFillColor(color.nsColor.cgColor)
+            context.textPosition = CGPoint(x: x, y: rect.minY + 2 + font.ascender)
+            CTLineDraw(line, context)
+            let tallyX = x + CTLineGetTypographicBounds(line, nil, nil, nil)
+            drawText(tally, key: nil, x: tallyX, rowTop: rect.minY, color: color, context: context)
+        }
+        if mode == .split {
+            fill(
+                NSRect(x: geometry.columnWidth, y: rect.minY, width: 1, height: rect.height),
+                palette.separator, context)
+        }
     }
 
     /// A bar at the left of the gutter beside a thread's lines, on the side the thread is on.
@@ -539,6 +574,11 @@ extension DiffCanvasView {
     ) {
         if mode == .split {
             let rect = chromeRect(ofRow: row)
+            fill(
+                NSRect(
+                    x: marker.side == .old ? geometry.columnWidth : 0, y: rect.minY,
+                    width: geometry.columnWidth, height: rect.height),
+                palette.emptySide, context)
             fill(
                 NSRect(x: geometry.columnWidth, y: rect.minY, width: 1, height: rect.height),
                 palette.separator, context)

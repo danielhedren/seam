@@ -26,13 +26,18 @@ public struct ThreadMarker: Equatable, Sendable {
         self.isResolved = isResolved
     }
 
-    var text: String {
+    var text: String { "\(summary)   \(tally)" }
+
+    var summary: String { "\(latestAuthor): \(latest)" }
+
+    /// The count and status, which a summary too long for its column gives way to.
+    var tally: String {
         let count =
             commentCount == 1
             ? String(localized: "1 comment", bundle: .module)
             : String(localized: "\(commentCount) comments", bundle: .module)
         let status = isResolved ? String(localized: " · resolved", bundle: .module) : ""
-        return "\(latestAuthor): \(latest)   \(count)\(status)"
+        return "\(count)\(status)"
     }
 }
 

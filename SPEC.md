@@ -397,7 +397,9 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   it was made in.
 - **In the diff:** a commented range gets a marker in the gutter and a compact row after its last
   line: author, the first line of the latest comment, the number of comments, and open or
-  resolved. Clicking it, or `t` on that line, opens the thread in the panel. Resolved threads
+  resolved. Side by side, the row and the composer keep to their side's column, the other
+  column left empty as beside an unpaired line, and a comment too long for the column is
+  shortened before its count. Clicking it, or `t` on that line, opens the thread in the panel. Resolved threads
   show only the gutter marker unless Review › Show Resolved Threads is on.
 - **The thread panel** (an inspector on the right, `⌥⌘0`) lists the worktree's threads by file,
   open ones first, with the selected thread's conversation, a reply box, Resolve or Reopen, and

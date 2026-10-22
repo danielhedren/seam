@@ -157,3 +157,41 @@ private func texts(_ rows: [DiffRow]) -> [String] {
         #expect(select(.right, 0, 3) == "new 1...4")
     }
 }
+
+@MainActor @Suite struct ThreadRowDrawingTests {
+    /// Side by side, a thread's row is washed only in its own column, the other left empty as
+    /// beside an unpaired line, so a long summary can't read as belonging to both sides.
+    @Test(arguments: [ThreadAnchor.Side.new, .old])
+    func aSplitThreadRowKeepsToItsColumn(side: ThreadAnchor.Side) throws {
+        let view = DiffScrollView()
+        view.appearance = NSAppearance(named: .aqua)
+        view.increaseContrastOverride = false
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 300)
+        let thread = ThreadMarker(
+            id: "t", side: side, lines: 2...2, latestAuthor: "you", latest: "Why?",
+            commentCount: 1, isResolved: false)
+        view.show(
+            DiffContent(review: review(), mode: .split, threads: ["a.txt": [thread]]),
+            position: .top)
+        view.layoutSubtreeIfNeeded()
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        let row = try #require(
+            canvas.layout.rows.firstIndex { if case .thread = $0 { true } else { false } })
+        let rep = try #require(canvas.bitmapImageRepForCachingDisplay(in: canvas.bounds))
+        canvas.cacheDisplay(in: canvas.bounds, to: rep)
+        let scale = Double(rep.pixelsWide) / canvas.bounds.width
+        let y = Int((canvas.layout.top(of: row) + canvas.layout.height(of: row) / 2) * scale)
+        func color(atX x: Double) throws -> NSColor {
+            try #require(rep.colorAt(x: Int(x * scale), y: y)?.usingColorSpace(.sRGB))
+        }
+        let column = canvas.geometry.columnWidth
+        let (own, other) =
+            side == .new ? (column * 1.9, column * 0.1) : (column * 0.1, column * 1.9)
+        let empty = DiffPalette.light.emptySide
+        let otherColor = try color(atX: other)
+        #expect(abs(otherColor.redComponent - empty.red) < 0.02)
+        #expect(abs(otherColor.blueComponent - empty.blue) < 0.02)
+        let ownColor = try color(atX: own)
+        #expect(ownColor.blueComponent < ownColor.redComponent - 0.05)
+    }
+}
