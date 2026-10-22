@@ -304,6 +304,9 @@
     "No uncommitted changes" : {
 
     },
+    "No worktree or branch matches “%@”" : {
+
+    },
     "No worktree selected" : {
 
     },

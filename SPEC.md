@@ -267,8 +267,9 @@ Sorting: most recently changed first (default), or by name. The main worktree is
 top. Worktrees whose directory is missing are listed dimmed, and can be hidden.
 
 Switching: `⌘1`…`⌘9` pick by position, `⌘[`/`⌘]` go to the previous or next worktree, and `⌘K`
-opens fuzzy search over worktree and branch names. Each worktree keeps its own scroll position,
-selected file, and scope.
+opens fuzzy search over worktree and branch names: the best match is highlighted, `↑`/`↓` move
+the highlight and Return opens it, and a query nothing matches says so. Each worktree keeps its
+own scroll position, selected file, and scope.
 
 ### 7.2.1 Commit list
 
