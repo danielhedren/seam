@@ -203,6 +203,11 @@ final class DiffStickyHeaderView: NSView {
 
     override var isFlipped: Bool { true }
 
+    /// A click anywhere collapses the file, or toggles the viewed mark.
+    override func resetCursorRects() {
+        addCursorRect(bounds, cursor: .pointingHand)
+    }
+
     private var palette: DiffPalette {
         DiffPalette.current(for: effectiveAppearance, increaseContrast: increaseContrast)
     }

@@ -322,7 +322,8 @@ switches and launches.
   unified mode scrolls horizontally; split mode keeps each side at half the width and clips long
   lines at the column edge, so both sides stay in view.
 - Text selection and copy work in both modes. In side-by-side mode a selection stays within one
-  side.
+  side. The pointer is an I-beam over lines and a pointing hand over what a click acts on: file
+  headers, gap controls and thread rows.
 - Each hunk's header names the definitions around its first change, outermost first
   (`GetOrderOptionsHandler › Handle`), from the tree-sitter parse: types, functions, methods,
   constructors and properties in C#, TypeScript, JavaScript, Rust and PHP. Git's line ranges

@@ -334,6 +334,8 @@ public final class DiffScrollView: NSScrollView {
             visibleLeft = contentView.bounds.minX
             canvas.horizontalScrollDidChange()
         }
+        // The canvas only sets cursor rects for the rows in view.
+        window?.invalidateCursorRects(for: canvas)
         updateSticky()
         if let jumpedTop {
             if jumpedTop == visibleTop { return }

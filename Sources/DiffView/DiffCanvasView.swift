@@ -183,6 +183,7 @@ final class DiffCanvasView: NSView {
         let size = NSSize(width: geometry.documentWidth, height: max(layout.totalHeight, 1))
         if frame.size != size { setFrameSize(size) }
         needsDisplay = true
+        window?.invalidateCursorRects(for: self)
     }
 
     var paths: [String] { review.files.map(\.diff.path) }

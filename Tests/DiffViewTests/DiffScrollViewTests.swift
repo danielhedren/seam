@@ -148,6 +148,42 @@ import Testing
         #expect(expanded == [.up])
     }
 
+    @Test(arguments: [DiffLayoutMode.unified, .split])
+    func thePointerIsAHandOverControlsAndAnIBeamOverText(mode: DiffLayoutMode) throws {
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 300)
+        var content = DiffContent(review: review(["x"]), mode: mode)
+        content.review.files[0].diff.hunks[0] = {
+            var hunk = Hunk(oldStart: 30, oldCount: 0, newStart: 30, newCount: 1, section: "")
+            hunk.lines = [DiffLine(kind: .added, text: "x", oldNumber: nil, newNumber: 30)]
+            return hunk
+        }()
+        let lines = (1...30).map { "line \($0)" }.joined(separator: "\n") + "\n"
+        content.contents = ["a.txt": FileContents(new: lines)]
+        view.show(content, position: .top)
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        let regions = canvas.cursorRegions(in: canvas.bounds)
+        func kind(at point: NSPoint) -> DiffCanvasView.CursorKind? {
+            regions.last { $0.rect.contains(point) }?.kind
+        }
+        func top(_ match: (DiffRow) -> Bool) throws -> Double {
+            let index = try #require(
+                canvas.layout.rows.indices.first { match(canvas.layout.rows[$0]) })
+            return canvas.layout.top(of: index) + 2
+        }
+        let gap = try top { if case .gap = $0 { true } else { false } }
+        let line = try top {
+            if case .line = $0 { true } else if case .split = $0 { true } else { false }
+        }
+        let character = canvas.layout.metrics.characterWidth
+        let textX = canvas.geometry.chromeTextX
+
+        #expect(kind(at: NSPoint(x: 100, y: 2)) == .control)
+        #expect(kind(at: NSPoint(x: textX + character / 2, y: gap)) == .control)
+        #expect(kind(at: NSPoint(x: textX - character / 2, y: gap)) == nil)
+        #expect(kind(at: NSPoint(x: textX + character, y: line)) == .text)
+    }
+
     private func click(_ view: NSView, at point: NSPoint) throws {
         let window = try #require(view.window)
         let event = try #require(
