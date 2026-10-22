@@ -40,10 +40,12 @@ let package = Package(
         .library(name: "DiffView", targets: ["DiffView"]),
         .library(name: "Features", targets: ["Features"]),
         .executable(name: "seam-debug", targets: ["seam-debug"]),
+        .executable(name: "seam", targets: ["seam"]),
     ],
     dependencies: [
         .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", exact: "1.19.6"),
         .package(url: "https://github.com/ChimeHQ/SwiftTreeSitter", exact: "0.25.0"),
+        .package(url: "https://github.com/apple/swift-argument-parser", exact: "1.6.1"),
     ],
     targets: grammarTargets + [
         .target(name: "GitKit", swiftSettings: strict),
@@ -62,6 +64,12 @@ let package = Package(
             resources: [.process("Resources")], swiftSettings: strict),
         .executableTarget(
             name: "seam-debug", dependencies: ["SeamCore", "GitKit"], swiftSettings: strict),
+        .executableTarget(
+            name: "seam",
+            dependencies: [
+                "SeamCore", "GitKit",
+                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ], swiftSettings: strict),
         .target(
             name: "TestSupport", dependencies: ["GitKit"], path: "Tests/TestSupport",
             swiftSettings: strict),

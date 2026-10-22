@@ -1,0 +1,17 @@
+#!/bin/sh
+# Builds the `seam` command into the app's resources (SPEC §13). Run by the app target's build
+# phase; Xcode can't copy a package's executable product into a bundle itself.
+set -eu
+config=$(printf '%s' "$CONFIGURATION" | tr '[:upper:]' '[:lower:]')
+package="$SRCROOT/.."
+# Its own scratch path, so it never waits on a `swift build` running in the checkout.
+scratch="$OBJROOT/seam-cli"
+# Xcode's environment points at its own toolchain settings, which SwiftPM must not inherit.
+unset SDKROOT TOOLCHAINS
+xcrun swift build --package-path "$package" --scratch-path "$scratch" -c "$config" --product seam
+bin=$(xcrun swift build --package-path "$package" --scratch-path "$scratch" -c "$config" \
+    --show-bin-path)
+destination="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/seam"
+install -m 755 "$bin/seam" "$destination"
+# Signed on its own: the app's signature covers its resources, not code inside them.
+codesign --force --sign - "$destination"

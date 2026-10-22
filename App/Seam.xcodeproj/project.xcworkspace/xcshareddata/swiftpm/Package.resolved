@@ -2,6 +2,15 @@
   "originHash" : "2287a610962dee3ef733f936b184487d88a156f9d7937fd429c138d9cb373a5e",
   "pins" : [
     {
+      "identity" : "swift-argument-parser",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-argument-parser",
+      "state" : {
+        "revision" : "309a47b2b1d9b5e991f36961c983ecec72275be3",
+        "version" : "1.6.1"
+      }
+    },
+    {
       "identity" : "swifttreesitter",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/ChimeHQ/SwiftTreeSitter",

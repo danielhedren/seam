@@ -1,16 +1,16 @@
 import Foundation
 
 /// The `seam://open?path=…&base=…` contract between the `seam` command and the app (SPEC §13).
-struct SeamURL: Equatable {
-    var path: String
-    var base: String?
+public struct SeamURL: Equatable, Sendable {
+    public var path: String
+    public var base: String?
 
-    init(path: String, base: String? = nil) {
+    public init(path: String, base: String? = nil) {
         self.path = path
         self.base = base
     }
 
-    init?(_ url: URL) {
+    public init?(_ url: URL) {
         guard url.scheme == "seam", url.host() == "open",
             let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems,
             let path = items.first(where: { $0.name == "path" })?.value, !path.isEmpty
@@ -19,7 +19,7 @@ struct SeamURL: Equatable {
         base = items.first { $0.name == "base" }?.value.flatMap { $0.isEmpty ? nil : $0 }
     }
 
-    var url: URL? {
+    public var url: URL? {
         var components = URLComponents()
         components.scheme = "seam"
         components.host = "open"

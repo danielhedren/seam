@@ -717,8 +717,11 @@ build-directory copy and an installed copy can coexist and `open -b` would pick 
 LaunchServices prefers. Anywhere else it falls back to `open -b com.danielhedren.seam <url>`. The
 URL reaches the key window: a window showing that repo selects the worktree (and applies `--base`
 as its override), the welcome window becomes the repo's window, and any other window brings up
-the repo's own. File › Install Command Line Tool… symlinks the script, so updating the app
-updates the command; it refuses to replace a file there that isn't its symlink.
+the repo's own. File › Install Command Line Tool… symlinks the command, so updating the app
+updates it; it refuses to replace a file there that isn't its symlink. The app target builds the
+command with `Scripts/build-cli.sh` (its own SwiftPM scratch path, then an ad-hoc signature,
+because the app's signature doesn't cover code inside its resources). `SEAM_THREAD_DIR` points
+the thread commands at another store, for trying them out.
 
 ### 13.1 Install and distribution
 
