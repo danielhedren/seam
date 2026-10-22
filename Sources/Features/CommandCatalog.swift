@@ -12,8 +12,9 @@ struct SeamCommand: Identifiable {
         /// A bare key, attached only while the diff or file list has focus: AppKit lets a menu
         /// key equivalent win over a focused text field, even when the item is disabled.
         case single(KeyEquivalent, EventModifiers = [])
-        /// ⌘F belongs to Filter Files in the file list and to Find everywhere else.
-        case commandUnless(KeyEquivalent, @MainActor (RepoSession) -> Bool)
+        /// Attached only while the condition holds: ⌘F belongs to Filter Files in the file list
+        /// and to Find elsewhere, and to neither with no repo window, where both are disabled.
+        case commandWhen(KeyEquivalent, @MainActor (RepoSession) -> Bool)
     }
 
     let id: String
@@ -34,8 +35,8 @@ struct SeamCommand: Identifiable {
         case .command(let key, let modifiers): KeyboardShortcut(key, modifiers: modifiers)
         case .single(let key, let modifiers):
             session?.reviewHasFocus == true ? KeyboardShortcut(key, modifiers: modifiers) : nil
-        case .commandUnless(let key, let condition):
-            session.map(condition) == true ? nil : KeyboardShortcut(key)
+        case .commandWhen(let key, let condition):
+            session.map(condition) == true ? KeyboardShortcut(key) : nil
         }
     }
 
@@ -46,7 +47,7 @@ struct SeamCommand: Identifiable {
             case .none: (KeyEquivalent(" "), [])
             case .command(let key, let modifiers), .single(let key, let modifiers):
                 (key, modifiers)
-            case .commandUnless(let key, _): (key, .command)
+            case .commandWhen(let key, _): (key, .command)
             }
         if case .none = shortcut { return "" }
         var label = ""
@@ -74,7 +75,7 @@ enum CommandCatalog {
     static let edit: [SeamCommand] = [
         SeamCommand(
             id: "find", title: localized("Find…"), menu: .edit, section: 0,
-            shortcut: .commandUnless("f", { $0.fileListHasFocus }), run: { $0.showFind() }),
+            shortcut: .commandWhen("f", { !$0.fileListHasFocus }), run: { $0.showFind() }),
         SeamCommand(
             id: "find-next", title: localized("Find Next"), menu: .edit, section: 0,
             shortcut: .command("g"), isEnabled: { $0.findResult.total > 0 },
@@ -85,7 +86,7 @@ enum CommandCatalog {
             run: { $0.diff.moveToMatch(by: -1) }),
         SeamCommand(
             id: "filter-files", title: localized("Filter Files"), menu: .edit, section: 0,
-            shortcut: .commandUnless("f", { !$0.fileListHasFocus }),
+            shortcut: .commandWhen("f", { $0.fileListHasFocus }),
             run: { $0.filterFocusRequests += 1 }),
     ]
 
@@ -100,7 +101,7 @@ enum CommandCatalog {
             run: { $0.columns = $0.columns == .filesAndDiff ? .all : .filesAndDiff }),
         SeamCommand(
             id: "bigger", title: localized("Make Text Bigger"), menu: .view, section: 1,
-            shortcut: .command("+"), isEnabled: { _ in true },
+            shortcut: .command("="), isEnabled: { _ in true },
             run: { $0.settings.adjustFontSize(by: 1) }),
         SeamCommand(
             id: "smaller", title: localized("Make Text Smaller"), menu: .view, section: 1,
@@ -157,7 +158,7 @@ enum CommandCatalog {
             SeamCommand(
                 id: "worktree-\(position)", title: localized("Worktree \(position)"), menu: .go,
                 section: 1, shortcut: .command(KeyEquivalent(Character(String(position)))),
-                isEnabled: { $0.sortedReviews.count >= position },
+                isEnabled: { $0.reviews.count >= position },
                 run: { $0.select(position: position - 1) })
         }
         + [
@@ -204,6 +205,25 @@ enum CommandCatalog {
         SeamCommand(
             id: "editor", title: localized("Open in Editor"), menu: .review, section: 1,
             shortcut: .single("o"), run: { $0.openInEditor() }),
+        SeamCommand(
+            id: "copy-path", title: localized("Copy Path"), menu: .review, section: 1,
+            shortcut: .command("c", [.command, .option]),
+            isEnabled: { $0.selected?.currentFile != nil },
+            run: { session in
+                session.selected?.currentFile.map { session.copyPath($0, relative: false) }
+            }),
+        SeamCommand(
+            id: "copy-relative-path", title: localized("Copy Relative Path"), menu: .review,
+            section: 1, shortcut: .command("c", [.command, .option, .shift]),
+            isEnabled: { $0.selected?.currentFile != nil },
+            run: { session in
+                session.selected?.currentFile.map { session.copyPath($0, relative: true) }
+            }),
+        SeamCommand(
+            id: "reveal", title: localized("Reveal in Finder"), menu: .review, section: 1,
+            shortcut: .command("r", [.command, .shift]),
+            isEnabled: { $0.selected?.currentFile != nil },
+            run: { session in session.selected?.currentFile.map(session.revealInFinder) }),
         SeamCommand(
             id: "collapse", title: localized("Collapse or Expand File"), menu: .review,
             section: 1, shortcut: .single("x"), run: { $0.toggleCollapsed() }),

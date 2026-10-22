@@ -155,6 +155,7 @@ struct ReviewToolbar: ToolbarContent {
             } label: {
                 if session.isFetching {
                     ProgressView().controlSize(.small)
+                        .accessibilityLabel(String(localized: "Fetching", bundle: .module))
                 } else {
                     Label(
                         String(localized: "Fetch", bundle: .module),

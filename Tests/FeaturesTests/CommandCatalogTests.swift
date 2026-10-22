@@ -8,7 +8,7 @@ import Testing
         switch shortcut {
         case .command(let key, let modifiers), .single(let key, let modifiers):
             "\(key.character)-\(modifiers.rawValue)"
-        case .commandUnless(let key, _): "\(key.character)-\(EventModifiers.command.rawValue)"
+        case .commandWhen(let key, _): "\(key.character)-\(EventModifiers.command.rawValue)"
         case .none: nil
         }
     }

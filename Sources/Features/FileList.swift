@@ -47,7 +47,7 @@ struct FileList: View {
                 .padding(.bottom, 6)
             List(selection: selection(files, rows)) {
                 ForEach(rows) { row in
-                    FileRowView(row: row, files: files, viewed: review.viewed) {
+                    FileRowView(row: row, files: files, viewed: status(row, files)) {
                         toggle(row)
                     }
                     .tag(row.id)
@@ -74,6 +74,12 @@ struct FileList: View {
             })
     }
 
+    /// Each row gets only its own status, so a toggle redraws one row rather than all of them.
+    private func status(_ row: FileListRow, _ files: [ReviewFile]) -> ViewedMarks.Status {
+        guard case .file(let index) = row.kind else { return .unviewed }
+        return review.viewed.status(of: files[index])
+    }
+
     private func toggle(_ row: FileListRow) {
         switch row.kind {
         case .directory:
@@ -91,7 +97,7 @@ struct FileList: View {
 private struct FileRowView: View {
     let row: FileListRow
     let files: [ReviewFile]
-    let viewed: ViewedMarks
+    let viewed: ViewedMarks.Status
     let onToggle: () -> Void
 
     var body: some View {
@@ -123,7 +129,7 @@ private struct FileRowView: View {
                 Text(verbatim: "+\(file.diff.additions) −\(file.diff.deletions)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
-                switch viewed.status(of: file) {
+                switch viewed {
                 case .viewed:
                     Image(systemName: "checkmark").font(.caption).foregroundStyle(.secondary)
                         .accessibilityLabel(String(localized: "Viewed", bundle: .module))
