@@ -203,11 +203,6 @@ public final class DiffScrollView: NSScrollView {
         updateSticky()
     }
 
-    public func setViewed(_ viewed: [String: ViewedMarks.Status]) {
-        canvas.setViewed(viewed)
-        updateSticky()
-    }
-
     // MARK: - Find
 
     /// Searches as the reader types, starting from the line at the top of the view.

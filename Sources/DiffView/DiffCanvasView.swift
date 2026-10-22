@@ -14,6 +14,7 @@ final class DiffCanvasView: NSView {
     private(set) var collapsed: Set<String> = []
     private(set) var wraps = false
     private(set) var viewed: [String: ViewedMarks.Status] = [:]
+    private var shown: DiffContent?
     /// Find matches by row; `isCurrent` marks the one the find bar points at.
     var findMatches: [Int: [(side: DiffSide, range: Range<Int>, isCurrent: Bool)]] = [:] {
         didSet { needsDisplay = true }
@@ -96,11 +97,35 @@ final class DiffCanvasView: NSView {
         collapsed = content.collapsed
         wraps = content.wraps
         viewed = content.viewed
-        let rows = DiffRowBuilder.rows(
-            for: review, mode: mode, collapsed: collapsed, contents: content.contents,
-            expansions: content.expansions, syntax: content.syntax, tabWidth: content.tabWidth,
-            tabWidths: content.tabWidths)
+        defer { shown = content }
         selection = nil
+        if let shown, let files = Self.collapseOnlyChange(from: shown, to: content) {
+            relayout(splicing: files, in: content)
+            return
+        }
+        relayout(DiffRowBuilder.rows(for: content), width: geometry.visibleWidth)
+    }
+
+    /// The files whose collapse changed, when that (and viewed marks) is all that changed.
+    static func collapseOnlyChange(from old: DiffContent, to new: DiffContent) -> [Int]? {
+        var same = old
+        same.collapsed = new.collapsed
+        same.viewed = new.viewed
+        guard same == new else { return nil }
+        let changed = old.collapsed.symmetricDifference(new.collapsed)
+        return new.review.files.indices.filter { changed.contains(new.review.files[$0].diff.path) }
+    }
+
+    /// Rebuilds only `files`, last first so earlier files' row positions stay valid: marking a
+    /// file viewed collapses it, and rebuilding every row would cost a 20k-line diff tens of
+    /// milliseconds per keypress.
+    private func relayout(splicing files: [Int], in content: DiffContent) {
+        var rows = layout.rows
+        for file in files.reversed() {
+            guard let start = layout.headerRow(ofFile: file) else { continue }
+            let end = layout.headerRow(ofFile: file + 1) ?? layout.rows.count
+            rows.replaceSubrange(start..<end, with: DiffRowBuilder.rows(forFile: file, in: content))
+        }
         relayout(rows, width: geometry.visibleWidth)
     }
 
@@ -112,11 +137,6 @@ final class DiffCanvasView: NSView {
         layout = DiffLayout(rows: [], metrics: Self.metrics(for: font))
         lineCache.removeAll(keepingCapacity: true)
         relayout(rows, width: geometry.visibleWidth)
-    }
-
-    func setViewed(_ viewed: [String: ViewedMarks.Status]) {
-        self.viewed = viewed
-        needsDisplay = true
     }
 
     /// Returns whether row heights changed, which only happens when wrapping.

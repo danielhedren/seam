@@ -8,69 +8,83 @@ enum DiffRowBuilder {
     static func rows(
         for review: ReviewDiff, mode: DiffLayoutMode, collapsed: Set<String> = [],
         contents: [String: FileContents] = [:], expansions: [String: [Int: GapExpansion]] = [:],
-        syntax: [String: FileSyntax] = [:], tabWidth defaultTabWidth: Int = 4,
-        tabWidths: [String: Int] = [:]
+        syntax: [String: FileSyntax] = [:], tabWidth: Int = 4, tabWidths: [String: Int] = [:]
     ) -> [DiffRow] {
+        rows(
+            for: DiffContent(
+                review: review, mode: mode, collapsed: collapsed, contents: contents,
+                expansions: expansions, syntax: syntax, tabWidth: tabWidth, tabWidths: tabWidths))
+    }
+
+    static func rows(for content: DiffContent) -> [DiffRow] {
         var rows: [DiffRow] = []
-        rows.reserveCapacity(review.files.reduce(0) { $0 + $1.diff.hunks.count * 8 + 1 })
-        for (index, file) in review.files.enumerated() {
-            rows.append(.fileHeader(file: index))
-            guard !collapsed.contains(file.diff.path) else { continue }
-            let fileContents = contents[file.diff.path]
-            let tabWidth = tabWidths[file.diff.path] ?? defaultTabWidth
-            if let notice = notice(for: file, contents: fileContents) {
-                rows.append(.notice(file: index, text: notice))
-                if fileContents?.oldImage != nil || fileContents?.newImage != nil {
-                    rows.append(.image(file: index))
+        rows.reserveCapacity(content.review.files.reduce(0) { $0 + $1.diff.hunks.count * 8 + 1 })
+        for index in content.review.files.indices {
+            rows += self.rows(forFile: index, in: content)
+        }
+        return rows
+    }
+
+    /// One file's rows, from its header on; lets a collapse rebuild only that file.
+    static func rows(forFile index: Int, in content: DiffContent) -> [DiffRow] {
+        let file = content.review.files[index]
+        var rows: [DiffRow] = []
+        rows.append(.fileHeader(file: index))
+        guard !content.collapsed.contains(file.diff.path) else { return rows }
+        let fileContents = content.contents[file.diff.path]
+        let tabWidth = content.tabWidths[file.diff.path] ?? content.tabWidth
+        if let notice = notice(for: file, contents: fileContents) {
+            rows.append(.notice(file: index, text: notice))
+            if fileContents?.oldImage != nil || fileContents?.newImage != nil {
+                rows.append(.image(file: index))
+            }
+            return rows
+        }
+        let lines =
+            file.diff.newPath == nil ? nil : fileContents?.new.map(DiffContent.lines)
+        let fileExpansions = content.expansions[file.diff.path] ?? [:]
+        let lookup = SyntaxLookup(syntax: content.syntax[file.diff.path], tabWidth: tabWidth)
+        var next = (old: 1, new: 1)
+        func gap(_ number: Int, until end: Int) {
+            guard let lines else { return }
+            // max: a file that changed on disk since the diff can be shorter than its hunks.
+            rows += gapRows(
+                file: index, gap: number, newRange: next.new..<max(end, next.new),
+                oldOffset: next.old - next.new, lines: lines,
+                expansion: fileExpansions[number] ?? GapExpansion(), mode: content.mode,
+                lookup: lookup, isFirst: number == 0,
+                isLast: number == file.diff.hunks.count)
+        }
+        for (hunkIndex, hunk) in file.diff.hunks.enumerated() {
+            let first = Self.first(hunk)
+            gap(hunkIndex, until: first.new)
+            next = Self.next(hunk)
+            rows.append(.hunkHeader(file: index, hunk: hunkIndex, text: header(hunk)))
+            let texts = hunk.lines.map { TabStops.expand($0.text, width: tabWidth) }
+            let highlights = wordHighlights(hunk.lines, texts)
+            let oldSyntax = hunk.lines.map { lookup.old($0.oldNumber, raw: $0.text) }
+            let newSyntax = hunk.lines.map { lookup.new($0.newNumber, raw: $0.text) }
+            switch content.mode {
+            case .unified:
+                for (offset, line) in hunk.lines.enumerated() {
+                    rows.append(
+                        .line(
+                            file: index,
+                            UnifiedLine(
+                                old: line.oldNumber, new: line.newNumber, kind: line.kind,
+                                text: texts[offset], noNewline: line.noNewlineAtEnd,
+                                highlights: highlights[offset],
+                                syntax: line.kind == .removed
+                                    ? oldSyntax[offset] : newSyntax[offset])))
                 }
-                continue
+            case .split:
+                rows += splitRows(
+                    hunk.lines, texts, highlights, file: index,
+                    syntax: (oldSyntax, newSyntax))
             }
-            let lines =
-                file.diff.newPath == nil ? nil : fileContents?.new.map(DiffContent.lines)
-            let fileExpansions = expansions[file.diff.path] ?? [:]
-            let lookup = SyntaxLookup(syntax: syntax[file.diff.path], tabWidth: tabWidth)
-            var next = (old: 1, new: 1)
-            func gap(_ number: Int, until end: Int) {
-                guard let lines else { return }
-                // max: a file that changed on disk since the diff can be shorter than its hunks.
-                rows += gapRows(
-                    file: index, gap: number, newRange: next.new..<max(end, next.new),
-                    oldOffset: next.old - next.new, lines: lines,
-                    expansion: fileExpansions[number] ?? GapExpansion(), mode: mode,
-                    lookup: lookup, isFirst: number == 0,
-                    isLast: number == file.diff.hunks.count)
-            }
-            for (hunkIndex, hunk) in file.diff.hunks.enumerated() {
-                let first = Self.first(hunk)
-                gap(hunkIndex, until: first.new)
-                next = Self.next(hunk)
-                rows.append(.hunkHeader(file: index, hunk: hunkIndex, text: header(hunk)))
-                let texts = hunk.lines.map { TabStops.expand($0.text, width: tabWidth) }
-                let highlights = wordHighlights(hunk.lines, texts)
-                let oldSyntax = hunk.lines.map { lookup.old($0.oldNumber, raw: $0.text) }
-                let newSyntax = hunk.lines.map { lookup.new($0.newNumber, raw: $0.text) }
-                switch mode {
-                case .unified:
-                    for (offset, line) in hunk.lines.enumerated() {
-                        rows.append(
-                            .line(
-                                file: index,
-                                UnifiedLine(
-                                    old: line.oldNumber, new: line.newNumber, kind: line.kind,
-                                    text: texts[offset], noNewline: line.noNewlineAtEnd,
-                                    highlights: highlights[offset],
-                                    syntax: line.kind == .removed
-                                        ? oldSyntax[offset] : newSyntax[offset])))
-                    }
-                case .split:
-                    rows += splitRows(
-                        hunk.lines, texts, highlights, file: index,
-                        syntax: (oldSyntax, newSyntax))
-                }
-            }
-            if let lines, !file.diff.hunks.isEmpty {
-                gap(file.diff.hunks.count, until: lines.count + 1)
-            }
+        }
+        if let lines, !file.diff.hunks.isEmpty {
+            gap(file.diff.hunks.count, until: lines.count + 1)
         }
         return rows
     }

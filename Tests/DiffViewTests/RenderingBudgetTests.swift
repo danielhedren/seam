@@ -97,4 +97,21 @@ struct RenderingBudgetTests {
         let worst = frames[frames.count * 95 / 100]
         #expect(worst < .milliseconds(8), "\(mode): median \(median), 95th percentile \(worst)")
     }
+
+    /// `v` collapses the file it marks, so this is the cost of a keypress.
+    @Test func collapsingAFileOfA20kLineDiffTakesUnder8ms() throws {
+        var content = try Self.content()
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 1200, height: 800)
+        view.show(content, position: .top)
+        let clock = ContinuousClock()
+        var times: [Duration] = []
+        for file in content.review.files.prefix(20) {
+            content.collapsed.insert(file.diff.path)
+            let shown = content
+            times.append(clock.measure { view.show(shown, position: .keep) })
+        }
+        times.sort()
+        #expect(times[times.count / 2] < .milliseconds(8), "median \(times[times.count / 2])")
+    }
 }

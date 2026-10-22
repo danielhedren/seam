@@ -53,15 +53,7 @@ struct DiffRepresentable: NSViewRepresentable {
             expansions: review.expansions)
         guard shown != context.coordinator.shown else { return }
         let previous = context.coordinator.shown
-        // A viewed toggle only redraws headers; rebuilding rows would cost a 20k-line diff 75 ms.
-        if var unmarked = previous, let content = review.content {
-            unmarked.viewed = shown.viewed
-            if unmarked == shown {
-                view.setViewed(content.viewed)
-                context.coordinator.shown = shown
-                return
-            }
-        }
+        // The view itself rebuilds only what a collapse or viewed toggle changes.
         guard let content = review.content else {
             // Not loaded yet, or the worktree's directory went missing: show nothing stale.
             if previous != nil {

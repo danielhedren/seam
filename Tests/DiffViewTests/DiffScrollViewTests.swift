@@ -52,4 +52,33 @@ import Testing
         other.contentView?.addSubview(second)
         #expect(!second.isFocused)
     }
+
+    @Test func collapsingOneFileSplicesTheSameRowsAFullRebuildWouldMake() {
+        var content = DiffContent(review: review(["alpha", "beta"]))
+        let second = ReviewFile(
+            diff: {
+                var file = FileDiff(oldPath: nil, newPath: "b.txt", status: .added)
+                file.hunks = review(["x"]).files[0].diff.hunks
+                return file
+            }())
+        content.review.files.append(second)
+        let canvas = DiffCanvasView()
+        canvas.show(content)
+
+        content.collapsed = ["a.txt"]
+        #expect(
+            DiffCanvasView.collapseOnlyChange(
+                from: DiffContent(review: content.review), to: content) == [0])
+        canvas.show(content)
+        #expect(canvas.layout.rows == DiffRowBuilder.rows(for: content))
+
+        content.collapsed = ["b.txt"]
+        canvas.show(content)
+        #expect(canvas.layout.rows == DiffRowBuilder.rows(for: content))
+
+        content.mode = .split
+        #expect(
+            DiffCanvasView.collapseOnlyChange(
+                from: DiffContent(review: content.review), to: content) == nil)
+    }
 }
