@@ -488,6 +488,7 @@ final class WorktreeReview: Identifiable {
                 finish(generation)
                 return
             }
+            guard generation == loadGeneration else { return }
             overrideCommitCount = base.commitCount
             overrideBase = baseOverride == nil ? nil : base.commit
             // Another parent, or detection's first answer, moves the row's totals too.

@@ -160,6 +160,38 @@ import Testing
         #expect(session.selected?.activity?.changes == nil)
     }
 
+    @Test func aSupersededLoadLeavesTheNewOverrideAlone() async throws {
+        let repo = try await FixtureRepo()
+        let b = try await repo.worktree("b", branch: "b", from: "origin/main")
+        try await repo.commit("b.txt", "b\n", "b1", in: b)
+        let c = try await repo.worktree("c", branch: "c", from: "b")
+        try await repo.commit("c.txt", "c\n", "c1", in: c)
+        let git = GatedGit(repo.git, holding: c, command: "rev-list")
+        git.release()
+        let session = RepoSession(directory: c, services: services(git))
+        await session.open()
+        await session.settled()
+        let review = try #require(session.selected)
+
+        git.close()
+        let held = git.heldCount
+        session.setBaseOverride("refs/remotes/origin/main")
+        while git.heldCount == held { await Task.yield() }
+        let started = Flag()
+        let first = Task {
+            started.isSet = true
+            await review.loaded()
+        }
+        while !started.isSet { await Task.yield() }
+        session.setBaseOverride("refs/heads/deleted")
+        await session.settled()
+        git.release()
+        await first.value
+
+        #expect(review.problem == .overrideGone("deleted"))
+        #expect(review.uniqueCommitCount == nil)
+    }
+
     @Test func aTypedShortRefIsStoredByItsFullName() async throws {
         let repo = try await FixtureRepo()
         let b = try await repo.worktree("b", branch: "b", from: "origin/main")

@@ -75,6 +75,11 @@ final class GatedGit: GitClient, Sendable {
         for waiter in waiters { waiter.resume() }
     }
 
+    /// Holds the command again from here on.
+    func close() {
+        state.withLock { $0.open = false }
+    }
+
     private func hold() async {
         let id = state.withLock { state in
             state.nextID += 1
@@ -151,4 +156,10 @@ actor FakeLauncher: CommandLauncher {
 @MainActor
 func testSettings() -> AppSettings {
     AppSettings(defaults: UserDefaults(suiteName: "seam-tests-\(UUID())") ?? UserDefaults())
+}
+
+/// Set from a task the test starts, so it knows that task has begun.
+@MainActor
+final class Flag {
+    var isSet = false
 }
