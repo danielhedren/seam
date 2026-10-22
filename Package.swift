@@ -16,10 +16,7 @@ let grammars: [(target: String, name: String, directory: String, scanner: Bool)]
     ("TreeSitterYAML", "yaml", ".", true),
     ("TreeSitterMarkdown", "markdown", "tree-sitter-markdown", true),
     ("TreeSitterXML", "xml", "xml", true),
-    ("TreeSitterSwift", "swift", ".", true),
     ("TreeSitterRust", "rust", ".", true),
-    ("TreeSitterBash", "bash", ".", true),
-    ("TreeSitterSQL", "sql", ".", true),
     ("TreeSitterTOML", "toml", ".", true),
     ("TreeSitterDockerfile", "dockerfile", ".", true),
 ]

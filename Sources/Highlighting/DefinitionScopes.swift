@@ -31,13 +31,6 @@ enum DefinitionScopes {
                 "generator_function_declaration": .field("name"),
                 "method_definition": .field("name"), "variable_declarator": .functionValue,
             ]
-        case .swift:
-            [
-                "class_declaration": .field("name"), "protocol_declaration": .field("name"),
-                "function_declaration": .field("name"), "init_declaration": .fixed("init"),
-                "deinit_declaration": .fixed("deinit"),
-                "subscript_declaration": .fixed("subscript"),
-            ]
         case .rust:
             [
                 "function_item": .field("name"), "struct_item": .field("name"),

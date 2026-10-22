@@ -296,7 +296,7 @@ switches and launches.
   side.
 - Each hunk's header names the definitions around its first change, outermost first
   (`GetOrderOptionsHandler › Handle`), from the tree-sitter parse: types, functions, methods,
-  constructors and properties in C#, TypeScript, JavaScript, Swift and Rust. Git's line ranges
+  constructors and properties in C#, TypeScript, JavaScript and Rust. Git's line ranges
   and section heading aren't shown; the ranges repeat the gutter, and the heading is git's guess
   at the last unindented line, which in C# names the class or namespace. Other languages get an
   unlabelled separator.
@@ -431,8 +431,8 @@ seam-debug (M1)       ─ SeamCore
 ### 8.4 Syntax highlighting
 
 - tree-sitter through SwiftTreeSitter, with the highlight queries bundled. v1 grammars: C#,
-  TypeScript/TSX, JavaScript, JSON, YAML, Markdown, XML (csproj/props), Swift, Rust, Bash, SQL,
-  TOML, Dockerfile.
+  TypeScript/TSX, JavaScript, JSON, YAML, Markdown, XML (csproj/props), Rust, TOML, Dockerfile.
+  Other files show uncoloured; each grammar costs up to several MB of app size.
 - Parse the **whole** old and new files, then map the highlights onto diff lines. Highlighting a
   single hunk gets multi-line strings and comments wrong.
 - Highlighting runs off the main thread and is cached by language and content hash, which covers

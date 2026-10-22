@@ -15,10 +15,7 @@ import Testing
         (.yaml, "name: \"seam\"\n", "\"seam\"", .string),
         (.markdown, "# Title\n", "Title", .heading),
         (.xml, "<Project Sdk=\"x\"></Project>\n", "Project", .tag),
-        (.swift, "let value = \"text\"\n", "let", .keyword),
         (.rust, "fn main() {}\n", "fn", .keyword),
-        (.bash, "echo \"hi\" # note\n", "# note", .comment),
-        (.sql, "SELECT id FROM orders;\n", "SELECT", .keyword),
         (.toml, "name = \"seam\"\n", "\"seam\"", .string),
         (.dockerfile, "FROM swift:6\n", "FROM", .keyword),
     ]
@@ -43,10 +40,6 @@ import Testing
         (
             .typescript,
             "export class Cart {\n  total(): number {\n    return 1;\n  }\n}\nconst f = () => {\n  return 2;\n};\n",
-            ["Cart", "total"]
-        ),
-        (
-            .swift, "extension Cart {\n    func total() -> Int {\n        1\n    }\n}\n",
             ["Cart", "total"]
         ),
         (
@@ -81,9 +74,9 @@ import Testing
     }
 
     @Test func offsetsAreCharactersEvenAfterWideOnes() async throws {
-        let text = "let 🎉 = \"å\"\n"
-        let lines = try #require(await SyntaxHighlighter().highlight(text, as: .swift)?.lines)
-        #expect(lines[0].contains(SyntaxSpan(range: 8..<11, token: .string)))
+        let text = "const a = \"🎉\" + \"å\";\n"
+        let lines = try #require(await SyntaxHighlighter().highlight(text, as: .typescript)?.lines)
+        #expect(lines[0].contains(SyntaxSpan(range: 16..<19, token: .string)))
     }
 
     @Test(arguments: [
@@ -98,6 +91,9 @@ import Testing
     @Test func unknownFilesArePlainText() {
         #expect(SyntaxLanguage.detect(path: "notes.txt") == nil)
         #expect(SyntaxLanguage.detect(path: "LICENSE") == nil)
+        for dropped in ["main.swift", "schema.sql", "build.sh"] {
+            #expect(SyntaxLanguage.detect(path: dropped) == nil)
+        }
     }
 
     @Test func innerCapturesPaintOverOuterOnesAndTheFirstOfEqualRangesWins() {

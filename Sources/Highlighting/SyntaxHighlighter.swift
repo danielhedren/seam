@@ -2,15 +2,12 @@ import CryptoKit
 import Foundation
 import SeamCore
 import SwiftTreeSitter
-import TreeSitterBash
 import TreeSitterCSharp
 import TreeSitterDockerfile
 import TreeSitterJSON
 import TreeSitterJavaScript
 import TreeSitterMarkdown
 import TreeSitterRust
-import TreeSitterSQL
-import TreeSitterSwift
 import TreeSitterTOML
 import TreeSitterTSX
 import TreeSitterTypeScript
@@ -20,8 +17,7 @@ import os
 
 /// The v1 grammars of SPEC §8.4.
 public enum SyntaxLanguage: String, CaseIterable, Sendable {
-    case csharp, typescript, tsx, javascript, json, yaml, markdown, xml, swift, rust, bash, sql
-    case toml, dockerfile
+    case csharp, typescript, tsx, javascript, json, yaml, markdown, xml, rust, toml, dockerfile
 
     /// By file name; nil means plain text.
     public static func detect(path: String) -> SyntaxLanguage? {
@@ -41,10 +37,7 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
         case "md", "markdown": return .markdown
         case "xml", "csproj", "fsproj", "props", "targets", "xaml", "resx", "plist", "svg":
             return .xml
-        case "swift": return .swift
         case "rs": return .rust
-        case "sh", "bash", "zsh": return .bash
-        case "sql": return .sql
         case "toml": return .toml
         default: return nil
         }
@@ -61,10 +54,7 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
             case .yaml: tree_sitter_yaml()
             case .markdown: tree_sitter_markdown()
             case .xml: tree_sitter_xml()
-            case .swift: tree_sitter_swift()
             case .rust: tree_sitter_rust()
-            case .bash: tree_sitter_bash()
-            case .sql: tree_sitter_sql()
             case .toml: tree_sitter_toml()
             case .dockerfile: tree_sitter_dockerfile()
             }

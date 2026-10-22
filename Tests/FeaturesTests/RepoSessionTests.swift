@@ -242,7 +242,7 @@ import Testing
 
     @Test func syntaxHighlightsArriveForKnownLanguagesOnly() async throws {
         let repo = try await FixtureRepo()
-        try repo.write("main.swift", "let answer = 42\n")
+        try repo.write("main.rs", "let answer = 42;\n")
         try repo.write("notes.txt", "let answer = 42\n")
         let session = RepoSession(directory: repo.main, services: services(repo.git))
         await session.open()
@@ -250,7 +250,7 @@ import Testing
         let review = try #require(session.selected)
         await review.highlighted()
 
-        let spans = try #require(review.syntax["main.swift"]?.new?.first)
+        let spans = try #require(review.syntax["main.rs"]?.new?.first)
         #expect(spans.contains(SyntaxSpan(range: 0..<3, token: .keyword)))
         #expect(review.syntax["notes.txt"] == nil)
     }

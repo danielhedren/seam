@@ -21,10 +21,7 @@ json        tree-sitter/tree-sitter-json            v0.24.8                     
 yaml        tree-sitter-grammars/tree-sitter-yaml   v0.7.2                      .                      tree_sitter_yaml        -
 markdown    tree-sitter-grammars/tree-sitter-markdown v0.5.3                    tree-sitter-markdown   tree_sitter_markdown    -
 xml         tree-sitter-grammars/tree-sitter-xml    v0.7.0                      xml                    tree_sitter_xml         common
-swift       alex-pinkus/tree-sitter-swift           0.7.4-with-generated-files  .                      tree_sitter_swift       -
 rust        tree-sitter/tree-sitter-rust            v0.24.2                     .                      tree_sitter_rust        -
-bash        tree-sitter/tree-sitter-bash            v0.25.1                     .                      tree_sitter_bash        -
-sql         DerekStride/tree-sitter-sql             e038788e5d4daba82dea35676bf49a216629e141 . tree_sitter_sql   -
 toml        tree-sitter-grammars/tree-sitter-toml   v0.7.0                      .                      tree_sitter_toml        -
 dockerfile  camdencheek/tree-sitter-dockerfile      v0.2.0                      .                      tree_sitter_dockerfile  -
 '
@@ -56,21 +53,18 @@ done
 # Highlight queries, combined where a grammar extends another (tree-sitter.json "highlights").
 q() { printf '%s\n' "$work/$1"; }
 copy_query() { cat "$@" > "$queries/$name.scm"; }
-for name in csharp javascript json yaml rust bash toml dockerfile swift; do
+for name in csharp javascript json yaml rust toml dockerfile; do
     case $name in
         csharp) src=tree-sitter-c-sharp-v0.23.5 ;;
         javascript) src=tree-sitter-javascript-v0.25.0 ;;
         json) src=tree-sitter-json-v0.24.8 ;;
         yaml) src=tree-sitter-yaml-v0.7.2 ;;
         rust) src=tree-sitter-rust-v0.24.2 ;;
-        bash) src=tree-sitter-bash-v0.25.1 ;;
         toml) src=tree-sitter-toml-v0.7.0 ;;
         dockerfile) src=tree-sitter-dockerfile-v0.2.0 ;;
-        swift) src=tree-sitter-swift-0.7.4-with-generated-files ;;
     esac
     copy_query "$work/$src/queries/highlights.scm"
 done
-name=sql; copy_query "$work/tree-sitter-sql-e038788e5d4daba82dea35676bf49a216629e141/queries/highlights.scm"
 name=markdown; copy_query "$work/tree-sitter-markdown-v0.5.3/tree-sitter-markdown/queries/highlights.scm"
 name=xml; copy_query "$work/tree-sitter-xml-v0.7.0/queries/xml/highlights.scm"
 for name in typescript tsx; do
