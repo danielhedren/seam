@@ -1,4 +1,3 @@
-import CryptoKit
 import DiffView
 import Foundation
 import GitKit
@@ -43,7 +42,7 @@ actor JSONStateStore: StateStore {
     private let root: URL
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
 
-    init(root: URL = URL.applicationSupportDirectory.appending(path: "Seam")) {
+    init(root: URL = AppChoices.stateRoot) {
         self.root = root
     }
 
@@ -71,11 +70,8 @@ actor JSONStateStore: StateStore {
         write(Array(paths.prefix(10)), to: root.appending(path: "repos.json"))
     }
 
-    /// The common git dir identifies a repo across all of its worktrees.
     private func file(for repository: Repository) -> URL {
-        let digest = SHA256.hash(data: Data(repository.commonDirectory.path.utf8))
-        let id = digest.prefix(8).map { String(format: "%02x", $0) }.joined()
-        return root.appending(path: id).appending(path: "state.json")
+        AppChoices.stateFile(for: repository, in: root)
     }
 
     private func read<Value: Decodable>(_ type: Value.Type, from url: URL) -> Value? {

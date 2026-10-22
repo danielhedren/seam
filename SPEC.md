@@ -729,7 +729,8 @@ Thread commands act on the worktree containing `$PWD` (or `-C <path>`) and sign 
 picks the change up from the file. Text output is for agents to read: each thread with its id,
 file, lines, status, the quoted lines and the comments; `--json` gives the same structurally.
 Exit status is non-zero, with a message on stderr, for an unknown id or a resolve the author
-isn't allowed.
+isn't allowed. `comment --old` anchors on the base the app shows for the worktree: the app's
+default base and ignored refs, and the parent picked for the branch in the base picker.
 
 Opening talks to the running app through a URL scheme (`seam://open?path=…&base=…`), launching
 the app if needed. The command is a Swift executable (swift-argument-parser) in the app's

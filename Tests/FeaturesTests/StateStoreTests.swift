@@ -36,4 +36,28 @@ import Testing
 
         #expect(await store.load(repository) == state)
     }
+
+    @Test @MainActor func theCommandReadsTheBaseChoicesTheAppSaves() async throws {
+        let directory = try TemporaryDirectory()
+        let store = JSONStateStore(root: directory.resolved)
+        let repository = Repository(
+            commonDirectory: URL(fileURLWithPath: "/r/.git"), anchor: URL(fileURLWithPath: "/r"))
+        var state = RepoState()
+        state.baseOverrides["refs/heads/feature"] = "refs/remotes/origin/parent"
+        await store.save(state, for: repository)
+        let defaults = try #require(UserDefaults(suiteName: "seam-choices-\(UUID())"))
+        let settings = AppSettings(defaults: defaults)
+        settings.defaultBase = "origin/develop"
+        settings.ignoredRefs = ["origin/wip/**"]
+
+        #expect(AppChoices.detectionSettings(defaults) == settings.detection)
+        #expect(
+            AppChoices.baseOverride(
+                branch: "refs/heads/feature", of: repository, in: directory.resolved)
+                == "refs/remotes/origin/parent")
+        #expect(
+            AppChoices.baseOverride(
+                branch: "refs/heads/other", of: repository, in: directory.resolved)
+                == nil)
+    }
 }

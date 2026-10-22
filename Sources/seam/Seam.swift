@@ -163,7 +163,8 @@ struct Comment: AsyncParsableCommand {
         }
         let relative = relativePath(path, in: worktree)
         let side: ThreadAnchor.Side = old ? .old : .new
-        let file = TextLines.split(try await contents(of: relative, side: side, in: worktree))
+        let file = TextLines.split(
+            try await contents(of: relative, side: side, in: worktree, repository))
         guard let anchor = ThreadAnchor(path: relative, side: side, lines: lines, in: file) else {
             throw ValidationError("\(relative) has \(file.count) lines")
         }
@@ -187,9 +188,9 @@ struct Comment: AsyncParsableCommand {
         return String(here.dropFirst(root.count))
     }
 
-    private func contents(of path: String, side: ThreadAnchor.Side, in worktree: URL)
-        async throws -> String
-    {
+    private func contents(
+        of path: String, side: ThreadAnchor.Side, in worktree: URL, _ repository: Repository
+    ) async throws -> String {
         switch side {
         case .new:
             guard
@@ -197,10 +198,31 @@ struct Comment: AsyncParsableCommand {
             else { throw ValidationError("no file \(path) in \(worktree.path)") }
             return String(decoding: data, as: UTF8.self)
         case .old:
-            let git = CLIGitClient()
-            let base = try await BaseDetector(git: git).detect(in: worktree).base
-            return try await git.string(["show", "\(base):\(path)"], in: worktree)
+            let base = try await shownBase(of: worktree, in: repository)
+            return try await CLIGitClient().string(["show", "\(base):\(path)"], in: worktree)
         }
+    }
+
+    /// The base the app shows for this worktree: detected with its settings, or the parent the
+    /// reader picked for the branch.
+    private func shownBase(of worktree: URL, in repository: Repository) async throws -> String {
+        let git = CLIGitClient()
+        let settings =
+            UserDefaults(suiteName: AppChoices.defaultsDomain).map(AppChoices.detectionSettings)
+            ?? DetectionSettings()
+        let detection = try await BaseDetector(git: git, settings: settings).detect(in: worktree)
+        let branch = try? await git.string(["symbolic-ref", "--quiet", "HEAD"], in: worktree)
+        let override = branch.flatMap {
+            AppChoices.baseOverride(
+                branch: $0.trimmingCharacters(in: .whitespacesAndNewlines), of: repository)
+        }
+        guard
+            let base = try await ReviewBase.resolve(
+                detection: detection, override: override, in: worktree, git: git)
+        else {
+            throw ValidationError("the base picked in Seam, \(override ?? ""), no longer resolves")
+        }
+        return base.commit
     }
 }
 
