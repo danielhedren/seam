@@ -11,8 +11,10 @@ struct CommitList: View {
         if let log = review.commitLog {
             List(selection: selection(log)) {
                 Section {
-                    WorkingTreeRow(files: review.activity?.uncommittedFiles ?? 0)
-                        .tag(CommitSelection.End.workingTree)
+                    if uncommittedFiles > 0 {
+                        WorkingTreeRow(files: uncommittedFiles)
+                            .tag(CommitSelection.End.workingTree)
+                    }
                     ForEach(log.commits) { commit in
                         CommitRow(commit: commit).tag(CommitSelection.End.commit(commit.id))
                     }
@@ -30,6 +32,8 @@ struct CommitList: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
+
+    private var uncommittedFiles: Int { review.activity?.uncommittedFiles ?? 0 }
 
     private func header(_ log: CommitLog) -> some View {
         HStack {
@@ -57,9 +61,13 @@ struct CommitList: View {
                 return Set(ends[newest...oldest])
             },
             set: { picked in
-                let indices = picked.compactMap { ends.firstIndex(of: $0) }
-                guard let newest = indices.min(), let oldest = indices.max() else { return }
-                session.selectCommits(CommitSelection(newest: ends[newest], oldest: ends[oldest]))
+                let showsWorkingTree = uncommittedFiles > 0
+                guard
+                    let run = log.selection(
+                        spanning: picked.filter { showsWorkingTree || $0 != .workingTree },
+                        showsWorkingTree: showsWorkingTree)
+                else { return }
+                session.selectCommits(run)
             })
     }
 }
@@ -71,12 +79,7 @@ private struct WorkingTreeRow: View {
         Label {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Uncommitted changes", bundle: .module)
-                Text(
-                    files == 0
-                        ? String(localized: "None", bundle: .module)
-                        : String(localized: "\(files) files", bundle: .module)
-                )
-                .font(.caption).foregroundStyle(.secondary)
+                Text("\(files) files", bundle: .module).font(.caption).foregroundStyle(.secondary)
             }
         } icon: {
             Image(systemName: "pencil")

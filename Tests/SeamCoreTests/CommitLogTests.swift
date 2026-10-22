@@ -57,6 +57,22 @@ import Testing
             log.scope(matching: CommitSelection(newest: .commit("c"), oldest: .commit("b"))) == nil)
     }
 
+    @Test func pickedRowsSpanOneRun() {
+        #expect(
+            log.selection(spanning: [.commit("a"), .commit("c")], showsWorkingTree: true)
+                == CommitSelection(newest: .commit("c"), oldest: .commit("a")))
+        #expect(
+            log.selection(spanning: [.commit("b")], showsWorkingTree: false)
+                == CommitSelection(newest: .commit("b"), oldest: .commit("b")))
+        #expect(log.selection(spanning: [], showsWorkingTree: true) == nil)
+    }
+
+    @Test func everyCommitWithNothingUncommittedIsAll() {
+        #expect(
+            log.selection(spanning: [.commit("c"), .commit("a")], showsWorkingTree: false)
+                == log.selection(for: .all))
+    }
+
     @Test func aSelectionDiffsFromItsOldestCommitsParent() throws {
         let latest = try #require(
             log.range(for: CommitSelection(newest: .commit("c"), oldest: .commit("c"))))

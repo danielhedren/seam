@@ -253,14 +253,16 @@ selected file, and scope.
 Under the worktree list, the selected worktree's commits since the base, newest first, following
 first parents (a merge from main is one row):
 
-- An "Uncommitted changes" row on top, with the number of changed files.
+- An "Uncommitted changes" row on top, with the number of changed files, only while there are
+  any. Without it, selecting every commit is the All scope, so later edits still show.
 - One row per commit: subject, short SHA, age. At most 500 are listed.
 - The base at the bottom, marked as the branch point ("Branched from origin/main", its SHA and
   subject). It is not selectable: every range is measured from it or from a commit above it.
 
 The rows the diff covers are selected; selecting other rows (click, ⇧-click, arrow keys) picks a
 new run (§6.2), and a ⌘-click selection is filled to a contiguous run. "Show All" returns to the
-All scope.
+All scope. The divider between the worktree and commit lists keeps its position across worktree
+switches and launches.
 
 ### 7.3 File list
 

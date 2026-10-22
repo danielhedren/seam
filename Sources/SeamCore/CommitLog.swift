@@ -83,6 +83,21 @@ public struct CommitLog: Equatable, Sendable {
         [.workingTree] + commits.map { .commit($0.id) }
     }
 
+    /// The run from the newest to the oldest of `picked`, filling any gap. With the working-tree
+    /// row hidden (nothing uncommitted), every commit means All, so later edits still show.
+    public func selection(
+        spanning picked: some Sequence<CommitSelection.End>, showsWorkingTree: Bool
+    )
+        -> CommitSelection?
+    {
+        let ends = ends
+        let indices = picked.compactMap { ends.firstIndex(of: $0) }
+        guard let newest = indices.min(), let oldest = indices.max() else { return nil }
+        let run = CommitSelection(newest: ends[newest], oldest: ends[oldest])
+        guard !showsWorkingTree, run == selection(for: .committed) else { return run }
+        return selection(for: .all)
+    }
+
     /// The selection a scope stands for; nil when it covers no rows.
     public func selection(for scope: ReviewScope) -> CommitSelection? {
         let newestCommit = commits.first.map { CommitSelection.End.commit($0.id) }

@@ -84,12 +84,11 @@ struct RepoWindow: View {
             ContentUnavailableView(message, systemImage: "folder.badge.questionmark")
         case .open:
             NavigationSplitView(columnVisibility: columnVisibility) {
-                VSplitView {
+                SidebarSplit {
                     WorktreeList(session: session)
-                        .frame(minHeight: 120)
+                } bottom: {
                     if let review = session.selected {
                         CommitList(session: session, review: review)
-                            .frame(minHeight: 120, idealHeight: 240)
                     }
                 }
                 .navigationSplitViewColumnWidth(min: 200, ideal: 260)
