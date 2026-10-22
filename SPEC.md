@@ -370,6 +370,9 @@ app instead.
   assets and signing, so merges never touch `project.pbxproj` for code changes. Scenes and menus
   live in `Features` (`SeamScenes`, `SeamCommands`) for the same reason. The app is not sandboxed:
   it runs the user's `git` on arbitrary repositories. `make app` builds it, `make run` opens it.
+- **App icon:** an Icon Composer document (`App/Seam/AppIcon.icon`: `icon.json` plus SVG layers)
+  that actool compiles into the bundle. Two panes, old and new, with red and green lines, joined
+  by a stitched seam.
 
 ### 8.2 Architecture
 
