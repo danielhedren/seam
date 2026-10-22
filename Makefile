@@ -59,11 +59,15 @@ strings:
 	Scripts/sync-strings.sh
 
 # Opt-in suites (SPEC §10): the real-repo acceptance check and performance budgets. Budgets run
-# in their own invocation so other tests' git processes don't skew the timings.
-REAL_REPO ?= $(HOME)/Code/work-repo/.worktrees/feat-b
+# in their own invocation so other tests' git processes don't skew the timings. The real repo
+# is described in local.mk, which stays out of git; without it those checks skip.
+-include local.mk
+REAL_ENV = SEAM_REAL_REPO="$(REAL_REPO)" SEAM_REAL_COMMIT="$(REAL_COMMIT)" \
+	SEAM_REAL_BRANCH="$(REAL_BRANCH)" SEAM_REAL_PARENT="$(REAL_PARENT)" \
+	SEAM_REAL_BASE="$(REAL_BASE)" SEAM_REAL_STAT="$(REAL_STAT)"
 
 test-all: check app
-	SEAM_REAL_REPO=$(REAL_REPO) swift test --skip 'Budget|Benchmark'
-	SEAM_REAL_REPO=$(REAL_REPO) SEAM_BENCH=1 swift test -c release -Xswiftc -enable-testing \
+	$(REAL_ENV) swift test --skip 'Budget|Benchmark'
+	$(REAL_ENV) SEAM_BENCH=1 swift test -c release -Xswiftc -enable-testing \
 		--filter 'Budget|Benchmark'
 	SEAM_BENCH=1 swift test -c release -Xswiftc -enable-testing --filter LiveReload

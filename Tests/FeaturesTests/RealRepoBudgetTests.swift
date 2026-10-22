@@ -9,7 +9,9 @@ private let environment = ProcessInfo.processInfo.environment
 
 /// SPEC §8.7 budgets on the real repo. Run with `make test-all`.
 @MainActor
-@Suite(.enabled(if: environment["SEAM_BENCH"] != nil && environment["SEAM_REAL_REPO"] != nil))
+@Suite(
+    .enabled(if: environment["SEAM_BENCH"] != nil && !(environment["SEAM_REAL_REPO"] ?? "").isEmpty)
+)
 struct RealRepoBudgetTests {
     @Test func worktreeListIsReadyWithinOneSecondAndSwitchingLoadsWithin200ms() async throws {
         let worktree = URL(fileURLWithPath: try #require(environment["SEAM_REAL_REPO"]))

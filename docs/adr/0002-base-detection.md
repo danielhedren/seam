@@ -5,7 +5,7 @@ Status: accepted (2026-10-21)
 ## Context
 
 The review diff must start where the branch left its parent. `merge-base origin/main HEAD` is wrong
-for stacked branches (feat/b: 67 files instead of 19). Branch metadata (upstream, reflog
+for stacked branches (one real branch: 67 files instead of 19). Branch metadata (upstream, reflog
 "Created from") is unreliable: upstreams get reset by `push -u`, and worktrees are often created
 with `--no-track`.
 

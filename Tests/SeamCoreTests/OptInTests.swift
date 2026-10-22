@@ -7,31 +7,36 @@ import Testing
 
 private let environment = ProcessInfo.processInfo.environment
 
-/// SPEC §5.2 real-repo check. Run with `make test-all`; skipped when the worktree or its old
-/// parent ref is gone.
-@Suite(.enabled(if: environment["SEAM_REAL_REPO"] != nil))
+/// SPEC §5.2 real-repo check: a pinned commit of a stacked branch, its expected parent, base
+/// and committed-scope `files additions deletions`. `make test-all` passes them from local.mk,
+/// which stays out of git; the suite skips without them.
+@Suite(.enabled(if: !(environment["SEAM_REAL_REPO"] ?? "").isEmpty))
 struct RealRepoTests {
     @Test func aStackedBranchIsReviewedAgainstItsParent() async throws {
-        let path = try #require(environment["SEAM_REAL_REPO"])
-        let worktree = URL(fileURLWithPath: path, isDirectory: true)
+        func value(_ name: String) throws -> String {
+            let value = try #require(environment["SEAM_REAL_\(name)"], "SEAM_REAL_\(name) not set")
+            try #require(!value.isEmpty, "SEAM_REAL_\(name) is empty")
+            return value
+        }
+        let worktree = URL(fileURLWithPath: try value("REPO"), isDirectory: true)
+        let parent = try value("PARENT")
+        let stat = try value("STAT").split(separator: " ").compactMap { Int($0) }
+        try #require(stat.count == 3, "SEAM_REAL_STAT is 'files additions deletions'")
         let git = CLIGitClient()
-        let parent = "refs/remotes/origin/feat/a"
         guard (try? await git.run(["rev-parse", "--verify", "-q", parent], in: worktree)) != nil
         else {
-            Issue.record("parent ref \(parent) no longer exists; update the fixture")
+            Issue.record("parent ref \(parent) no longer exists; update local.mk")
             return
         }
 
         let detection = try await BaseDetector(git: git).detect(
-            in: worktree, at: .commit("9f8e7d6c5", branch: "feat/b"))
+            in: worktree, at: .commit(try value("COMMIT"), branch: try value("BRANCH")))
         let review = try await ReviewDiffBuilder(git: git).build(
             worktree: worktree, base: detection.base, head: detection.head, scope: .committed)
 
-        #expect(detection.parent?.name == "origin/feat/a")
-        #expect(detection.base.hasPrefix("4a1b2c3d4"))
-        #expect(review.files.count == 19)
-        #expect(review.additions == 456)
-        #expect(review.deletions == 950)
+        #expect(detection.parent?.ref == parent)
+        #expect(detection.base.hasPrefix(try value("BASE")))
+        #expect([review.files.count, review.additions, review.deletions] == stat)
     }
 }
 

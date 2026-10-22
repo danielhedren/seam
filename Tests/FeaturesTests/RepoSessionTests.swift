@@ -708,7 +708,8 @@ import Testing
     }
 
     @Test func aCaretTermLeavesMatchingPathsOutAndKeepsTheTreeAsItWas() {
-        let rows = FileTree.rows(paths, collapsed: ["src/Orders.Service/Delivery/"], filter: "^c.cs")
+        let rows = FileTree.rows(
+            paths, collapsed: ["src/Orders.Service/Delivery/"], filter: "^c.cs")
         // One child left, so the chain compacts; it stays collapsed as the reader left it.
         #expect(rows.map(\.name) == ["src/Orders.Service/Delivery", "README.md"])
         #expect(rows.first?.kind == .directory(isExpanded: false))
@@ -750,10 +751,10 @@ import Testing
 
 @Suite struct FuzzyMatchTests {
     @Test func subsequencesMatchAndBetterMatchesScoreHigher() throws {
-        let exact = try #require(FuzzyMatch.score("1894", in: "feat-b"))
-        let scattered = try #require(FuzzyMatch.score("1894", in: "feat-a-9-4"))
+        let exact = try #require(FuzzyMatch.score("1894", in: "ticket-1894-remove-preview"))
+        let scattered = try #require(FuzzyMatch.score("1894", in: "ticket-1872-preview-9-4"))
         #expect(exact > scattered)
-        #expect(FuzzyMatch.score("xyz", in: "feat-b") == nil)
+        #expect(FuzzyMatch.score("xyz", in: "ticket-1894") == nil)
         #expect(FuzzyMatch.score("", in: "anything") == 0)
     }
 }

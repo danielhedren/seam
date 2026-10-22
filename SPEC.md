@@ -16,15 +16,15 @@ The current workflow for reviewing a worktree in hunk:
 2. Find where the branch left its parent by eye.
 3. `hunk diff <that commit>`.
 
-`git merge-base origin/main HEAD` doesn't solve this for stacked branches. Measured on
-`work-repo`, worktree `feat-b`:
+`git merge-base origin/main HEAD` doesn't solve this for stacked branches. Measured on a real
+repository, on a worktree `feat/b` stacked on `feat/a`:
 
 | Base | Commits | Diff |
 |---|---|---|
 | `merge-base origin/main HEAD` | 17 | 67 files, +1123 −1160 |
-| actual parent `origin/feat/a` (`4a1b2c3d4`) | 5 | 19 files, +454 −948 |
+| actual parent `origin/feat/a` | 5 | 19 files, +454 −948 |
 
-feat/b is stacked on feat/a, and feat/a has merged main twice. Diffing against main pulls
+`feat/a` has merged main twice since `feat/b` was cut from it. Diffing against main pulls
 all of feat/a into the review.
 
 That repo has 20 worktrees, several outside the repo directory (`~/Code/.worktrees/…`,
@@ -106,7 +106,7 @@ Inputs: worktree HEAD, the current branch name `B`, and every ref under `refs/he
    candidate list (with its count) so the picker can offer "vs main" for the whole stack.
 
 Measured on the feat/b worktree (347 refs): the whole detection takes ~120–150 ms through
-`seam-debug`. Boundary `4a1b2c3d4` is contained only by `feat/a-local` and
+`seam-debug`. The boundary commit is contained only by a local `feat/a` and
 `origin/feat/a`, both at 5 unique commits; tie-break rule 4 picks the
 remote. A naive loop calling `merge-base` + `rev-list --count` once per ref took 11 s, so step 5's
 "contains every boundary" shortcut is what keeps the common case at a handful of git calls.
@@ -121,7 +121,7 @@ and base.
 | F1 | Branch off main, no merges | `origin/main` |
 | F2 | Branch off main that later merged main | `origin/main`; base = the last merged main commit, so main's changes are not in the diff |
 | F3 | Stacked: C on B on main | B |
-| F4 | Stacked, where B has merged main since C branched (the feat/b shape) | B; base = merge-base(B, C) |
+| F4 | Stacked, where B has merged main since C branched (the shape that motivated §5.1) | B; base = merge-base(B, C) |
 | F5 | Stacked, where C has merged a newer B | B; base = newer B commit |
 | F6 | A branch D stacked on C exists | C's parent is unaffected by D (D excluded in step 3) |
 | F7 | C's upstream is its own pushed remote branch | Upstream is ignored as a candidate; result as for F3 |
@@ -133,11 +133,11 @@ and base.
 | F13 | The main worktree, local `main` behind `origin/main` | `origin/main` with 0 commits; diff = uncommitted changes |
 | F14 | Fresh worktree with nothing committed, after main has moved on | `origin/main` with 0 commits; base = HEAD |
 
-Plus one real-repo check: on `feat-b`, commit `9f8e7d6c5` reviewed as
-`feat/b` must pick `origin/feat/a` and give a
-committed-scope diff of 19 files, +456 −950. (Plain `git diff --shortstat` says +454 −948; the
-difference is Seam's `--histogram`.) The branch has since been rebased onto main, so the check
-pins the commit and stops working once that parent ref is deleted.
+Plus one opt-in check on a real repository: a pinned commit of a stacked branch must pick its
+parent and give the expected committed-scope diff. The repository, commit, parent and expected
+numbers live in `local.mk`, which stays out of git (§10), so the check skips anywhere else. Line
+counts can differ slightly from plain `git diff --shortstat` because Seam diffs with
+`--histogram`.
 
 ### 5.3 Overrides
 
@@ -216,13 +216,16 @@ keeps the position.
 
 ```
 ┌ Worktrees ─────────────┬ Files ────────────┬ Diff ──────────────────────────────────┐
-│ work-repo       │ 19 files +454 −948│ vs origin/feat/a · 5 commits ▾│
-│ ● feat-b    │ ▾ src/Orders.Svc   │                              ⇆  ≡      │
-│   +5  ✎2  2m           │   M Delivery…cs ✓ │                                        │
-│ ● feat-a      │   M Options.cs    │  (side-by-side or unified diff)        │
-│   +12      1h          │ ▾ contracts/…     │                                        │
-│ ○ main                 │   M openapi.yaml  │                                        │
-│ ○ old-spike-a  stale │ ▸ Generated (3)   │                                        │
+│ feat-b             2m  │ 19 files +454 −948│ ▾ M src/Orders.Svc/Delivery.cs ☐ Viewed│
+│ 5 commits · 19 files   │ ▾ src/Orders.Svc  │   DeliveryHandler › Handle             │
+│ ✎2         +454 −948   │   M Delivery.cs ✓ │                                        │
+│ feat-a             1h  │   M Options.cs    │  (side-by-side or unified diff)        │
+│ main                   │ ▾ contracts/…     │                                        │
+│ old-spike  stale parent│   M openapi.yaml  │                                        │
+├ Commits ───────────────┤ ▸ Generated (3)   │                                        │
+│ Uncommitted changes    │                   │                                        │
+│ Remove the preview     │                   │                                        │
+│ Branched from feat/a   │                   │                                        │
 └────────────────────────┴───────────────────┴────────────────────────────────────────┘
 ```
 
@@ -509,7 +512,7 @@ This is where the project's performance risk lies.
 
 ### 8.7 Performance budgets
 
-Measured on `work-repo` (347 refs, 20 worktrees):
+Measured on a real repository (347 refs, 20 worktrees):
 
 | Operation | Budget |
 |---|---|
@@ -596,7 +599,7 @@ Every layer gets the cheapest test that can catch its failures. Test names descr
 | Features | Window snapshot | swift-snapshot-testing | The window's panes rendered in-process from a fixture repo, light and dark: worktree rows, commit rows, file list with the diff, the welcome screen. Ages are measured from a fixed time. Sidebar rows render outside their List, because an off-screen render draws a sidebar's selection solid black. Needs no screen or automation permission |
 | App | UI smoke, run by hand | XCUITest | 5 flows on a fixture repo passed as a launch argument: open, `⌘2` switch, `j`/`n` navigation, `v` viewed + `⌘Z`, base override, plus tabs and window size. Automation Mode isn't left enabled, so `xcodebuild test` asks for approval each run |
 | Performance | Benchmarks | XCTest `measure` with baselines | Detection on a generated repo with 400 refs, parsing and laying out a 20k-line diff. Fails on a >20% regression against the stored baseline. Baselines need `xcodebuild`, so until the Xcode project exists (M2) an opt-in Swift Testing check (`SEAM_BENCH=1`) asserts the absolute §8.7 budget |
-| Real repo | Acceptance, opt-in | Swift Testing, gated by `SEAM_REAL_REPO` | The feat/b check from §5.2 |
+| Real repo | Acceptance, opt-in | Swift Testing, gated by `SEAM_REAL_REPO` | The stacked-branch check from §5.2, configured in `local.mk` |
 
 Rules:
 - **Hermetic git:** every test that runs git sets `GIT_CONFIG_GLOBAL=/dev/null`,
@@ -688,13 +691,13 @@ Each milestone ends with a version you can use daily.
 **M1 — Core (headless).** The `SeamCore` package: process runner, worktree listing, base
 detection, diff parsing, review-diff assembly. A debug CLI target that prints a worktree's parent,
 base, and file list.
-*Done when:* fixtures F1–F14 pass, the feat/b real-repo check passes, and detection meets the
+*Done when:* fixtures F1–F14 pass, the real-repo check passes, and detection meets the
 §8.7 budget.
 
 **M2 — Viewer MVP.** The three-pane window, worktree list with counts, file list, unified and
 side-by-side views drawn without highlighting, keyboard navigation, scopes, the base picker,
 live reload.
-*Done when:* you can review feat/b end to end from the keyboard, and editing a file in that
+*Done when:* you can review a stacked branch end to end from the keyboard, and editing a file in that
 worktree updates the diff within 1 s with no jump in scroll position.
 *Left for later:* the XCUITest smoke flows, which need Automation Mode enabled on the machine.
 Wrapping and find moved to M3; VoiceOver hunk groups were done in M4.
