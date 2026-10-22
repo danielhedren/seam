@@ -19,6 +19,7 @@ let grammars: [(target: String, name: String, directory: String, scanner: Bool)]
     ("TreeSitterRust", "rust", ".", true),
     ("TreeSitterTOML", "toml", ".", true),
     ("TreeSitterDockerfile", "dockerfile", ".", true),
+    ("TreeSitterPHP", "php", "php", true),
 ]
 
 let grammarTargets: [Target] = grammars.map { grammar in

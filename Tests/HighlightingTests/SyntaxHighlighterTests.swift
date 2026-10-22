@@ -18,6 +18,7 @@ import Testing
         (.rust, "fn main() {}\n", "fn", .keyword),
         (.toml, "name = \"seam\"\n", "\"seam\"", .string),
         (.dockerfile, "FROM swift:6\n", "FROM", .keyword),
+        (.php, "<?php $name = \"seam\";\n", "\"seam\"", .string),
     ]
 
     @Test(arguments: SyntaxLanguage.allCases)
@@ -44,6 +45,11 @@ import Testing
         ),
         (
             .rust, "impl Cart {\n    fn total(&self) -> i32 {\n        1\n    }\n}\n",
+            ["Cart", "total"]
+        ),
+        (
+            .php,
+            "<?php\nclass Cart\n{\n    public function total(): int\n    {\n        return 1;\n    }\n}\n",
             ["Cart", "total"]
         ),
     ])
@@ -92,6 +98,19 @@ import Testing
         #expect(token("Task", line: 4) == .type)
         #expect(token("TakeAwayAsync", line: 6) == .function)
         #expect(token("Map", line: 7) != nil)
+    }
+
+    @Test func phpClassNamesBeforeDoubleColonsAreTypes() async throws {
+        let text = "<?php $a = [Client::class, Client::NAME, Client::$cache, Client::make()];\n"
+        let line = try #require(await SyntaxHighlighter().highlight(text, as: .php)?.lines.first)
+        let characters = Array(text)
+        let starts = (0..<characters.count).filter {
+            $0 + 6 <= characters.count && String(characters[$0..<($0 + 6)]) == "Client"
+        }
+        #expect(starts.count == 4)
+        for start in starts {
+            #expect(line.first { $0.range.contains(start) }?.token == .type, "at \(start)")
+        }
     }
 
     @Test func aBlockCommentIsHighlightedOnEveryLineItSpans() async throws {

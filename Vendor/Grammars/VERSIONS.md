@@ -10,3 +10,4 @@
 - rust: tree-sitter/tree-sitter-rust @ v0.24.2 (77a3747266f4d621d0757825e6b11edcbf991ca5)
 - toml: tree-sitter-grammars/tree-sitter-toml @ v0.7.0 (64b56832c2cffe41758f28e05c756a3a98d16f41)
 - dockerfile: camdencheek/tree-sitter-dockerfile @ v0.2.0 (868e44ce378deb68aac902a9db68ff82d2299dd0)
+- php: tree-sitter/tree-sitter-php @ v0.24.2 (5b5627faaa290d89eb3d01b9bf47c3bb9e797dea)

@@ -31,6 +31,12 @@ enum DefinitionScopes {
                 "generator_function_declaration": .field("name"),
                 "method_definition": .field("name"), "variable_declarator": .functionValue,
             ]
+        case .php:
+            [
+                "class_declaration": .field("name"), "interface_declaration": .field("name"),
+                "trait_declaration": .field("name"), "enum_declaration": .field("name"),
+                "function_definition": .field("name"), "method_declaration": .field("name"),
+            ]
         case .rust:
             [
                 "function_item": .field("name"), "struct_item": .field("name"),

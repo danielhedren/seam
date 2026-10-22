@@ -7,6 +7,7 @@ import TreeSitterDockerfile
 import TreeSitterJSON
 import TreeSitterJavaScript
 import TreeSitterMarkdown
+import TreeSitterPHP
 import TreeSitterRust
 import TreeSitterTOML
 import TreeSitterTSX
@@ -18,6 +19,7 @@ import os
 /// The v1 grammars of SPEC §8.4.
 public enum SyntaxLanguage: String, CaseIterable, Sendable {
     case csharp, typescript, tsx, javascript, json, yaml, markdown, xml, rust, toml, dockerfile
+    case php
 
     /// By file name; nil means plain text.
     public static func detect(path: String) -> SyntaxLanguage? {
@@ -39,6 +41,7 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
             return .xml
         case "rs": return .rust
         case "toml": return .toml
+        case "php", "phtml": return .php
         default: return nil
         }
     }
@@ -57,6 +60,7 @@ public enum SyntaxLanguage: String, CaseIterable, Sendable {
             case .rust: tree_sitter_rust()
             case .toml: tree_sitter_toml()
             case .dockerfile: tree_sitter_dockerfile()
+            case .php: tree_sitter_php()
             }
         return Language(language: OpaquePointer(pointer))
     }

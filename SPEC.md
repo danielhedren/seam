@@ -323,7 +323,7 @@ switches and launches.
   side.
 - Each hunk's header names the definitions around its first change, outermost first
   (`GetOrderOptionsHandler › Handle`), from the tree-sitter parse: types, functions, methods,
-  constructors and properties in C#, TypeScript, JavaScript and Rust. Git's line ranges
+  constructors and properties in C#, TypeScript, JavaScript, Rust and PHP. Git's line ranges
   and section heading aren't shown; the ranges repeat the gutter, and the heading is git's guess
   at the last unindented line, which in C# names the class or namespace. A header without a name
   shows only as a thin band where nothing else marks a jump in line numbers (the file's text isn't
@@ -511,7 +511,8 @@ seam-debug (M1)       ─ SeamCore
 ### 8.4 Syntax highlighting
 
 - tree-sitter through SwiftTreeSitter, with the highlight queries bundled. v1 grammars: C#,
-  TypeScript/TSX, JavaScript, JSON, YAML, Markdown, XML (csproj/props), Rust, TOML, Dockerfile.
+  TypeScript/TSX, JavaScript, JSON, YAML, Markdown, XML (csproj/props), Rust, TOML, Dockerfile,
+  PHP.
   Other files show uncoloured; each grammar costs up to several MB of app size.
 - Parse the **whole** old and new files, then map the highlights onto diff lines. Highlighting a
   single hunk gets multi-line strings and comments wrong.
@@ -526,7 +527,7 @@ seam-debug (M1)       ─ SeamCore
 - Where a vendored query misses common constructs, Seam's own patterns in
   `Sources/Highlighting/QueryAdditions/<language>.scm` are appended to it; the vendoring script
   doesn't touch them. C#: return types, calls without a receiver, generic calls, namespaces and
-  `using` names.
+  `using` names. PHP: the class in `Client::class`, `Client::NAME` and `Client::$property`.
 - The token types (`SyntaxToken`, `SyntaxSpan`) live in SeamCore, so Highlighting produces them
   and DiffView draws them without either importing the other. Syntax colours are part of
   `DiffPalette`, contrast-tested on every diff background.

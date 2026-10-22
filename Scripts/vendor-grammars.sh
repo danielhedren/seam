@@ -24,6 +24,7 @@ xml         tree-sitter-grammars/tree-sitter-xml    v0.7.0                      
 rust        tree-sitter/tree-sitter-rust            v0.24.2                     .                      tree_sitter_rust        -
 toml        tree-sitter-grammars/tree-sitter-toml   v0.7.0                      .                      tree_sitter_toml        -
 dockerfile  camdencheek/tree-sitter-dockerfile      v0.2.0                      .                      tree_sitter_dockerfile  -
+php         tree-sitter/tree-sitter-php             v0.24.2                     php                    tree_sitter_php         common
 '
 
 echo "$grammars" | while read -r name repo ref dir symbol extra; do
@@ -53,7 +54,7 @@ done
 # Highlight queries, combined where a grammar extends another (tree-sitter.json "highlights").
 q() { printf '%s\n' "$work/$1"; }
 copy_query() { cat "$@" > "$queries/$name.scm"; }
-for name in csharp javascript json yaml rust toml dockerfile; do
+for name in csharp javascript json yaml rust toml dockerfile php; do
     case $name in
         csharp) src=tree-sitter-c-sharp-v0.23.5 ;;
         javascript) src=tree-sitter-javascript-v0.25.0 ;;
@@ -62,6 +63,7 @@ for name in csharp javascript json yaml rust toml dockerfile; do
         rust) src=tree-sitter-rust-v0.24.2 ;;
         toml) src=tree-sitter-toml-v0.7.0 ;;
         dockerfile) src=tree-sitter-dockerfile-v0.2.0 ;;
+        php) src=tree-sitter-php-v0.24.2 ;;
     esac
     copy_query "$work/$src/queries/highlights.scm"
 done
