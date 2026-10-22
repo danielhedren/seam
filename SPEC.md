@@ -373,6 +373,9 @@ app instead.
 - **App icon:** an Icon Composer document (`App/Seam/AppIcon.icon`: `icon.json` plus SVG layers)
   that actool compiles into the bundle. Two panes, old and new, with red and green lines, joined
   by a stitched seam.
+- **Versions:** `CFBundleShortVersionString` is `MARKETING_VERSION` in the project.
+  `CFBundleVersion` is the commit count (`git rev-list --count HEAD`), which the Makefile passes
+  to every app build, so builds from different commits are distinguishable.
 
 ### 8.2 Architecture
 
@@ -651,6 +654,18 @@ URL reaches the key window: a window showing that repo selects the worktree (and
 as its override), the welcome window becomes the repo's window, and any other window brings up
 the repo's own. File › Install Command Line Tool… symlinks the script, so updating the app
 updates the command; it refuses to replace a file there that isn't its symlink.
+
+### 13.1 Install and distribution
+
+- `make install` builds Release, quits a running installed copy (relaunching it afterwards),
+  copies `Seam.app` into `~/Applications` beside the old one and then swaps them, registers it
+  with LaunchServices, and points `~/.local/bin/seam` at its script. The link rule is the menu
+  item's: it replaces only a symlink to some `Seam.app`'s script and leaves anything else alone.
+  It prints the installed path and version. `make uninstall` removes `~/Applications/Seam.app`
+  and the link, if the link points at it.
+- `make dist` writes `.build/dist/Seam-<version>-<build>.zip` (`ditto -c -k --keepParent`) to
+  copy to another Mac. The app is ad-hoc signed and not notarized, so on another Mac Gatekeeper
+  blocks the first launch: right-click › Open, or `xattr -d com.apple.quarantine Seam.app`.
 
 Later, not in v1: if agent notes are ever wanted, the same entry point can grow a local socket
 API, as hunk has. Nothing in v1 depends on it.
