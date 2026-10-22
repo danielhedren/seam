@@ -196,6 +196,10 @@ private struct ThreadCard: View {
         .textFieldStyle(.roundedBorder)
         .focused($replyFocused)
         HStack {
+            Button(String(localized: "Delete", bundle: .module), role: .destructive) {
+                Task { await session.deleteThread(thread.id) }
+            }
+            .help(String(localized: "Delete this thread; Undo brings it back", bundle: .module))
             if thread.author == ReviewThread.reader {
                 Button(
                     thread.isResolved

@@ -133,6 +133,28 @@ public enum ThreadRules {
         threads[index].isResolved = resolved
     }
 
+    /// Removes a thread, returning it and where it was so it can be put back. With an `author`,
+    /// only a thread they opened; the reader passes none, since deleting is how they dismiss an
+    /// agent's thread they can't resolve.
+    @discardableResult
+    public static func delete(
+        _ threads: inout [ReviewThread], id: String, by author: String? = nil
+    ) throws(ThreadError) -> (thread: ReviewThread, index: Int) {
+        let index = try position(of: id, in: threads)
+        if let author, threads[index].author != author {
+            throw .notAuthor(thread: id, author: threads[index].author)
+        }
+        return (threads.remove(at: index), index)
+    }
+
+    /// Undoes `delete`; a thread that's back already is left alone.
+    public static func restore(
+        _ thread: ReviewThread, at index: Int, in threads: inout [ReviewThread]
+    ) {
+        guard !threads.contains(where: { $0.id == thread.id }) else { return }
+        threads.insert(thread, at: min(index, threads.count))
+    }
+
     /// Eight hex digits: short enough to type in `seam reply`, unique within one repo's file.
     public static func newID() -> String {
         String(format: "%08x", UInt32.random(in: 0...UInt32.max))

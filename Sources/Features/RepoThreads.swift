@@ -79,6 +79,14 @@ final class RepoThreads {
         } != nil
     }
 
+    func delete(id: String) async -> (thread: ReviewThread, index: Int)? {
+        await change { threads throws(ThreadError) in try ThreadRules.delete(&threads, id: id) }
+    }
+
+    func restore(_ thread: ReviewThread, at index: Int) async {
+        await change { threads in ThreadRules.restore(thread, at: index, in: &threads) }
+    }
+
     private func change<Value: Sendable>(
         _ body: @escaping @Sendable (inout [ReviewThread]) throws(ThreadError) -> Value
     ) async -> Value? {

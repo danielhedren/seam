@@ -12,7 +12,7 @@ struct Seam: AsyncParsableCommand {
         commandName: "seam", abstract: "Review git worktrees in Seam.",
         subcommands: [
             Open.self, Threads.self, ShowThread.self, Reply.self, Comment.self, Resolve.self,
-            Reopen.self,
+            Reopen.self, Delete.self,
         ],
         defaultSubcommand: Open.self)
 }
@@ -246,6 +246,24 @@ struct Reopen: AsyncParsableCommand {
     func run() async throws { try await setResolved(false, id, options) }
 }
 
+struct Delete: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Delete a thread you opened, with its comments.")
+
+    @OptionGroup var options: ThreadOptions
+    @Argument var id: String
+
+    func run() async throws {
+        let (repository, _) = try await options.worktree()
+        let author = options.signature
+        let id = String(id.trimmingPrefix("#"))
+        try threadStore().update(repository) { threads throws(ThreadError) in
+            try ThreadRules.delete(&threads, id: id, by: author)
+        }
+        print("Deleted #\(id).")
+    }
+}
+
 private func setResolved(_ resolved: Bool, _ id: String, _ options: ThreadOptions) async throws {
     let (repository, _) = try await options.worktree()
     let author = options.signature
@@ -276,7 +294,7 @@ extension ThreadError: CustomStringConvertible {
         switch self {
         case .unknownThread(let id): "no thread #\(id) in this repository"
         case .notAuthor(let thread, let author):
-            "only \(author), who opened #\(thread), can resolve or reopen it"
+            "only \(author), who opened #\(thread), can resolve, reopen or delete it"
         case .emptyComment: "the comment is empty"
         case .unsupportedVersion(let version):
             "the thread store was written by a newer Seam (format \(version))"

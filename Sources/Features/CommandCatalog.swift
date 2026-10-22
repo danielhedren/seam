@@ -279,6 +279,13 @@ enum CommandCatalog {
             isEnabled: { $0.selected?.placedThreads.isEmpty == false },
             run: { $0.openThreadAtCursor() }),
         SeamCommand(
+            id: "delete-thread", title: localized("Delete Thread"), menu: .review, section: 4,
+            shortcut: .none, isEnabled: { $0.selectedThreadID != nil },
+            run: { session in
+                guard let id = session.selectedThreadID else { return }
+                Task { await session.deleteThread(id) }
+            }),
+        SeamCommand(
             id: "thread-panel", title: localized("Show Threads"), menu: .review, section: 4,
             shortcut: .command("0", [.command, .option]), isOn: { $0.showsThreadPanel },
             run: { $0.showsThreadPanel.toggle() }),

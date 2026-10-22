@@ -59,6 +59,8 @@ final class RepoSession {
     private var isClosed = false
     private var rowsTask: Task<Void, Never>?
     private var reloadTask: Task<Void, Never>?
+    /// An undone thread deletion being written back; tests wait on it.
+    @ObservationIgnored var restoringThreads: Task<Void, Never>?
     private var deferredActivity: [String: Task<Void, Never>] = [:]
     private var staleActivity: Set<String> = []
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")

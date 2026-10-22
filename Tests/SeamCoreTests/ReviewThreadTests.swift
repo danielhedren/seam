@@ -63,6 +63,33 @@ private func ids() -> () -> String {
         }
     }
 
+    @Test func theReaderDeletesAnyThreadTheCommandOnlyItsAuthorsAndUndoPutsItBack() throws {
+        var threads: [ReviewThread] = []
+        let next = ids()
+        let first = try ThreadRules.open(
+            &threads, worktree: "/w", anchor: anchor, author: "claude", body: "One", now: start,
+            newID: next)
+        let second = try ThreadRules.open(
+            &threads, worktree: "/w", anchor: anchor, author: "you", body: "Two", now: start,
+            newID: next)
+
+        #expect(throws: ThreadError.notAuthor(thread: first.id, author: "claude")) {
+            try ThreadRules.delete(&threads, id: first.id, by: "you")
+        }
+        let deleted = try ThreadRules.delete(&threads, id: first.id)
+        #expect(deleted.index == 0)
+        #expect(threads.map(\.id) == [second.id])
+        #expect(throws: ThreadError.unknownThread(first.id)) {
+            try ThreadRules.delete(&threads, id: first.id)
+        }
+
+        ThreadRules.restore(deleted.thread, at: deleted.index, in: &threads)
+        ThreadRules.restore(deleted.thread, at: deleted.index, in: &threads)
+        #expect(threads.map(\.id) == [first.id, second.id])
+        try ThreadRules.delete(&threads, id: second.id, by: "you")
+        #expect(threads.map(\.id) == [first.id])
+    }
+
     @Test func idsStayUniqueWithinTheFile() throws {
         var threads: [ReviewThread] = []
         var sequence = ["aaaaaaaa", "c1", "aaaaaaaa", "bbbbbbbb", "c2"].makeIterator()

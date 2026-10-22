@@ -72,6 +72,36 @@ import Testing
         #expect(reviewed.placedThreads.map(\.thread.comments.first?.body) == ["Why two?"])
     }
 
+    @Test func deletingAThreadRemovesItAndUndoAndRedoFollow() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\ntwo\n")
+        let (session, review, store) = await session(repo)
+        let reviewed = try #require(review)
+        let repository = try #require(session.repository)
+        let undo = UndoManager()
+        undo.groupsByEvent = false
+        session.undoManager = undo
+        session.draft = ThreadDraft(
+            worktree: reviewed.id,
+            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
+        await session.post("Why one?")
+        let id = try #require(session.selectedThreadID)
+
+        undo.beginUndoGrouping()
+        await session.deleteThread(id)
+        undo.endUndoGrouping()
+        #expect(reviewed.placedThreads.isEmpty)
+        #expect(session.selectedThreadID == nil)
+        #expect(try store.threads(for: repository).isEmpty)
+        #expect(undo.undoActionName == "Delete Thread")
+
+        undo.undo()
+        await session.restoringThreads?.value
+        #expect(reviewed.placedThreads.map(\.id) == [id])
+        #expect(session.selectedThreadID == id)
+        #expect(undo.canRedo)
+    }
+
     @Test func anUnpostedDraftAndItsTextSurviveSwitchingWorktrees() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\n")

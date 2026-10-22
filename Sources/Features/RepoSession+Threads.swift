@@ -74,6 +74,29 @@ extension RepoSession {
         if let here { openThread(here.id) }
     }
 
+    /// Review › Delete Thread; Undo puts it back where it was.
+    func deleteThread(_ id: String) async {
+        guard let threads, let (thread, index) = await threads.delete(id: id) else { return }
+        if selectedThreadID == id { selectedThreadID = nil }
+        let name = String(localized: "Delete Thread", bundle: .module)
+        // Redo has to be registered while the undo runs, so only the store write waits.
+        undoManager?.registerUndo(withTarget: self) { session in
+            MainActor.assumeIsolated {
+                session.undoManager?.registerUndo(withTarget: session) { session in
+                    MainActor.assumeIsolated {
+                        _ = Task { await session.deleteThread(thread.id) }
+                    }
+                }
+                session.undoManager?.setActionName(name)
+                session.restoringThreads = Task {
+                    await threads.restore(thread, at: index)
+                    session.selectedThreadID = thread.id
+                }
+            }
+        }
+        undoManager?.setActionName(name)
+    }
+
     func showInDiff(_ placed: PlacedThread) {
         guard case .lines(let lines) = placed.placement else { return }
         diff.scroll(
