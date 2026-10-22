@@ -6,6 +6,12 @@ import AppKit
 final class DraftEditor: NSScrollView, NSTextViewDelegate {
     let textView = DraftTextView()
     var onChange: ((String) -> Void)?
+    /// The editor's inset from the composer's frame.
+    static let margin = 8.0
+    private static let containerInset = 2.0
+    private static let padding = 5.0
+    /// From the composer's frame to the typed text, where the frame's title and hints line up.
+    static let textInset = margin + containerInset + padding
 
     init(text: String, font: NSFont) {
         super.init(frame: .zero)
@@ -17,7 +23,8 @@ final class DraftEditor: NSScrollView, NSTextViewDelegate {
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = false
         textView.autoresizingMask = [.width]
-        textView.textContainerInset = NSSize(width: 2, height: 4)
+        textView.textContainerInset = NSSize(width: Self.containerInset, height: 4)
+        textView.textContainer?.lineFragmentPadding = Self.padding
         textView.textContainer?.widthTracksTextView = true
         textView.maxSize = NSSize(
             width: Double.greatestFiniteMagnitude, height: .greatestFiniteMagnitude)

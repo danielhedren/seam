@@ -606,12 +606,13 @@ extension DiffCanvasView {
             : String(localized: "New thread on \(marker.path), line \(lines)", bundle: .module)
         let lineHeight = layout.metrics.lineHeight
         drawText(
-            title, key: nil, x: frame.minX + 10, rowTop: frame.minY + 2,
+            title, key: nil, x: frame.minX + DraftEditor.textInset, rowTop: frame.minY + 2,
             color: palette.gutterText, context: context)
         let hint = String(localized: "⌘↩ comment   esc cancel", bundle: .module)
         drawText(
             hint, key: nil,
-            x: frame.maxX - 10 - Double(hint.count) * layout.metrics.characterWidth,
+            x: frame.maxX - DraftEditor.textInset - Double(hint.count)
+                * layout.metrics.characterWidth,
             rowTop: frame.maxY - lineHeight - 2, color: palette.gutterText, context: context)
     }
 
@@ -629,7 +630,7 @@ extension DiffCanvasView {
         if editor.textView.font != font { editor.textView.font = font }
         let lineHeight = layout.metrics.lineHeight
         editor.frame =
-            draftFrame(row: row, side: marker.side).insetBy(dx: 8, dy: 0)
+            draftFrame(row: row, side: marker.side).insetBy(dx: DraftEditor.margin, dy: 0)
             .divided(atDistance: lineHeight + 4, from: .minYEdge).remainder
             .divided(atDistance: lineHeight + 4, from: .maxYEdge).remainder
     }
