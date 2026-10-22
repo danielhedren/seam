@@ -449,6 +449,9 @@
     "Whitespace" : {
 
     },
+    "Words in the path; ^word leaves those out" : {
+
+    },
     "Worktree %lld" : {
 
     },

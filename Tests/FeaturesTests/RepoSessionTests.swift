@@ -707,6 +707,26 @@ import Testing
         #expect(rows.map(\.name) == ["src/Orders.Service/Delivery", "B.cs"])
     }
 
+    @Test func aCaretTermLeavesMatchingPathsOutAndKeepsTheTreeAsItWas() {
+        let rows = FileTree.rows(paths, collapsed: ["src/Orders.Service/Delivery/"], filter: "^c.cs")
+        // One child left, so the chain compacts; it stays collapsed as the reader left it.
+        #expect(rows.map(\.name) == ["src/Orders.Service/Delivery", "README.md"])
+        #expect(rows.first?.kind == .directory(isExpanded: false))
+        #expect(
+            FileTree.rows(paths, filter: "orders ^delivery").map(\.name) == [
+                "src/Orders.Service", "C.cs",
+            ])
+    }
+
+    @Test(arguments: [
+        ("", "src/Tests/A.cs", true), ("tests", "src/Tests/A.cs", true),
+        ("^test", "src/Tests/A.cs", false), ("^test", "src/A.cs", true),
+        ("src ^test", "src/A.cs", true), ("src ^test", "lib/A.cs", false), ("^", "src/A.cs", true),
+    ])
+    func filterTermsAllMatchAndCaretTermsNone(filter: String, path: String, kept: Bool) {
+        #expect(FileFilter(filter).matches(path) == kept)
+    }
+
     @Test func generatedFilesSitUnderTheirOwnClosedHeading() {
         let paths = ["src/a.cs", "src/Generated/b.cs", "package-lock.json"]
         let closed = FileTree.rows(paths, generated: [1, 2])

@@ -42,6 +42,9 @@ struct FileList: View {
             .padding(.vertical, 6)
             TextField(String(localized: "Filter", bundle: .module), text: $review.fileFilter)
                 .textFieldStyle(.roundedBorder)
+                .help(
+                    String(localized: "Words in the path; ^word leaves those out", bundle: .module)
+                )
                 .focused(filterFocus)
                 .padding(.horizontal, 8)
                 .padding(.bottom, 6)
