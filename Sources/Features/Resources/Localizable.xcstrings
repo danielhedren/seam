@@ -142,6 +142,7 @@
     "Open in Editor" : {},
     "Opening %@…" : {},
     "Other ref" : {},
+    "Outdated" : {},
     "Page Down" : {},
     "Page Up" : {},
     "Parent %@ looks merged. Diff against %@ instead?" : {
@@ -161,6 +162,7 @@
     "Reload" : {},
     "Reopen" : {},
     "Reply" : {},
+    "Reply (⌘↩)" : {},
     "Resolve" : {},
     "Retry" : {},
     "Reveal in Finder" : {},

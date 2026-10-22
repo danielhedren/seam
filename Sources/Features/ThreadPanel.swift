@@ -17,29 +17,35 @@ struct ThreadPanel: View {
                 Text(failure).font(.callout).foregroundStyle(.red)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(10)
             }
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 10) {
-                    if placed.isEmpty {
-                        ContentUnavailableView(
-                            String(localized: "No threads", bundle: .module),
-                            systemImage: "text.bubble",
-                            description: Text(
-                                "Select lines in the diff and press C to comment.",
-                                bundle: .module))
-                    }
-                    ForEach(groups(placed), id: \.path) { group in
-                        Text(group.path).font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-                            .padding(.top, 4)
-                        ForEach(group.threads) { placed in
-                            ThreadCard(
-                                session: session, placed: placed,
-                                isExpanded: session.selectedThreadID == placed.id)
-                        }
+            if placed.isEmpty {
+                ContentUnavailableView(
+                    String(localized: "No threads", bundle: .module),
+                    systemImage: "text.bubble",
+                    description: Text(
+                        "Select lines in the diff and press C to comment.", bundle: .module)
+                )
+                .frame(maxHeight: .infinity)
+            } else {
+                threadList(placed)
+            }
+        }
+    }
+
+    private func threadList(_ placed: [PlacedThread]) -> some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 10) {
+                ForEach(groups(placed), id: \.path) { group in
+                    Text(group.path).font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
+                        .padding(.top, 4)
+                    ForEach(group.threads) { placed in
+                        ThreadCard(
+                            session: session, placed: placed,
+                            isExpanded: session.selectedThreadID == placed.id)
                     }
                 }
-                .padding(10)
             }
+            .padding(10)
         }
     }
 
@@ -47,8 +53,10 @@ struct ThreadPanel: View {
         let open = placed.filter { !$0.thread.isResolved }.count
         return HStack {
             Text("Threads", bundle: .module).font(.headline)
-            Text(String(localized: "\(open) open", bundle: .module))
-                .foregroundStyle(.secondary).monospacedDigit()
+            if !placed.isEmpty {
+                Text(String(localized: "\(open) open", bundle: .module))
+                    .foregroundStyle(.secondary).monospacedDigit()
+            }
             Spacer()
             Button {
                 session.copyAgentPrompt()
@@ -136,7 +144,12 @@ private struct ThreadCard: View {
             isExpanded ? AnyShapeStyle(Color(nsColor: ThreadColor.wash)) : AnyShapeStyle(.clear),
             in: RoundedRectangle(cornerRadius: 7)
         )
-        .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(.separator))
+        .overlay(
+            RoundedRectangle(cornerRadius: 7).strokeBorder(
+                isExpanded
+                    ? AnyShapeStyle(Color(nsColor: ThreadColor.accent).opacity(0.6))
+                    : AnyShapeStyle(.separator))
+        )
         .opacity(thread.isResolved && !isExpanded ? 0.6 : 1)
     }
 
@@ -145,12 +158,15 @@ private struct ThreadCard: View {
             Image(systemName: thread.isResolved ? "checkmark.circle.fill" : "circle")
                 .foregroundStyle(
                     thread.isResolved
-                        ? AnyShapeStyle(.green) : AnyShapeStyle(Color(nsColor: ThreadColor.accent)))
+                        ? AnyShapeStyle(.secondary)
+                        : AnyShapeStyle(Color(nsColor: ThreadColor.accent)))
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(verbatim: lineLabel).monospacedDigit()
                     if placed.placement == .outdated {
-                        Text("outdated", bundle: .module).foregroundStyle(.orange)
+                        Text("Outdated", bundle: .module)
+                            .padding(.horizontal, 5)
+                            .background(.quaternary, in: Capsule())
                     }
                     Spacer(minLength: 0)
                     Text(verbatim: Counted.comments(thread.comments.count))
@@ -174,32 +190,33 @@ private struct ThreadCard: View {
 
     private var snippet: AttributedString {
         guard let first = thread.comments.first else { return AttributedString() }
-        return AttributedString("\(first.author): ") + Self.markdown(first.body)
+        var author = AttributedString("\(first.author)  ")
+        author.inlinePresentationIntent = .stronglyEmphasized
+        return author + Self.markdown(first.body)
     }
 
     @ViewBuilder private var conversation: some View {
         QuotedLines(anchor: thread.anchor)
-        ForEach(thread.comments) { comment in
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(verbatim: comment.author).bold()
-                    AgeText(date: comment.date).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(thread.comments) { comment in
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(verbatim: comment.author).font(.callout.weight(.semibold))
+                        AgeText(date: comment.date).font(.caption).foregroundStyle(.secondary)
+                    }
+                    Text(Self.markdown(comment.body)).textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .font(.caption)
-                Text(Self.markdown(comment.body)).textSelection(.enabled)
             }
         }
+        .padding(.vertical, 2)
         TextField(
             String(localized: "Reply", bundle: .module), text: $reply, axis: .vertical
         )
         .lineLimit(2...8)
         .textFieldStyle(.roundedBorder)
         .focused($replyFocused)
-        HStack {
-            Button(String(localized: "Delete", bundle: .module), role: .destructive) {
-                Task { await session.deleteThread(thread.id) }
-            }
-            .help(String(localized: "Delete this thread; Undo brings it back", bundle: .module))
+        HStack(spacing: 8) {
             Button(
                 thread.isResolved
                     ? String(localized: "Reopen", bundle: .module)
@@ -207,10 +224,21 @@ private struct ThreadCard: View {
             ) {
                 Task { await session.setResolved(!thread.isResolved, thread: thread.id) }
             }
+            // Away from Reply, and quiet: Undo brings a deleted thread back.
+            Button(role: .destructive) {
+                Task { await session.deleteThread(thread.id) }
+            } label: {
+                Label(String(localized: "Delete", bundle: .module), systemImage: "trash")
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.borderless)
+            .help(String(localized: "Delete this thread; Undo brings it back", bundle: .module))
             Spacer()
             Button(String(localized: "Reply", bundle: .module)) { send() }
+                .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .help(String(localized: "Reply (⌘↩)", bundle: .module))
         }
         .controlSize(.small)
     }
