@@ -90,15 +90,49 @@ import Testing
             canvas.review.files[0], collapsed: false, viewed: .unviewed,
             in: NSRect(x: 0, y: 0, width: view.contentSize.width, height: height),
             font: canvas.font, palette: .light)
-        let point = NSPoint(x: header.checkbox.midX, y: header.checkbox.midY)
-        let event = try #require(
-            NSEvent.mouseEvent(
-                with: .leftMouseDown, location: canvas.convert(point, to: nil), modifierFlags: [],
-                timestamp: 0, windowNumber: window.windowNumber, context: nil, eventNumber: 0,
-                clickCount: 1, pressure: 1))
-        canvas.mouseDown(with: event)
+        try click(canvas, at: NSPoint(x: header.checkbox.midX, y: header.checkbox.midY))
 
         #expect(toggled == ["viewed a.txt"])
+    }
+
+    @Test func aClickJustLeftOfAGapsControlsExpandsNothing() throws {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 300), styleMask: [.titled],
+            backing: .buffered, defer: false)
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 300)
+        window.contentView = view
+        var expanded: [ExpandDirection] = []
+        view.onExpand = { _, _, direction in expanded.append(direction) }
+        var content = DiffContent(review: review(["x"]))
+        content.review.files[0].diff.hunks[0] = {
+            var hunk = Hunk(oldStart: 30, oldCount: 0, newStart: 30, newCount: 1, section: "")
+            hunk.lines = [DiffLine(kind: .added, text: "x", oldNumber: nil, newNumber: 30)]
+            return hunk
+        }()
+        let lines = (1...30).map { "line \($0)" }.joined(separator: "\n") + "\n"
+        content.contents = ["a.txt": FileContents(new: lines)]
+        view.show(content, position: .top)
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        let gap = try #require(
+            canvas.layout.rows.firstIndex { if case .gap = $0 { true } else { false } })
+        let y = canvas.layout.top(of: gap) + 2
+        let characterWidth = canvas.layout.metrics.characterWidth
+
+        try click(canvas, at: NSPoint(x: canvas.geometry.unifiedTextX - characterWidth / 2, y: y))
+        #expect(expanded.isEmpty)
+        try click(canvas, at: NSPoint(x: canvas.geometry.unifiedTextX + characterWidth / 2, y: y))
+        #expect(expanded == [.up])
+    }
+
+    private func click(_ view: NSView, at point: NSPoint) throws {
+        let window = try #require(view.window)
+        let event = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDown, location: view.convert(point, to: nil), modifierFlags: [],
+                timestamp: 0, windowNumber: window.windowNumber, context: nil, eventNumber: 0,
+                clickCount: 1, pressure: 1))
+        view.mouseDown(with: event)
     }
 
     @Test func collapsingOneFileSplicesTheSameRowsAFullRebuildWouldMake() {
