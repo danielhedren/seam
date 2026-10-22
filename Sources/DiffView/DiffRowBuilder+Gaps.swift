@@ -78,7 +78,10 @@ extension DiffRowBuilder {
         let step = min(DiffContent.expandStep, gap.hidden)
         if gap.canExpandDown { add("↓ \(step)", .down) }
         if gap.canExpandUp { add("↑ \(step)", .up) }
-        add(String(localized: "Show all \(gap.hidden) lines", bundle: .module), .all)
+        add(
+            gap.hidden == 1
+                ? String(localized: "Show 1 more line", bundle: .module)
+                : String(localized: "Show all \(gap.hidden) lines", bundle: .module), .all)
         return (text, controls)
     }
 }

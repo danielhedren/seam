@@ -1,0 +1,164 @@
+import AppKit
+import SeamCore
+import SnapshotTesting
+import SwiftUI
+import TestSupport
+import Testing
+
+@testable import Features
+
+/// SPEC §10: images of the window's panes, rendered in this process with a fixture repo, so
+/// layout and sizing are checked without driving the real screen. Sidebar rows are rendered
+/// outside their List: AppKit draws a sidebar's selection with a layer effect that an off-screen
+/// render shows as solid black. Record with `SNAPSHOT_TESTING_RECORD=all swift test`.
+@MainActor
+@Suite(.snapshots(record: .missing))
+struct WindowSnapshotTests {
+    private static let os = "macOS\(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)"
+    /// The fixture's clock starts here (`HermeticGit`); ages are measured three hours later.
+    private static let fixtureEpoch = Date(timeIntervalSince1970: 1_767_225_600)
+    private static let now = fixtureEpoch.addingTimeInterval(3 * 3600)
+
+    /// A main worktree level with its base, and a feature branch with two commits, an edit and
+    /// an untracked file.
+    private func session() async throws -> (RepoSession, FixtureRepo) {
+        let repo = try await FixtureRepo()
+        let tree = try await repo.worktree("feature", branch: "feature", from: "origin/main")
+        try await repo.commit(
+            "src/Order.cs", "class Order\n{\n    int Total() => 1;\n}\n", "Add the order",
+            in: tree)
+        try await repo.commit(
+            "src/Order.cs",
+            "class Order\n{\n    int Total() => 1;\n\n    int Count() => 0;\n}\n",
+            "Count the lines", in: tree)
+        try repo.write(
+            "src/Order.cs", "class Order\n{\n    int Total() => 2;\n\n    int Count() => 0;\n}\n",
+            in: tree)
+        try repo.write("notes.md", "# Notes\n", in: tree)
+        // Working-tree files count towards a row's age, so they get the fixture's clock too.
+        for file in ["src/Order.cs", "notes.md"] {
+            try FileManager.default.setAttributes(
+                [.modificationDate: Self.fixtureEpoch.addingTimeInterval(3600)],
+                ofItemAtPath: tree.appending(path: file).path)
+        }
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        session.select(tree.path)
+        await session.settled()
+        await session.selected?.highlighted()
+        return (session, repo)
+    }
+
+    @Test func worktreeRows() async throws {
+        let (session, _) = try await session()
+        let rows = VStack(alignment: .leading, spacing: 8) {
+            ForEach(session.sortedReviews) { WorktreeRow(review: $0) }
+        }
+        .padding(12)
+        .frame(width: 260, alignment: .leading)
+        for (appearance, name) in Self.appearances {
+            assertSnapshot(
+                of: try render(rows, size: CGSize(width: 260, height: 150), appearance),
+                as: .image(precision: 0.99, perceptualPrecision: 0.98),
+                named: "worktrees-\(name)-\(Self.os)")
+        }
+    }
+
+    @Test func commitRows() async throws {
+        let (session, _) = try await session()
+        let review = try #require(session.selected)
+        let log = try #require(review.commitLog)
+        let rows = VStack(alignment: .leading, spacing: 10) {
+            WorkingTreeRow(files: review.activity?.uncommittedFiles ?? 0)
+            ForEach(log.commits) { CommitRow(commit: $0) }
+            BaseRow(commit: log.base, parent: review.parentName)
+        }
+        .padding(12)
+        .frame(width: 260, alignment: .leading)
+        for (appearance, name) in Self.appearances {
+            assertSnapshot(
+                of: try render(rows, size: CGSize(width: 260, height: 230), appearance),
+                as: .image(precision: 0.99, perceptualPrecision: 0.98),
+                named: "commits-\(name)-\(Self.os)")
+        }
+    }
+
+    @Test func filesAndDiff() async throws {
+        let (session, _) = try await session()
+        let review = try #require(session.selected)
+        let panes = HStack(spacing: 0) {
+            FileList(
+                session: session, review: review, filterFocus: FocusState<Bool>().projectedValue
+            )
+            .frame(width: 280)
+            Divider()
+            DiffPane(session: session, review: review)
+        }
+        for (appearance, name) in Self.appearances {
+            assertSnapshot(
+                of: try render(panes, size: CGSize(width: 1000, height: 420), appearance),
+                as: .image(precision: 0.99, perceptualPrecision: 0.98),
+                named: "files-diff-\(name)-\(Self.os)")
+        }
+    }
+
+    @Test func welcome() async throws {
+        let repo = try await FixtureRepo()
+        let view = WelcomeView(services: services(repo.git)) { _ in true }
+        assertSnapshot(
+            of: try render(view, size: CGSize(width: 900, height: 500), .aqua),
+            as: .image(precision: 0.99, perceptualPrecision: 0.98),
+            named: "welcome-\(Self.os)")
+    }
+
+    private static let appearances: [(NSAppearance.Name, String)] = [
+        (.aqua, "light"), (.darkAqua, "dark"),
+    ]
+
+    /// Lays `view` out in an off-screen window and draws its layers, which unlike
+    /// `cacheDisplay` includes SwiftUI's list rows.
+    private func render(_ view: some View, size: CGSize, _ appearance: NSAppearance.Name) throws
+        -> NSImage
+    {
+        let root =
+            view
+            .environment(OpenRequests(defaults: try scratchDefaults()))
+            .environment(\.ageReference, Self.now)
+        let host = NSHostingView(rootView: root)
+        let window = NSWindow(
+            contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless],
+            backing: .buffered, defer: false)
+        window.appearance = NSAppearance(named: appearance)
+        window.contentView = host
+        settle()
+        let scale = 2
+        let space = try #require(CGColorSpace(name: CGColorSpace.sRGB))
+        let context = try #require(
+            CGContext(
+                data: nil, width: Int(size.width) * scale, height: Int(size.height) * scale,
+                bitsPerComponent: 8, bytesPerRow: 0, space: space,
+                bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue))
+        context.scaleBy(x: CGFloat(scale), y: CGFloat(scale))
+        context.translateBy(x: 0, y: size.height)
+        context.scaleBy(x: 1, y: -1)
+        NSAppearance(named: appearance)?.performAsCurrentDrawingAppearance {
+            // An opaque base, as the window's own background would be.
+            context.setFillColor(NSColor.windowBackgroundColor.cgColor)
+            context.fill(CGRect(origin: .zero, size: size))
+            host.layer?.render(in: context)
+        }
+        let image = try #require(context.makeImage())
+        return NSImage(cgImage: image, size: size)
+    }
+
+    private func scratchDefaults() throws -> UserDefaults {
+        try #require(UserDefaults(suiteName: "seam-snapshots-\(UUID().uuidString)"))
+    }
+}
+
+/// Lets SwiftUI and AppKit finish the layout and drawing they schedule on the run loop; a plain
+/// function because `RunLoop.run` isn't available from async code.
+@MainActor
+private func settle() {
+    for _ in 0..<20 { RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.02)) }
+}

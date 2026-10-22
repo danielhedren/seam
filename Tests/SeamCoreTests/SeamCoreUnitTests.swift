@@ -197,8 +197,8 @@ import Testing
 
         #expect(
             review.files.map(\.diff.path) == [
-                ".gitattributes", "src/app.ts", "yarn.lock", "api/client.ts", "package-lock.json",
-                "src/Generated/Model.cs",
+                "src/app.ts", ".gitattributes", "yarn.lock", "api/client.ts",
+                "src/Generated/Model.cs", "package-lock.json",
             ])
         #expect(review.files.map(\.isGenerated) == [false, false, false, true, true, true])
         #expect(review.files.map(\.startsCollapsed) == [false, false, false, true, true, true])
@@ -217,5 +217,15 @@ import Testing
     ])
     func shortstatLinesParse(line: String, expected: DiffStat) {
         #expect(DiffStat.parse(line) == expected)
+    }
+}
+
+@Suite struct TreeOrderTests {
+    @Test func foldersComeBeforeFilesAtEachLevelThenNames() {
+        let paths = ["notes.md", "src/b.cs", "src/a/z.cs", "README.md", "src/c.cs", "app.json"]
+        #expect(
+            paths.sorted(by: ReviewDiffBuilder.precedesInTree) == [
+                "src/a/z.cs", "src/b.cs", "src/c.cs", "README.md", "app.json", "notes.md",
+            ])
     }
 }

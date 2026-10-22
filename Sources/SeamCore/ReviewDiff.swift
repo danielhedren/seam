@@ -108,6 +108,20 @@ public struct ReviewDiffBuilder: Sendable {
         self.fileSystem = fileSystem
     }
 
+    /// The file list's order, so the diff reads top to bottom as the list does: at each level
+    /// folders come before files, then names in order.
+    public static func precedesInTree(_ lhs: String, _ rhs: String) -> Bool {
+        let left = lhs.split(separator: "/")
+        let right = rhs.split(separator: "/")
+        for index in 0..<min(left.count, right.count) where left[index] != right[index] {
+            let leftIsFile = index == left.count - 1
+            let rightIsFile = index == right.count - 1
+            if leftIsFile != rightIsFile { return rightIsFile }
+            return left[index] < right[index]
+        }
+        return left.count < right.count
+    }
+
     public func build(
         worktree: URL, base: String, head: String = "HEAD", scope: ReviewScope,
         options: DiffOptions = DiffOptions()
@@ -133,8 +147,7 @@ public struct ReviewDiffBuilder: Sendable {
         }
         files.sort { lhs, rhs in
             lhs.isGenerated != rhs.isGenerated
-                ? !lhs.isGenerated
-                : lhs.diff.path.utf8.lexicographicallyPrecedes(rhs.diff.path.utf8)
+                ? !lhs.isGenerated : Self.precedesInTree(lhs.diff.path, rhs.diff.path)
         }
         return ReviewDiff(scope: scope, files: files)
     }

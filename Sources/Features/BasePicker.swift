@@ -21,7 +21,7 @@ struct BasePicker: View {
                             .accessibilityHidden(true)
                         Text(candidate.name)
                         Spacer()
-                        Text("\(candidate.commitCount) commits", bundle: .module)
+                        Text(verbatim: Counted.commits(candidate.commitCount))
                             .foregroundStyle(.secondary).monospacedDigit()
                         if candidate.ref == review.detection?.parent?.ref {
                             Text("detected", bundle: .module).font(.caption)

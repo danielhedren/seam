@@ -47,7 +47,7 @@ struct CommitList: View {
 
     private func header(_ log: CommitLog) -> some View {
         HStack {
-            Text("\(log.commits.count) commits", bundle: .module)
+            Text(verbatim: Counted.commits(log.commits.count))
             Spacer()
             if review.commitSelection != nil {
                 Button(String(localized: "Show All", bundle: .module)) {
@@ -82,14 +82,15 @@ struct CommitList: View {
     }
 }
 
-private struct WorkingTreeRow: View {
+struct WorkingTreeRow: View {
     let files: Int
 
     var body: some View {
         Label {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Uncommitted changes", bundle: .module)
-                Text("\(files) files", bundle: .module).font(.caption).foregroundStyle(.secondary)
+                Text(verbatim: Counted.files(files)).font(.caption)
+                    .foregroundStyle(.secondary)
             }
         } icon: {
             Image(systemName: "pencil")
@@ -97,7 +98,7 @@ private struct WorkingTreeRow: View {
     }
 }
 
-private struct CommitRow: View {
+struct CommitRow: View {
     let commit: ReviewCommit
 
     var body: some View {
@@ -119,7 +120,7 @@ private struct CommitRow: View {
 }
 
 /// The commit the review starts from; not selectable, since every diff is measured from it.
-private struct BaseRow: View {
+struct BaseRow: View {
     let commit: ReviewCommit
     let parent: String?
 

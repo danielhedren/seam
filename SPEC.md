@@ -286,6 +286,8 @@ switches and launches.
   must not (`^test` hides test files, `delivery ^test` shows delivery files except tests). Only
   plain terms expand the tree; a filter that only leaves files out keeps folders as they were.
   The filter narrows the file list, not the diff.
+- The diff lists files in the file list's order: at each level folders before files, then by
+  name, with generated files last.
 - Selecting a file scrolls the diff to it. The diff is one continuous scroll of all files, and
   the file list follows the scroll position.
 
@@ -591,7 +593,8 @@ Every layer gets the cheapest test that can catch its failures. Test names descr
 | DiffView | Unit | Swift Testing | Row model: prefix sums, hit testing, selection ranges, scroll anchoring across reloads |
 | DiffView | Image snapshot | swift-snapshot-testing | ~10 snapshots: unified/side-by-side × light/dark/high contrast, word highlights, wrapped rows. Recorded per macOS major version |
 | Features | Unit | Swift Testing | Models driven through intents with fakes: switching worktrees cancels the old work, reloads keep the selection, banner states |
-| App | UI smoke | XCUITest | 5 flows on a fixture repo passed as a launch argument: open, `⌘2` switch, `j`/`n` navigation, `v` viewed + `⌘Z`, base override |
+| Features | Window snapshot | swift-snapshot-testing | The window's panes rendered in-process from a fixture repo, light and dark: worktree rows, commit rows, file list with the diff, the welcome screen. Ages are measured from a fixed time. Sidebar rows render outside their List, because an off-screen render draws a sidebar's selection solid black. Needs no screen or automation permission |
+| App | UI smoke, run by hand | XCUITest | 5 flows on a fixture repo passed as a launch argument: open, `⌘2` switch, `j`/`n` navigation, `v` viewed + `⌘Z`, base override, plus tabs and window size. Automation Mode isn't left enabled, so `xcodebuild test` asks for approval each run |
 | Performance | Benchmarks | XCTest `measure` with baselines | Detection on a generated repo with 400 refs, parsing and laying out a 20k-line diff. Fails on a >20% regression against the stored baseline. Baselines need `xcodebuild`, so until the Xcode project exists (M2) an opt-in Swift Testing check (`SEAM_BENCH=1`) asserts the absolute §8.7 budget |
 | Real repo | Acceptance, opt-in | Swift Testing, gated by `SEAM_REAL_REPO` | The feat/b check from §5.2 |
 

@@ -65,18 +65,13 @@ struct WorktreeRow: View {
 
     /// "5 commits · 19 files": what the branch adds, against its base.
     private var summary: String {
+        // A worktree level with its base says nothing here rather than "0 commits · 0 files".
         var parts: [String] = []
-        if let commits = review.uniqueCommitCount {
-            parts.append(
-                commits == 1
-                    ? String(localized: "1 commit", bundle: .module)
-                    : String(localized: "\(commits) commits", bundle: .module))
+        if let commits = review.uniqueCommitCount, commits > 0 {
+            parts.append(Counted.commits(commits))
         }
-        if let files = review.activity?.changes?.files {
-            parts.append(
-                files == 1
-                    ? String(localized: "1 file", bundle: .module)
-                    : String(localized: "\(files) files", bundle: .module))
+        if let files = review.activity?.changes?.files, files > 0 {
+            parts.append(Counted.files(files))
         }
         return parts.joined(separator: " · ")
     }

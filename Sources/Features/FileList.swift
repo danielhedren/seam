@@ -17,9 +17,7 @@ struct FileList: View {
         VStack(spacing: 0) {
             HStack {
                 if let diff = review.diff {
-                    Text(
-                        "\(diff.files.count) files", bundle: .module
-                    )
+                    Text(verbatim: Counted.files(diff.files.count))
                     Text(verbatim: "+\(diff.additions)").foregroundStyle(.green)
                     Text(verbatim: "−\(diff.deletions)").foregroundStyle(.red)
                     Text(
