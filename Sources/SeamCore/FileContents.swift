@@ -137,7 +137,7 @@ public struct FileContentLoader: Sendable {
     }
 
     static func text(_ data: Data) -> String? {
-        guard !data.prefix(8000).contains(0) else { return nil }
+        guard !ReviewDiffBuilder.isBinary(data) else { return nil }
         return String(decoding: data, as: UTF8.self)
     }
 

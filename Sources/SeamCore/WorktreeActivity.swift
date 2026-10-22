@@ -100,7 +100,7 @@ public struct WorktreeActivityService: Sendable {
     /// Text files only, and not ones too large for the diff to read either (SPEC §6.3).
     private func lineCount(_ url: URL) -> Int {
         guard let size = try? fileSystem.size(of: url), size <= ReviewDiffBuilder.deferredSize,
-            let data = try? fileSystem.contents(of: url), !data.contains(0)
+            let data = try? fileSystem.contents(of: url), !ReviewDiffBuilder.isBinary(data)
         else { return 0 }
         let newlines = data.reduce(0) { $0 + ($1 == UInt8(ascii: "\n") ? 1 : 0) }
         return newlines + (data.last.map { $0 == UInt8(ascii: "\n") ? 0 : 1 } ?? 0)

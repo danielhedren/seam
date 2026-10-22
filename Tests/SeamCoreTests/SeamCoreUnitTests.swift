@@ -169,6 +169,22 @@ import Testing
             try await WorktreeActivityService(git: repo.git).activity(of: repo.main).changes == nil)
     }
 
+    /// Git's binary check reads only the first 8000 bytes; a later NUL still leaves text.
+    @Test func untrackedLinesAreCountedAsTheDiffShowsThem() async throws {
+        let repo = try await FixtureRepo()
+        let base = try await repo.sha("HEAD")
+        let text = String(repeating: "line\n", count: 2000) + "\0tail\n"
+        try repo.write("late-nul.txt", text)
+
+        let activity = try await WorktreeActivityService(git: repo.git).activity(
+            of: repo.main, base: base)
+        let review = try await ReviewDiffBuilder(git: repo.git).build(
+            worktree: repo.main, base: base, scope: .all)
+
+        #expect(review.additions == 2001)
+        #expect(activity.changes == DiffStat(files: 1, additions: 2001, deletions: 0))
+    }
+
     @Test func cleanWorktreeReportsTheHeadCommitTime() async throws {
         let repo = try await FixtureRepo()
         let committed = try await repo.run("log", "-1", "--format=%ct")

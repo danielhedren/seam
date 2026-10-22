@@ -198,6 +198,11 @@ public struct ReviewDiffBuilder: Sendable {
         return hash.finalize().map { String(format: "%02x", $0) }.joined()
     }
 
+    /// Git's own heuristic: a NUL in the first 8000 bytes means binary.
+    static func isBinary(_ data: Data) -> Bool {
+        data.prefix(8000).contains(0)
+    }
+
     private func untracked(_ path: String, at url: URL) -> ReviewFile {
         var diff = FileDiff(oldPath: nil, newPath: path, status: .added)
         if let destination = fileSystem.symbolicLinkDestination(of: url) {
@@ -214,8 +219,7 @@ public struct ReviewDiffBuilder: Sendable {
             return ReviewFile(diff: diff, isUntracked: true, isDeferred: true)
         }
         diff.newBlob = Self.blobID(data)
-        // Git's own heuristic: a NUL in the first 8000 bytes means binary.
-        if data.prefix(8000).contains(0) {
+        if Self.isBinary(data) {
             diff.isBinary = true
         } else {
             diff.hunks = Self.additionHunk(data, endsWithNewline: data.last == UInt8(ascii: "\n"))
