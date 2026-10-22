@@ -573,8 +573,8 @@ written down here.
 - The window is a three-column `NavigationSplitView` (sidebar | content | detail). Column
   collapsing, resizing and the sidebar toggle all behave natively. `⌘\` is the one custom
   shortcut on top of that.
-- Toolbar in the unified style, holding only: view mode, reload. The diff gets the
-  rest of the window.
+- Toolbar in the unified style, holding only: view mode, reload, and the thread panel (§7.7).
+  The diff gets the rest of the window.
 - Standard scenes: `WindowGroup` per repo, a `Settings` scene (`⌘,`), File › Open Recent and full
   screen. Window tabs are off, the one deviation here (§7.1). The workspace reopens the windows on
   relaunch, each in its repo's frame, and §11 state restores their selection.

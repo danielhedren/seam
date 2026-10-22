@@ -17,7 +17,7 @@ struct RealRepoBudgetTests {
         let worktree = URL(fileURLWithPath: try #require(environment["SEAM_REAL_REPO"]))
         let services = SeamServices(
             git: CLIGitClient(), watcher: SilentWatcher(), clock: ContinuousClock(),
-            store: MemoryStore(), settings: testSettings())
+            store: MemoryStore(), threads: scratchThreadStore(), settings: testSettings())
         let session = RepoSession(directory: worktree, services: services)
         let clock = ContinuousClock()
 

@@ -25,6 +25,11 @@ final class RepoSession {
     let directory: URL
     private(set) var state = OpenState.opening
     private(set) var repository: Repository?
+    /// The repo's review threads, once it's open (SPEC §7.7).
+    private(set) var threads: RepoThreads?
+    var showsThreadPanel = false
+    var selectedThreadID: String?
+    var draft: ThreadDraft?
     private(set) var reviews: [WorktreeReview] = []
     private(set) var selectedID: String?
     var sort = WorktreeSort.recent
@@ -55,7 +60,7 @@ final class RepoSession {
     var findFocusRequests = 0
     let diff = DiffController()
 
-    private let services: SeamServices
+    let services: SeamServices
     private var repoState = RepoState()
     private var monitorTask: Task<Void, Never>?
     private var saveTask: Task<Void, Never>?
@@ -117,12 +122,14 @@ final class RepoSession {
         do {
             let (repository, worktree) = try await service.open(directory)
             self.repository = repository
+            threads = RepoThreads(repository: repository, store: services.threads)
             repoState = await services.store.load(repository)
             await services.store.noteOpened(directory)
             // The list shows as soon as it's known; rows fill in their counts as they arrive.
             try await listWorktrees()
             guard !isClosed else { return }
             state = .open
+            await threads?.start(watching: services.watcher)
             let last = repoState.selectedWorktree.flatMap { id in reviews.first { $0.id == id } }
             select(last?.id ?? worktree.path)
             startMonitor()
@@ -154,6 +161,7 @@ final class RepoSession {
                 return review
             }
             let review = WorktreeReview(worktree: worktree, services: services)
+            review.threads = threads
             review.restore(
                 repoState.worktrees[worktree.id],
                 override: worktree.branch.flatMap { repoState.baseOverrides[$0] })
@@ -472,6 +480,7 @@ final class RepoSession {
         isClosed = true
         monitorTask?.cancel()
         monitorTask = nil
+        threads?.stop()
         rowsTask?.cancel()
         for task in deferredActivity.values { task.cancel() }
         selected?.cancelLoading()

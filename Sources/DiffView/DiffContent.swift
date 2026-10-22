@@ -23,14 +23,17 @@ public struct DiffContent: Equatable, Sendable {
     public var tabWidth: Int
     /// Per-file widths from `.editorconfig`, over `tabWidth`.
     public var tabWidths: [String: Int]
+    /// Review threads by path, placed on the lines they're on now (SPEC §7.7).
+    public var threads: [String: [ThreadMarker]]
 
     public init(
         review: ReviewDiff, mode: DiffLayoutMode = .unified, collapsed: Set<String> = [],
         contents: [String: FileContents] = [:], expansions: [String: [Int: GapExpansion]] = [:],
         syntax: [String: FileSyntax] = [:], wraps: Bool = false,
         viewed: [String: ViewedMarks.Status] = [:], tabWidth: Int = 4,
-        tabWidths: [String: Int] = [:]
+        tabWidths: [String: Int] = [:], threads: [String: [ThreadMarker]] = [:]
     ) {
+        self.threads = threads
         self.tabWidth = tabWidth
         self.tabWidths = tabWidths
         self.wraps = wraps

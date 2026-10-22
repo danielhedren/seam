@@ -102,6 +102,46 @@ struct WindowSnapshotTests {
         }
     }
 
+    @Test func threadPanelBesideTheDiff() async throws {
+        let (session, _) = try await session()
+        let review = try #require(session.selected)
+        let repository = try #require(session.repository)
+        let anchor = try #require(review.anchor(path: "src/Order.cs", side: .new, lines: 3...3))
+        var counter = 0
+        let ids = {
+            counter += 1
+            return String(format: "%08x", counter)
+        }
+        try session.services.threads.update(repository) { threads throws(ThreadError) in
+            let thread = try ThreadRules.open(
+                &threads, worktree: review.id, anchor: anchor, author: "you",
+                body: "Why did the total change to **2**?", now: Self.fixtureEpoch, newID: ids)
+            try ThreadRules.reply(
+                &threads, to: thread.id, author: "claude",
+                body: "The order now counts its delivery line; see `Count()`.",
+                now: Self.fixtureEpoch.addingTimeInterval(1800), newID: ids)
+            _ = try ThreadRules.open(
+                &threads, worktree: review.id,
+                anchor: ThreadAnchor(
+                    path: "notes.md", side: .new, lines: 1...1, text: ["# Notes"]),
+                author: "claude", body: "Add a line on what changed.",
+                now: Self.fixtureEpoch.addingTimeInterval(2400), newID: ids)
+        }
+        await session.threads?.load()
+        session.selectedThreadID = review.placedThreads.first?.id
+        let panes = HStack(spacing: 0) {
+            DiffPane(session: session, review: review)
+            Divider()
+            ThreadPanel(session: session, review: review).frame(width: 340)
+        }
+        for (appearance, name) in Self.appearances {
+            assertSnapshot(
+                of: try render(panes, size: CGSize(width: 1100, height: 520), appearance),
+                as: .image(precision: 0.99, perceptualPrecision: 0.98),
+                named: "threads-\(name)-\(Self.os)")
+        }
+    }
+
     @Test func welcome() async throws {
         let repo = try await FixtureRepo()
         let view = WelcomeView(services: services(repo.git)) { _ in true }

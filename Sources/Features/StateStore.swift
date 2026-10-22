@@ -111,13 +111,17 @@ public struct SeamServices: Sendable {
     public var settings: AppSettings
     /// Shared by every window, so its cache spans repos and reloads.
     public var highlighter: SyntaxHighlighter
+    /// Review threads, shared with the `seam` command (SPEC §7.7).
+    public var threads: ThreadStore
     var launcher: any CommandLauncher = ShellLauncher()
 
     public init(
         git: any GitClient, fileSystem: any FileSystem = LocalFileSystem(),
         watcher: any FileWatcher, clock: any Clock<Duration>, store: any StateStore,
-        settings: AppSettings, highlighter: SyntaxHighlighter = SyntaxHighlighter()
+        threads: ThreadStore, settings: AppSettings,
+        highlighter: SyntaxHighlighter = SyntaxHighlighter()
     ) {
+        self.threads = threads
         self.highlighter = highlighter
         self.git = git
         self.fileSystem = fileSystem
@@ -131,6 +135,6 @@ public struct SeamServices: Sendable {
     public static func live() -> SeamServices {
         SeamServices(
             git: CLIGitClient(), watcher: FSEventsWatcher(), clock: ContinuousClock(),
-            store: JSONStateStore(), settings: AppSettings())
+            store: JSONStateStore(), threads: ThreadStore(), settings: AppSettings())
     }
 }

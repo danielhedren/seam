@@ -95,7 +95,11 @@ final class WorktreeReview: Identifiable {
     var flatFileList = false
     var collapsedDirectories: Set<String> = []
 
-    private let services: SeamServices
+    /// The repo's threads; this worktree's are placed on its diff (SPEC §7.7).
+    var threads: RepoThreads?
+    @ObservationIgnored let placementCache = ThreadPlacementCache()
+
+    let services: SeamServices
     private var loadTask: Task<Void, Never>?
     private var loadGeneration = 0
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
@@ -337,7 +341,8 @@ final class WorktreeReview: Identifiable {
                 viewed: Dictionary(
                     $0.files.map { ($0.diff.path, viewed.status(of: $0)) },
                     uniquingKeysWith: { first, _ in first }),
-                tabWidth: services.settings.tabWidth, tabWidths: tabWidths)
+                tabWidth: services.settings.tabWidth, tabWidths: tabWidths,
+                threads: threadMarkers)
         }
     }
 

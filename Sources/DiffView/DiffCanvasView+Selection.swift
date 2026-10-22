@@ -43,6 +43,9 @@ extension DiffCanvasView {
                 onToggleCollapse?(path)
             }
             return
+        case .thread(_, let marker):
+            onOpenThread?(marker.id)
+            return
         case .gap(let file, let gap):
             let column = Int((point.x - geometry.unifiedTextX) / layout.metrics.characterWidth)
             if let control = DiffRowBuilder.gapLabel(gap).controls.first(where: {
@@ -100,6 +103,37 @@ extension DiffCanvasView {
         return DiffSelection(
             side: side, anchor: TextPosition(row: position.row, column: start),
             head: TextPosition(row: position.row, column: end))
+    }
+
+    /// Where a new thread would go: the selected lines, or `row`'s line without a selection.
+    /// New side unless only removed lines are selected; within the first selected row's file.
+    func commentTarget(fallback row: Int?) -> (
+        file: Int, side: ThreadAnchor.Side, lines: ClosedRange<Int>
+    )? {
+        let range: ClosedRange<Int>
+        if let selection, !selection.isEmpty {
+            range =
+                min(
+                    selection.anchor.row, selection.head.row)...max(
+                    selection.anchor.row, selection.head.row)
+        } else if let row {
+            range = row...row
+        } else {
+            return nil
+        }
+        guard layout.rows.indices.contains(range.lowerBound) else { return nil }
+        let file = layout.rows[range.lowerBound].file
+        let rows = range.clamped(to: 0...(layout.rows.count - 1)).map { layout.rows[$0] }
+            .filter { $0.file == file }
+        let preferred: [ThreadAnchor.Side] =
+            mode == .split && selection?.side == .left ? [.old] : [.new, .old]
+        for side in preferred {
+            let numbers = rows.compactMap { DiffRowBuilder.number(of: $0, on: side) }
+            if let first = numbers.min(), let last = numbers.max() {
+                return (file, side, first...last)
+            }
+        }
+        return nil
     }
 
     var selectedText: String? {

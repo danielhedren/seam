@@ -26,7 +26,7 @@ func until(_ condition: @escaping @MainActor () -> Bool) async {
         let repo = try await FixtureRepo()
         let services = SeamServices(
             git: repo.git, watcher: FSEventsWatcher(), clock: ContinuousClock(),
-            store: MemoryStore(), settings: testSettings())
+            store: MemoryStore(), threads: scratchThreadStore(), settings: testSettings())
         let session = RepoSession(directory: repo.main, services: services)
         await session.open()
         await session.settled()

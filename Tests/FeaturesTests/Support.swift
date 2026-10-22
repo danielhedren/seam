@@ -30,6 +30,19 @@ struct SilentWatcher: FileWatcher {
     }
 }
 
+/// Reports exactly the changes a test sends.
+final class ManualWatcher: FileWatcher, Sendable {
+    private let continuations = Mutex<[AsyncStream<[String]>.Continuation]>([])
+
+    func events(for directories: [URL]) -> AsyncStream<[String]> {
+        AsyncStream { continuation in continuations.withLock { $0.append(continuation) } }
+    }
+
+    func send(_ paths: [String]) {
+        for continuation in continuations.withLock({ $0 }) { continuation.yield(paths) }
+    }
+}
+
 /// Holds one git command (`diff` by default) in one worktree until released, to observe work in
 /// flight.
 final class GatedGit: GitClient, Sendable {
@@ -101,7 +114,14 @@ func services(
 ) -> SeamServices {
     SeamServices(
         git: git, watcher: SilentWatcher(), clock: clock, store: store,
-        settings: testSettings())
+        threads: scratchThreadStore(), settings: testSettings())
+}
+
+/// Never the real store: that holds the reader's threads.
+func scratchThreadStore() -> ThreadStore {
+    ThreadStore(
+        directory: FileManager.default.temporaryDirectory.appending(
+            path: "seam-threads-\(UUID().uuidString)", directoryHint: .isDirectory))
 }
 
 /// Records launched command lines; `next()` waits for the next one.

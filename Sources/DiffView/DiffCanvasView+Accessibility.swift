@@ -65,6 +65,8 @@ extension DiffCanvasView {
         case .notice(_, let text): return text
         case .gap(_, let gap):
             return String(localized: "\(gap.hidden) unchanged lines hidden", bundle: .module)
+        case .thread(_, let marker):
+            return String(localized: "Review thread. \(marker.text)", bundle: .module)
         case .image:
             return String(localized: "Image preview, old and new", bundle: .module)
         case .line(_, let line):

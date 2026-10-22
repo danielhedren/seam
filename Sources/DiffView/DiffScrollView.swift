@@ -127,6 +127,19 @@ public final class DiffScrollView: NSScrollView {
 
     /// The file and line the reader is on, for "open in editor": the selection's line if there
     /// is one, else the line under the sticky header.
+    public var onOpenThread: ((String) -> Void)? {
+        didSet { canvas.onOpenThread = onOpenThread }
+    }
+
+    /// Where `c` puts a new thread (SPEC §7.7): the selected lines, else the one being read.
+    public var commentTarget: (path: String, side: ThreadAnchor.Side, lines: ClosedRange<Int>)? {
+        let y = canvas.selection.map { layout.top(of: $0.head.row) } ?? visibleTop + headerHeight
+        guard let target = canvas.commentTarget(fallback: layout.row(at: y)),
+            target.file < canvas.paths.count
+        else { return nil }
+        return (canvas.paths[target.file], target.side, target.lines)
+    }
+
     /// The selected text, for ⌘F to search for.
     public var selectedText: String? { canvas.selectedText }
 
@@ -165,6 +178,14 @@ public final class DiffScrollView: NSScrollView {
         jumpedTop = visibleTop
         reportedFile = path
         onCurrentFileChange?(path)
+    }
+
+    /// Puts a line a little below the top, so the lines above it give context.
+    public func scroll(toLine line: Int, inFile path: String, oldSide: Bool) {
+        let anchor = ScrollAnchor(path: path, line: line, isOldSide: oldSide, offset: 0)
+        guard let y = layout.y(for: anchor, paths: canvas.paths) else { return }
+        scroll(toY: max(y - layout.metrics.lineHeight * 4 - headerHeight, 0))
+        jumpedTop = visibleTop
     }
 
     /// Next or previous file header, relative to the file under the sticky header.

@@ -252,6 +252,26 @@ enum CommandCatalog {
         SeamCommand(
             id: "reload", title: localized("Reload"), menu: .review, section: 3,
             shortcut: .single("r"), run: { $0.reload() }),
+        SeamCommand(
+            id: "comment", title: localized("Comment"), menu: .review, section: 4,
+            shortcut: .single("c"), isEnabled: { $0.threads != nil && $0.selected?.diff != nil },
+            run: { $0.comment() }),
+        SeamCommand(
+            id: "open-thread", title: localized("Open Thread on This Line"), menu: .review,
+            section: 4, shortcut: .single("t"),
+            isEnabled: { $0.selected?.placedThreads.isEmpty == false },
+            run: { $0.openThreadAtCursor() }),
+        SeamCommand(
+            id: "thread-panel", title: localized("Show Threads"), menu: .review, section: 4,
+            shortcut: .command("0", [.command, .option]), isOn: { $0.showsThreadPanel },
+            run: { $0.showsThreadPanel.toggle() }),
+        SeamCommand(
+            id: "resolved-threads", title: localized("Show Resolved Threads"), menu: .review,
+            section: 4, shortcut: .none, isOn: { $0.settings.showsResolvedThreads },
+            run: { $0.settings.showsResolvedThreads.toggle() }),
+        SeamCommand(
+            id: "agent-prompt", title: localized("Copy Prompt for Agent"), menu: .review,
+            section: 4, shortcut: .none, run: { $0.copyAgentPrompt() }),
     ]
 
     static func items(in menu: SeamCommand.Menu) -> [SeamCommand] {

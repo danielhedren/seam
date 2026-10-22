@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    " · resolved" : {
+
+    },
     "%@, new line %lld: %@" : {
       "localizations" : {
         "en" : {
@@ -21,7 +24,13 @@
         }
       }
     },
+    "%lld comments" : {
+
+    },
     "%lld unchanged lines hidden" : {
+
+    },
+    "1 comment" : {
 
     },
     "Binary file" : {
@@ -84,6 +93,9 @@
 
     },
     "Renamed without changes" : {
+
+    },
+    "Review thread. %@" : {
 
     },
     "Show 1 more line" : {

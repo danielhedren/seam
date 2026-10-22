@@ -16,6 +16,9 @@
     "%@ now opens Seam. Make sure ~/.local/bin is on your PATH." : {
 
     },
+    "%lld comments" : {
+
+    },
     "%lld commits" : {
 
     },
@@ -45,6 +48,9 @@
         }
       }
     },
+    "%lld open" : {
+
+    },
     "%lld uncommitted files" : {
 
     },
@@ -57,6 +63,9 @@
           }
         }
       }
+    },
+    "1 comment" : {
+
     },
     "1 commit" : {
 
@@ -77,6 +86,9 @@
 
     },
     "Branched from %@" : {
+
+    },
+    "Cancel" : {
 
     },
     "Cancelled" : {
@@ -109,6 +121,9 @@
     "Command Palette…" : {
 
     },
+    "Comment" : {
+
+    },
     "Commits" : {
 
     },
@@ -124,13 +139,22 @@
     "Copy Path" : {
 
     },
+    "Copy Prompt for Agent" : {
+
+    },
     "Copy Relative Path" : {
+
+    },
+    "Copy a prompt telling the agent to answer these threads" : {
 
     },
     "Couldn't install the seam command" : {
 
     },
     "Couldn't open the editor: %@" : {
+
+    },
+    "Couldn't read the threads: %@" : {
 
     },
     "Couldn't run git: %@" : {
@@ -223,6 +247,9 @@
     "Latest Commit Only" : {
 
     },
+    "Line %@" : {
+
+    },
     "Make Text Bigger" : {
 
     },
@@ -242,6 +269,9 @@
 
     },
     "New Window" : {
+
+    },
+    "New thread on %@" : {
 
     },
     "Next File" : {
@@ -268,6 +298,9 @@
     "No matches" : {
 
     },
+    "No threads" : {
+
+    },
     "No uncommitted changes" : {
 
     },
@@ -277,7 +310,13 @@
     "Not a git repository. Choose another folder." : {
 
     },
+    "Old line %@" : {
+
+    },
     "Older commits not shown" : {
+
+    },
+    "Only %@, who opened it, can resolve it." : {
 
     },
     "Open" : {
@@ -290,6 +329,9 @@
 
     },
     "Open Repository… (⌘O)" : {
+
+    },
+    "Open Thread on This Line" : {
 
     },
     "Open a repository to review its worktrees." : {
@@ -341,6 +383,18 @@
     "Reload (r)" : {
 
     },
+    "Reopen" : {
+
+    },
+    "Reply" : {
+
+    },
+    "Resolve" : {
+
+    },
+    "Resolved" : {
+
+    },
     "Retry" : {
 
     },
@@ -362,7 +416,16 @@
     "Select a worktree" : {
 
     },
+    "Select lines in the diff and press C to comment." : {
+
+    },
     "Show All" : {
+
+    },
+    "Show Resolved Threads" : {
+
+    },
+    "Show Threads" : {
 
     },
     "Show all changes (1)" : {
@@ -372,6 +435,9 @@
 
     },
     "Show changes" : {
+
+    },
+    "Show or hide review threads (⌥⌘0)" : {
 
     },
     "Side by Side" : {
@@ -407,7 +473,16 @@
     "The chosen base %@ no longer exists." : {
 
     },
+    "The threads were saved by a newer Seam; update to change them." : {
+
+    },
     "This worktree's directory is missing." : {
+
+    },
+    "Thread %@ no longer exists." : {
+
+    },
+    "Threads" : {
 
     },
     "Toggle Sidebars" : {
@@ -455,6 +530,9 @@
     "Wrap Lines" : {
 
     },
+    "Write something first." : {
+
+    },
     "detached" : {
 
     },
@@ -478,6 +556,9 @@
 
     },
     "origin/HEAD, then origin/main, then main" : {
+
+    },
+    "outdated" : {
 
     },
     "prunable" : {

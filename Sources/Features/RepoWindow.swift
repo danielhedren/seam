@@ -118,6 +118,10 @@ struct RepoWindow: View {
         case .open:
             if let review = session.selected {
                 DiffPane(session: session, review: review)
+                    .inspector(isPresented: Bindable(session).showsThreadPanel) {
+                        ThreadPanel(session: session, review: review)
+                            .inspectorColumnWidth(min: 280, ideal: 340, max: 560)
+                    }
             } else {
                 ContentUnavailableView(
                     String(localized: "No worktree selected", bundle: .module),
@@ -156,6 +160,16 @@ struct ReviewToolbar: ToolbarContent {
                 Label(String(localized: "Reload", bundle: .module), systemImage: "arrow.clockwise")
             }
             .help(String(localized: "Reload (r)", bundle: .module))
+            .disabled(review == nil)
+        }
+        ToolbarItem {
+            Button {
+                session.showsThreadPanel.toggle()
+            } label: {
+                Label(
+                    String(localized: "Threads", bundle: .module), systemImage: "text.bubble")
+            }
+            .help(String(localized: "Show or hide review threads (⌥⌘0)", bundle: .module))
             .disabled(review == nil)
         }
     }

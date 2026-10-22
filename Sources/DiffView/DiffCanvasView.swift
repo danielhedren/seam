@@ -29,6 +29,9 @@ final class DiffCanvasView: NSView {
     var onFocusChange: ((Bool) -> Void)?
     var onExpand: ((String, Int, ExpandDirection) -> Void)?
     var onToggleViewed: ((String) -> Void)?
+    var onOpenThread: ((String) -> Void)?
+    private(set) var threads: [String: [ThreadMarker]] = [:]
+    private var threadedRows: [Int: Set<ThreadAnchor.Side>] = [:]
     var menuForFile: ((String) -> NSMenu?)?
 
     override func menu(for event: NSEvent) -> NSMenu? {
@@ -97,6 +100,7 @@ final class DiffCanvasView: NSView {
         collapsed = content.collapsed
         wraps = content.wraps
         viewed = content.viewed
+        threads = content.threads
         defer { shown = content }
         selection = nil
         if let shown, let files = Self.collapseOnlyChange(from: shown, to: content) {
@@ -156,6 +160,7 @@ final class DiffCanvasView: NSView {
                 rows: rows, metrics: layout.metrics, wrapColumns: geometry.wrapColumns)
             lineCache.removeAll(keepingCapacity: true)
         }
+        threadedRows = DiffRowBuilder.threadedRows(rows, paths: paths, threads: threads)
         resize()
     }
 
@@ -182,6 +187,7 @@ final class DiffCanvasView: NSView {
                 x: 0, y: layout.top(of: index), width: bounds.width,
                 height: layout.height(of: index))
             draw(row: index, in: rect, palette: palette, context: context)
+            if let sides = threadedRows[index] { drawThreadMark(sides, in: rect, context) }
         }
     }
 
@@ -206,6 +212,20 @@ final class DiffCanvasView: NSView {
                 rowTop: rect.minY, color: palette.gutterText, context: context)
         case .image(let file):
             drawImages(file: file, in: rect, palette: palette, context: context)
+        case .thread(_, let marker):
+            // A tint of its own, so a thread never reads as a hunk header or a gap.
+            context.setFillColor(NSColor.systemYellow.withAlphaComponent(0.14).cgColor)
+            context.fill(rect)
+            let x =
+                switch (mode, marker.side) {
+                case (.unified, _): geometry.unifiedTextX
+                case (.split, .old): geometry.splitTextOffset
+                case (.split, .new): geometry.columnWidth + geometry.splitTextOffset
+                }
+            drawText(
+                marker.text, key: LineKey(row: index, side: .unified), x: x,
+                rowTop: rect.minY,
+                color: marker.isResolved ? palette.gutterText : palette.text, context: context)
         case .gap(_, let gap):
             fill(rect, palette.hunkBackground, context)
             drawText(
@@ -245,6 +265,17 @@ final class DiffCanvasView: NSView {
             context.setFillColor(palette.separator.nsColor.cgColor)
             context.fill(
                 NSRect(x: geometry.columnWidth, y: rect.minY, width: 1, height: rect.height))
+        }
+    }
+
+    /// A bar at the left of the gutter beside a thread's lines, on the side the thread is on.
+    private func drawThreadMark(
+        _ sides: Set<ThreadAnchor.Side>, in rect: NSRect, _ context: CGContext
+    ) {
+        context.setFillColor(NSColor.systemYellow.cgColor)
+        for side in sides {
+            let x = mode == .split && side == .new ? geometry.columnWidth : 0
+            context.fill(NSRect(x: x, y: rect.minY, width: 3, height: rect.height))
         }
     }
 

@@ -51,11 +51,14 @@ enum DiffRow: Equatable, Sendable {
     case image(file: Int)
     /// Unchanged lines between hunks that aren't shown.
     case gap(file: Int, GapRow)
+    /// A review thread's summary, after the last line it's on (SPEC §7.7).
+    case thread(file: Int, ThreadMarker)
 
     var file: Int {
         switch self {
         case .fileHeader(let file), .hunkHeader(let file, _, _), .line(let file, _),
-            .split(let file, _, _), .notice(let file, _), .gap(let file, _), .image(let file):
+            .split(let file, _, _), .notice(let file, _), .gap(let file, _), .image(let file),
+            .thread(let file, _):
             file
         }
     }

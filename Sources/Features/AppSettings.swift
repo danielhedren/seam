@@ -22,6 +22,10 @@ public final class AppSettings {
     var whitespace: WhitespaceMode { didSet { save(whitespace.rawValue, "whitespace") } }
     var contextLines: Int { didSet { save(contextLines, "contextLines") } }
     var collapsesViewed: Bool { didSet { save(collapsesViewed, "collapsesViewed") } }
+    /// Review › Show Resolved Threads: resolved threads keep their row in the diff.
+    var showsResolvedThreads: Bool {
+        didSet { save(showsResolvedThreads, "showsResolvedThreads") }
+    }
 
     private let defaults: UserDefaults
 
@@ -41,6 +45,7 @@ public final class AppSettings {
         whitespace = WhitespaceMode(rawValue: value("whitespace", "")) ?? .show
         contextLines = value("contextLines", 3)
         collapsesViewed = value("collapsesViewed", true)
+        showsResolvedThreads = value("showsResolvedThreads", false)
     }
 
     private func save(_ value: some Any, _ key: String) {

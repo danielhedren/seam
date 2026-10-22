@@ -14,6 +14,7 @@ struct DiffRepresentable: NSViewRepresentable {
             var version: Int
             var range: Int
             var filter: String
+            var threads: [String: [ThreadMarker]]
             var mode: DiffLayoutMode
             var collapsed: Set<String>
             var contentsVersion: Int
@@ -38,6 +39,7 @@ struct DiffRepresentable: NSViewRepresentable {
         view.onSearchResult = { [session] current, total in
             session.findResult = (current, total)
         }
+        view.onOpenThread = { [session] id in session.openThread(id) }
         view.onExpand = { [session] path, gap, direction in
             session.selected?.expand(path, gap: gap, direction)
         }
@@ -50,7 +52,7 @@ struct DiffRepresentable: NSViewRepresentable {
         view.setFont(session.settings.font)
         let shown = Coordinator.Shown(
             id: review.id, version: review.diffVersion, range: review.shownRangeVersion,
-            filter: review.diffFilter,
+            filter: review.diffFilter, threads: review.threadMarkers,
             mode: review.mode,
             collapsed: review.collapsed, contentsVersion: review.contentsVersion,
             syntaxVersion: review.syntaxVersion, wraps: review.wraps, viewed: review.viewed,
