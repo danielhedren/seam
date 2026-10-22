@@ -64,8 +64,6 @@ struct WorktreeRow: View {
         }
         .padding(.vertical, 2)
         .opacity(review.worktree.isMissing ? 0.5 : 1)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityText)
     }
 
     /// "5 commits · 19 files": what the branch adds, against its base.
@@ -92,26 +90,5 @@ struct WorktreeRow: View {
             markers.append(String(localized: "stale parent", bundle: .module))
         }
         return markers
-    }
-
-    private var accessibilityText: String {
-        var parts = [review.worktree.name]
-        if let branch = review.worktree.branch, branch != review.worktree.name {
-            parts.append(branch)
-        }
-        if let commits = review.uniqueCommitCount {
-            parts.append(String(localized: "\(commits) commits ahead", bundle: .module))
-        }
-        if let changes = review.activity?.changes {
-            parts.append(
-                String(
-                    localized:
-                        "\(changes.files) files changed, \(changes.additions) lines added, \(changes.deletions) removed",
-                    bundle: .module))
-        }
-        if let files = review.activity?.uncommittedFiles {
-            parts.append(String(localized: "\(files) uncommitted files", bundle: .module))
-        }
-        return (parts + markers).joined(separator: ", ")
     }
 }

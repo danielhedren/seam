@@ -4,30 +4,7 @@
     " · resolved" : {
 
     },
-    "%@, new line %lld: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@, new line %2$lld: %3$@"
-          }
-        }
-      }
-    },
-    "%@, old line %lld: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@, old line %2$lld: %3$@"
-          }
-        }
-      }
-    },
     "%lld comments" : {
-
-    },
-    "%lld unchanged lines hidden" : {
 
     },
     "1 comment" : {
@@ -52,28 +29,16 @@
         }
       }
     },
-    "Change" : {
-
-    },
-    "Change in %@" : {
-
-    },
     "Changed since viewed" : {
 
     },
     "Copied without changes" : {
 
     },
-    "Diff" : {
-
-    },
     "Empty file" : {
 
     },
     "Empty file deleted" : {
-
-    },
-    "Image preview, old and new" : {
 
     },
     "Large file not loaded" : {
@@ -95,9 +60,6 @@
     "Renamed without changes" : {
 
     },
-    "Review thread. %@" : {
-
-    },
     "Show 1 more line" : {
 
     },
@@ -107,16 +69,7 @@
     "Viewed" : {
 
     },
-    "added" : {
-
-    },
     "generated" : {
-
-    },
-    "removed" : {
-
-    },
-    "unchanged" : {
 
     },
     "untracked" : {

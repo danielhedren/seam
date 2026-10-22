@@ -22,21 +22,8 @@
     "%lld commits" : {
 
     },
-    "%lld commits ahead" : {
-
-    },
     "%lld files" : {
 
-    },
-    "%lld files changed, %lld lines added, %lld removed" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld files changed, %2$lld lines added, %3$lld removed"
-          }
-        }
-      }
     },
     "%lld of %lld" : {
       "localizations" : {
@@ -49,9 +36,6 @@
       }
     },
     "%lld open" : {
-
-    },
-    "%lld uncommitted files" : {
 
     },
     "%lld/%lld viewed" : {
@@ -92,9 +76,6 @@
 
     },
     "Cancelled" : {
-
-    },
-    "Changed since viewed" : {
 
     },
     "Choose Base…" : {
@@ -218,9 +199,6 @@
     "Find…" : {
 
     },
-    "Flat list" : {
-
-    },
     "Font" : {
 
     },
@@ -303,9 +281,6 @@
 
     },
     "Next Worktree" : {
-
-    },
-    "Next match" : {
 
     },
     "No changes against %@" : {
@@ -393,9 +368,6 @@
     "Previous Worktree" : {
 
     },
-    "Previous match" : {
-
-    },
     "Recently Changed" : {
 
     },
@@ -412,9 +384,6 @@
 
     },
     "Resolve" : {
-
-    },
-    "Resolved" : {
 
     },
     "Retry" : {
@@ -535,9 +504,6 @@
 
     },
     "Use Detected Base" : {
-
-    },
-    "Viewed" : {
 
     },
     "Whitespace" : {

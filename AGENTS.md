@@ -48,8 +48,8 @@ spec disagree, stop and ask; do not pick one silently.
 
 - Apple HIG for macOS. Every action lives in the menu bar with its shortcut. Single-letter keys
   only when the diff or file list has focus. No modal alerts for recoverable errors.
-- Semantic system colours; colour is never the only signal. Every control has an accessibility
-  label. User-facing strings go in the String Catalog.
+- Semantic system colours; colour is never the only signal. No VoiceOver support: don't add
+  accessibility labels or elements. User-facing strings go in the String Catalog.
 
 ## Testing (SPEC §10)
 

@@ -17,7 +17,6 @@ struct BasePicker: View {
                 } label: {
                     HStack {
                         Image(systemName: "checkmark").opacity(isCurrent(candidate) ? 1 : 0)
-                            .accessibilityHidden(true)
                         Text(candidate.name)
                         Spacer()
                         Text(verbatim: Counted.commits(candidate.commitCount))
@@ -30,7 +29,6 @@ struct BasePicker: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityAddTraits(isCurrent(candidate) ? .isSelected : [])
             }
             Divider()
             HStack {

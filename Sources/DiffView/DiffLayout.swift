@@ -183,38 +183,6 @@ extension DiffLayout {
         return top(of: best ?? header)
     }
 
-    /// Rows in `range` grouped by hunk for VoiceOver (SPEC §9): each group is headed by its hunk
-    /// header, which may sit above `range` when the view starts mid-hunk. File headers, and rows
-    /// before a file's first hunk, stand alone with no header.
-    func hunkGroups(_ range: Range<Int>) -> [(header: Int?, rows: [Int])] {
-        var groups: [(header: Int?, rows: [Int])] = []
-        var header: Int?
-        if let first = range.first, !rows[first].isHunkHeader, !rows[first].isFileHeader,
-            let above = previousStop(before: first, files: false),
-            rows[above].file == rows[first].file
-        {
-            header = above
-            groups.append((above, []))
-        }
-        for index in range {
-            switch rows[index] {
-            case .fileHeader:
-                header = nil
-                groups.append((nil, [index]))
-            case .hunkHeader:
-                header = index
-                groups.append((index, []))
-            default:
-                if header == nil {
-                    groups.append((nil, [index]))
-                } else {
-                    groups[groups.count - 1].rows.append(index)
-                }
-            }
-        }
-        return groups
-    }
-
     /// The first new-side line at or after `row` in the same file, for opening the file as it is
     /// now: a header reads as the hunk below it, a removed line as the next line that exists.
     /// Line 1 when the file has none (a deleted file).

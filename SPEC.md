@@ -634,11 +634,9 @@ written down here.
 - Every empty state says why and what to do: "No changes against
   origin/feat/a", "Not a git repository — choose another folder".
 
-**Accessibility**
-- SwiftUI panes get VoiceOver support from the framework. Every control has a label, and each
-  worktree row reads its counts as words.
-- The custom diff view implements `NSAccessibility`: each visible row is an element ("added, new
-  line 42: …"), hunks are groups, and VO navigation follows `n`/`p`.
+**Accessibility and strings**
+- VoiceOver isn't supported: Seam adds no accessibility labels or elements of its own, and the
+  custom diff view doesn't implement `NSAccessibility`.
 - Strings live in a String Catalog per module. The app is English only, but nothing is
   hard-coded in views. `swift build` doesn't extract keys, so `make strings` syncs the catalogs
   from the Xcode build.
@@ -776,7 +774,7 @@ live reload.
 *Done when:* you can review a stacked branch end to end from the keyboard, and editing a file in that
 worktree updates the diff within 1 s with no jump in scroll position.
 *Left for later:* the XCUITest smoke flows, which need Automation Mode enabled on the machine.
-Wrapping and find moved to M3; VoiceOver hunk groups were done in M4.
+Wrapping and find moved to M3.
 
 **M3 — Reading quality.** tree-sitter highlighting, word-level highlights, context expansion,
 generated-file collapse, binary and image entries, line wrapping, find in the diff.

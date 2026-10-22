@@ -136,7 +136,6 @@ struct ProblemBanner: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
-                .accessibilityHidden(true)
             Text(message).lineLimit(2).textSelection(.enabled)
             Spacer()
             switch problem {
@@ -153,7 +152,6 @@ struct ProblemBanner: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.yellow.opacity(0.15))
-        .accessibilityElement(children: .combine)
     }
 
     private var message: String {
@@ -177,7 +175,6 @@ struct FindBar: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                .accessibilityHidden(true)
             TextField(String(localized: "Find in diff", bundle: .module), text: $session.findQuery)
                 .textFieldStyle(.plain)
                 .focused($focused)
@@ -188,14 +185,12 @@ struct FindBar: View {
             } label: {
                 Image(systemName: "chevron.up")
             }
-            .accessibilityLabel(String(localized: "Previous match", bundle: .module))
             .disabled(session.findResult.total == 0)
             Button {
                 session.diff.moveToMatch(by: 1)
             } label: {
                 Image(systemName: "chevron.down")
             }
-            .accessibilityLabel(String(localized: "Next match", bundle: .module))
             .disabled(session.findResult.total == 0)
             Button(String(localized: "Done", bundle: .module)) { session.closeFind() }
         }
@@ -237,7 +232,6 @@ struct StaleParentBanner: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "arrow.triangle.merge").foregroundStyle(.secondary)
-                .accessibilityHidden(true)
             Text(
                 "Parent \(stale.parent) looks merged. Diff against \(stale.suggestion.name) instead?",
                 bundle: .module)
@@ -252,6 +246,5 @@ struct StaleParentBanner: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.blue.opacity(0.1))
-        .accessibilityElement(children: .contain)
     }
 }

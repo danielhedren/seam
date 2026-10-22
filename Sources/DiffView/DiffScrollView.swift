@@ -79,7 +79,6 @@ public final class DiffScrollView: NSScrollView {
             }
         }
         addSubview(sticky)
-        setAccessibilityLabel(String(localized: "Diff", bundle: .module))
         NSWorkspace.shared.notificationCenter.addObserver(
             self, selector: #selector(displayOptionsChanged),
             name: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil)

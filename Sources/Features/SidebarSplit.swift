@@ -30,7 +30,6 @@ struct SidebarSplit<Top: View, Bottom: View>: View {
                             }
                             .onEnded { _ in dragStart = nil }
                     )
-                    .accessibilityHidden(true)
                 bottom.frame(height: height)
             }
         }

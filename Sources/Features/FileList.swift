@@ -33,7 +33,6 @@ struct FileList: View {
                 .toggleStyle(.button)
                 .buttonStyle(.borderless)
                 .help(String(localized: "Show as Flat List", bundle: .module))
-                .accessibilityLabel(String(localized: "Flat list", bundle: .module))
             }
             .font(.callout.monospacedDigit())
             .padding(.horizontal, 10)
@@ -112,10 +111,6 @@ private struct FileRowView: View {
                         .frame(width: 12)
                 }
                 .buttonStyle(.borderless)
-                .accessibilityLabel(
-                    isExpanded
-                        ? String(localized: "Collapse", bundle: .module)
-                        : String(localized: "Expand", bundle: .module))
                 Text(row.name).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                 if case .generated(let count, _) = row.kind {
                     Text(verbatim: "(\(count))").foregroundStyle(.secondary).monospacedDigit()
@@ -134,20 +129,15 @@ private struct FileRowView: View {
                 switch viewed {
                 case .viewed:
                     Image(systemName: "checkmark").font(.caption).foregroundStyle(.secondary)
-                        .accessibilityLabel(String(localized: "Viewed", bundle: .module))
                 case .changedSinceViewed:
                     Image(systemName: "circle.lefthalf.filled").font(.caption)
                         .foregroundStyle(.orange)
-                        .accessibilityLabel(
-                            String(localized: "Changed since viewed", bundle: .module))
                 case .unviewed:
                     Image(systemName: "checkmark").font(.caption).hidden()
-                        .accessibilityHidden(true)
                 }
             }
         }
         .padding(.leading, Double(row.depth) * 12)
-        .accessibilityElement(children: .combine)
     }
 
     static func color(_ status: FileStatus) -> Color {

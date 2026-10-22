@@ -146,10 +146,6 @@ private struct ThreadCard: View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Image(systemName: thread.isResolved ? "checkmark.circle.fill" : "circle")
                 .foregroundStyle(thread.isResolved ? AnyShapeStyle(.green) : AnyShapeStyle(.tint))
-                .accessibilityLabel(
-                    thread.isResolved
-                        ? String(localized: "Resolved", bundle: .module)
-                        : String(localized: "Open", bundle: .module))
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(verbatim: lineLabel).monospacedDigit()

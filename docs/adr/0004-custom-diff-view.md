@@ -20,3 +20,9 @@ by construction. Selection, copy, find and `NSAccessibility` are implemented on 
   deferred.
 - Rejected: SwiftUI `LazyVStack` of `Text` (hitches past a few thousand rows, weak selection) and a
   single `NSTextView` (alignment and per-row decoration fight TextKit).
+
+## Later changes
+
+- Find moved to M3 (SPEC §14).
+- 2026-10-22: VoiceOver support was dropped (SPEC §9), so the view no longer implements
+  `NSAccessibility`.

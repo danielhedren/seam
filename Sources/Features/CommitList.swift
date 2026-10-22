@@ -110,7 +110,6 @@ struct CommitRow: View {
         }
         .fontWeight(.regular)
         .help(commit.subject)
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -136,13 +135,12 @@ struct BaseRow: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .trailing) {
             Image(systemName: "chevron.up.chevron.down").font(.caption)
-                .foregroundStyle(.secondary).accessibilityHidden(true)
+                .foregroundStyle(.secondary)
         }
         .contentShape(Rectangle())
         .padding(.vertical, 4)
         .padding(.horizontal, 6)
         .background(.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
         .help(commit.subject)
-        .accessibilityElement(children: .combine)
     }
 }

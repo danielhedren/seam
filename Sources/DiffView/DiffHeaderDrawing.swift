@@ -208,12 +208,4 @@ final class DiffStickyHeaderView: NSView {
             file, viewed: viewed, in: bounds, font: font, palette: palette)
         onClick?(layout.viewedFrame.contains(point))
     }
-
-    override func isAccessibilityElement() -> Bool { file != nil }
-    override func accessibilityRole() -> NSAccessibility.Role? { .button }
-    override func accessibilityLabel() -> String? { file.map(DiffHeaderDrawing.title) }
-    override func accessibilityPerformPress() -> Bool {
-        onClick?(false)
-        return true
-    }
 }
