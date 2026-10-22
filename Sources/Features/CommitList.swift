@@ -146,8 +146,11 @@ struct BaseRow: View {
         }
         .contentShape(Rectangle())
         .padding(.vertical, 4)
-        .padding(.horizontal, 6)
-        .background(.tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 6))
+        // A sidebar row's content is inset 6 pt more than its selection, so the box reaches out
+        // by that much to be as wide as a selected commit, with the text in line with theirs.
+        .background(
+            RoundedRectangle(cornerRadius: 6).fill(.tint.opacity(0.12)).padding(.horizontal, -6)
+        )
         .help(commit.subject)
     }
 }
