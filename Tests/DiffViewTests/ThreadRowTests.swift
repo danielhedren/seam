@@ -132,4 +132,28 @@ private func texts(_ rows: [DiffRow]) -> [String] {
         #expect(view.commentTarget.map { "\($0.side) \($0.lines)" } == "new 2...3")
         #expect(menus == 2)
     }
+
+    /// Split rows: one/one, two/two a, —/two b, three/three.
+    @MainActor
+    @Test func inSideBySideOnlyRemovedLinesGoOnTheOldSide() throws {
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 800, height: 400)
+        view.show(DiffContent(review: review(), mode: .split), position: .top)
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        let splitRows = canvas.layout.rows.indices.filter {
+            if case .split = canvas.layout.rows[$0] { true } else { false }
+        }
+        func select(_ side: DiffSide, _ first: Int, _ last: Int) -> String? {
+            canvas.selection = DiffSelection(
+                side: side, anchor: TextPosition(row: splitRows[first], column: 0),
+                head: TextPosition(row: splitRows[last], column: 2))
+            return view.commentTarget.map { "\($0.side) \($0.lines)" }
+        }
+
+        #expect(select(.left, 0, 0) == "new 1...1")
+        #expect(select(.left, 1, 1) == "old 2...2")
+        #expect(select(.left, 0, 1) == "new 1...1")
+        #expect(select(.right, 1, 2) == "new 2...3")
+        #expect(select(.right, 0, 3) == "new 1...4")
+    }
 }

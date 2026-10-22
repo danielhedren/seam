@@ -105,8 +105,10 @@ extension DiffCanvasView {
             head: TextPosition(row: position.row, column: end))
     }
 
-    /// Where a new thread would go: the selected lines, or `row`'s line without a selection.
-    /// New side unless only removed lines are selected; within the first selected row's file.
+    /// Where a new thread would go: the selected lines, or `row`'s line without a selection,
+    /// within the first selected row's file. Unchanged lines go on the new side whichever column
+    /// they were picked in, so a thread on them follows the code as it's edited; only a
+    /// selection of removed lines alone goes on the old side.
     func commentTarget(fallback row: Int?) -> (
         file: Int, side: ThreadAnchor.Side, lines: ClosedRange<Int>
     )? {
@@ -125,14 +127,28 @@ extension DiffCanvasView {
         let file = layout.rows[range.lowerBound].file
         let rows = range.clamped(to: 0...(layout.rows.count - 1)).map { layout.rows[$0] }
             .filter { $0.file == file }
-        let preferred: [ThreadAnchor.Side] =
-            mode == .split && selection?.side == .left ? [.old] : [.new, .old]
-        for side in preferred {
-            let numbers = rows.compactMap { DiffRowBuilder.number(of: $0, on: side) }
-            if let first = numbers.min(), let last = numbers.max() {
-                return (file, side, first...last)
+        let leftColumn = mode == .split && selection?.side == .left
+        var new: [Int] = []
+        var old: [Int] = []
+        for row in rows {
+            switch row {
+            case .line(_, let line):
+                if line.kind == .removed {
+                    old += [line.old].compactMap(\.self)
+                } else {
+                    new += [line.new].compactMap(\.self)
+                }
+            case .split(_, let left, let right) where leftColumn:
+                if left?.kind == .removed { old += [left?.number].compactMap(\.self) }
+                if left?.kind == .context { new += [right?.number].compactMap(\.self) }
+            case .split(_, _, let right):
+                new += [right?.number].compactMap(\.self)
+            default:
+                break
             }
         }
+        if let first = new.min(), let last = new.max() { return (file, .new, first...last) }
+        if let first = old.min(), let last = old.max() { return (file, .old, first...last) }
         return nil
     }
 

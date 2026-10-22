@@ -379,6 +379,11 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   Comment, or right-click: "Comment on Line N" for the clicked line, or "Comment on Lines N–M"
   when the click is inside a selection, which a right-click elsewhere replaces with the clicked
   line. A composer opens in the thread panel; ⌘↩ posts.
+- **Old or new side:** a thread goes on the new side unless its lines are only removed ones,
+  which exist only in the old file. Unchanged lines go on the new side whichever column of the
+  side-by-side view they were picked in, so the thread follows the code as it's edited and
+  behaves the same in both view modes. A side-by-side selection takes its rows from the column
+  it was made in.
 - **In the diff:** a commented range gets a marker in the gutter and a compact row after its last
   line: author, the first line of the latest comment, the number of comments, and open or
   resolved. Clicking it, or `t` on that line, opens the thread in the panel. Resolved threads
