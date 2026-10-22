@@ -245,6 +245,14 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
         #expect(layout.text(of: right) == "new one\nnew two\nnew three")
     }
 
+    @Test(arguments: [(0, 0..<3), (2, 0..<3), (3, 0..<3), (4, 4..<7), (7, 4..<7)])
+    func aDoubleClickSelectsTheWordAroundIt(column: Int, expected: Range<Int>) {
+        let layout = DiffLayout(
+            rows: DiffRowBuilder.rows(for: sampleReview(), mode: .unified), metrics: metrics)
+        let position = TextPosition(row: 3, column: column)
+        #expect(layout.word(at: position, side: .unified) == expected)
+    }
+
     @Test func selectingPastTheLineEndIncludesTheNewline() {
         let layout = DiffLayout(
             rows: DiffRowBuilder.rows(for: sampleReview(), mode: .unified), metrics: metrics)

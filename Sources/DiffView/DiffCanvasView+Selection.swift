@@ -56,12 +56,12 @@ extension DiffCanvasView {
         }
         switch event.clickCount {
         case 2:
-            selection = wordSelection(side: side, at: position)
-        case 3...:
-            let length = layout.text(of: position.row, side: side)?.count ?? 0
+            let words = layout.word(at: position, side: side)
             selection = DiffSelection(
-                side: side, anchor: TextPosition(row: position.row, column: 0),
-                head: TextPosition(row: position.row, column: length + 1))
+                side: side, anchor: TextPosition(row: position.row, column: words.lowerBound),
+                head: TextPosition(row: position.row, column: words.upperBound))
+        case 3...:
+            selection = lineSelection(side: side, row: position.row)
         default:
             if event.modifierFlags.contains(.shift), let current = selection {
                 selection = DiffSelection(
@@ -85,21 +85,35 @@ extension DiffCanvasView {
         isDragging = false
     }
 
-    private func wordSelection(side: DiffSide, at position: TextPosition) -> DiffSelection {
-        let characters = Array(layout.text(of: position.row, side: side) ?? "")
-        func isWord(_ index: Int) -> Bool {
-            characters.indices.contains(index)
-                && (characters[index].isLetter || characters[index].isNumber
-                    || characters[index] == "_")
-        }
-        var start = position.column
-        var end = position.column
-        while isWord(start - 1) { start -= 1 }
-        while isWord(end) { end += 1 }
-        if start == end, end < characters.count { end += 1 }
+    /// The whole line and its newline, as a triple click selects it.
+    private func lineSelection(side: DiffSide, row: Int) -> DiffSelection {
+        let length = layout.text(of: row, side: side)?.count ?? 0
         return DiffSelection(
-            side: side, anchor: TextPosition(row: position.row, column: start),
-            head: TextPosition(row: position.row, column: end))
+            side: side, anchor: TextPosition(row: row, column: 0),
+            head: TextPosition(row: row, column: length + 1))
+    }
+
+    /// A right click on lines selects them first unless it's inside the selection, so the menu
+    /// acts on what's highlighted.
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let point = convert(event.locationInWindow, from: nil)
+        guard let (side, position) = self.position(at: point) else { return super.menu(for: event) }
+        switch layout.rows[position.row] {
+        case .fileHeader(let file):
+            return menuForFile?(review.files[file].diff.path)
+        case .line, .split:
+            if !selectionContains(position.row) {
+                selection = lineSelection(side: side, row: position.row)
+            }
+            return menuForLines?()
+        default:
+            return super.menu(for: event)
+        }
+    }
+
+    private func selectionContains(_ row: Int) -> Bool {
+        guard let selection, !selection.isEmpty else { return false }
+        return selection.start.row...selection.end.row ~= row
     }
 
     /// Where a new thread would go: the selected lines, or `row`'s line without a selection,
@@ -111,10 +125,7 @@ extension DiffCanvasView {
     )? {
         let range: ClosedRange<Int>
         if let selection, !selection.isEmpty {
-            range =
-                min(
-                    selection.anchor.row, selection.head.row)...max(
-                    selection.anchor.row, selection.head.row)
+            range = selection.start.row...selection.end.row
         } else if let row {
             range = row...row
         } else {

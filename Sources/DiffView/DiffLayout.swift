@@ -286,6 +286,23 @@ extension DiffLayout {
         }
     }
 
+    /// The columns a double click at `position` selects: the run of letters, digits and
+    /// underscores around it, else the one character there.
+    func word(at position: TextPosition, side: DiffSide) -> Range<Int> {
+        let characters = Array(text(of: position.row, side: side) ?? "")
+        func isWord(_ index: Int) -> Bool {
+            characters.indices.contains(index)
+                && (characters[index].isLetter || characters[index].isNumber
+                    || characters[index] == "_")
+        }
+        var start = position.column
+        var end = position.column
+        while isWord(start - 1) { start -= 1 }
+        while isWord(end) { end += 1 }
+        if start == end, end < characters.count { end += 1 }
+        return start..<end
+    }
+
     /// Copy text: selected lines of the selection's side, joined with newlines. Rows where that
     /// side has no line (headers, the empty half of an unpaired line) are skipped.
     func text(of selection: DiffSelection) -> String {
