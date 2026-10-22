@@ -564,19 +564,29 @@ import Testing
         #expect(review.diff?.files.count == 1)
     }
 
-    @Test func scopeAndModePersistPerWorktree() async throws {
+    @Test func scopePersistsPerWorktree() async throws {
         let repo = try await FixtureRepo()
         let store = MemoryStore()
         let session = RepoSession(directory: repo.main, services: services(repo.git, store: store))
         await session.open()
         session.setScope(.uncommitted)
-        session.toggleMode()
         await session.settled()
 
         let reopened = RepoSession(directory: repo.main, services: services(repo.git, store: store))
         await reopened.open()
         #expect(reopened.selected?.scope == .uncommitted)
-        #expect(reopened.selected?.mode == .split)
+    }
+
+    @Test func theViewModeIsTheSameForEveryWorktree() async throws {
+        let repo = try await FixtureRepo()
+        _ = try await repo.worktree("a", branch: "a", from: "origin/main")
+        let services = services(repo.git)
+        let session = RepoSession(directory: repo.main, services: services)
+        await session.open()
+        session.toggleMode()
+
+        #expect(session.reviews.allSatisfy { $0.mode == .split })
+        #expect(services.settings.layoutMode == .split)
     }
 
     @Test func positionAndAdjacentSelectionFollowTheSortedList() async throws {

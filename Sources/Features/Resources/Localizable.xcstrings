@@ -123,6 +123,9 @@
     "Default base" : {
 
     },
+    "Diff view" : {
+
+    },
     "Display" : {
 
     },
@@ -235,9 +238,6 @@
 
     },
     "Never use as a parent" : {
-
-    },
-    "New worktrees show" : {
 
     },
     "Next File" : {

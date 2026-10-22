@@ -10,7 +10,6 @@ import os
 public struct RepoState: Codable, Equatable, Sendable {
     public struct WorktreeState: Codable, Equatable, Sendable {
         public var scope: String?
-        public var mode: String?
         public var wraps: Bool?
         public var whitespace: String?
         public var viewed: ViewedMarks?

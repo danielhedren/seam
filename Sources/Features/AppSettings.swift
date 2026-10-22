@@ -19,7 +19,8 @@ public final class AppSettings {
     var tabWidth: Int { didSet { save(tabWidth, "tabWidth") } }
     /// Minutes between background fetches; 0 is off.
     var fetchInterval: Int { didSet { save(fetchInterval, "fetchInterval") } }
-    var defaultMode: DiffLayoutMode { didSet { save(defaultMode.rawValue, "defaultMode") } }
+    /// Side by side or unified, for every worktree; `s` flips it.
+    var layoutMode: DiffLayoutMode { didSet { save(layoutMode.rawValue, "defaultMode") } }
     var whitespace: WhitespaceMode { didSet { save(whitespace.rawValue, "whitespace") } }
     var contextLines: Int { didSet { save(contextLines, "contextLines") } }
     var collapsesViewed: Bool { didSet { save(collapsesViewed, "collapsesViewed") } }
@@ -39,7 +40,7 @@ public final class AppSettings {
         fontSize = value("fontSize", 12)
         tabWidth = value("tabWidth", 4)
         fetchInterval = value("fetchInterval", 0)
-        defaultMode = DiffLayoutMode(rawValue: value("defaultMode", "")) ?? .unified
+        layoutMode = DiffLayoutMode(rawValue: value("defaultMode", "")) ?? .unified
         whitespace = WhitespaceMode(rawValue: value("whitespace", "")) ?? .show
         contextLines = value("contextLines", 3)
         collapsesViewed = value("collapsesViewed", true)

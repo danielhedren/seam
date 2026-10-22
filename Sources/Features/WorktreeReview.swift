@@ -25,7 +25,6 @@ final class WorktreeReview: Identifiable {
     /// The parent ref chosen in the base picker, overriding detection (SPEC §5.3).
     private(set) var baseOverride: String?
     private(set) var scope = ReviewScope.all
-    private(set) var mode: DiffLayoutMode
     private(set) var collapsed: Set<String> = []
     private(set) var wraps = false
     /// Starts from the setting; Review › Hide Whitespace Changes flips it for this worktree.
@@ -90,12 +89,13 @@ final class WorktreeReview: Identifiable {
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
     private let signposter = OSSignposter(subsystem: "com.danielhedren.seam", category: "Features")
 
-    init(worktree: Worktree, mode: DiffLayoutMode, services: SeamServices) {
+    init(worktree: Worktree, services: SeamServices) {
         id = worktree.id
         self.worktree = worktree
-        self.mode = mode
         self.services = services
     }
+
+    var mode: DiffLayoutMode { services.settings.layoutMode }
 
     /// The parent the diff is against: the override if set, else the detected one.
     var parentName: String? {
@@ -126,7 +126,6 @@ final class WorktreeReview: Identifiable {
 
     func restore(_ state: RepoState.WorktreeState?, override: String?) {
         if let scope = state?.scope.flatMap(ReviewScope.init) { self.scope = scope }
-        if let mode = state?.mode.flatMap(DiffLayoutMode.init) { self.mode = mode }
         if let wraps = state?.wraps { self.wraps = wraps }
         whitespace = state?.whitespace.flatMap(WhitespaceMode.init)
         if let viewed = state?.viewed { self.viewed = viewed }
@@ -138,7 +137,7 @@ final class WorktreeReview: Identifiable {
 
     var persistentState: RepoState.WorktreeState {
         RepoState.WorktreeState(
-            scope: scope.rawValue, mode: mode.rawValue, wraps: wraps,
+            scope: scope.rawValue, wraps: wraps,
             whitespace: whitespace?.rawValue, viewed: viewed,
             dismissedStaleParents: dismissedStaleParents.isEmpty
                 ? nil : dismissedStaleParents.sorted(),
@@ -151,10 +150,6 @@ final class WorktreeReview: Identifiable {
         guard scope != self.scope else { return }
         self.scope = scope
         reloadDiff()
-    }
-
-    func setMode(_ mode: DiffLayoutMode) {
-        self.mode = mode
     }
 
     func toggleWrap() {

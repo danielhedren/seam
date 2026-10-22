@@ -30,7 +30,7 @@ import Testing
         state.baseOverrides["feature"] = "refs/heads/main"
         state.selectedWorktree = "/r"
         state.worktrees["/r"] = .init(
-            scope: "all", mode: "split", wraps: true, viewed: ViewedMarks(marks: ["a": "1"]))
+            scope: "all", wraps: true, viewed: ViewedMarks(marks: ["a": "1"]))
 
         await store.save(state, for: repository)
 

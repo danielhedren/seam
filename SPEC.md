@@ -254,8 +254,8 @@ selected file, and scope.
 
 ### 7.4 Diff view
 
-- Side-by-side and unified modes (`⇆` toggles, key `s`). The setting is global and can be
-  overridden per worktree.
+- Side-by-side and unified modes (`⇆` toggles, key `s`). The mode is global: toggling it
+  changes every worktree, and it is remembered.
 - A sticky file header per file: path, status, counts, viewed checkbox, a collapse toggle, and
   "Open in editor".
 - Syntax highlighting (§8.4).
@@ -567,7 +567,7 @@ Rules:
 - `repos.json`: recently opened repos (paths of common git dirs).
 - `<repo-id>/state.json`, per repo:
   - Per branch: the base override (§5.3).
-  - Per worktree: scope, view mode, scroll anchor, selected file.
+  - Per worktree: scope, scroll anchor, selected file.
   - **Viewed state:** keyed by (worktree path, file path), storing the blob id of the new side
     when it was marked viewed. If the file's content changes later, the viewed mark is cleared
     and the file is marked "changed since viewed".
@@ -583,7 +583,7 @@ Seam writes nothing inside the repository or `.git`.
 - Editor command template (§7.6).
 - Font and size (default: SF Mono 12). Tab width (default 4, or `.editorconfig` if present).
 - Background fetch interval (off by default).
-- Default view mode, whitespace mode, and number of context lines.
+- View mode (unified or side by side), whitespace mode, and number of context lines.
 
 Settings apply to the next load of each worktree; font changes apply at once (`⌘+`, `⌘−`, `⌘0`
 in the View menu too). The default base may be a short name (`origin/develop`, `main`). Tab widths

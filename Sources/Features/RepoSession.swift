@@ -151,8 +151,7 @@ final class RepoSession {
                 review.update(worktree)
                 return review
             }
-            let review = WorktreeReview(
-                worktree: worktree, mode: services.settings.defaultMode, services: services)
+            let review = WorktreeReview(worktree: worktree, services: services)
             review.restore(
                 repoState.worktrees[worktree.id],
                 override: worktree.branch.flatMap { repoState.baseOverrides[$0] })
@@ -223,9 +222,8 @@ final class RepoSession {
     }
 
     func toggleMode() {
-        guard let review = selected else { return }
-        review.setMode(review.mode == .unified ? .split : .unified)
-        persist()
+        let settings = services.settings
+        settings.layoutMode = settings.layoutMode == .unified ? .split : .unified
     }
 
     func showFind() {

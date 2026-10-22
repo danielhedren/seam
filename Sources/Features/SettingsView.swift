@@ -57,8 +57,8 @@ struct SettingsView: View {
                 Text("A repository's .editorconfig overrides the tab width.", bundle: .module)
                     .font(.caption).foregroundStyle(.secondary)
                 Picker(
-                    String(localized: "New worktrees show", bundle: .module),
-                    selection: $settings.defaultMode
+                    String(localized: "Diff view", bundle: .module),
+                    selection: $settings.layoutMode
                 ) {
                     Text("Unified", bundle: .module).tag(DiffLayoutMode.unified)
                     Text("Side by side", bundle: .module).tag(DiffLayoutMode.split)
