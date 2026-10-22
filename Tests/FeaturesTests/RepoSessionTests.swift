@@ -787,7 +787,7 @@ import Testing
         var totals: [Int] = []
         try showDiff(session).onSearchResult = { _, total in totals.append(total) }
 
-        session.findQuery = "alpha"
+        session.find.query = "alpha"
 
         #expect(totals.last == 2)
     }
@@ -798,7 +798,7 @@ import Testing
             ("\n", nil), ("   ", nil),
         ] as [(String, String?)])
     func findStartsFromTheSelectionsFirstLine(selection: String, query: String?) {
-        #expect(RepoSession.findQuery(from: selection) == query)
+        #expect(FindState.query(from: selection) == query)
     }
 
     @Test func theViewModeIsTheSameForEveryWorktree() async throws {

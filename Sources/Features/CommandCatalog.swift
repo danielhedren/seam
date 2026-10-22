@@ -92,15 +92,15 @@ enum CommandCatalog {
     static let edit: [SeamCommand] = [
         SeamCommand(
             id: "find", title: localized("Find…"), menu: .edit, section: 0,
-            shortcut: .commandWhen("f", { !$0.fileListHasFocus }), run: { $0.showFind() }),
+            shortcut: .commandWhen("f", { !$0.fileListHasFocus }), run: { $0.find.show() }),
         SeamCommand(
             id: "find-next", title: localized("Find Next"), menu: .edit, section: 0,
-            shortcut: .command("g"), isEnabled: { $0.findResult.total > 0 },
-            run: { $0.diff.moveToMatch(by: 1) }),
+            shortcut: .command("g"), isEnabled: { $0.find.result.total > 0 },
+            run: { $0.find.move(by: 1) }),
         SeamCommand(
             id: "find-previous", title: localized("Find Previous"), menu: .edit, section: 0,
-            shortcut: .command("g", [.command, .shift]), isEnabled: { $0.findResult.total > 0 },
-            run: { $0.diff.moveToMatch(by: -1) }),
+            shortcut: .command("g", [.command, .shift]), isEnabled: { $0.find.result.total > 0 },
+            run: { $0.find.move(by: -1) }),
         SeamCommand(
             id: "filter-files", title: localized("Filter Files"), menu: .edit, section: 0,
             shortcut: .commandWhen("f", { $0.fileListHasFocus }),

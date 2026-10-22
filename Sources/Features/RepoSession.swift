@@ -49,16 +49,8 @@ final class RepoSession {
     var showsBasePicker = false
     /// Bumped by Edit › Filter Files; the window moves focus to the filter field.
     var filterFocusRequests = 0
-    /// Find in the diff (SPEC §8.5): the bar, its query, and "current of total".
-    var showsFind = false
-    /// Searches whenever it changes, typed or filled in from a selection before the bar exists.
-    var findQuery = "" {
-        didSet { if findQuery != oldValue { diff.search(findQuery) } }
-    }
-    var findResult: (current: Int?, total: Int) = (nil, 0)
-    /// Bumped by Edit › Find while the bar is already open, to focus its field again.
-    var findFocusRequests = 0
-    let diff = DiffController()
+    let diff: DiffController
+    let find: FindState
 
     let services: SeamServices
     private var repoState = RepoState()
@@ -75,6 +67,9 @@ final class RepoSession {
     init(directory: URL, services: SeamServices) {
         self.directory = directory
         self.services = services
+        let diff = DiffController()
+        self.diff = diff
+        find = FindState(diff: diff)
     }
 
     var settings: AppSettings { services.settings }
@@ -244,26 +239,6 @@ final class RepoSession {
     func toggleMode() {
         let settings = services.settings
         settings.layoutMode = settings.layoutMode == .unified ? .split : .unified
-    }
-
-    /// ⌘F starts from the diff's selection, as text views do.
-    func showFind() {
-        if let query = diff.selectedText.flatMap(Self.findQuery) { findQuery = query }
-        showsFind = true
-        findFocusRequests += 1
-    }
-
-    /// A search field holds one line: the selection's first, without surrounding spaces.
-    nonisolated static func findQuery(from selection: String) -> String? {
-        guard let line = selection.split(whereSeparator: \.isNewline).first else { return nil }
-        let query = line.trimmingCharacters(in: .whitespaces)
-        return query.isEmpty ? nil : query
-    }
-
-    func closeFind() {
-        showsFind = false
-        findQuery = ""
-        diff.focus()
     }
 
     /// The window's undo manager; viewed toggles are the only state changes that can be undone.

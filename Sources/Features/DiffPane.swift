@@ -37,7 +37,7 @@ struct DiffRepresentable: NSViewRepresentable {
         view.onToggleViewed = { [session] path in session.toggleViewed(path, advance: false) }
         view.menuForFile = { [session] path in FileActions.menu(for: path, in: session) }
         view.onSearchResult = { [session] current, total in
-            session.findResult = (current, total)
+            session.find.result = (current, total)
         }
         view.onOpenThread = { [session] id in session.openThread(id) }
         view.menuForLines = { [session] in FileActions.lineMenu(in: session) }
@@ -96,8 +96,8 @@ struct DiffPane: View {
             if let stale = review.staleParent {
                 StaleParentBanner(stale: stale, session: session)
             }
-            if session.showsFind {
-                FindBar(session: session)
+            if session.find.isShown {
+                FindBar(find: session.find)
                 Divider()
             }
             ZStack {
@@ -169,40 +169,40 @@ struct ProblemBanner: View {
 
 /// The diff's find bar: searches as you type, Return for the next match, Escape to close.
 struct FindBar: View {
-    @Bindable var session: RepoSession
+    @Bindable var find: FindState
     @FocusState private var focused: Bool
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-            TextField(String(localized: "Find in diff", bundle: .module), text: $session.findQuery)
+            TextField(String(localized: "Find in diff", bundle: .module), text: $find.query)
                 .textFieldStyle(.plain)
                 .focused($focused)
-                .onSubmit { session.diff.moveToMatch(by: 1) }
+                .onSubmit { find.move(by: 1) }
             Text(status).foregroundStyle(.secondary).monospacedDigit()
             Button {
-                session.diff.moveToMatch(by: -1)
+                find.move(by: -1)
             } label: {
                 Image(systemName: "chevron.up")
             }
-            .disabled(session.findResult.total == 0)
+            .disabled(find.result.total == 0)
             Button {
-                session.diff.moveToMatch(by: 1)
+                find.move(by: 1)
             } label: {
                 Image(systemName: "chevron.down")
             }
-            .disabled(session.findResult.total == 0)
-            Button(String(localized: "Done", bundle: .module)) { session.closeFind() }
+            .disabled(find.result.total == 0)
+            Button(String(localized: "Done", bundle: .module)) { find.close() }
         }
         .buttonStyle(.borderless)
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .onAppear { focused = true }
-        .onChange(of: session.findFocusRequests) {
+        .onChange(of: find.focusRequests) {
             focused = true
             selectFieldText()
         }
-        .onExitCommand { session.closeFind() }
+        .onExitCommand { find.close() }
     }
 
     /// A field selects its text when it gains focus, but not when ⌘F is pressed again while it
@@ -216,11 +216,11 @@ struct FindBar: View {
     }
 
     private var status: String {
-        guard !session.findQuery.isEmpty else { return "" }
-        guard let current = session.findResult.current else {
+        guard !find.query.isEmpty else { return "" }
+        guard let current = find.result.current else {
             return String(localized: "No matches", bundle: .module)
         }
-        return String(localized: "\(current) of \(session.findResult.total)", bundle: .module)
+        return String(localized: "\(current) of \(find.result.total)", bundle: .module)
     }
 }
 
