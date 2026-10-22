@@ -15,6 +15,7 @@
 /* Begin PBXFileReference section */
 		A10000000000000000000002 /* SeamApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeamApp.swift; sourceTree = "<group>"; };
 		A10000000000000000000022 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10000000000000000000026 /* Seam.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Seam.xcconfig; sourceTree = "<group>"; };
 		A10000000000000000000025 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		A10000000000000000000005 /* Seam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Seam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -45,6 +46,7 @@
 				A10000000000000000000002 /* SeamApp.swift */,
 				A10000000000000000000022 /* Info.plist */,
 				A10000000000000000000025 /* AppIcon.icon */,
+				A10000000000000000000026 /* Seam.xcconfig */,
 			);
 			path = Seam;
 			sourceTree = "<group>";
@@ -188,57 +190,15 @@
 		};
 		A10000000000000000000012 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10000000000000000000026 /* Seam.xcconfig */;
 			buildSettings = {
-				ARCHS = arm64;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_HARDENED_RUNTIME = NO;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Seam/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Seam;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				MARKETING_VERSION = 0.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.danielhedren.seam;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
-				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
 		A10000000000000000000013 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10000000000000000000026 /* Seam.xcconfig */;
 			buildSettings = {
-				ARCHS = arm64;
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "-";
-				CODE_SIGN_STYLE = Manual;
-				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
-				ENABLE_HARDENED_RUNTIME = NO;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = Seam/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = Seam;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
-				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				MARKETING_VERSION = 0.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.danielhedren.seam;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
-				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};

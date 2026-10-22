@@ -1,0 +1,25 @@
+// The app target's settings, shared by Debug and Release so the two can't drift apart.
+
+ARCHS = arm64
+ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon
+CODE_SIGN_IDENTITY = -
+CODE_SIGN_STYLE = Manual
+COMBINE_HIDPI_IMAGES = YES
+// The Makefile passes the commit count (SPEC §8.1).
+CURRENT_PROJECT_VERSION = 1
+ENABLE_HARDENED_RUNTIME = NO
+// Scripts/build-cli.sh runs `swift build` over the whole package, which a sandboxed script
+// phase could only read by declaring every source file as an input.
+ENABLE_USER_SCRIPT_SANDBOXING = NO
+GENERATE_INFOPLIST_FILE = YES
+INFOPLIST_FILE = Seam/Info.plist
+INFOPLIST_KEY_CFBundleDisplayName = Seam
+INFOPLIST_KEY_LSApplicationCategoryType = public.app-category.developer-tools
+INFOPLIST_KEY_NSHumanReadableCopyright =
+LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/../Frameworks
+MARKETING_VERSION = 0.2
+PRODUCT_BUNDLE_IDENTIFIER = com.danielhedren.seam
+PRODUCT_NAME = $(TARGET_NAME)
+SWIFT_EMIT_LOC_STRINGS = YES
+SWIFT_TREAT_WARNINGS_AS_ERRORS = YES
+SWIFT_VERSION = 6.0
