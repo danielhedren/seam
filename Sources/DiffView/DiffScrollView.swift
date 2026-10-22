@@ -62,6 +62,7 @@ public final class DiffScrollView: NSScrollView {
         super.init(frame: .zero)
         documentView = canvas
         hasVerticalScroller = true
+        scrollerInsets.top = Self.fileHeaderHeight(for: canvas.font)
         hasHorizontalScroller = true
         autohidesScrollers = true
         drawsBackground = false
@@ -222,11 +223,19 @@ public final class DiffScrollView: NSScrollView {
     }
 
     /// Keeps the reader's line in view across the size change.
+    /// The sticky file header's height for `font`; the panes beside the diff give their own
+    /// headers this height, so the header rows meet in one line (SPEC §9).
+    public static func fileHeaderHeight(for font: NSFont) -> Double {
+        DiffCanvasView.metrics(for: font).fileHeaderHeight
+    }
+
     public func setFont(_ font: NSFont) {
         guard font != canvas.font else { return }
         let anchor = anchor
         canvas.setFont(font)
         sticky.font = font
+        // The scroller starts below the sticky header rather than over its borders.
+        scrollerInsets.top = Self.fileHeaderHeight(for: font)
         if let anchor { restore(anchor) }
         updateSticky()
     }

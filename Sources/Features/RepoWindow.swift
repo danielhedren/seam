@@ -99,6 +99,8 @@ struct RepoWindow: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .toolbar { ReviewToolbar(session: session, review: session.selected) }
         }
+        .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
+        .toolbarBackground(Color(nsColor: .windowBackgroundColor), for: .windowToolbar)
         .onChange(of: fileListFocused) { _, focused in
             session.fileListHasFocus = focused && !filterFocused
         }

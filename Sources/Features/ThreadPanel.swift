@@ -75,7 +75,7 @@ struct ThreadPanel: View {
             .help(String(localized: "Hide Threads (⌥⌘0)", bundle: .module))
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .frame(height: PaneHeader.height(session) - 1)
     }
 
     private func groups(_ placed: [PlacedThread]) -> [(path: String, threads: [PlacedThread])] {

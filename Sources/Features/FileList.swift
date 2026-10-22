@@ -37,7 +37,8 @@ struct FileList: View {
             }
             .font(.callout.monospacedDigit())
             .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .frame(height: PaneHeader.height(session) - 1)
+            Divider()
             TextField(String(localized: "Filter", bundle: .module), text: $review.fileFilter)
                 .textFieldStyle(.roundedBorder)
                 .help(
@@ -45,7 +46,7 @@ struct FileList: View {
                 )
                 .focused(filterFocus)
                 .padding(.horizontal, 8)
-                .padding(.bottom, 6)
+                .padding(.vertical, 6)
             List(selection: selection(files, rows)) {
                 ForEach(rows) { row in
                     FileRowView(row: row, files: files, viewed: status(row, files)) {

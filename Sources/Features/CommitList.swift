@@ -86,15 +86,13 @@ struct WorkingTreeRow: View {
     let files: Int
 
     var body: some View {
-        Label {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Uncommitted changes", bundle: .module)
-                Text(verbatim: Counted.files(files)).font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        } icon: {
-            Image(systemName: "pencil")
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Uncommitted changes", bundle: .module)
+            Text(verbatim: Counted.files(files)).font(.caption)
+                .foregroundStyle(.secondary)
         }
+        // The selection highlight says which rows are picked; a sidebar list would also bold them.
+        .fontWeight(.regular)
     }
 }
 
@@ -102,18 +100,15 @@ struct CommitRow: View {
     let commit: ReviewCommit
 
     var body: some View {
-        Label {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(commit.subject).lineLimit(1).truncationMode(.tail)
-                HStack(spacing: 6) {
-                    Text(commit.shortID).monospaced()
-                    AgeText(date: commit.date)
-                }
-                .font(.caption).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 2) {
+            Text(commit.subject).lineLimit(1).truncationMode(.tail)
+            HStack(spacing: 6) {
+                Text(commit.shortID).monospaced()
+                AgeText(date: commit.date)
             }
-        } icon: {
-            Image(systemName: "circle.fill").font(.system(size: 6)).foregroundStyle(.secondary)
+            .font(.caption).foregroundStyle(.secondary)
         }
+        .fontWeight(.regular)
         .help(commit.subject)
         .accessibilityElement(children: .combine)
     }

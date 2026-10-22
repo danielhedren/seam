@@ -586,7 +586,11 @@ written down here.
   collapsing, resizing and the sidebar toggle all behave natively. `⌘\` is the one custom
   shortcut on top of that.
 - Toolbar in the unified style, holding only: view mode, reload, and the thread panel (§7.7).
-  The diff gets the rest of the window.
+  The diff gets the rest of the window. The toolbar's background is solid across every column,
+  so the top of the window reads as one bar.
+- The panes' header rows (the file list's counts, the diff's sticky file header, the thread
+  panel's title) share one height, set by the diff font, so their bottom borders meet in one
+  line. The diff's scroller starts below its sticky header.
 - Standard scenes: `WindowGroup` per repo, a `Settings` scene (`⌘,`), File › Open Recent and full
   screen. Window tabs are off, the one deviation here (§7.1). The workspace reopens the windows on
   relaunch, each in its repo's frame, and §11 state restores their selection.
