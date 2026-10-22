@@ -65,6 +65,14 @@ struct ThreadPanel: View {
                 String(
                     localized: "Copy a prompt telling the agent to answer these threads",
                     bundle: .module))
+            Button {
+                session.showsThreadPanel = false
+            } label: {
+                Label(String(localized: "Hide Threads", bundle: .module), systemImage: "xmark")
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.borderless)
+            .help(String(localized: "Hide Threads (⌥⌘0)", bundle: .module))
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)

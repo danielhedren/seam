@@ -376,14 +376,17 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   threads they opened, an agent resolves threads it opened. Anyone may reply, and a reply to a
   resolved thread reopens it.
 - **Creating:** select lines in the diff (or put the cursor on one) and press `c`, or Review ›
-  Comment, or the diff's context menu. A composer opens in the thread panel; ⌘↩ posts.
+  Comment, or right-click: "Comment on Line N" for the clicked line, or "Comment on Lines N–M"
+  when the click is inside a selection, which a right-click elsewhere replaces with the clicked
+  line. A composer opens in the thread panel; ⌘↩ posts.
 - **In the diff:** a commented range gets a marker in the gutter and a compact row after its last
   line: author, the first line of the latest comment, the number of comments, and open or
   resolved. Clicking it, or `t` on that line, opens the thread in the panel. Resolved threads
   show only the gutter marker unless Review › Show Resolved Threads is on.
 - **The thread panel** (an inspector on the right, `⌥⌘0`) lists the worktree's threads by file,
   open ones first, with the selected thread's conversation, a reply box, and Resolve or Reopen
-  for its author. Agent replies appear live.
+  for its author. Agent replies appear live. Its header has Copy Prompt for Agent and a close
+  button.
 - **Following edits:** a thread keeps the text of its lines. When the file changes, it moves to
   the nearest place where those lines still appear; when they're gone it is outdated, shown in
   the panel with its original lines, not in the diff. Moving and outdating are decided per diff

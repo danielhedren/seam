@@ -127,6 +127,10 @@ public final class DiffScrollView: NSScrollView {
 
     /// The file and line the reader is on, for "open in editor": the selection's line if there
     /// is one, else the line under the sticky header.
+    public var menuForLines: (() -> NSMenu?)? {
+        didSet { canvas.menuForLines = menuForLines }
+    }
+
     public var onOpenThread: ((String) -> Void)? {
         didSet { canvas.onOpenThread = onOpenThread }
     }

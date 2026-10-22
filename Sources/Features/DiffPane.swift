@@ -40,6 +40,7 @@ struct DiffRepresentable: NSViewRepresentable {
             session.findResult = (current, total)
         }
         view.onOpenThread = { [session] id in session.openThread(id) }
+        view.menuForLines = { [session] in FileActions.lineMenu(in: session) }
         view.onExpand = { [session] path, gap, direction in
             session.selected?.expand(path, gap: gap, direction)
         }

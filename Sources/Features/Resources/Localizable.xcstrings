@@ -124,6 +124,19 @@
     "Comment" : {
 
     },
+    "Comment on Line %lld" : {
+
+    },
+    "Comment on Lines %lld–%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Comment on Lines %1$lld–%2$lld"
+          }
+        }
+      }
+    },
     "Commits" : {
 
     },
@@ -134,6 +147,9 @@
 
     },
     "Context lines: %lld" : {
+
+    },
+    "Copy" : {
 
     },
     "Copy Path" : {
@@ -221,6 +237,12 @@
 
     },
     "Hide Missing Worktrees" : {
+
+    },
+    "Hide Threads" : {
+
+    },
+    "Hide Threads (⌥⌘0)" : {
 
     },
     "Hide Whitespace Changes" : {

@@ -92,4 +92,44 @@ private func texts(_ rows: [DiffRow]) -> [String] {
         try select("two", "two")
         #expect(view.commentTarget.map { "\($0.side) \($0.lines)" } == "old 2...2")
     }
+
+    @MainActor
+    @Test func aRightClickSelectsTheLineUnlessItIsInsideTheSelection() throws {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 400), styleMask: [.titled],
+            backing: .buffered, defer: false)
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        window.contentView = view
+        view.show(DiffContent(review: review()), position: .top)
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        var menus = 0
+        view.menuForLines = {
+            menus += 1
+            return NSMenu()
+        }
+        func row(_ text: String) throws -> Int {
+            try #require(canvas.layout.rows.firstIndex { texts([$0]) == [text] })
+        }
+        func rightClick(_ text: String) throws {
+            let y = canvas.layout.top(of: try row(text)) + 2
+            let point = canvas.convert(NSPoint(x: 120, y: y), to: nil)
+            let event = try #require(
+                NSEvent.mouseEvent(
+                    with: .rightMouseDown, location: point, modifierFlags: [], timestamp: 0,
+                    windowNumber: window.windowNumber, context: nil, eventNumber: 0,
+                    clickCount: 1, pressure: 1))
+            _ = canvas.menu(for: event)
+        }
+
+        try rightClick("two a")
+        #expect(view.commentTarget.map { "\($0.side) \($0.lines)" } == "new 2...2")
+
+        canvas.selection = DiffSelection(
+            side: .unified, anchor: TextPosition(row: try row("two a"), column: 0),
+            head: TextPosition(row: try row("two b"), column: 3))
+        try rightClick("two b")
+        #expect(view.commentTarget.map { "\($0.side) \($0.lines)" } == "new 2...3")
+        #expect(menus == 2)
+    }
 }

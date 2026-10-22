@@ -33,12 +33,33 @@ final class DiffCanvasView: NSView {
     private(set) var threads: [String: [ThreadMarker]] = [:]
     private var threadedRows: [Int: Set<ThreadAnchor.Side>] = [:]
     var menuForFile: ((String) -> NSMenu?)?
+    /// For a right click on lines, which are selected first unless the click is inside the
+    /// selection, so the menu acts on what's highlighted.
+    var menuForLines: (() -> NSMenu?)?
 
     override func menu(for event: NSEvent) -> NSMenu? {
         let point = convert(event.locationInWindow, from: nil)
-        guard let row = layout.row(at: point.y), case .fileHeader(let file) = layout.rows[row]
-        else { return super.menu(for: event) }
-        return menuForFile?(review.files[file].diff.path)
+        guard let (side, position) = self.position(at: point) else { return super.menu(for: event) }
+        switch layout.rows[position.row] {
+        case .fileHeader(let file):
+            return menuForFile?(review.files[file].diff.path)
+        case .line, .split:
+            if !selectionContains(position.row) {
+                let length = layout.text(of: position.row, side: side)?.count ?? 0
+                selection = DiffSelection(
+                    side: side, anchor: TextPosition(row: position.row, column: 0),
+                    head: TextPosition(row: position.row, column: length + 1))
+            }
+            return menuForLines?()
+        default:
+            return super.menu(for: event)
+        }
+    }
+
+    private func selectionContains(_ row: Int) -> Bool {
+        guard let selection, !selection.isEmpty else { return false }
+        let rows = [selection.anchor.row, selection.head.row]
+        return (rows.min() ?? row)...(rows.max() ?? row) ~= row
     }
     /// Nil follows the system's Increase Contrast setting; snapshot tests force it.
     var increaseContrastOverride: Bool?
