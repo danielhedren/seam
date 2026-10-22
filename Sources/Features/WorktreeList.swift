@@ -44,26 +44,33 @@ struct WorktreeRow: View {
                 Text(branch).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     .truncationMode(.middle)
             }
-            HStack(spacing: 6) {
-                Text(summary).lineLimit(1)
-                if let files = review.activity?.uncommittedFiles, files > 0 {
-                    Text(verbatim: "✎\(files)")
+            if hasDetails {
+                HStack(spacing: 6) {
+                    if !summary.isEmpty { Text(summary).lineLimit(1) }
+                    if uncommittedFiles > 0 { Text(verbatim: "✎\(uncommittedFiles)") }
+                    ForEach(markers, id: \.self) { marker in
+                        Text(marker).foregroundStyle(.orange)
+                    }
+                    Spacer(minLength: 0)
+                    if let changes = review.activity?.changes, changes.files > 0 {
+                        Text(verbatim: "+\(changes.additions)").foregroundStyle(.green)
+                        Text(verbatim: "−\(changes.deletions)").foregroundStyle(.red)
+                    }
                 }
-                ForEach(markers, id: \.self) { marker in
-                    Text(marker).foregroundStyle(.orange)
-                }
-                Spacer(minLength: 0)
-                if let changes = review.activity?.changes, changes.files > 0 {
-                    Text(verbatim: "+\(changes.additions)").foregroundStyle(.green)
-                    Text(verbatim: "−\(changes.deletions)").foregroundStyle(.red)
-                }
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
             }
-            .font(.caption)
-            .monospacedDigit()
-            .foregroundStyle(.secondary)
         }
         .padding(.vertical, 2)
         .opacity(review.worktree.isMissing ? 0.5 : 1)
+    }
+
+    private var uncommittedFiles: Int { review.activity?.uncommittedFiles ?? 0 }
+
+    /// A row level with its base and in no special state is just its name.
+    private var hasDetails: Bool {
+        !summary.isEmpty || uncommittedFiles > 0 || !markers.isEmpty
     }
 
     /// "5 commits · 19 files": what the branch adds, against its base.
