@@ -5,7 +5,7 @@ extension EnvironmentValues {
     @Entry var ageReference: Date?
 }
 
-/// "3 hr ago", kept current once a minute.
+/// "3 hr ago", kept current once a minute; "now" under a minute.
 struct AgeText: View {
     let date: Date
     @Environment(\.ageReference) private var reference
@@ -21,7 +21,14 @@ struct AgeText: View {
     }
 
     static func age(of date: Date, at now: Date) -> String {
-        Date.AnchoredRelativeFormatStyle(anchor: date, presentation: .numeric, unitsStyle: .narrow)
-            .format(now)
+        // Ages refresh once a minute, so seconds would go stale; a modification time ahead of
+        // this Mac's clock is also just now, not "in 9 mo".
+        guard now.timeIntervalSince(date) >= 60 else {
+            return String(localized: "now", bundle: .module)
+        }
+        return Date.AnchoredRelativeFormatStyle(
+            anchor: date, presentation: .numeric, unitsStyle: .narrow
+        )
+        .format(now)
     }
 }

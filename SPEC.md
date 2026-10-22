@@ -256,7 +256,8 @@ Each row shows:
   include uncommitted changes and untracked text files, and are measured from the same base as
   the diff.
 - Time since the last change in that worktree: the newest of the HEAD commit time, the changed
-  files' modification times (from `git status`), and the last watcher event for it.
+  files' modification times (from `git status`), and the last watcher event for it. Under a
+  minute, or a time ahead of the clock (a file copied from another machine), reads "now".
 - State markers: detached, locked, prunable (from porcelain output), missing directory, stale
   parent (§5.4).
 
