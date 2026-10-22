@@ -59,10 +59,9 @@ extension DiffCanvasView {
         }
         switch layout.rows[index] {
         case .fileHeader(let file): return review.files[file].diff.path
-        case .hunkHeader(_, _, let text):
-            return text.isEmpty
-                ? String(localized: "Change", bundle: .module)
-                : String(localized: "Change in \(text)", bundle: .module)
+        case .hunkHeader(_, _, .titled(let text)):
+            return String(localized: "Change in \(text)", bundle: .module)
+        case .hunkHeader: return String(localized: "Change", bundle: .module)
         case .notice(_, let text): return text
         case .gap(_, let gap):
             return String(localized: "\(gap.hidden) unchanged lines hidden", bundle: .module)

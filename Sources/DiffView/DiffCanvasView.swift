@@ -193,7 +193,9 @@ final class DiffCanvasView: NSView {
                 review.files[file], collapsed: collapsed.contains(path),
                 viewed: viewed[path] ?? .unviewed, in: rect, font: font, palette: palette,
                 context: context)
-        case .hunkHeader(_, _, let text):
+        case .hunkHeader(_, _, .hidden): break
+        case .hunkHeader(_, _, .separator): fill(rect, palette.hunkBackground, context)
+        case .hunkHeader(_, _, .titled(let text)):
             fill(rect, palette.hunkBackground, context)
             drawText(
                 text, key: LineKey(row: index, side: .unified), x: geometry.unifiedTextX,

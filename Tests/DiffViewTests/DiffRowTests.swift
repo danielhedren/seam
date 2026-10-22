@@ -26,6 +26,11 @@ private func sampleReview() -> ReviewDiff {
     return ReviewDiff(scope: .all, files: [ReviewFile(diff: a), ReviewFile(diff: b)])
 }
 
+/// Names a.txt's hunk, so its header has a height.
+private let namedMain = [
+    "a.txt": FileSyntax(oldScopes: [SyntaxScope(lines: 0...9, name: "main")])
+]
+
 private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, characterWidth: 7)
 
 @Suite struct DiffRowBuilderTests {
@@ -33,7 +38,7 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
         let rows = DiffRowBuilder.rows(for: sampleReview(), mode: .unified)
         #expect(rows.count == 1 + 1 + 7 + 1 + 1)
         #expect(rows[0] == .fileHeader(file: 0))
-        #expect(rows[1] == .hunkHeader(file: 0, hunk: 0, text: ""))
+        #expect(rows[1] == .hunkHeader(file: 0, hunk: 0, .hidden))
         #expect(
             rows[3]
                 == .line(
@@ -113,7 +118,10 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
 
 @Suite struct DiffLayoutTests {
     private let layout = DiffLayout(
-        rows: DiffRowBuilder.rows(for: sampleReview(), mode: .unified), metrics: metrics)
+        rows: DiffRowBuilder.rows(
+            for: sampleReview(), mode: .unified,
+            syntax: namedMain),
+        metrics: metrics)
 
     @Test func rowTopsArePrefixSumsOfRowHeights() {
         #expect(layout.top(of: 0) == 0)
@@ -152,7 +160,8 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
     private let paths = ["a.txt", "b.txt"]
 
     private func layout(_ review: ReviewDiff, _ mode: DiffLayoutMode = .unified) -> DiffLayout {
-        DiffLayout(rows: DiffRowBuilder.rows(for: review, mode: mode), metrics: metrics)
+        DiffLayout(
+            rows: DiffRowBuilder.rows(for: review, mode: mode, syntax: namedMain), metrics: metrics)
     }
 
     @Test func anchorRoundTripsToTheSameLineAndOffset() throws {
@@ -177,7 +186,8 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
         let after = layout(review)
 
         let y = try #require(after.y(for: anchor, paths: ["0.txt"] + paths))
-        #expect(y == 85 + 20 + 10 + 30)
+        // The new file adds its header and three lines; its unnamed hunk header takes no space.
+        #expect(y == 85 + 20 + 30)
         #expect(after.anchor(atY: y, paths: ["0.txt"] + paths) == anchor)
     }
 
@@ -294,7 +304,7 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
         let rows = DiffRowBuilder.rows(
             for: sampleReview(), mode: .unified, syntax: ["a.txt": FileSyntax(oldScopes: scopes)])
 
-        #expect(rows[1] == .hunkHeader(file: 0, hunk: 0, text: "Handler › Setup"))
+        #expect(rows[1] == .hunkHeader(file: 0, hunk: 0, .titled("Handler › Setup")))
         var added = Hunk(oldStart: 4, oldCount: 1, newStart: 4, newCount: 2, section: "")
         added.lines = [
             DiffLine(kind: .context, text: "a", oldNumber: 4, newNumber: 4),

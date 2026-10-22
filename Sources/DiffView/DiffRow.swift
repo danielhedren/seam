@@ -32,9 +32,17 @@ struct GapRow: Equatable, Sendable {
     var canExpandUp: Bool
 }
 
+/// A hunk header always keeps its row, so hunk navigation stops there, but it shows only when it
+/// has a name or nothing else marks a jump in line numbers (SPEC §7.4).
+enum HunkHeaderStyle: Equatable, Sendable {
+    case titled(String)
+    case separator
+    case hidden
+}
+
 enum DiffRow: Equatable, Sendable {
     case fileHeader(file: Int)
-    case hunkHeader(file: Int, hunk: Int, text: String)
+    case hunkHeader(file: Int, hunk: Int, HunkHeaderStyle)
     case line(file: Int, UnifiedLine)
     /// Split mode: a removed line paired with an added line, or context on both sides.
     case split(file: Int, left: SideLine?, right: SideLine?)

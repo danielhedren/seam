@@ -71,7 +71,7 @@ struct DiffSnapshotTests {
 
     private func view(
         _ mode: DiffLayoutMode, _ appearance: NSAppearance.Name, highContrast: Bool = false,
-        collapsed: Set<String> = []
+        collapsed: Set<String> = [], viewed: [String: ViewedMarks.Status] = [:]
     ) -> DiffScrollView {
         let view = DiffScrollView()
         view.appearance = NSAppearance(named: appearance)
@@ -79,7 +79,8 @@ struct DiffSnapshotTests {
         view.frame = NSRect(x: 0, y: 0, width: 900, height: 460)
         view.show(
             DiffContent(
-                review: Self.review, mode: mode, collapsed: collapsed, syntax: Self.syntax),
+                review: Self.review, mode: mode, collapsed: collapsed, syntax: Self.syntax,
+                viewed: viewed),
             position: .top)
         view.layoutSubtreeIfNeeded()
         return view
@@ -171,6 +172,15 @@ struct DiffSnapshotTests {
             DiffContent(review: Self.review, syntax: Self.syntax, wraps: true), position: .top)
         view.layoutSubtreeIfNeeded()
         assertSnapshot(of: view, as: .image, named: "wrapped-\(Self.os)")
+    }
+
+    @Test func viewedCheckboxesShowEachState() {
+        for (appearance, name) in [(NSAppearance.Name.aqua, "light"), (.darkAqua, "dark")] {
+            let view = view(
+                .unified, appearance, collapsed: ["Sources/Order.swift", "Legacy.txt"],
+                viewed: ["Sources/Order.swift": .viewed, "Legacy.txt": .changedSinceViewed])
+            assertSnapshot(of: view, as: .image, named: "viewed-\(name)-\(Self.os)")
+        }
     }
 
     @Test func collapsedFileShowsOnlyItsHeader() {

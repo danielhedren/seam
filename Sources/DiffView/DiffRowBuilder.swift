@@ -45,22 +45,28 @@ enum DiffRowBuilder {
         let fileExpansions = content.expansions[file.diff.path] ?? [:]
         let lookup = SyntaxLookup(syntax: content.syntax[file.diff.path], tabWidth: tabWidth)
         var next = (old: 1, new: 1)
-        func gap(_ number: Int, until end: Int) {
-            guard let lines else { return }
+        /// The rows for a gap, or nil when the file's text isn't loaded.
+        @discardableResult
+        func gap(_ number: Int, until end: Int) -> [DiffRow]? {
+            guard let lines else { return nil }
             // max: a file that changed on disk since the diff can be shorter than its hunks.
-            rows += gapRows(
+            let gapRows = gapRows(
                 file: index, gap: number, newRange: next.new..<max(end, next.new),
                 oldOffset: next.old - next.new, lines: lines,
                 expansion: fileExpansions[number] ?? GapExpansion(), mode: content.mode,
                 lookup: lookup, isFirst: number == 0,
                 isLast: number == file.diff.hunks.count)
+            rows += gapRows
+            return gapRows
         }
         for (hunkIndex, hunk) in file.diff.hunks.enumerated() {
             let first = Self.first(hunk)
-            gap(hunkIndex, until: first.new)
+            let above = gap(hunkIndex, until: first.new)
             next = Self.next(hunk)
             rows.append(
-                .hunkHeader(file: index, hunk: hunkIndex, text: header(hunk, lookup.syntax)))
+                .hunkHeader(
+                    file: index, hunk: hunkIndex,
+                    style(header(hunk, lookup.syntax), above: above, isFirst: hunkIndex == 0)))
             let texts = hunk.lines.map { TabStops.expand($0.text, width: tabWidth) }
             let highlights = wordHighlights(hunk.lines, texts)
             let oldSyntax = hunk.lines.map { lookup.old($0.oldNumber, raw: $0.text) }
@@ -88,6 +94,16 @@ enum DiffRowBuilder {
             gap(file.diff.hunks.count, until: lines.count + 1)
         }
         return rows
+    }
+
+    /// A fully shown gap runs straight into the hunk, so no header. Otherwise a name shows, and
+    /// without one a thin band marks where line numbers jump, unless a gap row already does or the
+    /// hunk is the first thing in the file.
+    static func style(_ title: String, above: [DiffRow]?, isFirst: Bool) -> HunkHeaderStyle {
+        let hasGapRow = above?.contains { if case .gap = $0 { true } else { false } } ?? false
+        if let above, !above.isEmpty, !hasGapRow { return .hidden }
+        if !title.isEmpty { return .titled(title) }
+        return hasGapRow || isFirst ? .hidden : .separator
     }
 
     /// The definitions around the hunk's first change, from the syntax tree. Git's own section

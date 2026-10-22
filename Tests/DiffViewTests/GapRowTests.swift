@@ -55,6 +55,38 @@ import Testing
         }
     }
 
+    @Test func aHeaderGoesOnceTheGapAboveItIsFullyShown() {
+        let thing = [SyntaxScope(lines: 0...99, name: "Thing")]
+        let syntax = [path: FileSyntax(oldScopes: thing, newScopes: thing)]
+        func header(_ expansions: [Int: GapExpansion]) -> HunkHeaderStyle? {
+            DiffRowBuilder.rows(
+                for: content.review, mode: .unified, contents: content.contents,
+                expansions: expansions.isEmpty ? [:] : [path: expansions], syntax: syntax
+            ).compactMap { if case .hunkHeader(_, _, let style) = $0 { style } else { nil } }.first
+        }
+        #expect(header([:]) == .titled("Thing"))
+        #expect(header([0: GapExpansion(top: 10)]) == .titled("Thing"))
+        #expect(header([0: .all]) == .hidden)
+    }
+
+    @Test func anUnnamedHeaderShowsOnlyWhereNothingElseMarksAJump() {
+        let gapRow = DiffRow.gap(
+            file: 0, GapRow(gap: 1, hidden: 5, canExpandDown: true, canExpandUp: true))
+        #expect(DiffRowBuilder.style("", above: nil, isFirst: false) == .separator)
+        #expect(DiffRowBuilder.style("", above: nil, isFirst: true) == .hidden)
+        #expect(DiffRowBuilder.style("", above: [gapRow], isFirst: false) == .hidden)
+        #expect(DiffRowBuilder.style("f", above: [gapRow], isFirst: false) == .titled("f"))
+    }
+
+    @Test func anEmptyHeaderTakesNoSpaceButStillStopsNavigation() {
+        let layout = DiffLayout(
+            rows: rows(),
+            metrics: DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, characterWidth: 7))
+        let header = layout.rows.firstIndex { $0.isHunkHeader }
+        #expect(header.map(layout.height) == 0)
+        #expect(layout.nextStop(after: 0, files: false) == header)
+    }
+
     @Test func hiddenLinesAboveAndBelowTheHunkBecomeGapRows() {
         let gaps = gaps(rows())
         #expect(

@@ -49,6 +49,9 @@
     "Change in %@" : {
 
     },
+    "Changed since viewed" : {
+
+    },
     "Copied without changes" : {
 
     },
@@ -86,6 +89,9 @@
     "Show all %lld lines" : {
 
     },
+    "Viewed" : {
+
+    },
     "added" : {
 
     },
@@ -102,15 +108,6 @@
 
     },
     "⊘ no newline at end of file" : {
-
-    },
-    "◐ Changed since viewed" : {
-
-    },
-    "☐ Viewed" : {
-
-    },
-    "☑ Viewed" : {
 
     }
   },

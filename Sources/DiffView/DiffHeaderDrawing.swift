@@ -23,46 +23,59 @@ enum DiffHeaderDrawing {
     struct Layout {
         var pieces: [(line: CTLine, color: RGB, x: Double)]
         var baseline: Double
-        /// The viewed checkbox, which toggles the mark instead of collapsing the file.
+        var disclosure: NSRect
+        var checkbox: NSRect
+        /// The checkbox and its label, which toggle the mark instead of collapsing the file.
         var viewedFrame: NSRect
     }
 
+    /// Controls are drawn at the text's height so they line up with it; the viewed checkbox
+    /// sits at the right edge, in the same place on every file.
     static func layout(
         _ file: ReviewFile, collapsed: Bool, viewed: ViewedMarks.Status, in rect: NSRect,
         font: NSFont, palette: DiffPalette
     ) -> Layout {
         let bold = NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask)
-        let viewedLabel =
-            switch viewed {
-            case .unviewed: String(localized: "☐ Viewed", bundle: .module)
-            case .viewed: String(localized: "☑ Viewed", bundle: .module)
-            case .changedSinceViewed: String(localized: "◐ Changed since viewed", bundle: .module)
-            }
-        var x = rect.minX + 10
+        let control = controlSize(font)
+        let gap = 12.0
+        let disclosure = NSRect(
+            x: rect.minX + 10, y: rect.midY - control / 2, width: control, height: control)
+        var x = disclosure.maxX + 8
         var pieces: [(line: CTLine, color: RGB, x: Double)] = []
-        var viewedFrame = NSRect.zero
-        for (text, color, textFont) in [
-            (collapsed ? "▸" : "▾", palette.gutterText, font),
-            (title(file), palette.text, bold),
-            ("+\(file.diff.additions)", palette.addedMarker, font),
-            ("−\(file.diff.deletions)", palette.removedMarker, font),
-            (
-                viewedLabel,
-                viewed == .changedSinceViewed ? palette.removedMarker : palette.gutterText, font
-            ),
-        ] {
+        func add(_ text: String, _ color: RGB, _ textFont: NSFont, at position: Double) -> Double {
             let line = TextLine.make(text, font: textFont)
-            let width = CTLineGetTypographicBounds(line, nil, nil, nil)
-            if text == viewedLabel {
-                x += 12
-                viewedFrame = NSRect(x: x - 6, y: rect.minY, width: width + 12, height: rect.height)
-            }
-            pieces.append((line, color, x))
-            x += width + 12
+            pieces.append((line, color, position))
+            return CTLineGetTypographicBounds(line, nil, nil, nil)
         }
+        x += add(title(file), palette.text, bold, at: x) + gap
+        // Binary files and pure renames have no lines to count.
+        if file.diff.additions + file.diff.deletions > 0 {
+            x += add("+\(file.diff.additions)", palette.addedMarker, font, at: x) + gap
+            x += add("−\(file.diff.deletions)", palette.removedMarker, font, at: x) + gap
+        }
+
+        let label =
+            viewed == .changedSinceViewed
+            ? String(localized: "Changed since viewed", bundle: .module)
+            : String(localized: "Viewed", bundle: .module)
+        let labelLine = TextLine.make(label, font: font)
+        let labelWidth = CTLineGetTypographicBounds(labelLine, nil, nil, nil)
+        let viewedWidth = control + 6 + labelWidth
+        // A long path pushes the checkbox along rather than under it.
+        let viewedX = max(x, rect.maxX - 14 - viewedWidth)
+        let checkbox = NSRect(
+            x: viewedX, y: rect.midY - control / 2, width: control, height: control)
+        pieces.append((labelLine, palette.gutterText, checkbox.maxX + 6))
         return Layout(
             pieces: pieces, baseline: rect.midY + (bold.ascender + bold.descender) / 2,
-            viewedFrame: viewedFrame)
+            disclosure: disclosure, checkbox: checkbox,
+            viewedFrame: NSRect(
+                x: viewedX - 6, y: rect.minY, width: viewedWidth + 12, height: rect.height))
+    }
+
+    /// About the height of a capital plus its padding, as AppKit sizes a checkbox to its label.
+    static func controlSize(_ font: NSFont) -> Double {
+        (font.capHeight + 5).rounded()
     }
 
     static func draw(
@@ -76,12 +89,79 @@ enum DiffHeaderDrawing {
         context.fill(NSRect(x: rect.minX, y: rect.minY, width: rect.width, height: 1))
         let layout = layout(
             file, collapsed: collapsed, viewed: viewed, in: rect, font: font, palette: palette)
+        drawDisclosure(in: layout.disclosure, collapsed: collapsed, palette: palette, context)
+        drawCheckbox(in: layout.checkbox, viewed, palette: palette, context)
         context.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
         for piece in layout.pieces {
             context.setFillColor(piece.color.nsColor.cgColor)
             context.textPosition = CGPoint(x: piece.x, y: layout.baseline)
             CTLineDraw(piece.line, context)
         }
+    }
+
+    private static func drawDisclosure(
+        in rect: NSRect, collapsed: Bool, palette: DiffPalette, _ context: CGContext
+    ) {
+        let inset = rect.insetBy(dx: rect.width * 0.28, dy: rect.height * 0.28)
+        context.saveGState()
+        context.setStrokeColor(palette.gutterText.nsColor.cgColor)
+        context.setLineWidth(1.6)
+        context.setLineCap(.round)
+        context.setLineJoin(.round)
+        if collapsed {
+            context.move(to: CGPoint(x: inset.minX + inset.width * 0.25, y: inset.minY))
+            context.addLine(to: CGPoint(x: inset.maxX - inset.width * 0.25, y: inset.midY))
+            context.addLine(to: CGPoint(x: inset.minX + inset.width * 0.25, y: inset.maxY))
+        } else {
+            context.move(to: CGPoint(x: inset.minX, y: inset.minY + inset.height * 0.25))
+            context.addLine(to: CGPoint(x: inset.midX, y: inset.maxY - inset.height * 0.25))
+            context.addLine(to: CGPoint(x: inset.maxX, y: inset.minY + inset.height * 0.25))
+        }
+        context.strokePath()
+        context.restoreGState()
+    }
+
+    private static func drawCheckbox(
+        in rect: NSRect, _ status: ViewedMarks.Status, palette: DiffPalette, _ context: CGContext
+    ) {
+        let box = CGPath(
+            roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerWidth: 3.5, cornerHeight: 3.5,
+            transform: nil)
+        context.saveGState()
+        let fill: NSColor? =
+            switch status {
+            case .unviewed: nil
+            case .viewed: .controlAccentColor
+            case .changedSinceViewed: .systemOrange
+            }
+        context.addPath(box)
+        if let fill {
+            context.setFillColor(fill.cgColor)
+            context.fillPath()
+            context.setStrokeColor(NSColor.white.cgColor)
+            context.setLineWidth(1.8)
+            context.setLineCap(.round)
+            context.setLineJoin(.round)
+            let mark = rect.insetBy(dx: rect.width * 0.24, dy: rect.height * 0.24)
+            if status == .viewed {
+                context.move(to: CGPoint(x: mark.minX, y: mark.midY))
+                context.addLine(
+                    to: CGPoint(x: mark.minX + mark.width * 0.38, y: mark.maxY - mark.height * 0.1))
+                context.addLine(to: CGPoint(x: mark.maxX, y: mark.minY + mark.height * 0.1))
+            } else {
+                context.move(to: CGPoint(x: mark.minX, y: mark.midY))
+                context.addLine(to: CGPoint(x: mark.maxX, y: mark.midY))
+            }
+            context.strokePath()
+        } else {
+            context.setFillColor(palette.background.nsColor.cgColor)
+            context.fillPath()
+            context.addPath(box)
+            context.setStrokeColor(palette.gutterText.nsColor.withAlphaComponent(0.7).cgColor)
+            context.setLineWidth(1)
+            context.strokePath()
+        }
+        context.restoreGState()
     }
 }
 

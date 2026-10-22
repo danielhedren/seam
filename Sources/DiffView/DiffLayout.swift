@@ -34,6 +34,8 @@ struct DiffLayout: Equatable, Sendable {
                 switch row {
                 case .fileHeader: metrics.fileHeaderHeight
                 case .image: metrics.imageHeight
+                case .hunkHeader(_, _, .separator): (metrics.lineHeight / 3).rounded()
+                case .hunkHeader(_, _, .hidden): 0.0
                 case .line(_, let line):
                     metrics.lineHeight * Double(Self.visualLines(line.text.count, wrapColumns))
                 case .split(_, let left, let right):
@@ -128,9 +130,9 @@ struct DiffLayout: Equatable, Sendable {
         switch row {
         case .line(_, let line): line.text.count
         case .split(_, let left, let right): max(left?.text.count ?? 0, right?.text.count ?? 0)
-        case .hunkHeader(_, _, let text), .notice(_, let text): text.count
+        case .hunkHeader(_, _, .titled(let text)), .notice(_, let text): text.count
         case .gap(_, let gap): DiffRowBuilder.gapLabel(gap).text.count
-        case .fileHeader, .image: 0
+        case .fileHeader, .image, .hunkHeader: 0
         }
     }
 }
