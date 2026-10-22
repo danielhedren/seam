@@ -6,9 +6,9 @@ import Testing
 
 @testable import Features
 
-/// Geometry of a worktree row (SPEC §7.2), measured from off-screen renders.
+/// A worktree row (SPEC §7.2), measured from off-screen renders.
 @MainActor
-struct WorktreeRowLayoutTests {
+struct WorktreeRowTests {
     @Test func rowWithNothingToCountHasNoEmptyLine() async throws {
         let repo = try await FixtureRepo()
         let level = review(Worktree(path: repo.main, branch: "main", isMain: true), repo)
@@ -29,6 +29,23 @@ struct WorktreeRowLayoutTests {
         #expect(abs(name - marker) <= 2)
     }
 
+    @Test func selectedRowDrawsCountsInItsTextColour() async throws {
+        let repo = try await FixtureRepo()
+        let tree = try await repo.worktree("feature", branch: "feature", from: "origin/main")
+        try await repo.commit("a.txt", "a\nb\n", "Add a", in: tree)
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        session.select(tree.path)
+        await session.settled()
+        let review = try #require(session.selected)
+        #expect(review.activity?.changes?.additions == 2)
+        let normal = try render(WorktreeRow(review: review))
+        let selected = try render(
+            WorktreeRow(review: review).environment(\.backgroundProminence, .increased))
+        #expect(colouredPixels(in: normal) > 0)
+        #expect(colouredPixels(in: selected) == 0)
+    }
+
     private func review(_ worktree: Worktree, _ repo: FixtureRepo) -> WorktreeReview {
         WorktreeReview(worktree: worktree, services: services(repo.git))
     }
@@ -43,6 +60,23 @@ struct WorktreeRowLayoutTests {
         let rep = try #require(host.bitmapImageRepForCachingDisplay(in: host.bounds))
         host.cacheDisplay(in: host.bounds, to: rep)
         return try #require(rep.cgImage)
+    }
+
+    /// Pixels with a clearly green or red cast, as the `+`/`−` totals are drawn.
+    private func colouredPixels(in image: CGImage) -> Int {
+        guard let data = image.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else {
+            return 0
+        }
+        let step = image.bitsPerPixel / 8
+        var count = 0
+        for y in 0..<image.height {
+            for x in 0..<image.width {
+                let pixel = y * image.bytesPerRow + x * step
+                let (r, g, b) = (Int(bytes[pixel]), Int(bytes[pixel + 1]), Int(bytes[pixel + 2]))
+                if abs(g - r) > 60 && abs(g - b) > 40 { count += 1 }
+            }
+        }
+        return count
     }
 
     /// The leftmost column in `rows` with a pixel that isn't transparent.

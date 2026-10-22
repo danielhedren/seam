@@ -260,6 +260,8 @@ Each row shows:
   minute, or a time ahead of the clock (a file copied from another machine), reads "now".
 - State markers: detached, locked, prunable (from porcelain output), missing directory, stale
   parent (§5.4).
+- The totals are green and red and the markers orange, except on a selected row, where they
+  take the row's text colour: the accent fill leaves those colours unreadable.
 
 Sorting: most recently changed first (default), or by name. The main worktree is pinned to the
 top. Worktrees whose directory is missing are listed dimmed, and can be hidden.

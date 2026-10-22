@@ -30,6 +30,7 @@ struct WorktreeList: View {
 
 struct WorktreeRow: View {
     let review: WorktreeReview
+    @Environment(\.backgroundProminence) private var prominence
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -49,12 +50,12 @@ struct WorktreeRow: View {
                     if !summary.isEmpty { Text(summary).lineLimit(1) }
                     if uncommittedFiles > 0 { Text(verbatim: "✎\(uncommittedFiles)") }
                     ForEach(markers, id: \.self) { marker in
-                        Text(marker).foregroundStyle(.orange)
+                        Text(marker).foregroundStyle(tint(.orange))
                     }
                     Spacer(minLength: 0)
                     if let changes = review.activity?.changes, changes.files > 0 {
-                        Text(verbatim: "+\(changes.additions)").foregroundStyle(.green)
-                        Text(verbatim: "−\(changes.deletions)").foregroundStyle(.red)
+                        Text(verbatim: "+\(changes.additions)").foregroundStyle(tint(.green))
+                        Text(verbatim: "−\(changes.deletions)").foregroundStyle(tint(.red))
                     }
                 }
                 .font(.caption)
@@ -64,6 +65,12 @@ struct WorktreeRow: View {
         }
         .padding(.vertical, 2)
         .opacity(review.worktree.isMissing ? 0.5 : 1)
+    }
+
+    /// Green, red and orange are unreadable on a selected row's accent fill; the signs and words
+    /// still carry the meaning there.
+    private func tint(_ color: Color) -> AnyShapeStyle {
+        prominence == .increased ? AnyShapeStyle(.foreground) : AnyShapeStyle(color)
     }
 
     private var uncommittedFiles: Int { review.activity?.uncommittedFiles ?? 0 }
