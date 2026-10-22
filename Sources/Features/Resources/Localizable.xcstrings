@@ -25,6 +25,16 @@
     "%lld files" : {
 
     },
+    "%lld files changed, %lld lines added, %lld removed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld files changed, %2$lld lines added, %3$lld removed"
+          }
+        }
+      }
+    },
     "%lld of %lld" : {
       "localizations" : {
         "en" : {
@@ -47,6 +57,12 @@
           }
         }
       }
+    },
+    "1 commit" : {
+
+    },
+    "1 file" : {
+
     },
     "A repository's .editorconfig overrides the tab width." : {
 

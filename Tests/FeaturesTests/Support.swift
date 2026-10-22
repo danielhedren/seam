@@ -79,7 +79,8 @@ final class GatedGit: GitClient, Sendable {
 
     func run(_ arguments: [String], in directory: URL, input: Data?) async throws(GitError) -> Data
     {
-        if arguments.first == command, directory.path == gated {
+        // A row's totals are a `diff --shortstat`; holding those would stall every row refresh.
+        if arguments.first == command, !arguments.contains("--shortstat"), directory.path == gated {
             await hold()
         }
         // Detached, so a cancelled caller still gets a result: the session alone must discard it.

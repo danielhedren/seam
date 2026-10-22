@@ -152,6 +152,23 @@ import Testing
         #expect(activity.lastChange != nil)
     }
 
+    @Test func totalsAgainstTheBaseCountCommittedUncommittedAndUntrackedLines() async throws {
+        let repo = try await FixtureRepo()
+        let base = try await repo.sha("HEAD")
+        try await repo.commit("a.txt", "1\n2\n", "add a")
+        try repo.write("README.md", "changed\n")
+        try repo.write("new.txt", "x\ny\nz")
+        try Data([0, 1, 2]).write(to: repo.main.appending(path: "blob.bin"))
+
+        let activity = try await WorktreeActivityService(git: repo.git).activity(
+            of: repo.main, base: base)
+
+        // a.txt +2, README.md +1 −1, new.txt +3 (no final newline), blob.bin no lines.
+        #expect(activity.changes == DiffStat(files: 4, additions: 6, deletions: 1))
+        #expect(
+            try await WorktreeActivityService(git: repo.git).activity(of: repo.main).changes == nil)
+    }
+
     @Test func cleanWorktreeReportsTheHeadCommitTime() async throws {
         let repo = try await FixtureRepo()
         let committed = try await repo.run("log", "-1", "--format=%ct")
@@ -185,5 +202,20 @@ import Testing
             ])
         #expect(review.files.map(\.isGenerated) == [false, false, false, true, true, true])
         #expect(review.files.map(\.startsCollapsed) == [false, false, false, true, true, true])
+    }
+}
+
+@Suite struct DiffStatTests {
+    @Test(arguments: [
+        (
+            " 19 files changed, 454 insertions(+), 948 deletions(-)\n",
+            DiffStat(files: 19, additions: 454, deletions: 948)
+        ),
+        (" 1 file changed, 1 insertion(+)\n", DiffStat(files: 1, additions: 1, deletions: 0)),
+        (" 2 files changed, 3 deletions(-)\n", DiffStat(files: 2, additions: 0, deletions: 3)),
+        ("", DiffStat(files: 0, additions: 0, deletions: 0)),
+    ])
+    func shortstatLinesParse(line: String, expected: DiffStat) {
+        #expect(DiffStat.parse(line) == expected)
     }
 }

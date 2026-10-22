@@ -239,7 +239,10 @@ keeps the position.
 
 Each row shows:
 - The worktree directory name in bold, and the branch name if it differs.
-- `+N` commits unique to the branch (from §5), and `✎N` uncommitted files.
+- The commits unique to the branch (from §5) and the files changed against its base ("5 commits ·
+  19 files"), `✎N` uncommitted files, and the line totals (`+454 −948`) on the right. Totals
+  include uncommitted changes and untracked text files, and are measured from the same base as
+  the diff.
 - Time since the last change in that worktree: the newest of the HEAD commit time, the changed
   files' modification times (from `git status`), and the last watcher event for it.
 - State markers: detached, locked, prunable (from porcelain output), missing directory, stale

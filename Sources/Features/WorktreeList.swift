@@ -28,35 +28,60 @@ struct WorktreeRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(review.worktree.name).bold().lineLimit(1).truncationMode(.middle)
+            HStack(alignment: .firstTextBaseline) {
+                Text(review.worktree.name).bold().lineLimit(1).truncationMode(.middle)
+                Spacer(minLength: 4)
+                if let date = review.lastChange {
+                    TimelineView(.periodic(from: .now, by: 60)) { _ in
+                        Text(date, format: .relative(presentation: .numeric, unitsStyle: .narrow))
+                    }
+                    .font(.caption).foregroundStyle(.secondary)
+                }
+            }
             if let branch = review.worktree.branch, branch != review.worktree.name {
                 Text(branch).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     .truncationMode(.middle)
             }
-            HStack(spacing: 8) {
-                if let commits = review.uniqueCommitCount {
-                    Text(verbatim: "+\(commits)").monospacedDigit()
-                }
+            HStack(spacing: 6) {
+                Text(summary).lineLimit(1)
                 if let files = review.activity?.uncommittedFiles, files > 0 {
-                    Text(verbatim: "✎\(files)").monospacedDigit()
+                    Text(verbatim: "✎\(files)")
                 }
                 ForEach(markers, id: \.self) { marker in
                     Text(marker).foregroundStyle(.orange)
                 }
                 Spacer(minLength: 0)
-                if let date = review.lastChange {
-                    TimelineView(.periodic(from: .now, by: 60)) { _ in
-                        Text(date, format: .relative(presentation: .numeric, unitsStyle: .narrow))
-                    }
+                if let changes = review.activity?.changes, changes.files > 0 {
+                    Text(verbatim: "+\(changes.additions)").foregroundStyle(.green)
+                    Text(verbatim: "−\(changes.deletions)").foregroundStyle(.red)
                 }
             }
             .font(.caption)
+            .monospacedDigit()
             .foregroundStyle(.secondary)
         }
         .padding(.vertical, 2)
         .opacity(review.worktree.isMissing ? 0.5 : 1)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityText)
+    }
+
+    /// "5 commits · 19 files": what the branch adds, against its base.
+    private var summary: String {
+        var parts: [String] = []
+        if let commits = review.uniqueCommitCount {
+            parts.append(
+                commits == 1
+                    ? String(localized: "1 commit", bundle: .module)
+                    : String(localized: "\(commits) commits", bundle: .module))
+        }
+        if let files = review.activity?.changes?.files {
+            parts.append(
+                files == 1
+                    ? String(localized: "1 file", bundle: .module)
+                    : String(localized: "\(files) files", bundle: .module))
+        }
+        return parts.joined(separator: " · ")
     }
 
     private var markers: [String] {
@@ -79,6 +104,13 @@ struct WorktreeRow: View {
         }
         if let commits = review.uniqueCommitCount {
             parts.append(String(localized: "\(commits) commits ahead", bundle: .module))
+        }
+        if let changes = review.activity?.changes {
+            parts.append(
+                String(
+                    localized:
+                        "\(changes.files) files changed, \(changes.additions) lines added, \(changes.deletions) removed",
+                    bundle: .module))
         }
         if let files = review.activity?.uncommittedFiles {
             parts.append(String(localized: "\(files) uncommitted files", bundle: .module))

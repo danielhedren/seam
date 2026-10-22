@@ -121,6 +121,14 @@ final class WorktreeReview: Identifiable {
     }
     private var lastEvent: Date?
     private var overrideCommitCount: Int?
+    /// The chosen parent's merge base, once a load has resolved it.
+    private var overrideBase: String?
+    private var activityBase: String?
+
+    /// What the row's totals are measured from: the same base the diff uses.
+    private var statsBase: String? {
+        baseOverride == nil ? detection?.base : overrideBase
+    }
 
     func noteChange(at date: Date) {
         lastEvent = date
@@ -328,10 +336,12 @@ final class WorktreeReview: Identifiable {
 
     func refreshActivity() async {
         guard !worktree.isMissing else { return }
+        let base = statsBase
         do {
             activity = try await WorktreeActivityService(
                 git: services.git, fileSystem: services.fileSystem
-            ).activity(of: worktree.path)
+            ).activity(of: worktree.path, base: base)
+            activityBase = base
         } catch {
             logger.error("status failed for \(self.id, privacy: .public): \(error)")
         }
@@ -442,6 +452,9 @@ final class WorktreeReview: Identifiable {
                 return
             }
             overrideCommitCount = base.commitCount
+            overrideBase = baseOverride == nil ? nil : base.commit
+            // Another parent, or detection's first answer, moves the row's totals too.
+            if statsBase != activityBase { await refreshActivity() }
             await checkStaleParent(detection)
             let log = try await CommitLog.load(
                 base: base.commit, in: worktree.path, git: services.git)
