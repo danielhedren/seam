@@ -9,11 +9,7 @@ struct FileList: View {
 
     var body: some View {
         let files = review.diff?.files ?? []
-        let rows = FileTree.rows(
-            files.map(\.diff.path), flat: review.flatFileList,
-            collapsed: review.collapsedDirectories, filter: review.fileFilter,
-            generated: Set(files.indices.filter { files[$0].isGenerated }),
-            showsGenerated: review.showsGenerated)
+        let rows = review.fileListRows
         VStack(spacing: 0) {
             HStack {
                 if let diff = review.diff {

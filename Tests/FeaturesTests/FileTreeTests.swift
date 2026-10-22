@@ -1,4 +1,5 @@
 import Foundation
+import TestSupport
 import Testing
 
 @testable import Features
@@ -81,5 +82,31 @@ import Testing
         #expect(exact > scattered)
         #expect(FuzzyMatch.score("xyz", in: "ticket-1894") == nil)
         #expect(FuzzyMatch.score("", in: "anything") == 0)
+    }
+}
+
+@MainActor @Suite struct FileListRowsTests {
+    @Test func theRowsAreBuiltOnceAndFollowTheListOptionsAndTheDiff() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("src/a.txt", "a\n")
+        try repo.write("b.txt", "b\n")
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        await session.settled()
+        let review = try #require(session.selected)
+        #expect(review.fileListRows.map(\.id) == ["src/", "src/a.txt", "b.txt"])
+
+        // Unchanged inputs are answered from the cache.
+        review.fileListCache.rows = []
+        #expect(review.fileListRows.isEmpty)
+
+        review.flatFileList = true
+        #expect(review.fileListRows.map(\.id) == ["src/a.txt", "b.txt"])
+        review.fileFilter = "^b"
+        #expect(review.fileListRows.map(\.id) == ["src/a.txt"])
+        try repo.write("c.txt", "c\n")
+        review.reloadDiff()
+        await review.loaded()
+        #expect(review.fileListRows.map(\.id) == ["src/a.txt", "c.txt"])
     }
 }

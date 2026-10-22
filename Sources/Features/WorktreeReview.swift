@@ -95,6 +95,7 @@ final class WorktreeReview: Identifiable {
     /// The repo's threads; this worktree's are placed on its diff (SPEC §7.7).
     var threads: RepoThreads?
     @ObservationIgnored let placementCache = ThreadPlacementCache()
+    @ObservationIgnored let fileListCache = FileListCache()
 
     let services: SeamServices
     private var loadTask: Task<Void, Never>?
