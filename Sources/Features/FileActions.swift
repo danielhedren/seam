@@ -16,9 +16,9 @@ enum FileActions {
         let lines = target.lines
         let comment =
             lines.count == 1
-            ? String(localized: "Comment on Line \(lines.lowerBound)", bundle: .module)
+            ? String(localized: "Comment on Line \(lines.lowerBound)…", bundle: .module)
             : String(
-                localized: "Comment on Lines \(lines.lowerBound)–\(lines.upperBound)",
+                localized: "Comment on Lines \(lines.lowerBound)–\(lines.upperBound)…",
                 bundle: .module)
         return menu([
             [Action(title: comment) { session.comment() }],
@@ -61,8 +61,8 @@ enum FileActions {
                 ) { session.toggleViewed(path, advance: false) },
                 Action(
                     title: collapsed
-                        ? String(localized: "Expand", bundle: .module)
-                        : String(localized: "Collapse", bundle: .module)
+                        ? String(localized: "Expand File", bundle: .module)
+                        : String(localized: "Collapse File", bundle: .module)
                 ) { session.toggleCollapsed(path) },
             ],
         ]

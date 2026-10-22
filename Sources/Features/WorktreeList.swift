@@ -18,7 +18,7 @@ struct WorktreeList: View {
         .contextMenu {
             Picker(String(localized: "Sort By", bundle: .module), selection: Bindable(session).sort)
             {
-                Text("Recently Changed", bundle: .module).tag(WorktreeSort.recent)
+                Text("Recent Change", bundle: .module).tag(WorktreeSort.recent)
                 Text("Name", bundle: .module).tag(WorktreeSort.name)
             }
             Toggle(

@@ -397,7 +397,7 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   police authorship: the agent prompt asks agents to leave the reader's threads to the reader,
   and the reader can ask an agent to do anything with them.
 - **Creating:** select lines in the diff (or put the cursor on one) and press `c`, or Review ›
-  Comment…, or right-click: "Comment on Line N" for the clicked line, or "Comment on Lines N–M"
+  Comment…, or right-click: "Comment on Line N…" for the clicked line, or "Comment on Lines N–M…"
   when the click is inside a selection, which a right-click elsewhere replaces with the clicked
   line. A composer opens in the diff under the last of those lines (in their column side by
   side), with the cursor in it; ⌘↩ posts and Escape cancels. The lines a selection or a clicked

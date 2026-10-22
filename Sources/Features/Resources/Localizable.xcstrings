@@ -81,19 +81,16 @@
     "Changes show here as soon as files in this worktree are edited." : {
 
     },
-    "Choose Base…" : {
+    "Choose Base" : {
 
     },
-    "Choose what to compare with" : {
+    "Choose Base…" : {
 
     },
     "Clear Filter" : {
 
     },
     "Clear Menu" : {
-
-    },
-    "Collapse" : {
 
     },
     "Collapse File" : {
@@ -108,15 +105,15 @@
     "Command Palette…" : {
 
     },
-    "Comment on Line %lld" : {
+    "Comment on Line %lld…" : {
 
     },
-    "Comment on Lines %lld–%lld" : {
+    "Comment on Lines %lld–%lld…" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Comment on Lines %1$lld–%2$lld"
+            "value" : "Comment on Lines %1$lld–%2$lld…"
           }
         }
       }
@@ -130,7 +127,7 @@
     "Committed Changes" : {
 
     },
-    "Compare against" : {
+    "Compare with" : {
 
     },
     "Context lines" : {
@@ -184,7 +181,7 @@
     "Delete Thread" : {
 
     },
-    "Delete this thread; Undo brings it back" : {
+    "Delete this thread (Undo brings it back)" : {
 
     },
     "Diff" : {
@@ -203,9 +200,6 @@
 
     },
     "Editor" : {
-
-    },
-    "Expand" : {
 
     },
     "Expand File" : {
@@ -422,7 +416,7 @@
     "Recent" : {
 
     },
-    "Recently Changed" : {
+    "Recent Change" : {
 
     },
     "Reload" : {
@@ -470,6 +464,9 @@
     "Search commands and worktrees" : {
 
     },
+    "Search worktrees and branches" : {
+
+    },
     "Select a worktree" : {
 
     },
@@ -503,13 +500,16 @@
     "Show as Flat List" : {
 
     },
-    "Show or hide review threads" : {
+    "Show as Tree" : {
 
     },
     "Side by Side" : {
 
     },
     "Side by side" : {
+
+    },
+    "Side by side or unified" : {
 
     },
     "Size" : {
@@ -530,9 +530,6 @@
     "Switch Worktree…" : {
 
     },
-    "Switch to worktree" : {
-
-    },
     "Tab width" : {
 
     },
@@ -542,13 +539,13 @@
     "The chosen base %@ no longer exists." : {
 
     },
-    "The threads were saved by a newer Seam; update to change them." : {
-
-    },
     "The working tree matches the branch's latest commit." : {
 
     },
     "The worktree's directory is missing" : {
+
+    },
+    "These threads were saved by a newer version of Seam. Update Seam to change them." : {
 
     },
     "This copy of Seam doesn't include the seam command. Build it with make app or make install." : {
@@ -557,16 +554,13 @@
     "This worktree's directory is missing. If it was deleted, “git worktree prune” takes it off the list." : {
 
     },
-    "Thread %@ no longer exists." : {
+    "Thread #%@ no longer exists." : {
 
     },
     "Threads" : {
 
     },
     "Together they leave every file as it was." : {
-
-    },
-    "Toggle side-by-side" : {
 
     },
     "Uncommitted Changes" : {

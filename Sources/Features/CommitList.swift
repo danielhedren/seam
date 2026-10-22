@@ -32,7 +32,7 @@ struct CommitList: View {
                     .selectionDisabled()
                     .help(
                         CommandCatalog.help(
-                            String(localized: "Choose what to compare with", bundle: .module),
+                            String(localized: "Choose Base", bundle: .module),
                             command: "base")
                     )
                     .modifier(BasePickerPopover(session: session, review: review))

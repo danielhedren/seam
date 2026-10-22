@@ -162,7 +162,7 @@ struct ReviewToolbar: ToolbarContent {
             }
             .help(
                 CommandCatalog.help(
-                    String(localized: "Toggle side-by-side", bundle: .module),
+                    String(localized: "Side by side or unified", bundle: .module),
                     command: "side-by-side")
             )
             .disabled(review == nil)
@@ -188,7 +188,9 @@ struct ReviewToolbar: ToolbarContent {
             }
             .help(
                 CommandCatalog.help(
-                    String(localized: "Show or hide review threads", bundle: .module),
+                    session.showsThreadPanel
+                        ? String(localized: "Hide Threads", bundle: .module)
+                        : String(localized: "Show Threads", bundle: .module),
                     command: "thread-panel")
             )
             .disabled(review == nil)

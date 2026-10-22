@@ -12,20 +12,22 @@ struct WorktreeSwitcher: View {
     var body: some View {
         let matches = Self.matches(query, in: session.sortedReviews)
         VStack(spacing: 0) {
-            TextField(String(localized: "Switch to worktree", bundle: .module), text: $query)
-                .textFieldStyle(.plain)
-                .font(.title3)
-                .padding(12)
-                .focused($fieldFocused)
-                .onSubmit { pick(matches.first { $0.id == selection } ?? matches.first) }
-                .onKeyPress(.downArrow) {
-                    selection = Self.moved(selection, by: 1, in: matches.map(\.id))
-                    return .handled
-                }
-                .onKeyPress(.upArrow) {
-                    selection = Self.moved(selection, by: -1, in: matches.map(\.id))
-                    return .handled
-                }
+            TextField(
+                String(localized: "Search worktrees and branches", bundle: .module), text: $query
+            )
+            .textFieldStyle(.plain)
+            .font(.title3)
+            .padding(12)
+            .focused($fieldFocused)
+            .onSubmit { pick(matches.first { $0.id == selection } ?? matches.first) }
+            .onKeyPress(.downArrow) {
+                selection = Self.moved(selection, by: 1, in: matches.map(\.id))
+                return .handled
+            }
+            .onKeyPress(.upArrow) {
+                selection = Self.moved(selection, by: -1, in: matches.map(\.id))
+                return .handled
+            }
             Divider()
             ScrollViewReader { scroller in
                 List(matches, selection: $selection) { review in

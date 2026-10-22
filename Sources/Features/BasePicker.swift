@@ -10,7 +10,7 @@ struct BasePicker: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("Compare against", bundle: .module).font(.headline).padding(.bottom, 6)
+            Text("Compare with", bundle: .module).font(.headline).padding(.bottom, 6)
             ForEach(review.detection?.candidates ?? [], id: \.ref) { candidate in
                 Button {
                     session.setBaseOverride(candidate.ref)

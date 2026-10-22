@@ -620,7 +620,7 @@ extension DiffCanvasView {
         drawText(
             title, key: nil, x: frame.minX + DraftEditor.textInset, rowTop: frame.minY + 2,
             color: palette.gutterText, context: context)
-        let hint = String(localized: "⌘↩ comment   esc cancel", bundle: .module)
+        let hint = String(localized: "⌘↩ Comment   ⎋ Cancel", bundle: .module)
         drawText(
             hint, key: nil,
             x: frame.maxX - DraftEditor.textInset - Double(hint.count)

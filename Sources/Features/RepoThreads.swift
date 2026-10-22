@@ -119,11 +119,12 @@ final class RepoThreads {
     static func describe(_ error: ThreadError) -> String {
         switch error {
         case .unknownThread(let id):
-            String(localized: "Thread \(id) no longer exists.", bundle: .module)
+            String(localized: "Thread #\(id) no longer exists.", bundle: .module)
         case .emptyComment: String(localized: "Write something first.", bundle: .module)
         case .unsupportedVersion:
             String(
-                localized: "The threads were saved by a newer Seam; update to change them.",
+                localized:
+                    "These threads were saved by a newer version of Seam. Update Seam to change them.",
                 bundle: .module)
         case .unreadable(let message):
             String(localized: "Couldn't read the threads: \(message)", bundle: .module)

@@ -523,9 +523,9 @@ import Testing
         #expect(titles().contains("Mark as Viewed"))
         session.toggleViewed("dir/a.txt", advance: false)
         #expect(titles().contains("Mark as Not Viewed"))
-        #expect(titles().contains("Expand"))
+        #expect(titles().contains("Expand File"))
         session.toggleCollapsed("dir/a.txt")
-        #expect(titles().contains("Collapse"))
+        #expect(titles().contains("Collapse File"))
         pasteboard.releaseGlobally()
     }
 

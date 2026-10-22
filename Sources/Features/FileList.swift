@@ -27,7 +27,10 @@ struct FileList: View {
                 }
                 .toggleStyle(.button)
                 .buttonStyle(.borderless)
-                .help(String(localized: "Show as Flat List", bundle: .module))
+                .help(
+                    review.flatFileList
+                        ? String(localized: "Show as Tree", bundle: .module)
+                        : String(localized: "Show as Flat List", bundle: .module))
             }
             .font(.callout.monospacedDigit())
             .padding(.horizontal, 10)

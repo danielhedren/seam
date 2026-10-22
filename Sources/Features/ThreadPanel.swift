@@ -232,7 +232,7 @@ private struct ThreadCard: View {
             }
             .labelStyle(.iconOnly)
             .buttonStyle(.borderless)
-            .help(String(localized: "Delete this thread; Undo brings it back", bundle: .module))
+            .help(String(localized: "Delete this thread (Undo brings it back)", bundle: .module))
             Spacer()
             Button(String(localized: "Reply", bundle: .module)) { send() }
                 .buttonStyle(.borderedProminent)
