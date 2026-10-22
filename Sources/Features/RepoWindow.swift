@@ -115,7 +115,16 @@ struct RepoWindow: View {
             OpeningProgress(
                 name: session.directory.lastPathComponent, clock: session.services.clock)
         case .failed(let message):
-            ContentUnavailableView(message, systemImage: "folder.badge.questionmark")
+            // The message can be git's whole stderr: too long for a title.
+            ContentUnavailableView {
+                Label(
+                    String(
+                        localized: "Couldn't open \(session.directory.lastPathComponent)",
+                        bundle: .module),
+                    systemImage: "folder.badge.questionmark")
+            } description: {
+                Text(message).textSelection(.enabled)
+            }
         case .open:
             if let review = session.selected {
                 DiffPane(session: session, review: review)

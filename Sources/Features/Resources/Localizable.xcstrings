@@ -72,6 +72,7 @@
     "Copy Relative Path" : {},
     "Copy a prompt telling the agent to answer these threads" : {},
     "Couldn't install the seam command" : {},
+    "Couldn't open %@" : {},
     "Couldn't open the editor: %@" : {},
     "Couldn't read the commits" : {},
     "Couldn't read the threads: %@" : {},
