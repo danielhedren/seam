@@ -71,6 +71,14 @@ struct SeamCommand: Identifiable {
         }
     }
 
+    /// The palette's label: like `shortcutLabel`, but ⌘F only on whichever of Find and Filter
+    /// Files it runs now.
+    @MainActor
+    func shortcutLabel(for session: RepoSession) -> String {
+        if case .commandWhen(_, let condition) = shortcut, !condition(session) { return "" }
+        return shortcutLabel
+    }
+
     static func label(_ key: KeyEquivalent, _ modifiers: EventModifiers) -> String {
         var label = ""
         if modifiers.contains(.control) { label += "⌃" }
@@ -81,7 +89,7 @@ struct SeamCommand: Identifiable {
         label +=
             character == " "
             ? String(localized: "Space", bundle: .module)
-            : modifiers.isEmpty ? String(character) : String(character).uppercased()
+            : String(character).uppercased()
         return label
     }
 }

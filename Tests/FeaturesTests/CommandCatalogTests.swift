@@ -43,7 +43,7 @@ import Testing
         }
         #expect(try label("switcher") == "⌘K")
         #expect(try label("find-previous") == "⇧⌘G")
-        #expect(try label("next-file") == "j")
+        #expect(try label("next-file") == "J")
         #expect(try label("page-up") == "⇧Space")
         #expect(try label("detected-base") == "")
     }
@@ -63,7 +63,7 @@ import Testing
     }
 
     @Test func tooltipsNameTheShortcutTheMenuUses() {
-        #expect(CommandCatalog.help("Reload", command: "reload") == "Reload (r)")
+        #expect(CommandCatalog.help("Reload", command: "reload") == "Reload (R)")
         #expect(CommandCatalog.help("Threads", command: "thread-panel") == "Threads (⌥⌘0)")
         #expect(
             CommandCatalog.help("Open", shortcut: CommandCatalog.openRepository) == "Open (⌘O)")
@@ -104,5 +104,25 @@ import Testing
         #expect(try command("worktree-1").title(for: session) == repo.main.lastPathComponent)
         #expect(try command("worktree-2").title(for: session) == tree.lastPathComponent)
         #expect(try command("worktree-3").title(for: session) == "Worktree 3")
+    }
+
+    @Test func paletteJumpsToWorktreesWithTheirShortcutsAndShowsWhatIsOn() async throws {
+        let repo = try await FixtureRepo()
+        let tree = try await repo.worktree("feature", branch: "feature", from: "origin/main")
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        session.select(tree.path)
+        await session.settled()
+
+        let entries = CommandPalette.entries(for: session)
+
+        #expect(!entries.contains { $0.id.hasPrefix("worktree-") })
+        let jump = try #require(entries.first { $0.id == "go:" + tree.path })
+        #expect(jump.title == "Go to \(tree.lastPathComponent)")
+        #expect(jump.shortcut == "⌘2")
+        #expect(entries.first { $0.id == "scope-all" }?.isOn == true)
+        #expect(entries.first { $0.id == "scope-all" }?.menu == "Review")
+        #expect(entries.first { $0.id == "find" }?.shortcut == "⌘F")
+        #expect(entries.first { $0.id == "filter-files" }?.shortcut == "")
     }
 }

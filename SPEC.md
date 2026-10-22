@@ -368,7 +368,7 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 | `⌘\` | toggle sidebars |
 | `⌘K` | worktree switcher |
 | `⌘F` / `⌘G` / `⇧⌘G` | find in the diff, next / previous match (`⌘F` filters while the file list has focus) |
-| `⌘⇧P` | command palette (every action) |
+| `⇧⌘P` | command palette (every action) |
 
 ### 7.6 Open in editor
 
@@ -630,6 +630,12 @@ written down here.
   Sidebars / Show Sidebars, Collapse File / Expand File, Mark as Viewed / Mark as Not Viewed,
   Resolve Thread / Reopen Thread) rather than "Toggle …". A checkmark marks a mode that stays on
   (Side by Side, Wrap Lines, the scope). Go › ⌘1…⌘9 are named after the worktrees they pick.
+- Shortcuts read the same everywhere they're shown: menu, command palette and tooltips use the
+  menu bar's symbols and order (`⇧⌘G`), and a single key is a capital as the menu prints it
+  ("Reload (R)").
+- The command palette (`⇧⌘P`) lists the commands that apply now, each with its menu, its
+  shortcut and a checkmark when it's on, then "Go to <worktree>" for each worktree. The first
+  row is selected, so Return runs the best match.
 - `⌘`-shortcuts follow system conventions and never override standard ones (`⌘F` find, `⌘C`
   copy, `⌘+`/`⌘−` font size, `⌘W`, `⌘,`).
 - Single-letter keys (§7.5) only work while the diff or file list has focus, and not while a
