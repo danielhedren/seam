@@ -28,6 +28,9 @@ run:
 	@echo "Building Seam.app in Release (the first build compiles the tree-sitter grammars)"
 	Scripts/build.sh xcodebuild -project App/Seam.xcodeproj -scheme Seam -configuration Release \
 		-destination 'platform=macOS,arch=arm64' -derivedDataPath .build/xcode build
+	@# open only activates a running instance, which would keep the old build.
+	@pkill -f "$$PWD/.build/xcode/Build/Products/Release/Seam.app/Contents/MacOS/Seam" && \
+		while pgrep -f "$$PWD/.build/xcode/Build/Products/Release/Seam.app/Contents/MacOS/Seam" >/dev/null; do sleep 0.1; done; true
 	open .build/xcode/Build/Products/Release/Seam.app --args "$${REPO:-$$PWD}"
 
 strings:
