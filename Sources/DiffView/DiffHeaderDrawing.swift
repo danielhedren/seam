@@ -32,8 +32,8 @@ enum DiffHeaderDrawing {
     /// Controls are drawn at the text's height so they line up with it; the viewed checkbox
     /// sits at the right edge, in the same place on every file.
     static func layout(
-        _ file: ReviewFile, collapsed: Bool, viewed: ViewedMarks.Status, in rect: NSRect,
-        font: NSFont, palette: DiffPalette
+        _ file: ReviewFile, viewed: ViewedMarks.Status, in rect: NSRect, font: NSFont,
+        palette: DiffPalette
     ) -> Layout {
         let bold = NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask)
         let control = controlSize(font)
@@ -87,8 +87,7 @@ enum DiffHeaderDrawing {
         context.setFillColor(palette.separator.nsColor.cgColor)
         context.fill(NSRect(x: rect.minX, y: rect.maxY - 1, width: rect.width, height: 1))
         context.fill(NSRect(x: rect.minX, y: rect.minY, width: rect.width, height: 1))
-        let layout = layout(
-            file, collapsed: collapsed, viewed: viewed, in: rect, font: font, palette: palette)
+        let layout = layout(file, viewed: viewed, in: rect, font: font, palette: palette)
         drawDisclosure(in: layout.disclosure, collapsed: collapsed, palette: palette, context)
         drawCheckbox(in: layout.checkbox, viewed, palette: palette, context)
         context.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
@@ -168,11 +167,21 @@ enum DiffHeaderDrawing {
 /// The header of the file at the top of the view, pinned while its rows scroll beneath it.
 @MainActor
 final class DiffStickyHeaderView: NSView {
-    var file: ReviewFile?
-    var collapsed = false
-    var viewed = ViewedMarks.Status.unviewed
-    var font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
-    var increaseContrast = false
+    var file: ReviewFile? {
+        didSet { if file != oldValue { needsDisplay = true } }
+    }
+    var collapsed = false {
+        didSet { if collapsed != oldValue { needsDisplay = true } }
+    }
+    var viewed = ViewedMarks.Status.unviewed {
+        didSet { if viewed != oldValue { needsDisplay = true } }
+    }
+    var font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular) {
+        didSet { if font != oldValue { needsDisplay = true } }
+    }
+    var increaseContrast = false {
+        didSet { needsDisplay = true }
+    }
     /// Called with true when the click was on the viewed checkbox.
     var onClick: ((_ onViewed: Bool) -> Void)?
     var menuForFile: (() -> NSMenu?)?
@@ -196,7 +205,7 @@ final class DiffStickyHeaderView: NSView {
         guard let file else { return }
         let point = convert(event.locationInWindow, from: nil)
         let layout = DiffHeaderDrawing.layout(
-            file, collapsed: collapsed, viewed: viewed, in: bounds, font: font, palette: palette)
+            file, viewed: viewed, in: bounds, font: font, palette: palette)
         onClick?(layout.viewedFrame.contains(point))
     }
 

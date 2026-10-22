@@ -97,7 +97,6 @@ public final class DiffScrollView: NSScrollView {
     @objc private func displayOptionsChanged() {
         sticky.increaseContrast = canvas.increaseContrast
         canvas.appearanceOptionsChanged()
-        sticky.needsDisplay = true
     }
 
     required init?(coder: NSCoder) { nil }
@@ -127,8 +126,8 @@ public final class DiffScrollView: NSScrollView {
         layout.anchor(atY: visibleTop + headerHeight, paths: canvas.paths)
     }
 
-    /// The file and line the reader is on, for "open in editor": the selection's line if there
-    /// is one, else the line under the sticky header.
+    /// The context menu for a right click on lines, which selects them first unless the click
+    /// is inside the selection.
     public var menuForLines: (() -> NSMenu?)? {
         didSet { canvas.menuForLines = menuForLines }
     }
@@ -149,6 +148,8 @@ public final class DiffScrollView: NSScrollView {
     /// The selected text, for ⌘F to search for.
     public var selectedText: String? { canvas.selectedText }
 
+    /// The file and line the reader is on, for "open in editor": the selection's line if there
+    /// is one, else the line under the sticky header.
     public var readingLocation: (path: String, line: Int)? {
         let y = canvas.selection.map { layout.top(of: $0.head.row) } ?? visibleTop + headerHeight
         guard let row = layout.row(at: y), let location = layout.location(atOrAfter: row) else {
@@ -157,7 +158,7 @@ public final class DiffScrollView: NSScrollView {
         return (canvas.paths[location.file], location.line)
     }
 
-    public var currentFilePath: String? {
+    var currentFilePath: String? {
         guard let row = layout.row(at: visibleTop + headerHeight) else { return nil }
         let file = layout.rows[row].file
         return file < canvas.paths.count ? canvas.paths[file] : nil
@@ -175,7 +176,7 @@ public final class DiffScrollView: NSScrollView {
         window.makeFirstResponder(canvas)
     }
 
-    public var isFocused: Bool { window?.firstResponder === canvas }
+    var isFocused: Bool { window?.firstResponder === canvas }
 
     public func scroll(toFile path: String) {
         guard let file = canvas.paths.firstIndex(of: path), let row = layout.headerRow(ofFile: file)
@@ -223,7 +224,6 @@ public final class DiffScrollView: NSScrollView {
         scroll(toY: visibleTop + Double(delta) * layout.metrics.lineHeight * 3)
     }
 
-    /// Keeps the reader's line in view across the size change.
     /// The sticky file header's height for `font`; the panes beside the diff give their own
     /// headers this height, so the header rows meet in one line (SPEC §9).
     public static func fileHeaderHeight(for font: NSFont) -> Double {
@@ -336,14 +336,9 @@ public final class DiffScrollView: NSScrollView {
         let y = isFlipped ? content.minY - push : content.maxY - headerHeight + push
         sticky.frame = NSRect(x: content.minX, y: y, width: content.width, height: headerHeight)
         let reviewFile = canvas.review.files[file]
-        let collapsed = canvas.collapsed.contains(reviewFile.diff.path)
-        let viewed = canvas.viewed[reviewFile.diff.path] ?? .unviewed
-        if sticky.file != reviewFile || sticky.collapsed != collapsed || sticky.viewed != viewed {
-            sticky.file = reviewFile
-            sticky.collapsed = collapsed
-            sticky.viewed = viewed
-            sticky.needsDisplay = true
-        }
+        sticky.file = reviewFile
+        sticky.collapsed = canvas.collapsed.contains(reviewFile.diff.path)
+        sticky.viewed = canvas.viewed[reviewFile.diff.path] ?? .unviewed
         sticky.isHidden = false
     }
 }

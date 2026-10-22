@@ -87,7 +87,7 @@ import Testing
 
         let height = canvas.layout.metrics.fileHeaderHeight
         let header = DiffHeaderDrawing.layout(
-            canvas.review.files[0], collapsed: false, viewed: .unviewed,
+            canvas.review.files[0], viewed: .unviewed,
             in: NSRect(x: 0, y: 0, width: view.contentSize.width, height: height),
             font: canvas.font, palette: .light)
         try click(canvas, at: NSPoint(x: header.checkbox.midX, y: header.checkbox.midY))
