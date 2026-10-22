@@ -460,6 +460,11 @@ final class WorktreeReview: Identifiable {
         self.problem = problem
     }
 
+    /// Only a failed editor launch: the others describe the diff and clear when it loads again.
+    func dismissEditorFailure() {
+        if case .editorFailed = problem { problem = nil }
+    }
+
     func cancelLoading() {
         loadTask?.cancel()
         highlightTask?.cancel()

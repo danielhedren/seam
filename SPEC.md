@@ -650,7 +650,9 @@ written down here.
 **Feedback**
 - No modal alerts for recoverable conditions. Use an inline banner at the top of the diff for a
   failed git command, a missing worktree directory, or a stale parent (§5.4), with an action
-  button where one exists.
+  button where one exists. A failed editor launch has Dismiss; the others clear when the diff
+  loads again. Banners have a neutral background and a coloured symbol, because amber is the
+  threads' colour (§7.7).
 - Progress indicators appear only after 150 ms, so fast operations don't flicker. Stale content
   stays visible, dimmed, while a reload runs.
 - Every empty state says why and what to do: "No changes against

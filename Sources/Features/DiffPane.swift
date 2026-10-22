@@ -211,16 +211,16 @@ private struct EmptyDiffView: View {
     }
 }
 
-/// Recoverable problems show inline above the diff, never as alerts (SPEC §9).
+/// Recoverable problems show inline above the diff, never as alerts (SPEC §9). Banners keep a
+/// neutral background: amber means review threads.
 struct ProblemBanner: View {
     let problem: WorktreeReview.Problem
     let session: RepoSession
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
-            Text(message).lineLimit(2).textSelection(.enabled)
-            Spacer()
+        Banner(systemImage: "exclamationmark.triangle.fill", tint: .orange) {
+            Text(message).lineLimit(2).textSelection(.enabled).help(message)
+        } actions: {
             switch problem {
             case .overrideGone:
                 Button(String(localized: "Use Detected Base", bundle: .module)) {
@@ -228,19 +228,23 @@ struct ProblemBanner: View {
                 }
             case .gitFailed:
                 Button(String(localized: "Retry", bundle: .module)) { session.reload() }
-            case .missingDirectory, .editorFailed:
+            case .editorFailed:
+                Button(String(localized: "Dismiss", bundle: .module)) {
+                    session.selected?.dismissEditorFailure()
+                }
+            case .missingDirectory:
                 EmptyView()
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.yellow.opacity(0.15))
     }
 
     private var message: String {
         switch problem {
         case .missingDirectory:
-            String(localized: "This worktree's directory is missing.", bundle: .module)
+            String(
+                localized:
+                    "This worktree's directory is missing. If it was deleted, “git worktree prune” takes it off the list.",
+                bundle: .module)
         case .overrideGone(let ref):
             String(localized: "The chosen base \(ref) no longer exists.", bundle: .module)
         case .gitFailed(let detail): detail
@@ -313,21 +317,39 @@ struct StaleParentBanner: View {
     let session: RepoSession
 
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "arrow.triangle.merge").foregroundStyle(.secondary)
+        Banner(systemImage: "arrow.triangle.merge", tint: .accentColor) {
             Text(
                 "Parent \(stale.parent) looks merged. Diff against \(stale.suggestion.name) instead?",
                 bundle: .module)
-            Spacer()
-            Button(String(localized: "Use \(stale.suggestion.name)", bundle: .module)) {
-                session.setBaseOverride(stale.suggestion.ref)
-            }
+        } actions: {
             Button(String(localized: "Keep \(stale.parent)", bundle: .module)) {
                 session.dismissStaleParent()
             }
+            Button(String(localized: "Use \(stale.suggestion.name)", bundle: .module)) {
+                session.setBaseOverride(stale.suggestion.ref)
+            }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(.blue.opacity(0.1))
+    }
+}
+
+/// A full-width strip above the diff: icon, message, and its buttons at the trailing edge.
+private struct Banner<Message: View, Actions: View>: View {
+    let systemImage: String
+    let tint: Color
+    @ViewBuilder let message: Message
+    @ViewBuilder let actions: Actions
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage).foregroundStyle(tint)
+                message.frame(maxWidth: .infinity, alignment: .leading)
+                actions
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(.background.secondary)
+            Divider()
+        }
     }
 }
