@@ -133,9 +133,9 @@ import Testing
 
 @Suite struct LineSplittingTests {
     @Test func crlfFilesSplitIntoTheirLinesKeepingTheCarriageReturn() {
-        #expect(DiffContent.lines("a\r\nb\r\n") == ["a\r", "b\r"])
-        #expect(DiffContent.lines("a\nb") == ["a", "b"])
-        #expect(DiffContent.lines("") == [])
+        #expect(TextLines.split("a\r\nb\r\n") == ["a\r", "b\r"])
+        #expect(TextLines.split("a\nb") == ["a", "b"])
+        #expect(TextLines.split("") == [])
     }
 
     @Test func aCRLFFileWithAHunkGetsGapsInsteadOfTrapping() {

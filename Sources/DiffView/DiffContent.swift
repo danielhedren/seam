@@ -47,8 +47,6 @@ public struct DiffContent: Equatable, Sendable {
     }
 
     public static let expandStep = 20
-
-    static func lines(_ text: String) -> [Substring] { TextLines.split(text) }
 }
 
 /// How much of one gap between hunks the reader has revealed (SPEC §7.4). Gap 0 is above the

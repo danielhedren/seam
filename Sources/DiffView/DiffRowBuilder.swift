@@ -3,19 +3,7 @@ import GitKit
 import SeamCore
 
 enum DiffRowBuilder {
-    /// Files without loaded `contents` get no gap rows, sizes or previews. `tabWidths` overrides
-    /// `tabWidth` per path.
-    static func rows(
-        for review: ReviewDiff, mode: DiffLayoutMode, collapsed: Set<String> = [],
-        contents: [String: FileContents] = [:], expansions: [String: [Int: GapExpansion]] = [:],
-        syntax: [String: FileSyntax] = [:], tabWidth: Int = 4, tabWidths: [String: Int] = [:]
-    ) -> [DiffRow] {
-        rows(
-            for: DiffContent(
-                review: review, mode: mode, collapsed: collapsed, contents: contents,
-                expansions: expansions, syntax: syntax, tabWidth: tabWidth, tabWidths: tabWidths))
-    }
-
+    /// Files without loaded `contents` get no gap rows, sizes or previews.
     static func rows(for content: DiffContent) -> [DiffRow] {
         var rows: [DiffRow] = []
         rows.reserveCapacity(content.review.files.reduce(0) { $0 + $1.diff.hunks.count * 8 + 1 })
@@ -47,7 +35,7 @@ enum DiffRowBuilder {
             return rows
         }
         let lines =
-            file.diff.newPath == nil ? nil : fileContents?.new.map(DiffContent.lines)
+            file.diff.newPath == nil ? nil : fileContents?.new.map(TextLines.split)
         let fileExpansions = content.expansions[file.diff.path] ?? [:]
         let lookup = SyntaxLookup(syntax: content.syntax[file.diff.path], tabWidth: tabWidth)
         var next = (old: 1, new: 1)
