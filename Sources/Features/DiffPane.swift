@@ -144,6 +144,8 @@ struct ProblemBanner: View {
                 }
             case .gitFailed:
                 Button(String(localized: "Retry", bundle: .module)) { session.reload() }
+            case .fetchFailed:
+                Button(String(localized: "Fetch Again", bundle: .module)) { session.fetch() }
             case .missingDirectory, .editorFailed:
                 EmptyView()
             }
@@ -161,6 +163,8 @@ struct ProblemBanner: View {
         case .overrideGone(let ref):
             String(localized: "The chosen base \(ref) no longer exists.", bundle: .module)
         case .gitFailed(let detail): detail
+        case .fetchFailed(let detail):
+            String(localized: "Fetch failed: \(detail)", bundle: .module)
         case .editorFailed(let detail):
             String(localized: "Couldn't open the editor: \(detail)", bundle: .module)
         }

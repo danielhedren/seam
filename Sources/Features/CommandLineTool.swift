@@ -18,6 +18,10 @@ enum CommandLineTool {
         let manager = FileManager.default
         if let existing = try? manager.destinationOfSymbolicLink(atPath: link.path) {
             guard existing != script.path else { return }
+            // Another copy of Seam's own script (the app moved) may be replaced; anything else not.
+            guard existing.hasSuffix(".app/Contents/Resources/seam") else {
+                throw Failure.occupied(link.path)
+            }
             try manager.removeItem(at: link)
         } else if manager.fileExists(atPath: link.path) {
             throw Failure.occupied(link.path)

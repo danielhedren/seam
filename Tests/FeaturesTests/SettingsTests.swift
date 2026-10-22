@@ -65,4 +65,27 @@ import Testing
         await until { !session.isFetching }
         session.close()
     }
+
+    @Test func aStalledFetchGivesUpAfterTwoMinutes() async throws {
+        let repo = try await FixtureRepo()
+        let git = GatedGit(repo.git, holding: repo.main, command: "fetch", cancellable: true)
+        let clock = ManualClock()
+        let session = RepoSession(directory: repo.main, services: services(git, clock: clock))
+        await session.open()
+        await session.settled()
+
+        session.fetch()
+        await git.held()
+        await clock.sleepers()
+        clock.advance(by: .seconds(120))
+        await until { !session.isFetching }
+
+        if case .fetchFailed = session.selected?.problem {
+        } else {
+            Issue.record(
+                "expected a fetch banner, got \(String(describing: session.selected?.problem))")
+        }
+        git.release()
+        session.close()
+    }
 }

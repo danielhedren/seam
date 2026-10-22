@@ -15,6 +15,7 @@ final class WorktreeReview: Identifiable {
         case overrideGone(String)
         case gitFailed(String)
         case editorFailed(String)
+        case fetchFailed(String)
     }
 
     let id: String

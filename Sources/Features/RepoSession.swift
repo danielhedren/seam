@@ -260,25 +260,47 @@ final class RepoSession {
             while !Task.isCancelled {
                 try? await clock.sleep(for: .seconds(60 * minutes))
                 guard let self, !self.isClosed, !Task.isCancelled else { return }
-                self.fetch()
+                self.fetch(inBackground: true)
             }
         }
     }
 
     /// `f`: `git fetch --prune` for the repo (SPEC §5.5). The refs it changes reach every row
-    /// through the same path as any other ref change.
-    func fetch() {
+    /// through the same path as any other ref change. A fetch that stalls (a network that
+    /// doesn't answer) is cancelled after two minutes so `f` doesn't stay disabled.
+    func fetch(inBackground: Bool = false) {
         guard let repository, !isFetching else { return }
         isFetching = true
-        let git = services.git
-        Task {
-            defer { isFetching = false }
-            do throws(GitError) {
-                _ = try await git.run(["fetch", "--prune", "--quiet"], in: repository.anchor)
-                await apply(RepoChange(refs: true))
-            } catch {
-                selected?.report(.gitFailed(WorktreeReview.describe(error)))
+        let (git, clock) = (services.git, services.clock)
+        Task { [weak self] in
+            let failure: GitError? = await withTaskGroup(of: GitError?.self) { group in
+                group.addTask {
+                    do throws(GitError) {
+                        _ = try await git.run(
+                            ["fetch", "--prune", "--quiet"], in: repository.anchor)
+                        return nil
+                    } catch {
+                        return error
+                    }
+                }
+                group.addTask {
+                    try? await clock.sleep(for: .seconds(120))
+                    return .cancelled
+                }
+                let first = await group.next() ?? nil
+                group.cancelAll()
+                return first
             }
+            guard let self, !self.isClosed else { return }
+            defer { isFetching = false }
+            if let failure {
+                logger.error("fetch failed: \(failure)")
+                if !inBackground {
+                    selected?.report(.fetchFailed(WorktreeReview.describe(failure)))
+                }
+                return
+            }
+            await apply(RepoChange(refs: true))
         }
     }
 
@@ -435,6 +457,7 @@ final class RepoSession {
     }
 
     func apply(_ change: RepoChange) async {
+        guard !isClosed else { return }
         if change.refs {
             let before = reviews.map(\.id)
             do {

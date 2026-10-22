@@ -33,40 +33,84 @@ struct SilentWatcher: FileWatcher {
 /// Holds one git command (`diff` by default) in one worktree until released, to observe work in
 /// flight.
 final class GatedGit: GitClient, Sendable {
+    private struct State {
+        var open = false
+        var nextID = 0
+        var waiters: [Int: CheckedContinuation<Void, Never>] = [:]
+        var held = 0
+    }
+
     private let inner: any GitClient
     private let gated: String
     private let command: String
-    private let state = Mutex<(open: Bool, waiters: [CheckedContinuation<Void, Never>], held: Int)>(
-        (false, [], 0))
+    /// Whether cancelling a held call ends it, as terminating a real git process does.
+    private let cancellable: Bool
+    private let state = Mutex(State())
+    private let heldWaiters = Mutex<[CheckedContinuation<Void, Never>]>([])
 
-    init(_ inner: any GitClient, holding worktree: URL, command: String = "diff") {
+    init(
+        _ inner: any GitClient, holding worktree: URL, command: String = "diff",
+        cancellable: Bool = false
+    ) {
         self.inner = inner
         gated = worktree.path
         self.command = command
+        self.cancellable = cancellable
     }
 
     var heldCount: Int { state.withLock { $0.held } }
 
+    /// Returns once a call is being held.
+    func held() async {
+        await withCheckedContinuation { continuation in
+            heldWaiters.withLock { $0.append(continuation) }
+            if state.withLock({ $0.held > 0 }) { resumeHeldWaiters() }
+        }
+    }
+
+    private func resumeHeldWaiters() {
+        let waiters = heldWaiters.withLock { waiters in
+            defer { waiters = [] }
+            return waiters
+        }
+        for waiter in waiters { waiter.resume() }
+    }
+
     func release() {
         let waiters = state.withLock { state in
             state.open = true
-            defer { state.waiters = [] }
-            return state.waiters
+            defer { state.waiters = [:] }
+            return state.waiters.values
         }
         for waiter in waiters { waiter.resume() }
+    }
+
+    private func hold() async {
+        let id = state.withLock { state in
+            state.nextID += 1
+            return state.nextID
+        }
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                let open = state.withLock { state in
+                    state.held += 1
+                    if !state.open { state.waiters[id] = continuation }
+                    return state.open
+                }
+                resumeHeldWaiters()
+                if open { continuation.resume() }
+            }
+        } onCancel: {
+            guard cancellable else { return }
+            state.withLock { $0.waiters.removeValue(forKey: id) }?.resume()
+        }
     }
 
     func run(_ arguments: [String], in directory: URL, input: Data?) async throws(GitError) -> Data
     {
         if arguments.first == command, directory.path == gated {
-            await withCheckedContinuation { continuation in
-                let open = state.withLock { state in
-                    state.held += 1
-                    if !state.open { state.waiters.append(continuation) }
-                    return state.open
-                }
-                if open { continuation.resume() }
-            }
+            await hold()
+            if cancellable, Task.isCancelled { throw .cancelled }
         }
         // Detached, so a cancelled caller still gets a result: the session alone must discard it.
         let inner = inner

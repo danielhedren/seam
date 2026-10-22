@@ -55,6 +55,13 @@ import Testing
         )
         try CommandLineTool.install(script: Self.script, at: link)
 
+        let foreign = directory.resolved.appending(path: "bin/foreign")
+        try FileManager.default.createSymbolicLink(
+            at: foreign, withDestinationURL: URL(fileURLWithPath: "/usr/local/bin/someone-else"))
+        #expect(throws: CommandLineTool.Failure.occupied(foreign.path)) {
+            try CommandLineTool.install(script: Self.script, at: foreign)
+        }
+
         let other = directory.resolved.appending(path: "bin/other")
         try Data("mine".utf8).write(to: other)
         #expect(throws: CommandLineTool.Failure.occupied(other.path)) {
