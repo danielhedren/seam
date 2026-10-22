@@ -10,6 +10,9 @@
     "%@ is not in a git repository." : {
 
     },
+    "%@ no longer exists." : {
+
+    },
     "%@ now opens Seam. Make sure ~/.local/bin is on your PATH." : {
 
     },
@@ -135,10 +138,19 @@
     "Fetch" : {
 
     },
+    "Fetch Again" : {
+
+    },
     "Fetch and prune remote branches (f)" : {
 
     },
+    "Fetch failed: %@" : {
+
+    },
     "Fetch in the background" : {
+
+    },
+    "Fetching" : {
 
     },
     "Files as Flat List" : {
@@ -199,6 +211,9 @@
 
     },
     "Keep %@" : {
+
+    },
+    "Keep Parent That Looks Merged" : {
 
     },
     "Make Text Bigger" : {
@@ -450,6 +465,9 @@
 
     },
     "prunable" : {
+
+    },
+    "stale parent" : {
 
     },
     "the base" : {
