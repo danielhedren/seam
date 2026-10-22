@@ -198,6 +198,7 @@
     "The threads were saved by a newer Seam; update to change them." : {},
     "The working tree matches the branch's latest commit." : {},
     "The worktree's directory is missing" : {},
+    "This copy of Seam doesn't include the seam command. Build it with make app or make install." : {},
     "This worktree's directory is missing." : {},
     "This worktree's directory is missing. If it was deleted, “git worktree prune” takes it off the list." : {},
     "Thread %@ no longer exists." : {},

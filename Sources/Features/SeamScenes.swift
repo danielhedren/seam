@@ -140,12 +140,6 @@ public struct SeamScenes: Scene {
                 localized:
                     "\(CommandLineTool.defaultLink.path) now opens Seam. Make sure ~/.local/bin is on your PATH.",
                 bundle: .module)
-        } catch CommandLineTool.Failure.occupied(let path) {
-            alert.messageText = String(
-                localized: "Couldn't install the seam command", bundle: .module)
-            alert.informativeText = String(
-                localized: "\(path) already exists and isn't Seam's. Remove it and try again.",
-                bundle: .module)
         } catch {
             alert.messageText = String(
                 localized: "Couldn't install the seam command", bundle: .module)

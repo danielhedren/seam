@@ -32,4 +32,11 @@ import Testing
             try CommandLineTool.install(script: Self.script, at: other)
         }
     }
+
+    @Test func failuresSayWhatWentWrongInWords() {
+        let missing = CommandLineTool.Failure.missingScript.localizedDescription
+        #expect(missing.contains("seam command"), "\(missing)")
+        let occupied = CommandLineTool.Failure.occupied("/x/seam").localizedDescription
+        #expect(occupied.hasPrefix("/x/seam already exists"), "\(occupied)")
+    }
 }
