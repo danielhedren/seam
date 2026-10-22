@@ -123,7 +123,6 @@ final class RepoSession {
             let last = repoState.selectedWorktree.flatMap { id in reviews.first { $0.id == id } }
             select(last?.id ?? worktree.path)
             startMonitor()
-            startBackgroundFetch()
             rowsTask = Task { [weak self] in await self?.refreshRows(skippingSelected: true) }
         } catch {
             state = .failed(Self.openFailure(error))
@@ -244,70 +243,6 @@ final class RepoSession {
         findQuery = ""
         diff.search("")
         diff.focus()
-    }
-
-    private(set) var isFetching = false
-    private var fetchLoop: Task<Void, Never>?
-
-    /// Fetches every `fetchInterval` minutes while that's on (SPEC §5.5), and restarts when the
-    /// setting changes, so nothing runs at all while it's off.
-    private func startBackgroundFetch() {
-        fetchLoop?.cancel()
-        guard !isClosed else { return }
-        withObservationTracking {
-            _ = settings.fetchInterval
-        } onChange: { [weak self] in
-            Task { @MainActor in self?.startBackgroundFetch() }
-        }
-        let minutes = settings.fetchInterval
-        guard minutes > 0 else { return }
-        let clock = services.clock
-        fetchLoop = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await clock.sleep(for: .seconds(60 * minutes))
-                guard let self, !self.isClosed, !Task.isCancelled else { return }
-                self.fetch(inBackground: true)
-            }
-        }
-    }
-
-    /// `f`: `git fetch --prune` for the repo (SPEC §5.5). The refs it changes reach every row
-    /// through the same path as any other ref change. A fetch that stalls (a network that
-    /// doesn't answer) is cancelled after two minutes so `f` doesn't stay disabled.
-    func fetch(inBackground: Bool = false) {
-        guard let repository, !isFetching else { return }
-        isFetching = true
-        let (git, clock) = (services.git, services.clock)
-        Task { [weak self] in
-            let failure: GitError? = await withTaskGroup(of: GitError?.self) { group in
-                group.addTask {
-                    do throws(GitError) {
-                        _ = try await git.run(
-                            ["fetch", "--prune", "--quiet"], in: repository.anchor)
-                        return nil
-                    } catch {
-                        return error
-                    }
-                }
-                group.addTask {
-                    try? await clock.sleep(for: .seconds(120))
-                    return .cancelled
-                }
-                let first = await group.next() ?? nil
-                group.cancelAll()
-                return first
-            }
-            guard let self, !self.isClosed else { return }
-            defer { isFetching = false }
-            if let failure {
-                logger.error("fetch failed: \(failure)")
-                if !inBackground {
-                    selected?.report(.fetchFailed(WorktreeReview.describe(failure)))
-                }
-                return
-            }
-            await apply(RepoChange(refs: true))
-        }
     }
 
     /// The window's undo manager; viewed toggles are the only state changes that can be undone.
@@ -527,7 +462,6 @@ final class RepoSession {
         monitorTask?.cancel()
         monitorTask = nil
         rowsTask?.cancel()
-        fetchLoop?.cancel()
         for task in deferredActivity.values { task.cancel() }
         selected?.cancelLoading()
     }

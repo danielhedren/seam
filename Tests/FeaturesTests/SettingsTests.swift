@@ -44,48 +44,4 @@ import Testing
         #expect(hunk.lines.count == 4)
         #expect(content.tabWidths["a.cs"] == 2)
     }
-
-    @Test func backgroundFetchRunsOnItsInterval() async throws {
-        let repo = try await FixtureRepo()
-        let git = GatedGit(repo.git, holding: repo.main, command: "fetch")
-        let clock = ManualClock()
-        let services = services(git, clock: clock)
-        let session = RepoSession(directory: repo.main, services: services)
-        await session.open()
-        await session.settled()
-        #expect(clock.sleeperCount == 0)
-
-        services.settings.fetchInterval = 5
-        await clock.sleepers()
-        clock.advance(by: .seconds(299))
-        #expect(!session.isFetching)
-        clock.advance(by: .seconds(1))
-        await until { session.isFetching }
-        git.release()
-        await until { !session.isFetching }
-        session.close()
-    }
-
-    @Test func aStalledFetchGivesUpAfterTwoMinutes() async throws {
-        let repo = try await FixtureRepo()
-        let git = GatedGit(repo.git, holding: repo.main, command: "fetch", cancellable: true)
-        let clock = ManualClock()
-        let session = RepoSession(directory: repo.main, services: services(git, clock: clock))
-        await session.open()
-        await session.settled()
-
-        session.fetch()
-        await git.held()
-        await clock.sleepers()
-        clock.advance(by: .seconds(120))
-        await until { !session.isFetching }
-
-        if case .fetchFailed = session.selected?.problem {
-        } else {
-            Issue.record(
-                "expected a fetch banner, got \(String(describing: session.selected?.problem))")
-        }
-        git.release()
-        session.close()
-    }
 }

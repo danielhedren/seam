@@ -162,11 +162,10 @@ parent" marker. Dismissing the banner ("Keep X", also in the Review menu) is rem
 worktree. On either signal, show a non-blocking banner: "Parent `X` looks merged — diff against `origin/main`
 instead?" Asking `gh` whether the PR is merged is out of scope for v1.
 
-### 5.5 Fetching
+### 5.5 No git operations
 
-Seam reads whatever refs are local. It does not fetch by default. A toolbar action and the `f`
-key run `git fetch --prune` for the current repo. Background fetching on an interval is an option
-(off by default).
+Seam reads whatever refs are local and runs no git operation that changes them: no fetch, pull or
+prune. Refs updated from a terminal reach every row through the watcher.
 
 ## 6. The review diff
 
@@ -181,7 +180,8 @@ For a worktree with base `M`:
 
 ### 6.2 Scopes
 
-A segmented control picks the scope (keys `1`/`2`/`3` when the diff has focus):
+Scopes are named runs of the commit list (§7.2.1), picked there or with keys `1`/`2`/`3` when the
+diff has focus:
 
 | Scope | Range | Default |
 |---|---|---|
@@ -217,7 +217,7 @@ keeps the position.
 ```
 ┌ Worktrees ─────────────┬ Files ────────────┬ Diff ──────────────────────────────────┐
 │ work-repo       │ 19 files +454 −948│ vs origin/feat/a · 5 commits ▾│
-│ ● feat-b  ◆ │ ▾ src/Orders.Svc   │ [All|Committed|Uncommitted]  ⇆  ≡      │
+│ ● feat-b  ◆ │ ▾ src/Orders.Svc   │                              ⇆  ≡      │
 │   +5  ✎2  2m           │   M Delivery…cs ✓ │                                        │
 │ ● feat-a      │   M Options.cs    │  (side-by-side or unified diff)        │
 │   +12      1h          │ ▾ contracts/…     │                                        │
@@ -314,7 +314,6 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 | `x` | collapse / expand the current file |
 | `o` | open the current line in the editor |
 | `b` | base picker |
-| `f` | fetch |
 | `r` | force reload |
 | `⌘\` | toggle sidebars |
 | `⌘K` | worktree switcher |
@@ -500,8 +499,8 @@ written down here.
 - The window is a three-column `NavigationSplitView` (sidebar | content | detail). Column
   collapsing, resizing and the sidebar toggle all behave natively. `⌘\` is the one custom
   shortcut on top of that.
-- Toolbar in the unified style, holding only: base picker, scope control, view mode, reload,
-  fetch. The diff gets the rest of the window.
+- Toolbar in the unified style, holding only: base picker, view mode, reload. The diff gets the
+  rest of the window.
 - Standard scenes: `WindowGroup` per repo, a `Settings` scene (`⌘,`), File › Open Recent, native
   window tabs and full screen. Windows and their selection are restored on relaunch
   (`SceneStorage` plus §11 state).
@@ -607,7 +606,6 @@ Seam writes nothing inside the repository or `.git`.
 - Generated-file globs (§6.3).
 - Editor command template (§7.6).
 - Font and size (default: SF Mono 12). Tab width (default 4, or `.editorconfig` if present).
-- Background fetch interval (off by default).
 - View mode (unified or side by side), whitespace mode, and number of context lines.
 
 Settings apply to the next load of each worktree; font changes apply at once (`⌘+`, `⌘−`, `⌘0`
@@ -659,10 +657,10 @@ Wrapping and find moved to M3; VoiceOver hunk groups were done in M4.
 generated-file collapse, binary and image entries, line wrapping, find in the diff.
 *Done when:* §8.7 rendering budgets are met on a 20k-line synthetic diff.
 
-**M4 — Review state and polish.** Viewed state with invalidation, stale-parent banner, fetch, open
-in editor, `seam` CLI, settings, command palette.
+**M4 — Review state and polish.** Viewed state with invalidation, stale-parent banner, open in
+editor, `seam` CLI, settings, command palette.
 
-**Later:** background fetch, `gh` integration (PR status for the stale-parent check, PR number in
+**Later:** `gh` integration (PR status for the stale-parent check, PR number in
 the worktree row), agent notes API.
 
 ## 15. Risks

@@ -57,9 +57,6 @@
     "Actual Size" : {
 
     },
-    "All" : {
-
-    },
     "All Changes" : {
 
     },
@@ -144,28 +141,7 @@
     "Editor" : {
 
     },
-    "Every %lld minutes" : {
-
-    },
     "Expand" : {
-
-    },
-    "Fetch" : {
-
-    },
-    "Fetch Again" : {
-
-    },
-    "Fetch and prune remote branches (f)" : {
-
-    },
-    "Fetch failed: %@" : {
-
-    },
-    "Fetch in the background" : {
-
-    },
-    "Fetching" : {
 
     },
     "Files as Flat List" : {
@@ -288,9 +264,6 @@
     "Not a git repository. Choose another folder." : {
 
     },
-    "Off" : {
-
-    },
     "Older commits not shown" : {
 
     },
@@ -365,12 +338,6 @@
 
     },
     "SF Mono" : {
-
-    },
-    "Scope" : {
-
-    },
-    "Scope (1, 2, 3)" : {
 
     },
     "Seam" : {

@@ -43,38 +43,15 @@ final class GatedGit: GitClient, Sendable {
     private let inner: any GitClient
     private let gated: String
     private let command: String
-    /// Whether cancelling a held call ends it, as terminating a real git process does.
-    private let cancellable: Bool
     private let state = Mutex(State())
-    private let heldWaiters = Mutex<[CheckedContinuation<Void, Never>]>([])
 
-    init(
-        _ inner: any GitClient, holding worktree: URL, command: String = "diff",
-        cancellable: Bool = false
-    ) {
+    init(_ inner: any GitClient, holding worktree: URL, command: String = "diff") {
         self.inner = inner
         gated = worktree.path
         self.command = command
-        self.cancellable = cancellable
     }
 
     var heldCount: Int { state.withLock { $0.held } }
-
-    /// Returns once a call is being held.
-    func held() async {
-        await withCheckedContinuation { continuation in
-            heldWaiters.withLock { $0.append(continuation) }
-            if state.withLock({ $0.held > 0 }) { resumeHeldWaiters() }
-        }
-    }
-
-    private func resumeHeldWaiters() {
-        let waiters = heldWaiters.withLock { waiters in
-            defer { waiters = [] }
-            return waiters
-        }
-        for waiter in waiters { waiter.resume() }
-    }
 
     func release() {
         let waiters = state.withLock { state in
@@ -90,19 +67,13 @@ final class GatedGit: GitClient, Sendable {
             state.nextID += 1
             return state.nextID
         }
-        await withTaskCancellationHandler {
-            await withCheckedContinuation { continuation in
-                let open = state.withLock { state in
-                    state.held += 1
-                    if !state.open { state.waiters[id] = continuation }
-                    return state.open
-                }
-                resumeHeldWaiters()
-                if open { continuation.resume() }
+        await withCheckedContinuation { continuation in
+            let open = state.withLock { state in
+                state.held += 1
+                if !state.open { state.waiters[id] = continuation }
+                return state.open
             }
-        } onCancel: {
-            guard cancellable else { return }
-            state.withLock { $0.waiters.removeValue(forKey: id) }?.resume()
+            if open { continuation.resume() }
         }
     }
 
@@ -110,7 +81,6 @@ final class GatedGit: GitClient, Sendable {
     {
         if arguments.first == command, directory.path == gated {
             await hold()
-            if cancellable, Task.isCancelled { throw .cancelled }
         }
         // Detached, so a cancelled caller still gets a result: the session alone must discard it.
         let inner = inner

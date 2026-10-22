@@ -345,7 +345,7 @@ import Testing
         #expect(review.problem == .editorFailed("zed: command not found"))
     }
 
-    @Test func fetchPrunesAMergedParentAndTheReviewOffersMain() async throws {
+    @Test func aPrunedParentMakesTheReviewOfferMain() async throws {
         let repo = try await FixtureRepo()
         let b = try await repo.worktree("b", branch: "b", from: "origin/main")
         try await repo.commit("b.txt", "b\n", "b1", in: b)
@@ -361,8 +361,8 @@ import Testing
 
         _ = try await repo.git.run(
             ["--git-dir", repo.origin.path, "update-ref", "-d", "refs/heads/b"], in: repo.main)
-        session.fetch()
-        await until { !session.isFetching }
+        try await repo.run("fetch", "-q", "--prune", "origin", in: c)
+        await session.apply(RepoChange(refs: true))
         await session.settled()
 
         #expect(review.staleParent?.parent == "b")

@@ -122,7 +122,7 @@ struct RepoWindow: View {
     }
 }
 
-/// Only base, scope, view mode and reload; the diff gets the rest of the window (SPEC §9).
+/// Only base, view mode and reload; the diff gets the rest of the window (SPEC §9).
 struct ReviewToolbar: ToolbarContent {
     let session: RepoSession
     let review: WorktreeReview
@@ -130,18 +130,6 @@ struct ReviewToolbar: ToolbarContent {
     var body: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
             BasePicker(session: session, review: review)
-        }
-        ToolbarItem {
-            Picker(
-                String(localized: "Scope", bundle: .module),
-                selection: Binding(get: { review.scope }, set: { session.setScope($0) })
-            ) {
-                Text("All", bundle: .module).tag(ReviewScope.all)
-                Text("Committed", bundle: .module).tag(ReviewScope.committed)
-                Text("Uncommitted", bundle: .module).tag(ReviewScope.uncommitted)
-            }
-            .pickerStyle(.segmented)
-            .help(String(localized: "Scope (1, 2, 3)", bundle: .module))
         }
         ToolbarItem {
             Button {
@@ -154,22 +142,6 @@ struct ReviewToolbar: ToolbarContent {
                     systemImage: review.mode == .unified ? "rectangle.split.2x1" : "rectangle")
             }
             .help(String(localized: "Toggle side-by-side (s)", bundle: .module))
-        }
-        ToolbarItem {
-            Button {
-                session.fetch()
-            } label: {
-                if session.isFetching {
-                    ProgressView().controlSize(.small)
-                        .accessibilityLabel(String(localized: "Fetching", bundle: .module))
-                } else {
-                    Label(
-                        String(localized: "Fetch", bundle: .module),
-                        systemImage: "arrow.down.circle")
-                }
-            }
-            .disabled(session.isFetching)
-            .help(String(localized: "Fetch and prune remote branches (f)", bundle: .module))
         }
         ToolbarItem {
             Button {

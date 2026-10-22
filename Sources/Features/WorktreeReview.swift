@@ -15,7 +15,6 @@ final class WorktreeReview: Identifiable {
         case overrideGone(String)
         case gitFailed(String)
         case editorFailed(String)
-        case fetchFailed(String)
     }
 
     let id: String
@@ -339,7 +338,7 @@ final class WorktreeReview: Identifiable {
     }
 
     /// `refs` comes from the session when it refreshes every row at once. Refreshes can overlap
-    /// (a fetch and the monitor), so only the most recently started one may write its result:
+    /// (the monitor and a reload), so only the most recently started one may write its result:
     /// it saw the newest refs.
     func refreshDetection(refs: RefSnapshot? = nil) async {
         guard !worktree.isMissing else {

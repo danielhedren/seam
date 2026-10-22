@@ -32,15 +32,6 @@ struct SettingsView: View {
                 Stepper(value: $settings.contextLines, in: 0...20) {
                     Text("Context lines: \(settings.contextLines)", bundle: .module)
                 }
-                Picker(
-                    String(localized: "Fetch in the background", bundle: .module),
-                    selection: $settings.fetchInterval
-                ) {
-                    Text("Off", bundle: .module).tag(0)
-                    ForEach([5, 15, 30, 60], id: \.self) { minutes in
-                        Text("Every \(minutes) minutes", bundle: .module).tag(minutes)
-                    }
-                }
             }
             .tabItem { Label(String(localized: "Review", bundle: .module), systemImage: "eye") }
 

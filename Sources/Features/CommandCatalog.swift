@@ -247,10 +247,6 @@ enum CommandCatalog {
         SeamCommand(
             id: "reload", title: localized("Reload"), menu: .review, section: 3,
             shortcut: .single("r"), run: { $0.reload() }),
-        SeamCommand(
-            id: "fetch", title: localized("Fetch"), menu: .review, section: 3,
-            shortcut: .single("f"), isEnabled: { $0.repository != nil && !$0.isFetching },
-            run: { $0.fetch() }),
     ]
 
     static func items(in menu: SeamCommand.Menu) -> [SeamCommand] {

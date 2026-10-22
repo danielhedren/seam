@@ -17,8 +17,6 @@ public final class AppSettings {
     var fontName: String { didSet { save(fontName, "fontName") } }
     var fontSize: Double { didSet { save(fontSize, "fontSize") } }
     var tabWidth: Int { didSet { save(tabWidth, "tabWidth") } }
-    /// Minutes between background fetches; 0 is off.
-    var fetchInterval: Int { didSet { save(fetchInterval, "fetchInterval") } }
     /// Side by side or unified, for every worktree; `s` flips it.
     var layoutMode: DiffLayoutMode { didSet { save(layoutMode.rawValue, "defaultMode") } }
     var whitespace: WhitespaceMode { didSet { save(whitespace.rawValue, "whitespace") } }
@@ -39,7 +37,6 @@ public final class AppSettings {
         fontName = value("fontName", "")
         fontSize = value("fontSize", 12)
         tabWidth = value("tabWidth", 4)
-        fetchInterval = value("fetchInterval", 0)
         layoutMode = DiffLayoutMode(rawValue: value("defaultMode", "")) ?? .unified
         whitespace = WhitespaceMode(rawValue: value("whitespace", "")) ?? .show
         contextLines = value("contextLines", 3)
