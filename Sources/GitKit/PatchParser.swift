@@ -18,7 +18,7 @@ public enum PatchParser {
         return files
     }
 
-    private static let diffGitPrefix = Array("diff --git ".utf8)
+    private static let diffGitPrefix = "diff --git ".utf8
 
     private static func splitLines(_ data: Data) -> [ArraySlice<UInt8>] {
         let bytes = Array(data)
@@ -37,7 +37,7 @@ public enum PatchParser {
 
         while index < lines.count, !lines[index].starts(with: diffGitPrefix) {
             let line = lines[index]
-            if line.starts(with: Array("@@ ".utf8)) {
+            if line.starts(with: "@@ ".utf8) {
                 let (hunk, next) = try parseHunk(lines, at: index)
                 hunks.append(hunk)
                 index = next
@@ -223,9 +223,8 @@ private struct Metadata {
     }
 
     private func field(_ line: ArraySlice<UInt8>, _ prefix: String) -> ArraySlice<UInt8>? {
-        let prefixBytes = Array(prefix.utf8)
-        guard line.starts(with: prefixBytes) else { return nil }
-        return line.dropFirst(prefixBytes.count)
+        guard line.starts(with: prefix.utf8) else { return nil }
+        return line.dropFirst(prefix.utf8.count)
     }
 
     /// Path from a `---`/`+++` line. Git appends a tab when the name contains a space.
@@ -257,7 +256,7 @@ private struct HeaderPaths {
             self.init(old: first, new: second)
             return
         }
-        if let quote = rest.firstRange(of: Array(" \"b/".utf8)) {
+        if let quote = rest.firstRange(of: " \"b/".utf8) {
             guard let second = CQuote.unquote(rest[(quote.lowerBound + 1)...]) else { return nil }
             self.init(old: String(decoding: rest[..<quote.lowerBound], as: UTF8.self), new: second)
             return
