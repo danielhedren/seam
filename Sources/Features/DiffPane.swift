@@ -108,8 +108,8 @@ struct DiffPane: View {
             }
             ZStack {
                 DiffRepresentable(session: session, review: review)
-                if let message = emptyMessage {
-                    ContentUnavailableView(message, systemImage: "checkmark.circle")
+                if let empty = EmptyDiff.of(review) {
+                    EmptyDiffView(empty: empty, session: session, review: review)
                 }
                 if review.showsProgress {
                     ProgressView().controlSize(.small)
@@ -119,17 +119,94 @@ struct DiffPane: View {
             }
         }
     }
+}
 
-    private var emptyMessage: String? {
-        guard let diff = review.diff, diff.files.isEmpty, review.problem == nil else { return nil }
+/// What the diff says when it shows nothing: why, and what to do about it (SPEC §9).
+struct EmptyDiff: Equatable {
+    enum Action: Equatable {
+        case clearFilter
+        case showAll
+    }
+
+    var title: String
+    var detail: String
+    var systemImage: String
+    var action: Action?
+
+    @MainActor
+    static func of(_ review: WorktreeReview) -> EmptyDiff? {
+        guard let diff = review.diff, review.problem == nil else { return nil }
+        if !diff.files.isEmpty {
+            let filter = FileFilter(review.diffFilter)
+            guard !filter.isEmpty, !diff.files.contains(where: { filter.matches($0.diff.path) })
+            else { return nil }
+            return EmptyDiff(
+                title: String(localized: "No matching files", bundle: .module),
+                detail: String(
+                    localized: "No changed file's path matches “\(review.diffFilter)”.",
+                    bundle: .module),
+                systemImage: "line.3.horizontal.decrease.circle", action: .clearFilter)
+        }
         let parent = review.parentName ?? String(localized: "the base", bundle: .module)
+        // Offered only when the All scope would show something.
+        let showAll: Action? = (review.activity?.changes?.files ?? 0) > 0 ? .showAll : nil
         if review.commitSelection != nil {
-            return String(localized: "No changes in the selected commits", bundle: .module)
+            return EmptyDiff(
+                title: String(localized: "No changes in the selected commits", bundle: .module),
+                detail: String(
+                    localized: "Together they leave every file as it was.",
+                    bundle: .module),
+                systemImage: "checkmark.circle", action: showAll)
         }
         switch review.scope {
-        case .all: return String(localized: "No changes against \(parent)", bundle: .module)
-        case .committed: return String(localized: "No commits since \(parent)", bundle: .module)
-        case .uncommitted: return String(localized: "No uncommitted changes", bundle: .module)
+        case .all:
+            return EmptyDiff(
+                title: String(localized: "No changes against \(parent)", bundle: .module),
+                detail: String(
+                    localized: "Changes show here as soon as files in this worktree are edited.",
+                    bundle: .module),
+                systemImage: "checkmark.circle", action: nil)
+        case .committed:
+            return EmptyDiff(
+                title: String(localized: "No commits since \(parent)", bundle: .module),
+                detail: String(
+                    localized: "Commits on this branch show here once there are some.",
+                    bundle: .module),
+                systemImage: "checkmark.circle", action: showAll)
+        case .uncommitted:
+            return EmptyDiff(
+                title: String(localized: "No uncommitted changes", bundle: .module),
+                detail: String(
+                    localized: "The working tree matches the branch's latest commit.",
+                    bundle: .module),
+                systemImage: "checkmark.circle", action: showAll)
+        }
+    }
+}
+
+private struct EmptyDiffView: View {
+    let empty: EmptyDiff
+    let session: RepoSession
+    let review: WorktreeReview
+
+    var body: some View {
+        ContentUnavailableView {
+            Label(empty.title, systemImage: empty.systemImage)
+        } description: {
+            Text(empty.detail)
+        } actions: {
+            switch empty.action {
+            case .clearFilter:
+                Button(String(localized: "Clear Filter", bundle: .module)) {
+                    review.fileFilter = ""
+                }
+            case .showAll:
+                Button(String(localized: "Show All Changes", bundle: .module)) {
+                    session.setScope(.all)
+                }
+            case nil:
+                EmptyView()
+            }
         }
     }
 }

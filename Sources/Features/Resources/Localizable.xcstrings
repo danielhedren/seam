@@ -1,30 +1,14 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%@ already exists and isn't Seam's. Remove it and try again." : {
-
-    },
-    "%@ is not in a git repository." : {
-
-    },
-    "%@ isn't installed or isn't on your PATH. Choose your editor in Settings." : {
-
-    },
-    "%@ no longer exists." : {
-
-    },
-    "%@ now opens Seam. Make sure ~/.local/bin is on your PATH." : {
-
-    },
-    "%lld comments" : {
-
-    },
-    "%lld commits" : {
-
-    },
-    "%lld files" : {
-
-    },
+    "%@ already exists and isn't Seam's. Remove it and try again." : {},
+    "%@ is not in a git repository." : {},
+    "%@ isn't installed or isn't on your PATH. Choose your editor in Settings." : {},
+    "%@ no longer exists." : {},
+    "%@ now opens Seam. Make sure ~/.local/bin is on your PATH." : {},
+    "%lld comments" : {},
+    "%lld commits" : {},
+    "%lld files" : {},
     "%lld of %lld" : {
       "localizations" : {
         "en" : {
@@ -35,9 +19,7 @@
         }
       }
     },
-    "%lld open" : {
-
-    },
+    "%lld open" : {},
     "%lld/%lld viewed" : {
       "localizations" : {
         "en" : {
@@ -48,63 +30,27 @@
         }
       }
     },
-    "1 comment" : {
-
-    },
-    "1 commit" : {
-
-    },
-    "1 file" : {
-
-    },
-    "A repository's .editorconfig overrides the tab width." : {
-
-    },
-    "Actual Size" : {
-
-    },
-    "All Changes" : {
-
-    },
-    "Base" : {
-
-    },
-    "Branched from %@" : {
-
-    },
-    "Cancelled" : {
-
-    },
-    "Choose Base…" : {
-
-    },
-    "Choose what to compare with" : {
-
-    },
-    "Clear Menu" : {
-
-    },
-    "Collapse" : {
-
-    },
-    "Collapse files when marked viewed" : {
-
-    },
-    "Collapse or Expand File" : {
-
-    },
-    "Command" : {
-
-    },
-    "Command Palette…" : {
-
-    },
-    "Comment" : {
-
-    },
-    "Comment on Line %lld" : {
-
-    },
+    "1 comment" : {},
+    "1 commit" : {},
+    "1 file" : {},
+    "A repository's .editorconfig overrides the tab width." : {},
+    "Actual Size" : {},
+    "All Changes" : {},
+    "Base" : {},
+    "Branched from %@" : {},
+    "Cancelled" : {},
+    "Changes show here as soon as files in this worktree are edited." : {},
+    "Choose Base…" : {},
+    "Choose what to compare with" : {},
+    "Clear Filter" : {},
+    "Clear Menu" : {},
+    "Collapse" : {},
+    "Collapse files when marked viewed" : {},
+    "Collapse or Expand File" : {},
+    "Command" : {},
+    "Command Palette…" : {},
+    "Comment" : {},
+    "Comment on Line %lld" : {},
     "Comment on Lines %lld–%lld" : {
       "localizations" : {
         "en" : {
@@ -115,240 +61,88 @@
         }
       }
     },
-    "Committed" : {
-
-    },
-    "Compare against" : {
-
-    },
-    "Context lines: %lld" : {
-
-    },
-    "Copy" : {
-
-    },
-    "Copy Path" : {
-
-    },
-    "Copy Prompt for Agent" : {
-
-    },
-    "Copy Relative Path" : {
-
-    },
-    "Copy a prompt telling the agent to answer these threads" : {
-
-    },
-    "Couldn't install the seam command" : {
-
-    },
-    "Couldn't open the editor: %@" : {
-
-    },
-    "Couldn't read the commits" : {
-
-    },
-    "Couldn't read the threads: %@" : {
-
-    },
-    "Couldn't run git: %@" : {
-
-    },
-    "Couldn't save the threads: %@" : {
-
-    },
-    "Custom" : {
-
-    },
-    "Default base" : {
-
-    },
-    "Delete" : {
-
-    },
-    "Delete Thread" : {
-
-    },
-    "Delete this thread; Undo brings it back" : {
-
-    },
-    "Diff view" : {
-
-    },
-    "Display" : {
-
-    },
-    "Done" : {
-
-    },
-    "Editor" : {
-
-    },
-    "Expand" : {
-
-    },
-    "Files as Flat List" : {
-
-    },
-    "Filter" : {
-
-    },
-    "Filter Files" : {
-
-    },
-    "Find Next" : {
-
-    },
-    "Find Previous" : {
-
-    },
-    "Find in diff" : {
-
-    },
-    "Find…" : {
-
-    },
-    "Font" : {
-
-    },
-    "Generated" : {
-
-    },
-    "Generated files" : {
-
-    },
-    "Go" : {
-
-    },
-    "Go to %@" : {
-
-    },
-    "Hide Missing Worktrees" : {
-
-    },
-    "Hide Threads" : {
-
-    },
-    "Hide Whitespace Changes" : {
-
-    },
-    "Ignore all" : {
-
-    },
-    "Ignore changes in amount" : {
-
-    },
-    "Install Command Line Tool…" : {
-
-    },
-    "Installed the seam command" : {
-
-    },
-    "Keep %@" : {
-
-    },
-    "Keep Parent That Looks Merged" : {
-
-    },
-    "Latest Commit Only" : {
-
-    },
-    "Line %@" : {
-
-    },
-    "Make Text Bigger" : {
-
-    },
-    "Make Text Smaller" : {
-
-    },
-    "Mark as Not Viewed" : {
-
-    },
-    "Mark as Viewed" : {
-
-    },
-    "Name" : {
-
-    },
-    "Never use as a parent" : {
-
-    },
-    "New Window" : {
-
-    },
-    "Next File" : {
-
-    },
-    "Next Hunk" : {
-
-    },
-    "Next Worktree" : {
-
-    },
-    "No changes against %@" : {
-
-    },
-    "No changes in the selected commits" : {
-
-    },
-    "No commits since %@" : {
-
-    },
-    "No matches" : {
-
-    },
-    "No threads" : {
-
-    },
-    "No uncommitted changes" : {
-
-    },
-    "No worktree or branch matches “%@”" : {
-
-    },
-    "No worktree selected" : {
-
-    },
-    "Not a git repository. Choose another folder." : {
-
-    },
-    "Old line %@" : {
-
-    },
-    "Older commits not shown" : {
-
-    },
-    "Open" : {
-
-    },
-    "Open Recent" : {
-
-    },
-    "Open Repository…" : {
-
-    },
-    "Open Thread on This Line" : {
-
-    },
-    "Open a repository to review its worktrees." : {
-
-    },
-    "Open in Editor" : {
-
-    },
-    "Opening %@…" : {
-
-    },
-    "Other ref" : {
-
-    },
-    "Page Down" : {
-
-    },
-    "Page Up" : {
-
-    },
+    "Commits" : {},
+    "Commits on this branch show here once there are some." : {},
+    "Committed" : {},
+    "Compare against" : {},
+    "Context lines: %lld" : {},
+    "Copy" : {},
+    "Copy Path" : {},
+    "Copy Prompt for Agent" : {},
+    "Copy Relative Path" : {},
+    "Copy a prompt telling the agent to answer these threads" : {},
+    "Couldn't install the seam command" : {},
+    "Couldn't open the editor: %@" : {},
+    "Couldn't read the commits" : {},
+    "Couldn't read the threads: %@" : {},
+    "Couldn't run git: %@" : {},
+    "Couldn't save the threads: %@" : {},
+    "Custom" : {},
+    "Default base" : {},
+    "Delete" : {},
+    "Delete Thread" : {},
+    "Delete this thread; Undo brings it back" : {},
+    "Diff view" : {},
+    "Display" : {},
+    "Done" : {},
+    "Editor" : {},
+    "Expand" : {},
+    "Files as Flat List" : {},
+    "Filter" : {},
+    "Filter Files" : {},
+    "Find Next" : {},
+    "Find Previous" : {},
+    "Find in diff" : {},
+    "Find…" : {},
+    "Font" : {},
+    "Generated" : {},
+    "Generated files" : {},
+    "Go" : {},
+    "Go to %@" : {},
+    "Hide Missing Worktrees" : {},
+    "Hide Threads" : {},
+    "Hide Whitespace Changes" : {},
+    "Ignore all" : {},
+    "Ignore changes in amount" : {},
+    "Install Command Line Tool…" : {},
+    "Installed the seam command" : {},
+    "Keep %@" : {},
+    "Keep Parent That Looks Merged" : {},
+    "Latest Commit Only" : {},
+    "Line %@" : {},
+    "Make Text Bigger" : {},
+    "Make Text Smaller" : {},
+    "Mark as Not Viewed" : {},
+    "Mark as Viewed" : {},
+    "Name" : {},
+    "Never use as a parent" : {},
+    "New Window" : {},
+    "Next File" : {},
+    "Next Hunk" : {},
+    "Next Worktree" : {},
+    "No changed file's path matches “%@”." : {},
+    "No changes against %@" : {},
+    "No changes in the selected commits" : {},
+    "No commits since %@" : {},
+    "No matches" : {},
+    "No matching files" : {},
+    "No threads" : {},
+    "No uncommitted changes" : {},
+    "No worktree or branch matches “%@”" : {},
+    "No worktree selected" : {},
+    "Not a git repository. Choose another folder." : {},
+    "Old line %@" : {},
+    "Older commits not shown" : {},
+    "Open" : {},
+    "Open Recent" : {},
+    "Open Repository…" : {},
+    "Open Thread on This Line" : {},
+    "Open a repository to review its worktrees." : {},
+    "Open in Editor" : {},
+    "Opening %@…" : {},
+    "Other ref" : {},
+    "Page Down" : {},
+    "Page Up" : {},
     "Parent %@ looks merged. Diff against %@ instead?" : {
       "localizations" : {
         "en" : {
@@ -359,177 +153,66 @@
         }
       }
     },
-    "Previous File" : {
-
-    },
-    "Previous Hunk" : {
-
-    },
-    "Previous Worktree" : {
-
-    },
-    "Recently Changed" : {
-
-    },
-    "Reload" : {
-
-    },
-    "Reopen" : {
-
-    },
-    "Reply" : {
-
-    },
-    "Resolve" : {
-
-    },
-    "Retry" : {
-
-    },
-    "Reveal in Finder" : {
-
-    },
-    "Review" : {
-
-    },
-    "Run a command" : {
-
-    },
-    "SF Mono" : {
-
-    },
-    "Seam" : {
-
-    },
-    "Select a worktree" : {
-
-    },
-    "Select lines in the diff and press C to comment." : {
-
-    },
-    "Show All" : {
-
-    },
-    "Show Resolved Threads" : {
-
-    },
-    "Show Threads" : {
-
-    },
-    "Show all changes" : {
-
-    },
-    "Show as Flat List" : {
-
-    },
-    "Show changes" : {
-
-    },
-    "Show or hide review threads" : {
-
-    },
-    "Side by Side" : {
-
-    },
-    "Side by side" : {
-
-    },
-    "Size: %lld" : {
-
-    },
-    "Sort By" : {
-
-    },
-    "Sort Worktrees by Name" : {
-
-    },
-    "Sort Worktrees by Recent Change" : {
-
-    },
-    "Space" : {
-
-    },
-    "Switch Worktree…" : {
-
-    },
-    "Switch to worktree" : {
-
-    },
-    "Tab width: %lld" : {
-
-    },
-    "The base %@ no longer exists" : {
-
-    },
-    "The chosen base %@ no longer exists." : {
-
-    },
-    "The threads were saved by a newer Seam; update to change them." : {
-
-    },
-    "The worktree's directory is missing" : {
-
-    },
-    "This worktree's directory is missing." : {
-
-    },
-    "Thread %@ no longer exists." : {
-
-    },
-    "Threads" : {
-
-    },
-    "Toggle Sidebars" : {
-
-    },
-    "Toggle Worktree List" : {
-
-    },
-    "Toggle side-by-side" : {
-
-    },
-    "Uncommitted" : {
-
-    },
-    "Uncommitted changes" : {
-
-    },
-    "Unexpected output from git: %@" : {
-
-    },
-    "Unified" : {
-
-    },
-    "Use" : {
-
-    },
-    "Use %@" : {
-
-    },
-    "Use Detected Base" : {
-
-    },
-    "Whitespace" : {
-
-    },
-    "Words in the path; ^word leaves those out" : {
-
-    },
-    "Worktree %lld" : {
-
-    },
-    "Wrap Lines" : {
-
-    },
-    "Write something first." : {
-
-    },
-    "detached" : {
-
-    },
-    "detected" : {
-
-    },
+    "Previous File" : {},
+    "Previous Hunk" : {},
+    "Previous Worktree" : {},
+    "Recently Changed" : {},
+    "Reload" : {},
+    "Reopen" : {},
+    "Reply" : {},
+    "Resolve" : {},
+    "Retry" : {},
+    "Reveal in Finder" : {},
+    "Review" : {},
+    "Run a command" : {},
+    "SF Mono" : {},
+    "Seam" : {},
+    "Select a worktree" : {},
+    "Select lines in the diff and press C to comment." : {},
+    "Show All" : {},
+    "Show All Changes" : {},
+    "Show Resolved Threads" : {},
+    "Show Threads" : {},
+    "Show all changes" : {},
+    "Show as Flat List" : {},
+    "Show changes" : {},
+    "Show or hide review threads" : {},
+    "Side by Side" : {},
+    "Side by side" : {},
+    "Size: %lld" : {},
+    "Sort By" : {},
+    "Sort Worktrees by Name" : {},
+    "Sort Worktrees by Recent Change" : {},
+    "Space" : {},
+    "Switch Worktree…" : {},
+    "Switch to worktree" : {},
+    "Tab width: %lld" : {},
+    "The base %@ no longer exists" : {},
+    "The chosen base %@ no longer exists." : {},
+    "The threads were saved by a newer Seam; update to change them." : {},
+    "The working tree matches the branch's latest commit." : {},
+    "The worktree's directory is missing" : {},
+    "This worktree's directory is missing." : {},
+    "Thread %@ no longer exists." : {},
+    "Threads" : {},
+    "Together they leave every file as it was." : {},
+    "Toggle Sidebars" : {},
+    "Toggle Worktree List" : {},
+    "Toggle side-by-side" : {},
+    "Uncommitted" : {},
+    "Uncommitted changes" : {},
+    "Unexpected output from git: %@" : {},
+    "Unified" : {},
+    "Use" : {},
+    "Use %@" : {},
+    "Use Detected Base" : {},
+    "Whitespace" : {},
+    "Words in the path; ^word leaves those out" : {},
+    "Worktree %lld" : {},
+    "Wrap Lines" : {},
+    "Write something first." : {},
+    "detached" : {},
+    "detected" : {},
     "git %@ failed: %@" : {
       "localizations" : {
         "en" : {
@@ -540,33 +223,15 @@
         }
       }
     },
-    "locked" : {
-
-    },
-    "missing" : {
-
-    },
-    "now" : {
-
-    },
-    "origin/HEAD, then origin/main, then main" : {
-
-    },
-    "outdated" : {
-
-    },
-    "prunable" : {
-
-    },
-    "stale parent" : {
-
-    },
-    "the base" : {
-
-    },
-    "{path} and {line} are filled in; the command runs with your login shell's PATH." : {
-
-    }
+    "locked" : {},
+    "missing" : {},
+    "now" : {},
+    "origin/HEAD, then origin/main, then main" : {},
+    "outdated" : {},
+    "prunable" : {},
+    "stale parent" : {},
+    "the base" : {},
+    "{path} and {line} are filled in; the command runs with your login shell's PATH." : {}
   },
   "version" : "1.0"
 }

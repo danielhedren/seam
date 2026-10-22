@@ -303,7 +303,7 @@ switches and launches.
   plain terms expand the tree; a filter that only leaves files out keeps folders as they were.
   The filter narrows the diff to the same files. The file list follows every keystroke; the diff
   follows once typing pauses for 300 ms, and scrolls to the top. Clearing the filter applies at
-  once.
+  once. A filter that leaves no file says so in both panes, with a Clear Filter button.
 - The diff lists files in the file list's order: at each level folders before files, then by
   name, with generated files last.
 - Selecting a file scrolls the diff to it. The diff is one continuous scroll of all files, and
@@ -654,7 +654,9 @@ written down here.
 - Progress indicators appear only after 150 ms, so fast operations don't flicker. Stale content
   stays visible, dimmed, while a reload runs.
 - Every empty state says why and what to do: "No changes against
-  origin/feat/a", "Not a git repository — choose another folder".
+  origin/feat/a", "Not a git repository — choose another folder". An empty diff explains itself
+  per scope, and an empty narrower scope (Committed, Uncommitted, picked commits) offers Show All
+  Changes when the worktree has changes.
 
 **Accessibility and strings**
 - VoiceOver isn't supported: Seam adds no accessibility labels or elements of its own, and the

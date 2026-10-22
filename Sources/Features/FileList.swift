@@ -55,6 +55,23 @@ struct FileList: View {
                     }
                 }
             }
+            .overlay {
+                if rows.isEmpty && !review.fileFilter.isEmpty {
+                    ContentUnavailableView {
+                        Label(
+                            String(localized: "No matching files", bundle: .module),
+                            systemImage: "line.3.horizontal.decrease.circle")
+                    } description: {
+                        Text(
+                            "No changed file's path matches “\(review.fileFilter)”.",
+                            bundle: .module)
+                    } actions: {
+                        Button(String(localized: "Clear Filter", bundle: .module)) {
+                            review.fileFilter = ""
+                        }
+                    }
+                }
+            }
         }
     }
 
