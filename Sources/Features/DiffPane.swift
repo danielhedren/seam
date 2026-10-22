@@ -273,12 +273,18 @@ struct FindBar: View {
                 Image(systemName: "chevron.up")
             }
             .disabled(find.result.total == 0)
+            .help(
+                CommandCatalog.help(
+                    String(localized: "Previous match", bundle: .module), command: "find-previous"))
             Button {
                 find.move(by: 1)
             } label: {
                 Image(systemName: "chevron.down")
             }
             .disabled(find.result.total == 0)
+            .help(
+                CommandCatalog.help(
+                    String(localized: "Next match", bundle: .module), command: "find-next"))
             Button(String(localized: "Done", bundle: .module)) { find.close() }
         }
         .buttonStyle(.borderless)
