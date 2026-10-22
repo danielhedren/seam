@@ -23,8 +23,15 @@ final class DiffCanvasView: NSView {
         didSet { if isStale != oldValue { needsDisplay = true } }
     }
     var selection: DiffSelection? {
-        didSet { if selection != oldValue { needsDisplay = true } }
+        didSet {
+            guard selection != oldValue else { return }
+            updateTargetRows()
+            needsDisplay = true
+        }
     }
+    /// The lines `c` would comment on, or the open draft's, by row: marked so the reader sees
+    /// what a new thread goes on before writing it.
+    private(set) var targetRows: [Int: ThreadAnchor.Side] = [:]
     var onToggleCollapse: ((String) -> Void)?
     var onFocusChange: ((Bool) -> Void)?
     var onExpand: ((String, Int, ExpandDirection) -> Void)?
@@ -169,6 +176,7 @@ final class DiffCanvasView: NSView {
         threadedRows = DiffRowBuilder.threadedRows(rows, paths: paths, threads: threads)
         resize()
         updateDraftEditor()
+        updateTargetRows()
     }
 
     private func resize() {
@@ -195,6 +203,7 @@ final class DiffCanvasView: NSView {
                 height: layout.height(of: index))
             draw(row: index, in: rect, palette: palette, context: context)
             if let sides = threadedRows[index] { drawThreadMark(sides, in: rect, context) }
+            if let side = targetRows[index] { drawTargetMark(side, in: rect, context) }
         }
     }
 
@@ -223,7 +232,7 @@ final class DiffCanvasView: NSView {
             drawDraft(marker, row: index, palette: palette, context: context)
         case .thread(_, let marker):
             // A tint of its own, so a thread never reads as a hunk header or a gap.
-            context.setFillColor(NSColor.systemYellow.withAlphaComponent(0.14).cgColor)
+            context.setFillColor(ThreadColor.wash.cgColor)
             context.fill(rect)
             let side: DiffSide = mode == .unified ? .unified : marker.side == .old ? .left : .right
             drawText(
@@ -291,11 +300,22 @@ final class DiffCanvasView: NSView {
     private func drawThreadMark(
         _ sides: Set<ThreadAnchor.Side>, in rect: NSRect, _ context: CGContext
     ) {
-        context.setFillColor(NSColor.systemYellow.cgColor)
+        context.setFillColor(ThreadColor.accent.cgColor)
         for side in sides {
             let x = mode == .split && side == .new ? geometry.columnWidth : 0
             context.fill(NSRect(x: x, y: rect.minY, width: 3, height: rect.height))
         }
+    }
+
+    /// The gutter of a line a new thread goes on, washed in the threads' colour, with its bar.
+    private func drawTargetMark(_ side: ThreadAnchor.Side, in rect: NSRect, _ context: CGContext) {
+        let split = mode == .split
+        let x = split && side == .new ? geometry.columnWidth : 0
+        let gutter = geometry.numberWidth * (split ? 1 : 2)
+        context.setFillColor(ThreadColor.accent.withAlphaComponent(0.35).cgColor)
+        context.fill(NSRect(x: x, y: rect.minY, width: gutter, height: rect.height))
+        context.setFillColor(ThreadColor.accent.cgColor)
+        context.fill(NSRect(x: x, y: rect.minY, width: 3, height: rect.height))
     }
 
     /// One side's line in `bounds`: the whole row in unified mode, its column in split mode.
@@ -530,7 +550,10 @@ extension DiffCanvasView {
         context.setFillColor(palette.background.nsColor.cgColor)
         context.fillPath()
         context.addPath(shape)
-        context.setStrokeColor(NSColor.controlAccentColor.cgColor)
+        context.setFillColor(ThreadColor.wash.cgColor)
+        context.fillPath()
+        context.addPath(shape)
+        context.setStrokeColor(ThreadColor.accent.cgColor)
         context.setLineWidth(1)
         context.strokePath()
         let lines =
@@ -589,5 +612,34 @@ extension DiffCanvasView {
 
     var draftRow: Int? {
         layout.rows.firstIndex { if case .draft = $0 { true } else { false } }
+    }
+}
+
+// MARK: - Comment target
+
+extension DiffCanvasView {
+    fileprivate func updateTargetRows() {
+        let target: (file: Int, side: ThreadAnchor.Side, lines: ClosedRange<Int>)?
+        if let row = draftRow, case .draft(let file, let draft) = layout.rows[row] {
+            target = (file, draft.side, draft.lines)
+        } else if let selection {
+            target = commentTarget(fallback: selection.head.row)
+        } else {
+            target = nil
+        }
+        guard let target, let header = layout.headerRow(ofFile: target.file) else {
+            targetRows = [:]
+            return
+        }
+        let end = layout.headerRow(ofFile: target.file + 1) ?? layout.rows.count
+        var rows: [Int: ThreadAnchor.Side] = [:]
+        for index in header..<end {
+            if let number = DiffRowBuilder.number(of: layout.rows[index], on: target.side),
+                target.lines.contains(number)
+            {
+                rows[index] = target.side
+            }
+        }
+        targetRows = rows
     }
 }

@@ -382,7 +382,9 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   Comment, or right-click: "Comment on Line N" for the clicked line, or "Comment on Lines N–M"
   when the click is inside a selection, which a right-click elsewhere replaces with the clicked
   line. A composer opens in the diff under the last of those lines (in their column side by
-  side), with the cursor in it; ⌘↩ posts and Escape cancels. An unposted draft, text included,
+  side), with the cursor in it; ⌘↩ posts and Escape cancels. The lines a selection or a clicked
+  line would comment on, and the open draft's, have their gutter washed in the threads' amber,
+  the one colour of everything about threads: their rows, the composer and the panel. An unposted draft, text included,
   stays while the reader looks at other worktrees and is there again on coming back.
 - **Old or new side:** a thread goes on the new side unless its lines are only removed ones,
   which exist only in the old file. Unchanged lines go on the new side whichever column of the

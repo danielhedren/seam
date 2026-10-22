@@ -1,3 +1,4 @@
+import DiffView
 import SeamCore
 import SwiftUI
 
@@ -132,7 +133,7 @@ private struct ThreadCard: View {
         }
         .padding(8)
         .background(
-            isExpanded ? AnyShapeStyle(.selection.opacity(0.12)) : AnyShapeStyle(.clear),
+            isExpanded ? AnyShapeStyle(Color(nsColor: ThreadColor.wash)) : AnyShapeStyle(.clear),
             in: RoundedRectangle(cornerRadius: 7)
         )
         .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(.separator))
@@ -142,7 +143,9 @@ private struct ThreadCard: View {
     private var summary: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Image(systemName: thread.isResolved ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(thread.isResolved ? AnyShapeStyle(.green) : AnyShapeStyle(.tint))
+                .foregroundStyle(
+                    thread.isResolved
+                        ? AnyShapeStyle(.green) : AnyShapeStyle(Color(nsColor: ThreadColor.accent)))
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(verbatim: lineLabel).monospacedDigit()

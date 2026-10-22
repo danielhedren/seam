@@ -96,6 +96,37 @@ private func texts(_ rows: [DiffRow]) -> [String] {
         #expect(window.firstResponder === canvas)
     }
 
+    @Test func theLinesCWouldCommentOnAreMarkedAsAreTheOpenDrafts() throws {
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        view.show(DiffContent(review: review()), position: .top)
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        func row(_ text: String) throws -> Int {
+            try #require(canvas.layout.rows.firstIndex { texts([$0]) == [text] })
+        }
+        func marked() -> [String: ThreadAnchor.Side] {
+            Dictionary(
+                uniqueKeysWithValues: canvas.targetRows.map {
+                    (texts([canvas.layout.rows[$0.key]]).first ?? "", $0.value)
+                })
+        }
+        #expect(marked().isEmpty)
+
+        canvas.selection = DiffSelection(
+            side: .unified, anchor: TextPosition(row: try row("two"), column: 0),
+            head: TextPosition(row: try row("two b"), column: 2))
+        #expect(marked() == ["two a": .new, "two b": .new])
+        let caret = TextPosition(row: try row("two"), column: 1)
+        canvas.selection = DiffSelection(side: .unified, anchor: caret, head: caret)
+        #expect(marked() == ["two": .old])
+
+        view.show(
+            DiffContent(
+                review: review(), draft: DraftMarker(path: "a.txt", side: .new, lines: 3...4)),
+            position: .keep)
+        #expect(marked() == ["two b": .new, "three": .new])
+    }
+
     @Test(arguments: [DiffLayoutMode.unified, .split])
     func theComposerSitsInItsColumn(mode: DiffLayoutMode) {
         let view = DiffScrollView()

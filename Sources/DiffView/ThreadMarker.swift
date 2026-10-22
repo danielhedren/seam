@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 import SeamCore
 
 /// A review thread as the diff shows it (SPEC §7.7): where its lines are now, and what its
@@ -47,4 +47,12 @@ public struct DraftMarker: Equatable, Sendable {
         self.side = side
         self.lines = lines
     }
+}
+
+/// Review threads' colour wherever they show: posted, being written, and the lines `c` would
+/// comment on (SPEC §7.7).
+public enum ThreadColor {
+    public static let accent = NSColor.systemYellow
+    /// Behind a thread's row and the composer, light enough for text on either appearance.
+    public static let wash = accent.withAlphaComponent(0.14)
 }
