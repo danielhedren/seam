@@ -61,18 +61,22 @@ public enum StatusParser {
                     StatusEntry(
                         kind: kind, index: type, worktree: type, path: String(line.dropFirst(2))))
             case "1", "2", "u":
-                // Fields before the path: 8 for ordinary, 9 for renames, 10 for unmerged.
-                let count = type == "1" ? 8 : type == "2" ? 9 : 10
+                let (kind, count): (StatusEntry.Kind, Int) =
+                    switch type {
+                    case "1": (.ordinary, 8)
+                    case "2": (.renamedOrCopied, 9)
+                    default: (.unmerged, 10)
+                    }
+                // `count` fields come before the path, which may itself contain spaces.
                 let parts = line.split(
                     separator: " ", maxSplits: count, omittingEmptySubsequences: false)
                 guard parts.count == count + 1, parts[1].count == 2 else {
                     throw .unexpectedOutput("status entry: \(line)")
                 }
                 var entry = StatusEntry(
-                    kind: type == "1" ? .ordinary : type == "2" ? .renamedOrCopied : .unmerged,
-                    index: parts[1].first ?? ".", worktree: parts[1].last ?? ".",
+                    kind: kind, index: parts[1].first ?? ".", worktree: parts[1].last ?? ".",
                     path: String(parts[count]))
-                if type == "2" {
+                if kind == .renamedOrCopied {
                     guard let original = fields.popFirst() else {
                         throw .unexpectedOutput("rename without a source path: \(line)")
                     }
