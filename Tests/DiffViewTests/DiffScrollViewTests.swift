@@ -69,6 +69,38 @@ import Testing
         #expect(!second.isFocused)
     }
 
+    /// A long line widens the document past the view; the checkbox stays at the view's edge.
+    @Test func theViewedCheckboxIsWhereTheStickyHeaderPutsItOnAWideDiff() throws {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 400, height: 300), styleMask: [.titled],
+            backing: .buffered, defer: false)
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 400, height: 300)
+        window.contentView = view
+        var toggled: [String] = []
+        view.onToggleViewed = { toggled.append("viewed \($0)") }
+        view.onToggleCollapse = { toggled.append("collapse \($0)") }
+        view.show(
+            DiffContent(review: review([String(repeating: "x", count: 300)])), position: .top)
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        #expect(canvas.bounds.width > view.contentSize.width)
+
+        let height = canvas.layout.metrics.fileHeaderHeight
+        let header = DiffHeaderDrawing.layout(
+            canvas.review.files[0], collapsed: false, viewed: .unviewed,
+            in: NSRect(x: 0, y: 0, width: view.contentSize.width, height: height),
+            font: canvas.font, palette: .light)
+        let point = NSPoint(x: header.checkbox.midX, y: header.checkbox.midY)
+        let event = try #require(
+            NSEvent.mouseEvent(
+                with: .leftMouseDown, location: canvas.convert(point, to: nil), modifierFlags: [],
+                timestamp: 0, windowNumber: window.windowNumber, context: nil, eventNumber: 0,
+                clickCount: 1, pressure: 1))
+        canvas.mouseDown(with: event)
+
+        #expect(toggled == ["viewed a.txt"])
+    }
+
     @Test func collapsingOneFileSplicesTheSameRowsAFullRebuildWouldMake() {
         var content = DiffContent(review: review(["alpha", "beta"]))
         let second = ReviewFile(

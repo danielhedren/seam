@@ -218,8 +218,8 @@ final class DiffCanvasView: NSView {
             let path = review.files[file].diff.path
             DiffHeaderDrawing.draw(
                 review.files[file], collapsed: collapsed.contains(path),
-                viewed: viewed[path] ?? .unviewed, in: rect, font: font, palette: palette,
-                context: context)
+                viewed: viewed[path] ?? .unviewed, in: chromeRect(ofRow: index), font: font,
+                palette: palette, context: context)
         case .hunkHeader(_, _, .hidden): break
         case .hunkHeader(_, _, .separator): fill(rect, palette.hunkBackground, context)
         case .hunkHeader(_, _, .titled(let text)):
@@ -232,7 +232,7 @@ final class DiffCanvasView: NSView {
                 text, key: LineKey(row: index, side: .unified), x: geometry.unifiedTextX,
                 rowTop: rect.minY, color: palette.gutterText, context: context)
         case .image(let file):
-            drawImages(file: file, in: rect, palette: palette, context: context)
+            drawImages(file: file, in: chromeRect(ofRow: index), palette: palette, context: context)
         case .thread(_, let marker):
             // A tint of its own, so a thread never reads as a hunk header or a gap.
             context.setFillColor(NSColor.systemYellow.withAlphaComponent(0.14).cgColor)
@@ -286,6 +286,29 @@ final class DiffCanvasView: NSView {
             context.setFillColor(palette.separator.nsColor.cgColor)
             context.fill(
                 NSRect(x: geometry.columnWidth, y: rect.minY, width: 1, height: rect.height))
+        }
+    }
+
+    /// File headers and image previews span the visible width, not a document a long line made
+    /// wider, so the viewed checkbox sits where the sticky header puts it.
+    func chromeRect(ofRow row: Int) -> NSRect {
+        let visible = visibleRect.isEmpty ? bounds : visibleRect
+        return NSRect(
+            x: visible.minX, y: layout.top(of: row), width: visible.width,
+            height: layout.height(of: row))
+    }
+
+    /// Chrome rows follow the visible width, so a horizontal scroll has to redraw them.
+    func horizontalScrollDidChange() {
+        for row in layout.rows(in: visibleRect.minY, visibleRect.maxY) {
+            switch layout.rows[row] {
+            case .fileHeader, .image:
+                setNeedsDisplay(
+                    NSRect(
+                        x: 0, y: layout.top(of: row), width: bounds.width,
+                        height: layout.height(of: row)))
+            default: break
+            }
         }
     }
 

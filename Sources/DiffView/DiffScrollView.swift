@@ -57,6 +57,7 @@ public final class DiffScrollView: NSScrollView {
     /// After a jump to a file, the clip view's top the jump landed on. A short file near the end
     /// can't reach the top, so until the reader scrolls away the jumped-to file stays current.
     private var jumpedTop: Double?
+    private var visibleLeft = 0.0
 
     public init() {
         super.init(frame: .zero)
@@ -300,6 +301,10 @@ public final class DiffScrollView: NSScrollView {
 
     public override func reflectScrolledClipView(_ clipView: NSClipView) {
         super.reflectScrolledClipView(clipView)
+        if contentView.bounds.minX != visibleLeft {
+            visibleLeft = contentView.bounds.minX
+            canvas.horizontalScrollDidChange()
+        }
         updateSticky()
         if let jumpedTop {
             if jumpedTop == visibleTop { return }
