@@ -163,3 +163,19 @@ func testSettings() -> AppSettings {
 final class Flag {
     var isSet = false
 }
+
+/// Never reports changes, and runs `onFirstWatch` when the first watch starts.
+final class FirstWatchWatcher: FileWatcher, Sendable {
+    private let pending = Mutex<(@MainActor @Sendable () -> Void)?>(nil)
+
+    func onFirstWatch(_ action: @escaping @MainActor @Sendable () -> Void) {
+        pending.withLock { $0 = action }
+    }
+
+    func events(for directories: [URL]) -> AsyncStream<[String]> {
+        if let action = pending.withLock({ $0.take() }) {
+            MainActor.assumeIsolated { action() }
+        }
+        return AsyncStream { _ in }
+    }
+}

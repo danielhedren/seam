@@ -130,6 +130,7 @@ final class RepoSession {
             guard !isClosed else { return }
             state = .open
             await threads?.start(watching: services.watcher)
+            guard !isClosed else { return }
             let last = repoState.selectedWorktree.flatMap { id in reviews.first { $0.id == id } }
             select(last?.id ?? worktree.path)
             startMonitor()
@@ -402,7 +403,7 @@ final class RepoSession {
 
     private func startMonitor() {
         monitorTask?.cancel()
-        guard let repository else { return }
+        guard !isClosed, let repository else { return }
         let monitor = RepoMonitor(
             repository: repository, worktrees: reviews.map(\.worktree), watcher: services.watcher,
             git: services.git, clock: services.clock)

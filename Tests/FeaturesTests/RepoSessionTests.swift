@@ -234,6 +234,22 @@ import Testing
         #expect(session.state == .opening)
     }
 
+    @Test func closingWhileTheThreadsLoadLeavesNothingWatching() async throws {
+        let repo = try await FixtureRepo()
+        let watcher = FirstWatchWatcher()
+        let session = RepoSession(
+            directory: repo.main,
+            services: SeamServices(
+                git: repo.git, watcher: watcher, clock: ManualClock(), store: MemoryStore(),
+                threads: scratchThreadStore(), settings: testSettings()))
+        // The first watch is the threads'; the close lands while their file is read.
+        watcher.onFirstWatch { Task { session.close() } }
+
+        await session.open()
+
+        #expect(!session.isWatching)
+    }
+
     @Test func singleLetterKeysStandDownWhileASheetOrPopoverIsOpen() {
         let session = RepoSession(
             directory: URL(fileURLWithPath: "/"),
