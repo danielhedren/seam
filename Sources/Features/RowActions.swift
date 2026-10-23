@@ -109,17 +109,9 @@ extension RepoSession {
     /// Opens the worktree's folder; a failure shows on that worktree's banner.
     func openWorktreeInEditor(_ review: WorktreeReview, command: EditorCommand? = nil) {
         guard !review.worktree.isMissing else { return }
-        let line = (command ?? services.settings.editor).commandLine(
-            directory: review.worktree.path.path)
-        let launcher = services.launcher
-        Task {
-            do {
-                try await launcher.run(line)
-            } catch {
-                let message = (error as? LaunchFailed)?.message ?? error.localizedDescription
-                review.report(.editorFailed(message))
-            }
-        }
+        launchEditor(
+            (command ?? services.settings.editor).commandLine(directory: review.worktree.path.path),
+            for: review)
     }
 }
 

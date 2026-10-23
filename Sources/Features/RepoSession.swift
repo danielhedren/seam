@@ -298,7 +298,11 @@ final class RepoSession {
             )
             return
         }
-        let line = command.commandLine(path: path, line: location.1)
+        launchEditor(command.commandLine(path: path, line: location.1), for: review)
+    }
+
+    /// Runs an editor command line; a failure shows on the worktree's banner.
+    func launchEditor(_ line: String, for review: WorktreeReview) {
         let launcher = services.launcher
         Task {
             do {
