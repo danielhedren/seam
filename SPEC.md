@@ -562,6 +562,43 @@ Each worktree's branch shows its GitHub pull request, read through the user's ow
   10 minutes. Those run side by side, at most six at once. The open PRs show as soon as the list
   is in, with the reviews and checks last read until the new ones arrive.
 
+### 7.9 Pull request comments
+
+The review threads of a worktree's pull request, read through `gh` (ADR 0006) and shown beside
+Seam's threads (§7.7) in the same rows, card and panel, but read-only: Seam never writes to
+GitHub.
+
+- **Which:** the PR's review threads, on lines or on a whole file, with their replies. The PR's
+  conversation and review summaries aren't shown.
+- **Looks:** the same views as Seam's threads, in GitHub's blue (Primer's accent, `#0969da`
+  light, `#4493f8` dark) where Seam's are amber: the gutter bar, the row's wash, the card's
+  frame, the file list's dot (a file with both kinds shows both) and the panel's marks. Rows and
+  cards carry the GitHub mark, authors are GitHub logins, and the card's title reads "GitHub
+  thread on src/a.cs, line 12 · #12 · 3 comments".
+- **Read-only:** the card has no reply box, Resolve or Delete. It has Open on GitHub (also Review
+  › Open Thread on GitHub) and "⎋ Close". Review › Resolve Thread and Delete Thread are disabled
+  for them. `c` on their lines starts a Seam thread as anywhere else.
+- **Placing:** a comment's lines anchor on the side GitHub gives (right is new, left is old) with
+  their text taken from the comment's diff hunk, and follow the worktree like a Seam thread
+  (§7.7): in the diff where that text still is, else outdated in the panel. Whether the text is
+  still in the worktree decides, not GitHub's own "outdated". A file comment, or one whose lines
+  aren't in its hunk, shows in the panel under its file.
+- **Resolved** on GitHub is resolved here: hidden in the diff unless Show Resolved Threads is on.
+  The toolbar badge and the file list count them with Seam's.
+- **Reading:** a worktree's PR's threads are read when the PR's update time changes (from the
+  list §7.8 reads anyway), on opening and on Reload, for open, merged and closed PRs alike. One
+  read is `gh api graphql` with a fixed query, 100 threads and 100 comments a page, following
+  further pages. A failed read keeps the threads last read.
+- **For agents:** the threads last read are written beside the repo's thread file (§7.7) as
+  `<name>.github.json`, so `seam threads`, `seam thread` and `seam wait` include them without the
+  app answering. Each says it comes from GitHub: the PR, when it was read, GitHub's thread id
+  and URL, every comment's login and GitHub comment id, and the `gh` command that replies to it
+  (`gh api --hostname github.com -X POST repos/o/a/pulls/12/comments/<id>/replies -f body=…`).
+  Their ids are `gh-` and the first comment's GitHub id. `seam reply`, `resolve`, `reopen` and
+  `delete` refuse them with that command (status 1).
+- **Copy Prompt for Agent** adds that GitHub's threads are answered on GitHub with the command
+  `seam threads` prints for each, not with `seam reply`, and are left to the reader to resolve.
+
 ## 8. Technical design
 
 ### 8.1 Language and toolchain
@@ -660,7 +697,8 @@ seam-debug (M1)       ─ SeamCore
 - A first load shows the diff as soon as it's parsed and adds contents when they arrive. A
   reload swaps diff and contents together, so new hunks never meet the old file's lines.
 - Cancellation: switching worktrees or scopes cancels in-flight processes for the old selection.
-- **gh** (§7.8, ADR 0005): `GitHubClient` in GitKit has read methods only. Every call passes
+- **gh** (§7.8, ADRs 0005 and 0006): `GitHubClient` in GitKit has read methods only; review
+  threads come from `gh api graphql` with queries fixed in the code, never a mutation. Every call passes
   `-R host/owner/repo`, runs in a temporary folder outside any repository with
   `GH_PROMPT_DISABLED=1`, and drops `GH_REPO` and `GH_HOST`, so gh can't pick a remote, prompt, or
   write to `.git/config`. gh is found on the login shell's PATH, then in Homebrew's folders. Exit
@@ -1018,8 +1056,15 @@ changes but a status line in Settings, never a banner or an alert.
 *Done when:* a repo's PR markers appear within 2 s of opening without delaying the list (§8.7),
 a push from a terminal updates its row with no action, and every test runs against a fake `gh`.
 
-**Later:** PR review comments shown read-only beside Seam's threads; failing checks in Copy Prompt
-for Agent.
+**M7 — Pull request comments (§7.9, ADR 0006).** The review threads of each worktree's PR, read
+through `gh api graphql` with fixed queries and shown read-only beside Seam's threads in GitHub's
+blue; `seam threads` lists them with their GitHub ids and the `gh` command that answers each, and
+Copy Prompt for Agent tells the agent to.
+*Done when:* a review comment posted on GitHub shows on its line in the open app after the next
+read, an agent given the prompt finds it with `seam threads` and can answer it with the printed
+command, and every test runs against a fake `gh`.
+
+**Later:** failing checks in Copy Prompt for Agent; the PR's conversation comments.
 
 ## 15. Risks
 
