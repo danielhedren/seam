@@ -365,6 +365,9 @@
     "Font" : {
 
     },
+    "From a later commit" : {
+
+    },
     "Generated" : {
 
     },
@@ -437,6 +440,12 @@
 
     },
     "Invalid regular expression" : {
+
+    },
+    "Jump to Commit" : {
+
+    },
+    "Jump to Thread's Commit" : {
 
     },
     "Keep %@" : {

@@ -7,6 +7,8 @@ enum ThreadPlacement: Equatable {
     case lines(ClosedRange<Int>)
     /// Its lines are gone from the file.
     case outdated
+    /// Written on a commit after the newest one shown, so its lines may not exist yet.
+    case later
     /// Its file isn't in this diff, or its text isn't loaded.
     case notShown
 }
@@ -64,9 +66,11 @@ extension WorktreeReview {
             else {
                 return PlacedThread(thread: thread, placement: .notShown)
             }
+            if let lines = anchor.locate(in: text) {
+                return PlacedThread(thread: thread, placement: .lines(lines))
+            }
             return PlacedThread(
-                thread: thread,
-                placement: anchor.locate(in: text).map(ThreadPlacement.lines) ?? .outdated)
+                thread: thread, placement: isAfterShownCommits(thread) ? .later : .outdated)
         }
         .sorted { lhs, rhs in
             if lhs.thread.isResolved != rhs.thread.isResolved { return !lhs.thread.isResolved }
@@ -79,6 +83,25 @@ extension WorktreeReview {
         placementCache.key = key
         placementCache.placed = placed
         return placed
+    }
+
+    /// Whether the thread's commit is newer than the newest commit picked in the list.
+    private func isAfterShownCommits(_ thread: ReviewThread) -> Bool {
+        guard let commit = thread.github?.commit,
+            case .commit(let newest) = commitSelection?.newest,
+            let ids = commitLog?.commits.map(\.id), let written = ids.firstIndex(of: commit),
+            let shown = ids.firstIndex(of: newest)
+        else { return false }
+        return written < shown
+    }
+
+    /// The branch's commits up to the one a thread was written on, as its diff showed then; nil
+    /// when that commit isn't on the branch any more, such as after a rebase.
+    func commitsUpTo(_ thread: ReviewThread) -> CommitSelection? {
+        guard let commit = thread.github?.commit, let log = commitLog,
+            log.commits.contains(where: { $0.id == commit }), let oldest = log.commits.last
+        else { return nil }
+        return CommitSelection(newest: .commit(commit), oldest: .commit(oldest.id))
     }
 
     /// The file list's markers: each file's open and resolved threads, outdated ones included.

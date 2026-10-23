@@ -187,6 +187,7 @@ private struct ThreadCard: View {
                 summary.contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .contextMenu { menu }
             if isExpanded { conversation }
         }
         .padding(8)
@@ -202,6 +203,18 @@ private struct ThreadCard: View {
                     : AnyShapeStyle(.separator))
         )
         .opacity(thread.isResolved && !isSelected ? 0.6 : 1)
+    }
+
+    @ViewBuilder private var menu: some View {
+        if thread.isFromGitHub {
+            Button(String(localized: "Jump to Commit", bundle: .module)) {
+                Task { await session.jumpToCommit(of: thread) }
+            }
+            .disabled(session.selected?.commitsUpTo(thread) == nil)
+            Button(String(localized: "Open on GitHub", bundle: .module)) {
+                session.openOnGitHub(thread)
+            }
+        }
     }
 
     private var summary: some View {
@@ -222,6 +235,10 @@ private struct ThreadCard: View {
                     Text(verbatim: lineLabel).monospacedDigit()
                     if placed.placement == .outdated {
                         Text("Outdated", bundle: .module)
+                            .padding(.horizontal, 5)
+                            .background(.quaternary, in: Capsule())
+                    } else if placed.placement == .later {
+                        Text("From a later commit", bundle: .module)
                             .padding(.horizontal, 5)
                             .background(.quaternary, in: Capsule())
                     }

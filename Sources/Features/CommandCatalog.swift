@@ -447,6 +447,16 @@ enum CommandCatalog {
                 Task { await session.deleteThread(id) }
             }),
         SeamCommand(
+            id: "thread-commit", title: localized("Jump to Thread's Commit"), menu: .review,
+            section: 5, shortcut: .none,
+            isEnabled: { session in
+                session.selectedGitHubThread.flatMap { session.selected?.commitsUpTo($0) } != nil
+            },
+            run: { session in
+                guard let thread = session.selectedGitHubThread else { return }
+                Task { await session.jumpToCommit(of: thread) }
+            }),
+        SeamCommand(
             id: "thread-on-github", title: localized("Open Thread on GitHub"), menu: .review,
             section: 5, shortcut: .none, isEnabled: { $0.selectedGitHubThread != nil },
             run: { session in session.selectedGitHubThread.map(session.openOnGitHub) }),

@@ -15,11 +15,14 @@ public struct GitHubReviewThread: Codable, Equatable, Sendable {
         public var created: Date
         public var url: String
         public var diffHunk: String
+        /// The commit it was written on, whose diff its hunk shows.
+        public var commit: String?
 
         public init(
             id: Int, author: String, body: String, created: Date, url: String,
-            diffHunk: String = ""
+            diffHunk: String = "", commit: String? = nil
         ) {
+            self.commit = commit
             self.id = id
             self.author = author
             self.body = body
@@ -55,7 +58,7 @@ public struct GitHubReviewThread: Codable, Equatable, Sendable {
 enum ReviewThreadQuery {
     private static let comments = """
         pageInfo { hasNextPage endCursor }
-        nodes { databaseId author { login } body createdAt url diffHunk }
+        nodes { databaseId author { login } body createdAt url diffHunk originalCommit { oid } }
         """
 
     static let threads = """
@@ -94,18 +97,20 @@ enum ReviewThreadQuery {
 
     struct Comment: Decodable {
         struct Author: Decodable { var login: String }
+        struct Commit: Decodable { var oid: String }
         var databaseId: Int
         var author: Author?
         var body: String
         var createdAt: Date
         var url: String
         var diffHunk: String?
+        var originalCommit: Commit?
 
         var comment: GitHubReviewThread.Comment {
             // A deleted account's comments have no author; GitHub shows them as "ghost".
             GitHubReviewThread.Comment(
                 id: databaseId, author: author?.login ?? "ghost", body: body, created: createdAt,
-                url: url, diffHunk: diffHunk ?? "")
+                url: url, diffHunk: diffHunk ?? "", commit: originalCommit?.oid)
         }
     }
 

@@ -582,7 +582,12 @@ GitHub.
   their text taken from the comment's diff hunk, and follow the worktree like a Seam thread
   (§7.7): in the diff where that text still is, else outdated in the panel. Whether the text is
   still in the worktree decides, not GitHub's own "outdated". A file comment, or one whose lines
-  aren't in its hunk, shows in the panel under its file.
+  aren't in its hunk, shows in the panel under its file. While the commit list shows commits
+  older than the one a thread was written on, it's labelled "From a later commit", not outdated.
+- **Jump to Commit** (the panel's context menu, and Review › Jump to Thread's Commit) picks the
+  branch's commits from its oldest up to the one the thread was written on, the diff GitHub
+  showed the reviewer, and opens the thread there. A comment often concerns code from an earlier
+  commit, so those stay in. It's unavailable when that commit isn't on the branch any more.
 - **Resolved** on GitHub is resolved here: hidden in the diff unless Show Resolved Threads is on.
   The toolbar badge and the file list count them with Seam's.
 - **Reading:** a worktree's PR's threads are read when the PR's update time changes (from the

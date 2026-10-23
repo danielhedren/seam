@@ -24,9 +24,10 @@ import Testing
     }
 
     /// A comment on `a.txt`'s one line, as GitHub reads it back.
-    private static func thread(resolved: Bool = false, body: String = "Why a?")
-        -> GitHubReviewThread
-    {
+    private static func thread(
+        resolved: Bool = false, body: String = "Why a?", hunk: String = "@@ -0,0 +1 @@\n+a",
+        commit: String? = nil
+    ) -> GitHubReviewThread {
         GitHubReviewThread(
             id: "PRRT_1", path: "a.txt", isResolved: resolved, side: .right, lines: 1...1,
             comments: [
@@ -34,7 +35,7 @@ import Testing
                     id: 7, author: "octocat", body: body,
                     created: Date(timeIntervalSince1970: 1_792_756_800),
                     url: "https://github.com/owner/app/pull/12#discussion_r7",
-                    diffHunk: "@@ -0,0 +1 @@\n+a")
+                    diffHunk: hunk, commit: commit)
             ])
     }
 
@@ -207,6 +208,79 @@ import Testing
         github.answer(threads: [moved], for: 12)
         let session = await open(repo, selecting: feature)
         #expect(try review(session, feature).placedThreads.first?.placement == .outdated)
+        session.close()
+    }
+
+    /// a.txt reads "a" in the first commit and "b" in the second.
+    private func twoCommits() async throws -> (FixtureRepo, URL, first: String, second: String) {
+        let (repo, feature) = try await fixture()
+        let first = try await repo.sha("feature")
+        try await repo.commit("a.txt", "b\n", "Change a", in: feature)
+        return (repo, feature, first, try await repo.sha("feature"))
+    }
+
+    @Test func jumpingToAnOutdatedThreadsCommitShowsItOnItsLines() async throws {
+        let (repo, feature, first, _) = try await twoCommits()
+        github.answer(open: [Self.pullRequest()])
+        github.answer(threads: [Self.thread(commit: first)], for: 12)
+        let session = await open(repo, selecting: feature)
+        let row = try review(session, feature)
+        #expect(row.placedThreads.first?.placement == .outdated)
+
+        session.openThread("gh-7")
+        let jump = try command("thread-commit")
+        #expect(jump.isEnabled(session))
+        jump.run(session)
+        await until { row.placedThreads.first?.placement == .lines(1...1) }
+        #expect(
+            row.shownSelection == CommitSelection(newest: .commit(first), oldest: .commit(first)))
+        #expect(session.selectedThreadID == "gh-7")
+        #expect(session.openThreadMarker(for: row)?.lines == 1...1)
+        session.close()
+    }
+
+    /// A comment is often on code from an earlier commit, so the jump keeps every one before.
+    @Test func jumpingSelectsEveryCommitUpToTheThreadsOne() async throws {
+        let (repo, feature, first, second) = try await twoCommits()
+        try await repo.commit("a.txt", "c\n", "Change a again", in: feature)
+        github.answer(open: [Self.pullRequest()])
+        github.answer(threads: [Self.thread(hunk: "@@ -1 +1 @@\n-a\n+b", commit: second)], for: 12)
+        let session = await open(repo, selecting: feature)
+        let row = try review(session, feature)
+
+        session.openThread("gh-7")
+        try command("thread-commit").run(session)
+        await until { row.placedThreads.first?.placement == .lines(1...1) }
+        #expect(
+            row.shownSelection == CommitSelection(newest: .commit(second), oldest: .commit(first)))
+        session.close()
+    }
+
+    @Test func aThreadFromACommitAfterTheOnesShownIsntCalledOutdated() async throws {
+        let (repo, feature, first, second) = try await twoCommits()
+        github.answer(open: [Self.pullRequest()])
+        github.answer(threads: [Self.thread(hunk: "@@ -1 +1 @@\n-a\n+b", commit: second)], for: 12)
+        let session = await open(repo, selecting: feature)
+        let row = try review(session, feature)
+        #expect(row.placedThreads.first?.placement == .lines(1...1))
+
+        session.selectCommits(CommitSelection(newest: .commit(first), oldest: .commit(first)))
+        await row.loaded()
+        #expect(row.placedThreads.first?.placement == .later)
+        session.close()
+    }
+
+    @Test func aThreadWhoseCommitIsntOnTheBranchCantJump() async throws {
+        let (repo, feature) = try await fixture()
+        github.answer(open: [Self.pullRequest()])
+        github.answer(
+            threads: [
+                Self.thread(hunk: "@@ -0,0 +1 @@\n+z", commit: String(repeating: "f", count: 40))
+            ],
+            for: 12)
+        let session = await open(repo, selecting: feature)
+        session.openThread("gh-7")
+        #expect(try !command("thread-commit").isEnabled(session))
         session.close()
     }
 

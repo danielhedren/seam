@@ -11,10 +11,14 @@ public struct GitHubThreadSource: Codable, Equatable, Sendable {
     public var url: String
     /// On the whole file rather than lines.
     public var onFile: Bool
+    /// The commit its first comment was written on, as GitHub's diff then showed it.
+    public var commit: String?
 
     public init(
-        repo: GitHubRepo, pullRequest: Int, threadID: String, url: String, onFile: Bool = false
+        repo: GitHubRepo, pullRequest: Int, threadID: String, url: String, onFile: Bool = false,
+        commit: String? = nil
     ) {
+        self.commit = commit
         self.repo = repo
         self.pullRequest = pullRequest
         self.threadID = threadID
@@ -61,7 +65,7 @@ public enum GitHubThreads {
                 updated: thread.comments.map(\.created).max(),
                 github: GitHubThreadSource(
                     repo: repo, pullRequest: pullRequest, threadID: thread.id, url: first.url,
-                    onFile: thread.lines == nil))
+                    onFile: thread.lines == nil, commit: first.commit))
         }
     }
 

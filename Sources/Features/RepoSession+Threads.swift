@@ -62,6 +62,14 @@ extension RepoSession {
         id.hasPrefix(ReviewThread.gitHubPrefix)
     }
 
+    /// Shows the branch as it was when the thread was written, with the thread open on its lines.
+    func jumpToCommit(of thread: ReviewThread) async {
+        guard let review = selected, let selection = review.commitsUpTo(thread) else { return }
+        selectCommits(selection)
+        await review.loaded()
+        openThread(thread.id)
+    }
+
     func openOnGitHub(_ thread: ReviewThread) {
         guard let url = thread.github.flatMap({ URL(string: $0.url) }) else { return }
         services.openURL(url)
