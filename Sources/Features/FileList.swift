@@ -6,6 +6,7 @@ struct FileList: View {
     let session: RepoSession
     @Bindable var review: WorktreeReview
     var filterFocus: FocusState<Bool>.Binding
+    @FocusState private var listFocused: Bool
 
     var body: some View {
         let files = review.diff?.files ?? []
@@ -36,12 +37,7 @@ struct FileList: View {
             .padding(.horizontal, 10)
             .frame(height: PaneHeader.height(session) - 1)
             Divider()
-            TextField(String(localized: "Filter", bundle: .module), text: $review.fileFilter)
-                .textFieldStyle(.roundedBorder)
-                .help(
-                    String(localized: "Words in the path; ^word leaves those out", bundle: .module)
-                )
-                .focused(filterFocus)
+            FilterField(text: $review.fileFilter, focus: filterFocus) { listFocused = true }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
             List(selection: selection(files, rows)) {
@@ -58,6 +54,7 @@ struct FileList: View {
                     }
                 }
             }
+            .focused($listFocused)
             .overlay {
                 if rows.isEmpty && !review.fileFilter.isEmpty {
                     ContentUnavailableView {
@@ -108,6 +105,60 @@ struct FileList: View {
         case .file:
             break
         }
+    }
+}
+
+/// A search field like Finder's: magnifier, placeholder, and a clear button once there's text.
+/// A styled SwiftUI field rather than an `NSSearchField`, so `FocusState` tracks it exactly:
+/// single-letter keys depend on knowing when it has focus. Escape clears it, then leaves it.
+struct FilterField: View {
+    @Binding var text: String
+    var focus: FocusState<Bool>.Binding
+    let onLeave: () -> Void
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            // A plain field draws its prompt in the text colour, so the placeholder is drawn here.
+            TextField(String(localized: "Filter", bundle: .module), text: $text, prompt: Text(""))
+                .textFieldStyle(.plain)
+                .background(alignment: .leading) {
+                    if text.isEmpty {
+                        Text("Filter", bundle: .module)
+                            .foregroundStyle(Color(nsColor: .placeholderTextColor))
+                            .allowsHitTesting(false)
+                    }
+                }
+                .focused(focus)
+                .onExitCommand {
+                    if text.isEmpty {
+                        focus.wrappedValue = false
+                        onLeave()
+                    } else {
+                        text = ""
+                    }
+                }
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .help(String(localized: "Clear Filter", bundle: .module))
+            }
+        }
+        .padding(.horizontal, 6)
+        .frame(height: 24)
+        .background(.quaternary.opacity(0.6), in: Capsule())
+        .contentShape(Capsule())
+        .onTapGesture { focus.wrappedValue = true }
+        .overlay {
+            if focus.wrappedValue {
+                Capsule().strokeBorder(Color.accentColor.opacity(0.5), lineWidth: 2)
+            }
+        }
+        .help(String(localized: "Words in the path; ^word leaves those out", bundle: .module))
     }
 }
 

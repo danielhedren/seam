@@ -313,7 +313,9 @@ selection acts on its newest commit, and so do Review › Copy Commit ID and Cop
   file.
 - The header shows totals and the viewed count ("7/19 viewed"), with a checkmark once every file
   is viewed. With no changed files it shows only the count.
-- Filter field (`⌘F` while the file list has focus) matching on path: space-separated terms,
+- A search field above the list (`⌘F` while the file list has focus), with a magnifier, a
+  "Filter" placeholder and a clear button; Escape clears it, and in an empty field returns focus
+  to the list. It matches on path: space-separated terms,
   ignoring case, not a regex. Every plain term must appear in the path; a term starting with `^`
   must not (`^test` hides test files, `delivery ^test` shows delivery files except tests). Only
   plain terms expand the tree; a filter that only leaves files out keeps folders as they were.

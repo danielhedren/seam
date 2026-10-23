@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+
+    },
     "%@ already exists and isn't Seam's. Remove it and try again." : {
 
     },
