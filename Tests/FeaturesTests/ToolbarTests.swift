@@ -57,24 +57,6 @@ import Testing
         #expect(session.settings.layoutMode == .split)
     }
 
-    @Test func theSidebarsButtonHidesBothSidebarsAndSaysWhichWayItGoes() async throws {
-        let repo = try await FixtureRepo()
-        let session = RepoSession(directory: repo.main, services: services(repo.git))
-        await session.open()
-        await session.settled()
-        let window = toolbarWindow(session, try #require(session.selected))
-        let item = { window.toolbar?.items.first { $0.label.hasSuffix("Sidebars") } }
-        #expect(item()?.label == "Hide Sidebars")
-        #expect(item()?.toolTip == "Hide Sidebars (⌘\\)")
-
-        session.toggleSidebars()
-        settle()
-        #expect(session.columns == .diffOnly)
-        #expect(item()?.label == "Show Sidebars")
-        session.toggleSidebars()
-        #expect(session.columns == .all)
-    }
-
     private func toolbarWindow(_ session: RepoSession, _ review: WorktreeReview) -> NSWindow {
         let root = NavigationStack {
             Color.clear.toolbar { ReviewToolbar(session: session, review: review) }

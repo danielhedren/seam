@@ -46,10 +46,6 @@ final class RepoSession {
         case filesAndDiff
         case diffOnly
     }
-
-    func toggleSidebars() {
-        columns = columns == .diffOnly ? .all : .diffOnly
-    }
     var showsBasePicker = false
     /// Bumped by Edit › Filter Files; the window moves focus to the filter field.
     var filterFocusRequests = 0

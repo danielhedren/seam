@@ -84,8 +84,6 @@ struct RepoWindow: View {
                 }
             }
             .navigationSplitViewColumnWidth(min: 200, ideal: 260)
-            // The system toggle hides only this column; the toolbar's hides both sidebars.
-            .toolbar(removing: .sidebarToggle)
         } content: {
             Group {
                 if let review = session.selected {
@@ -143,25 +141,13 @@ struct RepoWindow: View {
     }
 }
 
-/// Sidebars, view mode, reload and the thread panel; the diff gets the rest of the window (SPEC
-/// §9). Disabled rather than left out without a worktree, so the toolbar keeps its items.
+/// View mode, reload and the thread panel; the diff gets the rest of the window (SPEC §9). Disabled rather
+/// than left out without a worktree, so the toolbar keeps its items.
 struct ReviewToolbar: ToolbarContent {
     let session: RepoSession
     let review: WorktreeReview?
 
     var body: some ToolbarContent {
-        ToolbarItem(placement: .navigation) {
-            let title =
-                session.columns == .diffOnly
-                ? String(localized: "Show Sidebars", bundle: .module)
-                : String(localized: "Hide Sidebars", bundle: .module)
-            Button {
-                session.toggleSidebars()
-            } label: {
-                Label(title, systemImage: "sidebar.left")
-            }
-            .help(CommandCatalog.help(title, command: "toggle-sidebars"))
-        }
         ToolbarItem {
             ViewModePicker(settings: session.settings)
                 .disabled(review == nil)
