@@ -87,6 +87,15 @@ private func gitHubThread(
         #expect(stamped[1].updated == read[1].updated)
     }
 
+    /// A thread read for the first time is news to an agent waiting since before the read, however
+    /// old its comments: the app may have been closed when they were written.
+    @Test func aThreadReadForTheFirstTimeIsStampedWithTheRead() {
+        let read = GitHubThreads.threads(
+            from: [gitHubThread()], worktree: "/w", repo: repo, pullRequest: 12)
+        let later = start.addingTimeInterval(3600)
+        #expect(GitHubThreads.stamped(read, previous: [], now: later).first?.updated == later)
+    }
+
     @Test func eachWorktreesReadReplacesOnlyItsOwnThreadsBesideTheSeamFile() throws {
         let directory = try TemporaryDirectory()
         let store = ThreadStore(directory: directory.url)

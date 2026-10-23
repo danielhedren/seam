@@ -113,8 +113,8 @@ public enum GitHubThreads {
     }
 
     /// A newly read set, keeping the previous `updated` of every thread that hasn't changed and
-    /// stamping `now` on those that have (a thread resolved on GitHub gets no new comment), so
-    /// `seam wait --since` sees each change once.
+    /// stamping `now` on new ones and those that have (a thread resolved on GitHub gets no new
+    /// comment), so `seam wait --since` sees each change once, when Seam first learns of it.
     public static func stamped(_ threads: [ReviewThread], previous: [ReviewThread], now: Date)
         -> [ReviewThread]
     {
@@ -122,7 +122,10 @@ public enum GitHubThreads {
             previous.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return threads.map { thread in
             var thread = thread
-            guard let old = before[thread.id] else { return thread }
+            guard let old = before[thread.id] else {
+                thread.updated = now
+                return thread
+            }
             thread.updated = old.updated
             if thread != old { thread.updated = now }
             return thread
