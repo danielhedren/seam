@@ -40,6 +40,9 @@ struct CommitList: View {
                     header(log)
                 }
             }
+            .contextMenu(forSelectionType: CommitSelection.End.self) { picked in
+                ActionMenu(groups: RowActions.actions(for: picked, of: review, in: session))
+            }
         } else {
             placeholder
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

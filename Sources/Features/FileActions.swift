@@ -7,6 +7,7 @@ import SwiftUI
 enum FileActions {
     struct Action {
         var title: String
+        var isEnabled = true
         var run: () -> Void
     }
 
@@ -75,9 +76,14 @@ enum FileActions {
 
     private static func menu(_ groups: [[Action]]) -> NSMenu {
         let menu = NSMenu()
+        menu.autoenablesItems = false
         for (index, group) in groups.enumerated() {
             if index > 0 { menu.addItem(.separator()) }
-            for action in group { menu.addItem(ClosureMenuItem(action.title, action.run)) }
+            for action in group {
+                let item = ClosureMenuItem(action.title, action.run)
+                item.isEnabled = action.isEnabled
+                menu.addItem(item)
+            }
         }
         return menu
     }
@@ -107,11 +113,20 @@ struct FileContextMenu: View {
     let session: RepoSession
 
     var body: some View {
-        let groups = FileActions.actions(for: path, in: session)
+        ActionMenu(groups: FileActions.actions(for: path, in: session))
+    }
+}
+
+/// Groups of actions between dividers, for a SwiftUI context menu.
+struct ActionMenu: View {
+    let groups: [[FileActions.Action]]
+
+    var body: some View {
         ForEach(groups.indices, id: \.self) { index in
             if index > 0 { Divider() }
             ForEach(groups[index].indices, id: \.self) { item in
-                Button(groups[index][item].title, action: groups[index][item].run)
+                let action = groups[index][item]
+                Button(action.title, action: action.run).disabled(!action.isEnabled)
             }
         }
     }

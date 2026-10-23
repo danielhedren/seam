@@ -136,6 +136,15 @@
     "Copy" : {
 
     },
+    "Copy Branch Name" : {
+
+    },
+    "Copy Commit ID" : {
+
+    },
+    "Copy Commit Subject" : {
+
+    },
     "Copy Path" : {
 
     },
@@ -143,6 +152,12 @@
 
     },
     "Copy Relative Path" : {
+
+    },
+    "Copy Subject" : {
+
+    },
+    "Copy Worktree Path" : {
 
     },
     "Copy a prompt telling the agent to answer these threads" : {
@@ -203,6 +218,9 @@
 
     },
     "Expand File" : {
+
+    },
+    "File" : {
 
     },
     "Files as Flat List" : {
@@ -373,6 +391,9 @@
     "Open Thread on This Line" : {
 
     },
+    "Open Worktree in Editor" : {
+
+    },
     "Open in Editor" : {
 
     },
@@ -443,6 +464,9 @@
     "Retry" : {
 
     },
+    "Reveal Worktree in Finder" : {
+
+    },
     "Reveal in Finder" : {
 
     },
@@ -480,6 +504,9 @@
 
     },
     "Show File List" : {
+
+    },
+    "Show Only This Commit" : {
 
     },
     "Show Resolved Threads" : {

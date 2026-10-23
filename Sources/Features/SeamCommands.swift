@@ -40,6 +40,8 @@ struct SeamCommands: Commands {
                     .disabled(requests.recent.isEmpty)
             }
             Divider()
+            items(.file)
+            Divider()
             Button(
                 String(localized: "Install Command Line Tool…", bundle: .module),
                 action: installCommandLineTool)

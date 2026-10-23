@@ -270,6 +270,11 @@ Each row shows:
 Sorting: most recently changed first (default), or by name. The main worktree is pinned to the
 top. Worktrees whose directory is missing are listed dimmed, and can be hidden.
 
+A row's context menu has Open in Editor (the worktree's folder, §7.6), Reveal in Finder, Copy
+Path and Copy Branch Name (when it has a branch), then the list's Sort By and Hide Missing
+Worktrees. A missing worktree can only be copied. File › Open Worktree in Editor, Reveal Worktree
+in Finder, Copy Worktree Path and Copy Branch Name do the same for the selected worktree.
+
 Switching: `⌘1`…`⌘9` pick by position, `⌘[`/`⌘]` go to the previous or next worktree, and `⌘K`
 opens fuzzy search over worktree and branch names: the best match is highlighted, `↑`/`↓` move
 the highlight and Return opens it, and a query nothing matches says so. Each worktree keeps its
@@ -294,6 +299,10 @@ The rows the diff covers are selected; selecting other rows (click, ⇧-click, a
 new run (§6.2), and a ⌘-click selection is filled to a contiguous run. "Show All" returns to the
 All scope. The divider between the worktree and commit lists keeps its position across worktree
 switches and launches.
+
+A commit's context menu has Copy Commit ID (the full SHA), Copy Subject, Show Only This Commit
+and, while the diff covers less than everything, Show All Changes. Right-clicking inside a
+selection acts on its newest commit, and so do Review › Copy Commit ID and Copy Commit Subject.
 
 ### 7.3 File list
 
@@ -385,6 +394,8 @@ Configurable command template. Presets for Zed (`zed {path}:{line}`), VS Code
 (`code -g {path}:{line}`), Rider and Cursor; the default is the first of those that is installed,
 else Zed. `{path}` is the path inside the worktree being reviewed, so the file opens in that
 worktree.
+Opening a whole worktree (§7.2) passes its folder and leaves out `{line}` with the option
+before it that takes it (`--line {line}`, `-g {path}:{line}`).
 
 The command runs with `/bin/sh` and the PATH of the user's login, interactive shell, read once.
 When a preset's command isn't on that PATH, Seam uses the command-line tool inside the installed

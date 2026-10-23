@@ -15,7 +15,11 @@ struct WorktreeList: View {
                     .help(session.directory.path)
             }
         }
-        .contextMenu {
+        .contextMenu(forSelectionType: String.self) { ids in
+            if ids.count == 1, let review = session.reviews.first(where: { ids.contains($0.id) }) {
+                ActionMenu(groups: RowActions.actions(for: review, in: session))
+                Divider()
+            }
             Picker(String(localized: "Sort By", bundle: .module), selection: Bindable(session).sort)
             {
                 Text("Recent Change", bundle: .module).tag(WorktreeSort.recent)
