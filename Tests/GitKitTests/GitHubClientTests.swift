@@ -285,6 +285,25 @@ import Testing
         }
     }
 
+    /// GitHub lets a range start on removed lines and end on added ones; Seam's anchor has one
+    /// side, so it keeps the end line, where GitHub shows the comment.
+    @Test func aRangeAcrossBothSidesIsAnchoredOnItsLastLine() throws {
+        let json = """
+            {"data":{"repository":{"pullRequest":{"reviewThreads":{
+              "pageInfo":{"hasNextPage":false,"endCursor":null},
+              "nodes":[{"id":"T","isResolved":false,"path":"a.txt","diffSide":"RIGHT",
+                "startDiffSide":"LEFT","originalLine":12,"originalStartLine":10,
+                "subjectType":"LINE",
+                "comments":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[]}}]}}}}}
+            """
+        let answer = try ReviewThreadQuery.decode(
+            ReviewThreadQuery.ThreadsAnswer.self, Data(json.utf8))
+        let thread = try #require(answer.data.repository?.pullRequest?.reviewThreads.nodes.first)
+        #expect(thread.thread.lines == 12...12)
+        #expect(thread.thread.side == .right)
+        #expect(ReviewThreadQuery.threads.contains("startDiffSide"))
+    }
+
     @Test func aFileCommentHasNoLinesAndAGoneAccountIsGhost() throws {
         let json = """
             {"data":{"repository":{"pullRequest":{"reviewThreads":{

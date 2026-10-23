@@ -589,7 +589,8 @@ GitHub.
   › Open Thread on GitHub) and "⎋ Close". Review › Resolve Thread and Delete Thread are disabled
   for them. `c` on their lines starts a Seam thread as anywhere else.
 - **Placing:** a comment's lines anchor on the side GitHub gives (right is new, left is old) with
-  their text taken from the comment's diff hunk, and follow the worktree like a Seam thread
+  their text taken from the comment's diff hunk (a range from removed to added lines keeps only
+  its last line), and follow the worktree like a Seam thread
   (§7.7): in the diff where that text still is, else outdated in the panel. Whether the text is
   still in the worktree decides, not GitHub's own "outdated". A file comment, or one whose lines
   aren't in its hunk, shows in the panel under its file. While the commit list shows commits

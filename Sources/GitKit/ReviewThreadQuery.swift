@@ -68,7 +68,7 @@ enum ReviewThreadQuery {
               reviewThreads(first: 100, after: $after) {
                 pageInfo { hasNextPage endCursor }
                 nodes {
-                  id isResolved path diffSide originalLine originalStartLine subjectType
+                  id isResolved path diffSide startDiffSide originalLine originalStartLine subjectType
                   comments(first: 100) { \(comments) }
                 }
               }
@@ -119,6 +119,7 @@ enum ReviewThreadQuery {
         var isResolved: Bool
         var path: String
         var diffSide: String?
+        var startDiffSide: String?
         var originalLine: Int?
         var originalStartLine: Int?
         var subjectType: String?
@@ -127,7 +128,10 @@ enum ReviewThreadQuery {
         var thread: GitHubReviewThread {
             var lines: ClosedRange<Int>?
             if subjectType != "FILE", let end = originalLine {
-                lines = min(originalStartLine ?? end, end)...end
+                // A range starting on the other side can't be one side's lines; GitHub shows it
+                // at its last line.
+                let sameSide = startDiffSide == nil || startDiffSide == diffSide
+                lines = sameSide ? min(originalStartLine ?? end, end)...end : end...end
             }
             return GitHubReviewThread(
                 id: id, path: path, isResolved: isResolved,
