@@ -25,7 +25,18 @@ struct ThreadCardView: View {
                 onSubmit: { Task { await session.submitDraft() } },
                 onDismiss: { session.draft = nil })
         case .thread(let id):
-            if let placed = session.selected?.placedThreads.first(where: { $0.id == id }) {
+            if let placed = session.selected?.placedThreads.first(where: { $0.id == id }),
+                placed.thread.isFromGitHub
+            {
+                // Read-only (SPEC §7.9): no reply box, and the one action is GitHub's page.
+                layout(
+                    title: Self.threadTitle(placed.thread, lines: placed.placement),
+                    thread: placed.thread, text: nil, placeholder: "",
+                    submit: String(localized: "Open on GitHub", bundle: .module),
+                    dismiss: String(localized: "Close", bundle: .module),
+                    onSubmit: { session.openOnGitHub(placed.thread) },
+                    onDismiss: { session.closeThread() })
+            } else if let placed = session.selected?.placedThreads.first(where: { $0.id == id }) {
                 layout(
                     title: Self.threadTitle(placed.thread, lines: placed.placement),
                     thread: placed.thread, text: $reply,
@@ -38,32 +49,42 @@ struct ThreadCardView: View {
     }
 
     private func layout(
-        title: String, thread: ReviewThread?, text: Binding<String>, placeholder: String,
+        title: String, thread: ReviewThread?, text: Binding<String>?, placeholder: String,
         submit: String, dismiss: String, onSubmit: @escaping () -> Void,
         onDismiss: @escaping () -> Void
     ) -> some View {
         let diffFont = session.settings.font
         // A weight on a font made from an NSFont is ignored, so the bold face is asked for.
         let bold = Font(NSFontManager.shared.convert(diffFont, toHaveTrait: .boldFontMask))
-        let isEmpty = text.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let isEmpty =
+            text?.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? false
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 16) {
-                Text(verbatim: title).foregroundStyle(.secondary)
-                    .lineLimit(1).truncationMode(.middle)
+                HStack(spacing: 6) {
+                    if thread?.isFromGitHub == true {
+                        Octicon.mark.image.resizable().frame(width: 13, height: 13)
+                            .foregroundStyle(Color(nsColor: ThreadColor.gitHubAccent))
+                    }
+                    Text(verbatim: title).foregroundStyle(.secondary)
+                        .lineLimit(1).truncationMode(.middle)
+                }
                 Spacer(minLength: 4)
-                if let thread { actions(thread) }
+                if let thread, !thread.isFromGitHub { actions(thread) }
             }
             if let thread { ThreadComments(thread: thread, font: Font(diffFont), authorFont: bold) }
-            // Four lines whatever is typed, so the card doesn't grow under the reader.
-            CardTextBox(
-                text: text, placeholder: placeholder, font: diffFont, lines: 4,
-                takesFocus: thread == nil, onSubmit: onSubmit, onCancel: onDismiss)
+            if let text {
+                // Four lines whatever is typed, so the card doesn't grow under the reader.
+                CardTextBox(
+                    text: text, placeholder: placeholder, font: diffFont, lines: 4,
+                    takesFocus: thread == nil, onSubmit: onSubmit, onCancel: onDismiss)
+            }
             HStack(spacing: 24) {
                 Spacer()
                 Button(action: onSubmit) {
                     Text(
-                        verbatim:
-                            "\(SeamCommand.label(CommandCatalog.send.key, CommandCatalog.send.modifiers)) \(submit)"
+                        verbatim: text == nil
+                            ? submit
+                            : "\(SeamCommand.label(CommandCatalog.send.key, CommandCatalog.send.modifiers)) \(submit)"
                     )
                 }
                 .disabled(isEmpty)
@@ -121,16 +142,31 @@ struct ThreadCardView: View {
             : String(localized: "New thread on \(marker.path), line \(lines)", bundle: .module)
     }
 
-    /// "Thread on src/a.cs, line 12 · 3 comments · resolved".
+    /// "Thread on src/a.cs, line 12 · 3 comments · resolved"; a pull request's says "GitHub
+    /// thread on src/a.cs, line 12 · #12 · 3 comments".
     static func threadTitle(_ thread: ReviewThread, lines placement: ThreadPlacement) -> String {
         let lines = range(
             { if case .lines(let now) = placement { now } else { thread.anchor.lines } }())
+        let status = thread.isResolved ? String(localized: " · resolved", bundle: .module) : ""
+        if let github = thread.github {
+            let place =
+                github.onFile
+                ? String(localized: "GitHub thread on \(thread.anchor.path)", bundle: .module)
+                : thread.anchor.side == .old
+                    ? String(
+                        localized: "GitHub thread on \(thread.anchor.path), old line \(lines)",
+                        bundle: .module)
+                    : String(
+                        localized: "GitHub thread on \(thread.anchor.path), line \(lines)",
+                        bundle: .module)
+            return "\(place) · #\(github.pullRequest) · "
+                + "\(Counted.comments(thread.comments.count))\(status)"
+        }
         let place =
             thread.anchor.side == .old
             ? String(
                 localized: "Thread on \(thread.anchor.path), old line \(lines)", bundle: .module)
             : String(localized: "Thread on \(thread.anchor.path), line \(lines)", bundle: .module)
-        let status = thread.isResolved ? String(localized: " · resolved", bundle: .module) : ""
         return "\(place) · \(Counted.comments(thread.comments.count))\(status)"
     }
 }

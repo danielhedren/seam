@@ -22,6 +22,9 @@ public protocol GitHubClient: Sendable {
         -> PullRequest?
     /// One pull request with its reviews and checks.
     func pullRequest(_ number: Int, in repo: GitHubRepo) async throws(GitHubError) -> PullRequest
+    /// Every review thread of a pull request, with all their comments.
+    func reviewThreads(_ number: Int, in repo: GitHubRepo) async throws(GitHubError)
+        -> [GitHubReviewThread]
 }
 
 /// Runs the user's own `gh`. Every call names its repo with `-R` and runs outside any
@@ -89,6 +92,55 @@ public struct CLIGitHubClient: GitHubClient {
         } catch {
             logger.error("unreadable gh pr view output: \(error)")
             throw .failed("unexpected gh pr view output")
+        }
+    }
+
+    public func reviewThreads(_ number: Int, in repo: GitHubRepo) async throws(GitHubError)
+        -> [GitHubReviewThread]
+    {
+        var threads: [GitHubReviewThread] = []
+        var after: String?
+        repeat {
+            var arguments = [
+                "-F", "number=\(number)", "-f", "owner=\(repo.owner)", "-f", "name=\(repo.name)",
+            ]
+            if let after { arguments += ["-f", "after=\(after)"] }
+            let answer = try await graphQL(
+                ReviewThreadQuery.threads, arguments, on: repo.host,
+                as: ReviewThreadQuery.ThreadsAnswer.self)
+            guard let page = answer.data.repository?.pullRequest?.reviewThreads else {
+                throw .failed("pull request #\(number) not found in \(repo.slug)")
+            }
+            for node in page.nodes {
+                var thread = node.thread
+                var comments = node.comments.pageInfo
+                while comments.hasNextPage, let cursor = comments.endCursor {
+                    let more = try await graphQL(
+                        ReviewThreadQuery.moreComments,
+                        ["-f", "id=\(node.id)", "-f", "after=\(cursor)"], on: repo.host,
+                        as: ReviewThreadQuery.CommentsAnswer.self)
+                    guard let page = more.data.node?.comments else { break }
+                    thread.comments += page.nodes.map(\.comment)
+                    comments = page.pageInfo
+                }
+                threads.append(thread)
+            }
+            after = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : nil
+        } while after != nil
+        return threads
+    }
+
+    /// Runs one of the fixed queries (ADR 0006); variables go as fields, never into the query.
+    private func graphQL<Answer: Decodable>(
+        _ query: String, _ variables: [String], on host: String, as type: Answer.Type
+    ) async throws(GitHubError) -> Answer {
+        let output = try await run(
+            ["api", "graphql", "--hostname", host, "-f", "query=\(query)"] + variables)
+        do {
+            return try ReviewThreadQuery.decode(type, output)
+        } catch {
+            logger.error("unreadable gh api graphql output: \(error)")
+            throw .failed("unexpected gh api graphql output")
         }
     }
 

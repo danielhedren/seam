@@ -170,6 +170,7 @@ private struct ThreadCard: View {
     @FocusState private var replyFocused: Bool
 
     private var thread: ReviewThread { placed.thread }
+    private var source: ThreadSource { thread.isFromGitHub ? .gitHub : .seam }
     private var isExpanded: Bool {
         isSelected && (!placed.isInDiff || session.openThreadIsHidden)
     }
@@ -190,13 +191,14 @@ private struct ThreadCard: View {
         }
         .padding(8)
         .background(
-            isSelected ? AnyShapeStyle(Color(nsColor: ThreadColor.wash)) : AnyShapeStyle(.clear),
+            isSelected
+                ? AnyShapeStyle(Color(nsColor: ThreadColor.wash(source))) : AnyShapeStyle(.clear),
             in: RoundedRectangle(cornerRadius: 7)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 7).strokeBorder(
                 isSelected
-                    ? AnyShapeStyle(Color(nsColor: ThreadColor.accent).opacity(0.6))
+                    ? AnyShapeStyle(Color(nsColor: ThreadColor.accent(source)).opacity(0.6))
                     : AnyShapeStyle(.separator))
         )
         .opacity(thread.isResolved && !isSelected ? 0.6 : 1)
@@ -204,11 +206,17 @@ private struct ThreadCard: View {
 
     private var summary: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Image(systemName: thread.isResolved ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(
-                    thread.isResolved
-                        ? AnyShapeStyle(.secondary)
-                        : AnyShapeStyle(Color(nsColor: ThreadColor.accent)))
+            Group {
+                if thread.isFromGitHub {
+                    Octicon.mark.image.resizable().frame(width: 12, height: 12)
+                } else {
+                    Image(systemName: thread.isResolved ? "checkmark.circle.fill" : "circle")
+                }
+            }
+            .foregroundStyle(
+                thread.isResolved
+                    ? AnyShapeStyle(.secondary)
+                    : AnyShapeStyle(Color(nsColor: ThreadColor.accent(source))))
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(verbatim: lineLabel).monospacedDigit()
@@ -228,6 +236,7 @@ private struct ThreadCard: View {
     }
 
     private var lineLabel: String {
+        if thread.github?.onFile == true { return String(localized: "Whole file", bundle: .module) }
         let lines =
             if case .lines(let now) = placed.placement { now } else { thread.anchor.lines }
         let range =
@@ -245,8 +254,22 @@ private struct ThreadCard: View {
     }
 
     @ViewBuilder private var conversation: some View {
-        QuotedLines(anchor: thread.anchor)
+        if !thread.anchor.text.isEmpty { QuotedLines(anchor: thread.anchor) }
         ThreadComments(thread: thread).padding(.vertical, 2)
+        if thread.isFromGitHub {
+            HStack {
+                Spacer()
+                Button(String(localized: "Open on GitHub", bundle: .module)) {
+                    session.openOnGitHub(thread)
+                }
+            }
+            .controlSize(.small)
+        } else {
+            replyControls
+        }
+    }
+
+    @ViewBuilder private var replyControls: some View {
         TextField(
             String(localized: "Reply", bundle: .module), text: $reply, axis: .vertical
         )

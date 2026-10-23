@@ -104,4 +104,10 @@ struct NoGitHub: GitHubClient {
     func pullRequest(_ number: Int, in repo: GitHubRepo) throws(GitHubError) -> PullRequest {
         throw .notInstalled
     }
+
+    func reviewThreads(_ number: Int, in repo: GitHubRepo) throws(GitHubError)
+        -> [GitHubReviewThread]
+    {
+        throw .notInstalled
+    }
 }

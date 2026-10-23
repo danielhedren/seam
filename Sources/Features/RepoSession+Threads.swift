@@ -48,11 +48,23 @@ extension RepoSession {
     }
 
     func reply(to id: String, _ body: String) async -> Bool {
-        await threads?.reply(to: id, body: body) ?? false
+        guard !Self.isGitHub(id) else { return false }
+        return await threads?.reply(to: id, body: body) ?? false
     }
 
     func setResolved(_ resolved: Bool, thread id: String) async {
+        guard !Self.isGitHub(id) else { return }
         await threads?.setResolved(resolved, id: id)
+    }
+
+    /// A pull request's thread, which Seam only reads (SPEC §7.9).
+    static func isGitHub(_ id: String) -> Bool {
+        id.hasPrefix(ReviewThread.gitHubPrefix)
+    }
+
+    func openOnGitHub(_ thread: ReviewThread) {
+        guard let url = thread.github.flatMap({ URL(string: $0.url) }) else { return }
+        services.openURL(url)
     }
 
     /// From the diff's thread row, `t`, or the panel: opens the thread in the diff, its file
@@ -100,7 +112,8 @@ extension RepoSession {
 
     /// Review › Delete Thread; Undo puts it back where it was.
     func deleteThread(_ id: String) async {
-        guard let threads, let (thread, index) = await threads.delete(id: id) else { return }
+        guard !Self.isGitHub(id), let threads, let (thread, index) = await threads.delete(id: id)
+        else { return }
         if selectedThreadID == id { selectedThreadID = nil }
         let name = String(localized: "Delete Thread", bundle: .module)
         // Redo has to be registered while the undo runs, so only the store write waits.
@@ -138,7 +151,9 @@ extension RepoSession {
         I've left review comments on your changes in Seam. Run `seam threads` in this worktree \
         to read the open threads. For each one, make the change it asks for, or explain why \
         not, and answer with `seam reply <id> "..." --as <your name>` saying what you did. \
-        Don't resolve threads you didn't open; I resolve mine. `seam --help` lists the other \
-        commands.
+        Don't resolve threads you didn't open; I resolve mine. Threads marked as from GitHub \
+        come from the pull request: answer those on GitHub with the gh command seam prints \
+        under each, not with `seam reply`, and leave resolving them to me. `seam --help` lists \
+        the other commands.
         """
 }

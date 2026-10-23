@@ -39,7 +39,7 @@ final class DiffCanvasView: NSView {
     var onOpenThread: ((String) -> Void)?
     var onCloseCard: (() -> Void)?
     private(set) var threads: [String: [ThreadMarker]] = [:]
-    private var threadedRows: [Int: Set<ThreadAnchor.Side>] = [:]
+    private var threadedRows: [Int: Set<ThreadMark>] = [:]
     var menuForFile: ((String) -> NSMenu?)?
     var menuForLines: (() -> NSMenu?)?
     /// The card's view, which Features supplies; the canvas sizes and places it.
@@ -218,7 +218,7 @@ final class DiffCanvasView: NSView {
                 x: 0, y: layout.top(of: index), width: bounds.width,
                 height: layout.height(of: index))
             draw(row: index, in: rect, palette: palette, context: context)
-            if let sides = threadedRows[index] { drawThreadMark(sides, in: rect, context) }
+            if let marks = threadedRows[index] { drawThreadMark(marks, in: rect, context) }
             if let side = targetRows[index] { drawTargetMark(side, in: rect, context) }
         }
     }
@@ -248,7 +248,9 @@ final class DiffCanvasView: NSView {
         case .draft(_, let marker):
             drawCardFrame(row: index, side: marker.side, palette: palette, context: context)
         case .openThread(_, let marker):
-            drawCardFrame(row: index, side: marker.side, palette: palette, context: context)
+            drawCardFrame(
+                row: index, side: marker.side, source: marker.source, palette: palette,
+                context: context)
         case .thread(_, let marker):
             drawThreadRow(marker, row: index, in: rect, palette: palette, context: context)
         case .gap(_, let gap):
@@ -323,7 +325,7 @@ final class DiffCanvasView: NSView {
             band = own
             fill(other, palette.emptySide, context)
         }
-        context.setFillColor(ThreadColor.wash.cgColor)
+        context.setFillColor(ThreadColor.wash(marker.source).cgColor)
         context.fill(band)
         let x = geometry.textX(for: side)
         let color = marker.isResolved ? palette.gutterText : palette.text
@@ -350,13 +352,15 @@ final class DiffCanvasView: NSView {
         }
     }
 
-    /// A bar at the left of the gutter beside a thread's lines, on the side the thread is on.
-    private func drawThreadMark(
-        _ sides: Set<ThreadAnchor.Side>, in rect: NSRect, _ context: CGContext
-    ) {
-        context.setFillColor(ThreadColor.accent.cgColor)
-        for side in sides {
-            let x = mode == .split && side == .new ? geometry.columnWidth : 0
+    /// A bar at the left of the gutter beside a thread's lines, on the side the thread is on;
+    /// where both Seam's and GitHub's threads cover a line, GitHub's bar is beside Seam's.
+    private func drawThreadMark(_ marks: Set<ThreadMark>, in rect: NSRect, _ context: CGContext) {
+        for mark in marks {
+            var x = mode == .split && mark.side == .new ? geometry.columnWidth : 0
+            if mark.source == .gitHub, marks.contains(ThreadMark(side: mark.side, source: .seam)) {
+                x += 3
+            }
+            context.setFillColor(ThreadColor.accent(mark.source).cgColor)
             context.fill(NSRect(x: x, y: rect.minY, width: 3, height: rect.height))
         }
     }
@@ -662,10 +666,11 @@ extension DiffCanvasView {
         return rect.insetBy(dx: 8, dy: 4)
     }
 
-    /// The amber card a draft and an open thread sit in; side by side, the other column is
-    /// left empty as beside an unpaired line.
+    /// The card a draft and an open thread sit in, amber or GitHub's blue; side by side, the
+    /// other column is left empty as beside an unpaired line.
     func drawCardFrame(
-        row: Int, side: ThreadAnchor.Side, palette: DiffPalette, context: CGContext
+        row: Int, side: ThreadAnchor.Side, source: ThreadSource = .seam, palette: DiffPalette,
+        context: CGContext
     ) {
         if mode == .split {
             let rect = chromeRect(ofRow: row)
@@ -685,10 +690,10 @@ extension DiffCanvasView {
         context.setFillColor(palette.background.nsColor.cgColor)
         context.fillPath()
         context.addPath(shape)
-        context.setFillColor(ThreadColor.wash.cgColor)
+        context.setFillColor(ThreadColor.wash(source).cgColor)
         context.fillPath()
         context.addPath(shape)
-        context.setStrokeColor(ThreadColor.accent.cgColor)
+        context.setStrokeColor(ThreadColor.accent(source).cgColor)
         context.setLineWidth(1)
         context.strokePath()
     }

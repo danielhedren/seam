@@ -66,6 +66,9 @@
     "%lld open" : {
 
     },
+    "%lld open on GitHub" : {
+
+    },
     "%lld open threads" : {
 
     },
@@ -107,6 +110,9 @@
 
     },
     "All Changes" : {
+
+    },
+    "All GitHub threads resolved" : {
 
     },
     "All threads resolved" : {
@@ -368,6 +374,29 @@
     "GitHub" : {
 
     },
+    "GitHub thread on %@" : {
+
+    },
+    "GitHub thread on %@, line %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "GitHub thread on %1$@, line %2$@"
+          }
+        }
+      }
+    },
+    "GitHub thread on %@, old line %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "GitHub thread on %1$@, old line %2$@"
+          }
+        }
+      }
+    },
     "GitHub's rate limit was reached. Seam tries again later." : {
 
     },
@@ -553,6 +582,9 @@
     "Open Repository…" : {
 
     },
+    "Open Thread on GitHub" : {
+
+    },
     "Open Thread on This Line" : {
 
     },
@@ -560,6 +592,9 @@
 
     },
     "Open in Editor" : {
+
+    },
+    "Open on GitHub" : {
 
     },
     "Opening %@…" : {
@@ -856,6 +891,9 @@
 
     },
     "Whitespace" : {
+
+    },
+    "Whole file" : {
 
     },
     "Words in the path; ^word leaves those out" : {

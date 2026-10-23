@@ -137,7 +137,8 @@ struct Threads: AsyncParsableCommand {
         let (repository, worktree) = try await options.worktree()
         let scope = ThreadScope(
             worktree: repo ? nil : worktree.path, includesResolved: all, since: since)
-        let threads = try threadStore().threads(for: repository).filter(scope.contains)
+        let (found, read) = try allThreads(repository)
+        let threads = found.filter(scope.contains)
         if json {
             try printJSON(threads)
         } else if threads.isEmpty {
@@ -146,8 +147,10 @@ struct Threads: AsyncParsableCommand {
                     ?? (all ? "No threads." : "No open threads."))
         } else {
             print(
-                threads.map { ThreadText.format($0, showsWorktree: repo) }.joined(separator: "\n\n")
-            )
+                threads.map {
+                    ThreadText.format($0, showsWorktree: repo, read: read[$0.worktree])
+                }
+                .joined(separator: "\n\n"))
         }
     }
 }
@@ -186,7 +189,10 @@ struct Wait: AsyncParsableCommand {
         guard
             let (changes, asOf) = try await ThreadWait.next(
                 in: ThreadScope(worktree: repo ? nil : worktree.path, since: since),
-                read: { () throws(ThreadError) in try store.threads(for: repository) },
+                read: { () throws(ThreadError) in
+                    try store.threads(for: repository)
+                        + store.gitHubThreads(for: repository).threads
+                },
                 events: events, clock: ContinuousClock(), timeout: timeout.map { .seconds($0) })
         else {
             let seconds = timeout ?? 0
@@ -199,7 +205,10 @@ struct Wait: AsyncParsableCommand {
             try printJSON(Output(asOf: asOf, changed: changes.changed, deleted: changes.deleted))
             return
         }
-        var parts = changes.changed.map { ThreadText.format($0, showsWorktree: repo) }
+        let read = (try? store.gitHubThreads(for: repository).read) ?? [:]
+        var parts = changes.changed.map {
+            ThreadText.format($0, showsWorktree: repo, read: read[$0.worktree])
+        }
         parts += changes.deleted.map { "#\($0) deleted" }
         parts.append("As of \(asOf.formatted(.iso8601))")
         print(parts.joined(separator: "\n\n"))
@@ -234,9 +243,15 @@ struct ShowThread: AsyncParsableCommand {
     func run() async throws {
         let (repository, _) = try await options.worktree()
         let id = id.trimmingPrefix("#")
-        guard let thread = try threadStore().threads(for: repository).first(where: { $0.id == id })
-        else { throw ThreadError.unknownThread(String(id)) }
-        if json { try printJSON(thread) } else { print(ThreadText.format(thread)) }
+        let (threads, read) = try allThreads(repository)
+        guard let thread = threads.first(where: { $0.id == id }) else {
+            throw ThreadError.unknownThread(String(id))
+        }
+        if json {
+            try printJSON(thread)
+        } else {
+            print(ThreadText.format(thread, read: read[thread.worktree]))
+        }
     }
 }
 
@@ -253,6 +268,7 @@ struct Reply: AsyncParsableCommand {
         let (repository, _) = try await options.worktree()
         let author = signature.name
         let id = String(id.trimmingPrefix("#"))
+        try refuseGitHub(id, in: repository)
         try threadStore().update(repository) { threads throws(ThreadError) in
             try ThreadRules.reply(&threads, to: id, author: author, body: text, now: .now)
         }
@@ -380,6 +396,7 @@ struct Delete: AsyncParsableCommand {
     func run() async throws {
         let (repository, _) = try await options.worktree()
         let id = String(id.trimmingPrefix("#"))
+        try refuseGitHub(id, in: repository)
         try threadStore().update(repository) { threads throws(ThreadError) in
             try ThreadRules.delete(&threads, id: id)
         }
@@ -390,10 +407,34 @@ struct Delete: AsyncParsableCommand {
 private func setResolved(_ resolved: Bool, _ id: String, _ options: ThreadOptions) async throws {
     let (repository, _) = try await options.worktree()
     let id = String(id.trimmingPrefix("#"))
+    try refuseGitHub(id, in: repository)
     try threadStore().update(repository) { threads throws(ThreadError) in
         try ThreadRules.setResolved(resolved, &threads, id: id, now: .now)
     }
     print(resolved ? "Resolved #\(id)." : "Reopened #\(id).")
+}
+
+/// Seam's threads and the pull request threads the app read last, with when each worktree's
+/// were read (SPEC §7.9).
+private func allThreads(_ repository: Repository) throws(ThreadError)
+    -> (threads: [ReviewThread], read: [String: Date])
+{
+    let store = threadStore()
+    let github = try store.gitHubThreads(for: repository)
+    return (try store.threads(for: repository) + github.threads, github.read)
+}
+
+/// GitHub's threads are read-only here: the error says how to answer one with gh instead.
+private func refuseGitHub(_ id: String, in repository: Repository) throws {
+    guard id.hasPrefix(ReviewThread.gitHubPrefix),
+        let thread = try threadStore().gitHubThreads(for: repository).threads.first(where: {
+            $0.id == id
+        }),
+        let github = thread.github, let reply = thread.gitHubReply
+    else { return }
+    throw Failure(
+        "#\(id) is a thread on GitHub pull request #\(github.pullRequest), which seam can't "
+            + "change. Answer it on GitHub:\n  \(reply)")
 }
 
 /// A failure while running, not in the arguments: printed as "Error: …" with status 1, without

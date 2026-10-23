@@ -12,11 +12,13 @@ public struct ThreadMarker: Equatable, Sendable {
     public var latest: String
     public var commentCount: Int
     public var isResolved: Bool
+    public var source: ThreadSource
 
     public init(
         id: String, side: ThreadAnchor.Side, lines: ClosedRange<Int>, latestAuthor: String,
-        latest: String, commentCount: Int, isResolved: Bool
+        latest: String, commentCount: Int, isResolved: Bool, source: ThreadSource = .seam
     ) {
+        self.source = source
         self.id = id
         self.side = side
         self.lines = lines
@@ -28,7 +30,11 @@ public struct ThreadMarker: Equatable, Sendable {
 
     var text: String { "\(summary)   \(tally)" }
 
-    var summary: String { "\(latestAuthor): \(latest)" }
+    var summary: String {
+        source == .gitHub
+            ? String(localized: "\(latestAuthor) on GitHub: \(latest)", bundle: .module)
+            : "\(latestAuthor): \(latest)"
+    }
 
     /// The count and status, which a summary too long for its column gives way to.
     var tally: String {
@@ -54,11 +60,35 @@ public struct DraftMarker: Equatable, Sendable {
     }
 }
 
+/// Seam's own threads, or a pull request's read from GitHub (SPEC §7.9).
+public enum ThreadSource: Sendable {
+    case seam, gitHub
+}
+
 /// Review threads' colour wherever they show: posted, being written, and the lines `c` would
-/// comment on (SPEC §7.7).
+/// comment on (SPEC §7.7); GitHub's threads in its blue (§7.9).
 public enum ThreadColor {
     public static let accent = NSColor.systemYellow
     /// Behind a thread's row and the composer, light enough for text on either appearance.
     public static let wash = accent.withAlphaComponent(washAlpha)
     static let washAlpha = 0.14
+    /// Primer's accent, as github.com draws links and its own highlights.
+    public static let gitHubAccent = primerBlue(alpha: 1)
+    public static let gitHubWash = primerBlue(alpha: washAlpha)
+
+    private static func primerBlue(alpha: Double) -> NSColor {
+        NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+                ? NSColor(srgbRed: 0x44 / 255, green: 0x93 / 255, blue: 0xF8 / 255, alpha: alpha)
+                : NSColor(srgbRed: 0x09 / 255, green: 0x69 / 255, blue: 0xDA / 255, alpha: alpha)
+        }
+    }
+
+    public static func accent(_ source: ThreadSource) -> NSColor {
+        source == .gitHub ? gitHubAccent : accent
+    }
+
+    public static func wash(_ source: ThreadSource) -> NSColor {
+        source == .gitHub ? gitHubWash : wash
+    }
 }

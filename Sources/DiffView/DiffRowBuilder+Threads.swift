@@ -49,19 +49,26 @@ extension DiffRowBuilder {
         return result
     }
 
-    /// The rows inside a thread's range, and the side the range is on, for the gutter mark.
+    /// The rows inside a thread's range, with the side the range is on and whose threads they
+    /// are, for the gutter mark.
     static func threadedRows(_ rows: [DiffRow], paths: [String], threads: [String: [ThreadMarker]])
-        -> [Int: Set<ThreadAnchor.Side>]
+        -> [Int: Set<ThreadMark>]
     {
         guard !threads.isEmpty else { return [:] }
-        var marked: [Int: Set<ThreadAnchor.Side>] = [:]
+        var marked: [Int: Set<ThreadMark>] = [:]
         for (index, row) in rows.enumerated() where row.file < paths.count {
             for marker in threads[paths[row.file]] ?? [] {
                 if let number = number(of: row, on: marker.side), marker.lines.contains(number) {
-                    marked[index, default: []].insert(marker.side)
+                    marked[index, default: []].insert(
+                        ThreadMark(side: marker.side, source: marker.source))
                 }
             }
         }
         return marked
     }
+}
+
+struct ThreadMark: Hashable {
+    var side: ThreadAnchor.Side
+    var source: ThreadSource
 }

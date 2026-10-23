@@ -10,6 +10,10 @@ import os
 @Observable
 final class RepoThreads {
     private(set) var threads: [ReviewThread] = []
+    /// Pull request threads (SPEC §7.9), as last read; read-only.
+    private(set) var gitHub: [ReviewThread] = []
+    /// Settings can turn pull requests, and with them their threads, off.
+    @ObservationIgnored var showsGitHub: @MainActor () -> Bool = { true }
     /// Bumped when the threads change, so placements are worked out again only then.
     private(set) var version = 0
     private(set) var failure: String?
@@ -35,6 +39,13 @@ final class RepoThreads {
             }
         }
         await load()
+        let (store, repository) = (store, repository)
+        if let saved = await Task.detached(operation: {
+            try? store.gitHubThreads(for: repository).threads
+        }).value, saved != gitHub {
+            gitHub = saved
+            version += 1
+        }
     }
 
     func stop() {
@@ -52,6 +63,29 @@ final class RepoThreads {
 
     func threads(in worktree: String) -> [ReviewThread] {
         threads.filter { $0.worktree == worktree }
+            + (showsGitHub() ? gitHub.filter { $0.worktree == worktree } : [])
+    }
+
+    /// Replaces a worktree's pull request threads with a new read, kept for `seam` too.
+    func saveGitHub(_ read: [ReviewThread], worktree: String) async {
+        let current = gitHub.filter { $0.worktree == worktree }
+        guard !(read.isEmpty && current.isEmpty) else { return }
+        let (store, repository) = (store, repository)
+        let result = await Task.detached {
+            Result { () throws(ThreadError) in
+                try store.saveGitHubThreads(read, worktree: worktree, read: .now, for: repository)
+            }
+        }.value
+        switch result {
+        case .success(let stored):
+            let updated = gitHub.filter { $0.worktree != worktree } + stored
+            if updated != gitHub {
+                gitHub = updated
+                version += 1
+            }
+        case .failure(let error):
+            logger.error("pull request threads: \(String(describing: error), privacy: .public)")
+        }
     }
 
     /// Nil, with `failure` set, when the store refused it.

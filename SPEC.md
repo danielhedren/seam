@@ -572,9 +572,9 @@ GitHub.
   conversation and review summaries aren't shown.
 - **Looks:** the same views as Seam's threads, in GitHub's blue (Primer's accent, `#0969da`
   light, `#4493f8` dark) where Seam's are amber: the gutter bar, the row's wash, the card's
-  frame, the file list's dot (a file with both kinds shows both) and the panel's marks. Rows and
-  cards carry the GitHub mark, authors are GitHub logins, and the card's title reads "GitHub
-  thread on src/a.cs, line 12 · #12 · 3 comments".
+  frame, the file list's dot (a file with both kinds shows both) and the panel's marks. A row
+  reads "octocat on GitHub: …", the card and the panel carry the GitHub mark, authors are GitHub
+  logins, and the card's title reads "GitHub thread on src/a.cs, line 12 · #12 · 3 comments".
 - **Read-only:** the card has no reply box, Resolve or Delete. It has Open on GitHub (also Review
   › Open Thread on GitHub) and "⎋ Close". Review › Resolve Thread and Delete Thread are disabled
   for them. `c` on their lines starts a Seam thread as anywhere else.
@@ -586,7 +586,9 @@ GitHub.
 - **Resolved** on GitHub is resolved here: hidden in the diff unless Show Resolved Threads is on.
   The toolbar badge and the file list count them with Seam's.
 - **Reading:** a worktree's PR's threads are read when the PR's update time changes (from the
-  list §7.8 reads anyway), on opening and on Reload, for open, merged and closed PRs alike. One
+  list §7.8 reads anyway), on opening and on Reload, and otherwise at most every 10 minutes,
+  since resolving a thread may not change that time; for open, merged and closed PRs alike. A
+  worktree whose branch has no PR any more loses its threads. One
   read is `gh api graphql` with a fixed query, 100 threads and 100 comments a page, following
   further pages. A failed read keeps the threads last read.
 - **For agents:** the threads last read are written beside the repo's thread file (§7.7) as

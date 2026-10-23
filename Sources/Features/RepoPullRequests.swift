@@ -53,11 +53,17 @@ final class RepoPullRequests {
     var appIsActive = true
     /// Runs after every refresh, so the session can save what was read.
     @ObservationIgnored var onUpdate: (() -> Void)?
+    /// Takes a worktree's pull request threads as read (SPEC §7.9), none when it has no PR.
+    @ObservationIgnored var onThreads: ((_ worktree: String, [ReviewThread]) async -> Void)?
 
     private let services: SeamServices
     private let directory: URL
     /// The branches to look up: every worktree's, and every local parent's.
     private let branches: @MainActor () -> [String]
+    /// Each worktree's path by its branch, whose PR's threads are read.
+    private let worktrees: @MainActor () -> [String: String]
+    /// The PR each worktree's threads were last read for, as it was then.
+    private var threadsRead: [String: (pullRequest: PullRequest, at: Date)] = [:]
     private var pending = false
     private var isRefreshing = false
     private var idleWaiters: [CheckedContinuation<Void, Never>] = []
@@ -75,11 +81,13 @@ final class RepoPullRequests {
 
     init(
         services: SeamServices, directory: URL, saved: SavedPullRequests?,
-        branches: @escaping @MainActor () -> [String]
+        branches: @escaping @MainActor () -> [String],
+        worktrees: @escaping @MainActor () -> [String: String] = { [:] }
     ) {
         self.services = services
         self.directory = directory
         self.branches = branches
+        self.worktrees = worktrees
         if let saved { self.saved = saved }
     }
 
@@ -103,6 +111,7 @@ final class RepoPullRequests {
         guard !isStopped, services.settings.showsPullRequests else { return }
         if trigger == .activation, isFresh { return }
         if trigger == .poll, case .failed(let error) = status, !Self.isTransient(error) { return }
+        if trigger == .reload { threadsRead = [:] }
         pending = true
         if trigger.isForced {
             spacer?.cancel()
@@ -222,6 +231,7 @@ final class RepoPullRequests {
             account.note(nil)
             markFresh()
             startPolling()
+            await readThreads(in: targets.repo)
         } catch {
             guard !isStopped else { return true }
             logger.info("pull requests unavailable: \(String(describing: error), privacy: .public)")
@@ -236,6 +246,47 @@ final class RepoPullRequests {
         }
         onUpdate?()
         return true
+    }
+
+    /// Threads are read again when their PR has changed since, or every 10 minutes: resolving
+    /// a thread may not change the PR's update time.
+    private func readThreads(in repo: GitHubRepo) async {
+        guard let onThreads else { return }
+        var jobs: [(worktree: String, pullRequest: PullRequest)] = []
+        for (branch, worktree) in worktrees().sorted(by: { $0.key < $1.key }) {
+            guard let pullRequest = saved.byBranch[branch] else {
+                threadsRead[worktree] = nil
+                await onThreads(worktree, [])
+                continue
+            }
+            if let last = threadsRead[worktree], last.pullRequest.number == pullRequest.number,
+                last.pullRequest.updated == pullRequest.updated,
+                Date.now.timeIntervalSince(last.at) < 600
+            {
+                continue
+            }
+            jobs.append((worktree, pullRequest))
+        }
+        let client = services.github.client
+        let read = try? await Self.concurrently(jobs) { job in
+            await Result { () async throws(GitHubError) in
+                try await client.reviewThreads(job.pullRequest.number, in: repo)
+            }
+        }
+        for (job, result) in read ?? [] {
+            guard !isStopped else { return }
+            switch result {
+            case .success(let threads):
+                threadsRead[job.worktree] = (job.pullRequest, .now)
+                await onThreads(
+                    job.worktree,
+                    GitHubThreads.threads(
+                        from: threads, worktree: job.worktree, repo: repo,
+                        pullRequest: job.pullRequest.number))
+            case .failure(let error):
+                logger.info("review threads unread: \(String(describing: error), privacy: .public)")
+            }
+        }
     }
 
     private enum Job: Sendable {

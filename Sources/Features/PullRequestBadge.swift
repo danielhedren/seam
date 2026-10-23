@@ -139,6 +139,7 @@ enum Octicon: String, CaseIterable {
     case approved = "check-circle-fill"
     case changesRequested = "file-diff"
     case comment
+    case mark = "mark-github"
 
     @MainActor private static var images: [Octicon: NSImage] = [:]
 

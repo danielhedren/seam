@@ -14,6 +14,9 @@ enum ThreadPlacement: Equatable {
 struct FileThreadCounts: Equatable {
     var open = 0
     var resolved = 0
+    /// A pull request's threads, which get a dot of their own (SPEC §7.9).
+    var gitHubOpen = 0
+    var gitHubResolved = 0
 }
 
 struct PlacedThread: Equatable, Identifiable {
@@ -39,7 +42,10 @@ extension WorktreeReview {
     /// This worktree's threads with where they are now, open ones first, then by file and line.
     var placedThreads: [PlacedThread] {
         guard let threads else { return [] }
-        let key = [threads.version, diffVersion, contentsVersion]
+        let key = [
+            threads.version, diffVersion, contentsVersion,
+            services.settings.showsPullRequests ? 1 : 0,
+        ]
         if placementCache.key == key { return placementCache.placed }
         let paths = Set(diff?.files.map(\.diff.path) ?? [])
         var lines: [String: [Substring]] = [:]
@@ -53,7 +59,9 @@ extension WorktreeReview {
         }
         let placed = threads.threads(in: id).map { thread in
             let anchor = thread.anchor
-            guard paths.contains(anchor.path), let text = file(anchor.path, anchor.side) else {
+            guard paths.contains(anchor.path), thread.github?.onFile != true,
+                let text = file(anchor.path, anchor.side)
+            else {
                 return PlacedThread(thread: thread, placement: .notShown)
             }
             return PlacedThread(
@@ -77,10 +85,14 @@ extension WorktreeReview {
     var threadCountsByPath: [String: FileThreadCounts] {
         var counts: [String: FileThreadCounts] = [:]
         for thread in threads?.threads(in: id) ?? [] {
-            if thread.isResolved {
+            switch (thread.isFromGitHub, thread.isResolved) {
+            case (false, true):
                 counts[thread.anchor.path, default: FileThreadCounts()].resolved += 1
-            } else {
-                counts[thread.anchor.path, default: FileThreadCounts()].open += 1
+            case (false, false): counts[thread.anchor.path, default: FileThreadCounts()].open += 1
+            case (true, true):
+                counts[thread.anchor.path, default: FileThreadCounts()].gitHubResolved += 1
+            case (true, false):
+                counts[thread.anchor.path, default: FileThreadCounts()].gitHubOpen += 1
             }
         }
         return counts
@@ -124,7 +136,8 @@ extension WorktreeReview {
         return ThreadMarker(
             id: placed.id, side: placed.thread.anchor.side, lines: lines,
             latestAuthor: latest.author, latest: String(firstLine.prefix(120)),
-            commentCount: placed.thread.comments.count, isResolved: placed.thread.isResolved)
+            commentCount: placed.thread.comments.count, isResolved: placed.thread.isResolved,
+            source: placed.thread.isFromGitHub ? .gitHub : .seam)
     }
 
     /// The anchor `c` would comment on, with the lines' text from the file as it is.

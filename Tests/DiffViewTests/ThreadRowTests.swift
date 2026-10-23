@@ -69,7 +69,7 @@ private func texts(_ rows: [DiffRow]) -> [String] {
         let rows = DiffRowBuilder.rows(for: DiffContent(review: review(), threads: threads))
         let marked = DiffRowBuilder.threadedRows(rows, paths: ["a.txt"], threads: threads)
         #expect(Set(marked.keys.map { texts([rows[$0]]).first ?? "" }) == ["two a", "two b"])
-        #expect(marked.values.allSatisfy { $0 == [.new] })
+        #expect(marked.values.allSatisfy { $0 == [ThreadMark(side: .new, source: .seam)] })
     }
 
     @MainActor

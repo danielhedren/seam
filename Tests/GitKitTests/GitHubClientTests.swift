@@ -225,6 +225,90 @@ import Testing
         }
     }
 
+    private static func threadsPage(_ ids: [String], next: String?) -> String {
+        let nodes = ids.map { id in
+            """
+            {"id":"\(id)","isResolved":false,"path":"a.txt","diffSide":"RIGHT","originalLine":3,
+             "originalStartLine":null,"subjectType":"LINE",
+             "comments":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[
+               {"databaseId":7,"author":{"login":"octocat"},"body":"Why?",
+                "createdAt":"2026-10-23T12:00:00Z","url":"u","diffHunk":"@@ -1,2 +1,3 @@"}]}}
+            """
+        }
+        let cursor = next.map { "\"\($0)\"" } ?? "null"
+        return """
+            {"data":{"repository":{"pullRequest":{"reviewThreads":{
+              "pageInfo":{"hasNextPage":\(next != nil),"endCursor":\(cursor)},
+              "nodes":[\(nodes.joined(separator: ","))]}}}}}
+            """
+    }
+
+    /// Two pages: the second is asked for with the first's cursor, and both are kept.
+    @Test func reviewThreadsAreReadPageByPageWithTheFixedQuery() async throws {
+        let first = Self.threadsPage(["T1"], next: "C1")
+        let second = Self.threadsPage(["T2"], next: nil)
+        let text = """
+            #!/bin/sh
+            printf '%s\\n' "$*" >> '\(log.path)'
+            case "$*" in
+            *after=C1*) cat <<'SEAM_EOF'
+            \(second)
+            SEAM_EOF
+            ;;
+            *) cat <<'SEAM_EOF'
+            \(first)
+            SEAM_EOF
+            ;;
+            esac
+            """
+        try Data(text.utf8).write(to: gh)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: gh.path)
+
+        let threads = try await client().reviewThreads(12, in: repo)
+
+        #expect(threads.map(\.id) == ["T1", "T2"])
+        #expect(threads.first?.lines == 3...3)
+        #expect(threads.first?.comments.first?.author == "octocat")
+        // The query spans lines, so the log is read whole.
+        let log = String(decoding: try Data(contentsOf: log), as: UTF8.self)
+        #expect(
+            log.components(separatedBy: "api graphql --hostname github.com -f query=").count == 3)
+        #expect(log.contains("-F number=12 -f owner=owner -f name=app\n"))
+        #expect(log.contains("-F number=12 -f owner=owner -f name=app -f after=C1\n"))
+    }
+
+    /// ADR 0006: the queries gh runs can read, never write.
+    @Test func theFixedQueriesHaveNoMutation() {
+        for query in [ReviewThreadQuery.threads, ReviewThreadQuery.moreComments] {
+            #expect(!query.lowercased().contains("mutation"))
+            #expect(query.hasPrefix("query("))
+        }
+    }
+
+    @Test func aFileCommentHasNoLinesAndAGoneAccountIsGhost() throws {
+        let json = """
+            {"data":{"repository":{"pullRequest":{"reviewThreads":{
+              "pageInfo":{"hasNextPage":false,"endCursor":null},
+              "nodes":[{"id":"T","isResolved":true,"path":"a.txt","diffSide":"LEFT",
+                "originalLine":5,"originalStartLine":2,"subjectType":"FILE",
+                "comments":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[
+                  {"databaseId":1,"author":null,"body":"b","createdAt":"2026-10-23T12:00:00Z",
+                   "url":"u","diffHunk":null}]}},
+               {"id":"R","isResolved":false,"path":"b.txt","diffSide":"LEFT",
+                "originalLine":5,"originalStartLine":2,"subjectType":"LINE",
+                "comments":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[]}}]}}}}}
+            """
+        let answer = try ReviewThreadQuery.decode(
+            ReviewThreadQuery.ThreadsAnswer.self, Data(json.utf8))
+        let threads = try #require(answer.data.repository?.pullRequest?.reviewThreads.nodes)
+            .map(\.thread)
+        #expect(threads[0].lines == nil)
+        #expect(threads[0].isResolved)
+        #expect(threads[0].comments.first?.author == "ghost")
+        #expect(threads[1].lines == 2...5)
+        #expect(threads[1].side == .left)
+    }
+
     @Test func hostsAreTheOnesGhHasAccountsFor() async throws {
         try script(
             output: #"{"hosts":{"github.com":[{"state":"success"}],"code.example.com":[]}}"#)

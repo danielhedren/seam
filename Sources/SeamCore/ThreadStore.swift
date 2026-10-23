@@ -37,6 +37,17 @@ public struct ThreadStore: Sendable {
         _ repository: Repository, _ change: (inout [ReviewThread]) throws(ThreadError) -> Result
     ) throws(ThreadError) -> Result {
         let url = file(for: repository)
+        return try locked(url) { () throws(ThreadError) in
+            var threads = try read(url)
+            let result = try change(&threads)
+            try write(threads, to: url)
+            return result
+        }
+    }
+
+    private func locked<Result>(_ url: URL, _ body: () throws(ThreadError) -> Result)
+        throws(ThreadError) -> Result
+    {
         do {
             try FileManager.default.createDirectory(
                 at: directory, withIntermediateDirectories: true)
@@ -50,19 +61,54 @@ public struct ThreadStore: Sendable {
             throw .unwritable(String(cString: strerror(errno)))
         }
         defer { flock(lock, LOCK_UN) }
-        var threads = try read(url)
-        let result = try change(&threads)
-        try write(threads, to: url)
-        return result
+        return try body()
+    }
+
+    /// The pull request threads the app read last (SPEC §7.9), beside the repo's own file so
+    /// `seam` lists them without the app; only the app writes it.
+    public func gitHubFile(for repository: Repository) -> URL {
+        let url = file(for: repository)
+        return url.deletingPathExtension().appendingPathExtension("github.json")
+    }
+
+    public func gitHubThreads(for repository: Repository) throws(ThreadError) -> GitHubThreadFile {
+        let contents = try contents(of: gitHubFile(for: repository))
+        return GitHubThreadFile(threads: contents?.threads ?? [], read: contents?.read ?? [:])
+    }
+
+    /// Replaces one worktree's pull request threads with a newer read, and returns them as
+    /// stored.
+    @discardableResult
+    public func saveGitHubThreads(
+        _ threads: [ReviewThread], worktree: String, read: Date, for repository: Repository
+    ) throws(ThreadError) -> [ReviewThread] {
+        let url = gitHubFile(for: repository)
+        return try locked(url) { () throws(ThreadError) in
+            let contents = try contents(of: url)
+            let all = contents?.threads ?? []
+            let others = all.filter { $0.worktree != worktree }
+            let stamped = GitHubThreads.stamped(
+                threads, previous: all.filter { $0.worktree == worktree }, now: read)
+            var times = contents?.read ?? [:]
+            times[worktree] = read
+            try write(others + stamped, read: times, to: url)
+            return stamped
+        }
     }
 
     private struct Contents: Codable {
         var version: Int
         var threads: [ReviewThread]
+        /// When each worktree's pull request threads were read, in the GitHub file.
+        var read: [String: Date]?
     }
 
     private func read(_ url: URL) throws(ThreadError) -> [ReviewThread] {
-        guard let data = FileManager.default.contents(atPath: url.path) else { return [] }
+        try contents(of: url)?.threads ?? []
+    }
+
+    private func contents(of url: URL) throws(ThreadError) -> Contents? {
+        guard let data = FileManager.default.contents(atPath: url.path) else { return nil }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let contents: Contents
@@ -74,17 +120,20 @@ public struct ThreadStore: Sendable {
         guard contents.version <= Self.formatVersion else {
             throw .unsupportedVersion(contents.version)
         }
-        return contents.threads
+        return contents
     }
 
-    private func write(_ threads: [ReviewThread], to url: URL) throws(ThreadError) {
+    private func write(
+        _ threads: [ReviewThread], read: [String: Date]? = nil, to url: URL
+    ) throws(ThreadError) {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let temporary = url.deletingLastPathComponent()
             .appending(path: ".\(url.lastPathComponent).\(UUID().uuidString)")
         do {
-            let data = try encoder.encode(Contents(version: Self.formatVersion, threads: threads))
+            let data = try encoder.encode(
+                Contents(version: Self.formatVersion, threads: threads, read: read))
             try data.write(to: temporary)
         } catch {
             throw .unwritable(error.localizedDescription)
@@ -95,4 +144,10 @@ public struct ThreadStore: Sendable {
             throw .unwritable(message)
         }
     }
+}
+
+/// The GitHub file's contents: the threads, and when each worktree's were read.
+public struct GitHubThreadFile: Equatable, Sendable {
+    public var threads: [ReviewThread]
+    public var read: [String: Date]
 }

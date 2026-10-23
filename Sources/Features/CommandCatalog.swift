@@ -441,11 +441,15 @@ enum CommandCatalog {
             }),
         SeamCommand(
             id: "delete-thread", title: localized("Delete Thread"), menu: .review, section: 5,
-            shortcut: .none, isEnabled: { $0.selectedThreadID != nil },
+            shortcut: .none, isEnabled: { $0.selectedThread != nil },
             run: { session in
                 guard let id = session.selectedThreadID else { return }
                 Task { await session.deleteThread(id) }
             }),
+        SeamCommand(
+            id: "thread-on-github", title: localized("Open Thread on GitHub"), menu: .review,
+            section: 5, shortcut: .none, isEnabled: { $0.selectedGitHubThread != nil },
+            run: { session in session.selectedGitHubThread.map(session.openOnGitHub) }),
         SeamCommand(
             id: "thread-panel", title: localized("Show Threads"), menu: .review, section: 6,
             shortcut: .command("0", [.command, .option]),
@@ -467,7 +471,12 @@ enum CommandCatalog {
 
 extension RepoSession {
     /// The thread the panel shows.
+    /// The open thread, when it's one of Seam's own: GitHub's can't be resolved or deleted.
     fileprivate var selectedThread: ReviewThread? {
         selectedThreadID.flatMap { id in threads?.threads.first { $0.id == id } }
+    }
+
+    var selectedGitHubThread: ReviewThread? {
+        selectedThreadID.flatMap { id in threads?.gitHub.first { $0.id == id } }
     }
 }

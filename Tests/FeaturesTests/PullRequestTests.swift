@@ -21,11 +21,24 @@ final class FakeGitHub: GitHubClient, Sendable {
         var holdingPrefix: String?
         var held: [CheckedContinuation<Void, Never>] = []
         var watchers: [(count: Int, resume: @Sendable () -> Void)] = []
+        var threads: [Int: [GitHubReviewThread]] = [:]
+        var threadReads: [Int] = []
+        var threadError: GitHubError?
     }
 
     private let state = Mutex(State())
 
     var calls: [String] { state.withLock { $0.calls } }
+    /// The PRs whose review threads were read, in order; kept apart from `calls`.
+    var threadReads: [Int] { state.withLock { $0.threadReads } }
+
+    func answer(threads: [GitHubReviewThread], for number: Int) {
+        state.withLock { $0.threads[number] = threads }
+    }
+
+    func failThreads(_ error: GitHubError?) {
+        state.withLock { $0.threadError = error }
+    }
     /// Reads of the repo's open list: one per refresh that reached gh.
     var reads: Int { calls.count { $0.hasPrefix("open ") } }
 
@@ -118,6 +131,17 @@ final class FakeGitHub: GitHubClient, Sendable {
     {
         try await call("head \(branch)")
         return state.withLock { $0.byHead[branch] }
+    }
+
+    func reviewThreads(_ number: Int, in repo: GitHubRepo) async throws(GitHubError)
+        -> [GitHubReviewThread]
+    {
+        let (threads, error) = state.withLock { state in
+            state.threadReads.append(number)
+            return (state.threads[number] ?? [], state.threadError)
+        }
+        if let error { throw error }
+        return threads
     }
 }
 

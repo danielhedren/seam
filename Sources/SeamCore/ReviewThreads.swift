@@ -49,12 +49,15 @@ public struct ThreadComment: Codable, Equatable, Sendable, Identifiable {
     /// Markdown.
     public var body: String
     public var date: Date
+    /// GitHub's id for a comment read from a pull request (SPEC §7.9).
+    public var githubID: Int?
 
-    public init(id: String, author: String, body: String, date: Date) {
+    public init(id: String, author: String, body: String, date: Date, githubID: Int? = nil) {
         self.id = id
         self.author = author
         self.body = body
         self.date = date
+        self.githubID = githubID
     }
 }
 
@@ -72,6 +75,10 @@ public struct ReviewThread: Codable, Equatable, Sendable, Identifiable {
     public var comments: [ThreadComment]
     /// The last change of any kind; files written before it was kept have none.
     public var updated: Date?
+    /// Set on a thread read from a pull request, which Seam can't change (SPEC §7.9).
+    public var github: GitHubThreadSource?
+
+    public var isFromGitHub: Bool { github != nil }
 
     /// When the thread last changed, for `seam threads --since`: the latest comment when an
     /// older file has no `updated`.
@@ -81,9 +88,11 @@ public struct ReviewThread: Codable, Equatable, Sendable, Identifiable {
 
     public init(
         id: String, worktree: String, anchor: ThreadAnchor, author: String,
-        isResolved: Bool = false, comments: [ThreadComment], updated: Date? = nil
+        isResolved: Bool = false, comments: [ThreadComment], updated: Date? = nil,
+        github: GitHubThreadSource? = nil
     ) {
         self.updated = updated
+        self.github = github
         self.id = id
         self.worktree = worktree
         self.anchor = anchor

@@ -2,21 +2,39 @@ import Foundation
 
 /// `seam threads` output, written for an agent to read (SPEC §13).
 public enum ThreadText {
-    /// `showsWorktree` names the thread's worktree, for listings that span the repo.
+    /// `showsWorktree` names the thread's worktree, for listings that span the repo. `read` is
+    /// when a pull request thread was read from GitHub.
     public static func format(
-        _ thread: ReviewThread, showsWorktree: Bool = false, timeZone: TimeZone = .current
+        _ thread: ReviewThread, showsWorktree: Bool = false, read: Date? = nil,
+        timeZone: TimeZone = .current
     ) -> String {
         let anchor = thread.anchor
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        formatter.timeZone = timeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         let lines =
             anchor.lines.count == 1
             ? "\(anchor.lines.lowerBound)"
             : "\(anchor.lines.lowerBound)-\(anchor.lines.upperBound)"
+        let place =
+            thread.github?.onFile == true
+            ? "\(anchor.path) (whole file)" : "\(anchor.path):\(lines)"
         let side = anchor.side == .old ? " (old side)" : ""
+        let source = thread.github.map { " on GitHub pull request #\($0.pullRequest)" } ?? ""
         var text = [
             "#\(thread.id)  \(thread.isResolved ? "resolved" : "open")  "
-                + "\(anchor.path):\(lines)\(side)  opened by \(thread.author)"
+                + "\(place)\(side)  opened by \(thread.author)\(source)"
                 + (showsWorktree ? "  in \(thread.worktree)" : "")
         ]
+        if let github = thread.github, let reply = thread.gitHubReply {
+            let when = read.map { " at \(formatter.string(from: $0))" } ?? ""
+            text += [
+                "  Read from \(github.repo.slug)\(when). Seam can't answer it; reply on GitHub with:",
+                "    \(reply)",
+                "  GitHub thread \(github.threadID) · \(github.url)",
+            ]
+        }
         let width = String(anchor.lines.upperBound).count
         for (offset, line) in anchor.text.enumerated() {
             let number = String(anchor.lines.lowerBound + offset)
@@ -24,12 +42,9 @@ public enum ThreadText {
                 "    " + String(repeating: " ", count: width - number.count) + number + " │ "
                     + line)
         }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        formatter.timeZone = timeZone
-        formatter.locale = Locale(identifier: "en_US_POSIX")
         for comment in thread.comments {
-            text.append("  \(comment.author) · \(formatter.string(from: comment.date))")
+            let id = comment.githubID.map { " · GitHub comment \($0)" } ?? ""
+            text.append("  \(comment.author) · \(formatter.string(from: comment.date))\(id)")
             text += comment.body.split(separator: "\n", omittingEmptySubsequences: false)
                 .map { "    " + $0 }
         }

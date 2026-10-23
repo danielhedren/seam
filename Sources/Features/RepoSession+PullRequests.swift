@@ -7,7 +7,16 @@ extension RepoSession {
     func startPullRequests(in repository: Repository) {
         let pullRequests = RepoPullRequests(
             services: services, directory: repository.anchor, saved: savedPullRequests,
-            branches: { [weak self] in self?.pullRequestBranches ?? [] })
+            branches: { [weak self] in self?.pullRequestBranches ?? [] },
+            worktrees: { [weak self] in
+                Dictionary(
+                    (self?.reviews ?? []).compactMap { review in
+                        review.worktree.branch.map { ($0, review.id) }
+                    }, uniquingKeysWith: { first, _ in first })
+            })
+        pullRequests.onThreads = { [weak self] worktree, threads in
+            await self?.threads?.saveGitHub(threads, worktree: worktree)
+        }
         pullRequests.onUpdate = { [weak self, weak pullRequests] in
             guard let self, let pullRequests else { return }
             self.notePullRequests(pullRequests.saved)

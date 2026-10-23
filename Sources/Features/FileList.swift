@@ -288,7 +288,7 @@ struct FileRowView: View {
                 Text(verbatim: "+\(file.diff.additions) −\(file.diff.deletions)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
-                if let threads { ThreadDot(counts: threads) }
+                if let threads { ThreadDots(counts: threads) }
                 switch viewed {
                 case .viewed:
                     Image(systemName: "checkmark").font(.caption).foregroundStyle(.secondary)
@@ -313,20 +313,42 @@ struct FileRowView: View {
     }
 }
 
-/// A file's threads: filled while any is open, hollow once all are resolved.
-struct ThreadDot: View {
+/// A file's threads, Seam's amber and a pull request's blue (SPEC §7.9), each dot filled while
+/// any is open and hollow once all are resolved.
+struct ThreadDots: View {
     let counts: FileThreadCounts
 
     var body: some View {
-        Image(systemName: counts.open > 0 ? "circle.fill" : "circle")
+        HStack(spacing: 2) {
+            if counts.open + counts.resolved > 0 {
+                ThreadDot(open: counts.open, source: .seam)
+            }
+            if counts.gitHubOpen + counts.gitHubResolved > 0 {
+                ThreadDot(open: counts.gitHubOpen, source: .gitHub)
+            }
+        }
+    }
+}
+
+struct ThreadDot: View {
+    let open: Int
+    let source: ThreadSource
+
+    var body: some View {
+        Image(systemName: open > 0 ? "circle.fill" : "circle")
             .font(.system(size: 7, weight: .bold))
-            .foregroundStyle(Color(nsColor: ThreadColor.accent))
+            .foregroundStyle(Color(nsColor: ThreadColor.accent(source)))
             .help(help)
     }
 
     private var help: String {
-        counts.open > 0
-            ? Counted.openThreads(counts.open)
-            : String(localized: "All threads resolved", bundle: .module)
+        switch (source, open > 0) {
+        case (.seam, true): Counted.openThreads(open)
+        case (.seam, false): String(localized: "All threads resolved", bundle: .module)
+        case (.gitHub, true):
+            String(localized: "\(open) open on GitHub", bundle: .module)
+        case (.gitHub, false):
+            String(localized: "All GitHub threads resolved", bundle: .module)
+        }
     }
 }
