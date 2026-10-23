@@ -268,6 +268,19 @@ import Testing
         session.close()
     }
 
+    /// A comment whose lines its hunk doesn't show can't be placed, but it isn't outdated: it's
+    /// listed under its file, as one on the whole file is.
+    @Test func aCommentWhoseLinesArentInItsHunkIsListedNotOutdated() async throws {
+        let (repo, feature) = try await fixture()
+        github.answer(open: [Self.pullRequest()])
+        var unplaced = Self.thread()
+        unplaced.lines = 40...40
+        github.answer(threads: [unplaced], for: 12)
+        let session = await open(repo, selecting: feature)
+        #expect(try review(session, feature).placedThreads.first?.placement == .notShown)
+        session.close()
+    }
+
     /// a.txt reads "a" in the first commit and "b" in the second.
     private func twoCommits() async throws -> (FixtureRepo, URL, first: String, second: String) {
         let (repo, feature) = try await fixture()

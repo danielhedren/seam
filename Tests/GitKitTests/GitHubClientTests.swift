@@ -322,10 +322,12 @@ import Testing
         let threads = try #require(answer.data.repository?.pullRequest?.reviewThreads.nodes)
             .map(\.thread)
         #expect(threads[0].lines == nil)
+        #expect(threads[0].isFileComment)
         #expect(threads[0].isResolved)
         #expect(threads[0].comments.first?.author == "ghost")
         #expect(threads[1].lines == 2...5)
         #expect(threads[1].side == .left)
+        #expect(!threads[1].isFileComment)
     }
 
     @Test func hostsAreTheOnesGhHasAccountsFor() async throws {

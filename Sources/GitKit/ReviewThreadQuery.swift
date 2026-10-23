@@ -37,14 +37,16 @@ public struct GitHubReviewThread: Codable, Equatable, Sendable {
     public var path: String
     public var isResolved: Bool
     public var side: Side
-    /// Nil for a comment on the whole file.
+    /// Nil for a comment on the whole file, and for an old one GitHub only knows a position for.
     public var lines: ClosedRange<Int>?
+    public var isFileComment: Bool
     public var comments: [Comment]
 
     public init(
         id: String, path: String, isResolved: Bool = false, side: Side = .right,
-        lines: ClosedRange<Int>?, comments: [Comment]
+        lines: ClosedRange<Int>?, isFileComment: Bool? = nil, comments: [Comment]
     ) {
+        self.isFileComment = isFileComment ?? (lines == nil)
         self.id = id
         self.path = path
         self.isResolved = isResolved
@@ -136,6 +138,7 @@ enum ReviewThreadQuery {
             return GitHubReviewThread(
                 id: id, path: path, isResolved: isResolved,
                 side: diffSide == "LEFT" ? .left : .right, lines: lines,
+                isFileComment: subjectType == "FILE",
                 comments: comments.nodes.map(\.comment))
         }
     }

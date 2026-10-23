@@ -69,6 +69,10 @@ extension WorktreeReview {
             if let lines = anchor.locate(in: text) {
                 return PlacedThread(thread: thread, placement: .lines(lines))
             }
+            // A pull request comment whose hunk didn't show its lines was never placeable.
+            if thread.isFromGitHub, anchor.text.isEmpty {
+                return PlacedThread(thread: thread, placement: .notShown)
+            }
             return PlacedThread(
                 thread: thread, placement: isAfterShownCommits(thread) ? .later : .outdated)
         }

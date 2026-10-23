@@ -66,7 +66,7 @@ public enum GitHubThreads {
                 updated: thread.comments.map(\.created).max(),
                 github: GitHubThreadSource(
                     repo: repo, pullRequest: pullRequest, threadID: thread.id, url: first.url,
-                    onFile: thread.lines == nil, commit: first.commit))
+                    onFile: thread.isFileComment, commit: first.commit))
         }
     }
 
