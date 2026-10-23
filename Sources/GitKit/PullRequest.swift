@@ -134,8 +134,19 @@ extension PullRequest {
         }
     }
 
-    /// Failed checks only matter while it's open: a merged PR's red run is history.
-    public var ciFailed: Bool { state == .open && checks.failed > 0 }
+    public enum CI: Equatable, Sendable {
+        case passed, running, failed
+    }
+
+    /// GitHub's check icon: a failure wins over running checks. Nil until checks are read, and
+    /// once it's merged or closed, as a merged PR's red run is history.
+    public var ci: CI? {
+        guard state == .open, checks.total > 0 else { return nil }
+        if checks.failed > 0 { return .failed }
+        return checks.pending > 0 ? .running : .passed
+    }
+
+    public var ciFailed: Bool { ci == .failed }
 }
 
 /// `gh pr list --json` output (gh's GraphQL names), turned into `PullRequest`.

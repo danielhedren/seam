@@ -515,10 +515,11 @@ Each worktree's branch shows its GitHub pull request, read through the user's ow
 
 - **Markers:** GitHub's own design language, so a state reads as it does on github.com: the
   state's octicon in Primer's colour, open (green pull request), draft (grey draft pull
-  request), merged (purple merge) or closed (red closed pull request), then `#12`. An open PR
-  that has been reviewed adds GitHub's reviewer icon: approved (green check), changes requested
-  (red file diff) or commented (grey speech bubble). A red cross follows when CI failed on an
-  open PR. The octicons (MIT) are bundled as SVGs. Each state has its own shape, so colour is
+  request), merged (purple merge) or closed (red closed pull request), then `#12`. An open PR's
+  checks follow as GitHub's check icon: passed (green check), running (amber dot) or failed (red
+  cross, winning over running). A reviewed open PR then adds GitHub's reviewer icon: approved
+  (green filled check circle, so it isn't read as passing checks), changes requested (red file
+  diff) or commented (grey speech bubble). The octicons (MIT) are bundled as SVGs. Each state has its own shape, so colour is
   never the only sign; on a selected row they all take the row's text colour. The tooltip has
   the number and title, the state ("Changes requested", "Reviewed, not approved", …), the
   checks ("Checks: 3 passed, 1 failed, 2 running"), commits on the local branch the PR doesn't
@@ -529,7 +530,8 @@ Each worktree's branch shows its GitHub pull request, read through the user's ow
   required is "reviewed, not approved".
 - **Checks:** passed (success, neutral), failed (failure, error, timed out, startup failure),
   running (queued, in progress, expected, and workflows waiting for approval). Cancelled and
-  skipped checks don't count, as on GitHub. A merged or closed PR shows no CI marker.
+  skipped checks don't count, as on GitHub. A merged or closed PR, or one whose checks haven't
+  been read, shows no CI marker.
 - **Which PR:** the open one from the branch's upstream name (its own name without an upstream)
   and, when the upstream's remote is on GitHub, from that remote's owner, so a fork's branch
   isn't confused with the main repo's. A branch with none open shows its newest merged or closed
@@ -999,9 +1001,9 @@ resolve.
 is found, with a Settings switch to turn it off; without `gh`, a login, or a GitHub remote nothing
 changes but a status line in Settings, never a banner or an alert.
 - Each worktree row shows its branch's pull request: `#12` and one marker for its state (draft,
-  waiting for review, reviewed without approval, approved, merged, closed), plus a marker when
-  CI failed, drawn with GitHub's octicons and colours. Each marker is its own symbol, not just a
-  colour. The tooltip has the title, the
+  waiting for review, reviewed without approval, approved, merged, closed), plus the checks
+  (passed, running, failed), drawn with GitHub's octicons and colours. Each marker is its own
+  symbol, not just a colour. The tooltip has the title, the
   reviews, the checks, commits not yet in the PR, and when it was read. With the worktree list
   hidden, the selected worktree's marker shows in the file list's header (the window draws no
   title). The toolbar doesn't change.

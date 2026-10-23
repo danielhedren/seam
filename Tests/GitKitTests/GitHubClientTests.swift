@@ -103,11 +103,24 @@ import Testing
         #expect(read.ciFailed)
     }
 
+    @Test func ciShowsAsGitHubsCheckIcon() throws {
+        func ci(_ checks: String) throws -> PullRequest.CI? {
+            try decode(pullRequest(checks: checks)).first?.ci
+        }
+        let passed = #"{"status":"COMPLETED","conclusion":"SUCCESS"}"#
+        let running = #"{"status":"IN_PROGRESS","conclusion":null}"#
+        let failed = #"{"status":"COMPLETED","conclusion":"FAILURE"}"#
+        #expect(try ci("[]") == nil)
+        #expect(try ci("[\(passed)]") == .passed)
+        #expect(try ci("[\(passed),\(running)]") == .running)
+        #expect(try ci("[\(running),\(failed)]") == .failed)
+    }
+
     @Test func aMergedPullRequestsFailedRunIsHistory() throws {
         let checks = #"[{"status":"COMPLETED","conclusion":"FAILURE"}]"#
         let read = try #require(try decode(pullRequest(state: "MERGED", checks: checks)).first)
         #expect(read.checks.failed == 1)
-        #expect(!read.ciFailed)
+        #expect(read.ci == nil)
     }
 }
 

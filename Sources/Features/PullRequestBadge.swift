@@ -4,7 +4,7 @@ import SeamCore
 import SwiftUI
 
 /// A worktree's pull request in GitHub's own design language (SPEC §7.8): its state's octicon
-/// and colour, the number, then the review and failed CI as GitHub's reviewer and check icons.
+/// and colour, the number, then GitHub's check icon and the review.
 /// Every state has its own shape, so the colour is never the only sign.
 struct PullRequestBadge: View {
     let pullRequest: PullRequest
@@ -16,11 +16,11 @@ struct PullRequestBadge: View {
         HStack(spacing: 3) {
             icon(Self.stateIcon(pullRequest.marker), Self.stateColor(pullRequest.marker))
             Text(verbatim: "#\(pullRequest.number)")
+            if let ci = Self.ciIcon(pullRequest) {
+                icon(ci.icon, ci.color)
+            }
             if let review = Self.reviewIcon(pullRequest) {
                 icon(review.icon, review.color)
-            }
-            if pullRequest.ciFailed {
-                icon(.x, Primer.danger)
             }
         }
         .fixedSize()
@@ -52,10 +52,20 @@ struct PullRequestBadge: View {
         }
     }
 
-    /// GitHub's reviewer-list icons; an open PR nobody has reviewed shows none.
+    static func ciIcon(_ pullRequest: PullRequest) -> (icon: Octicon, color: Color)? {
+        switch pullRequest.ci {
+        case .passed: (.check, Primer.open)
+        case .running: (.dot, Primer.attention)
+        case .failed: (.x, Primer.danger)
+        case nil: nil
+        }
+    }
+
+    /// GitHub's reviewer-list icons, with approval circled so it isn't read as passing checks;
+    /// an open PR nobody has reviewed shows none.
     static func reviewIcon(_ pullRequest: PullRequest) -> (icon: Octicon, color: Color)? {
         switch pullRequest.marker {
-        case .approved: (.check, Primer.open)
+        case .approved: (.approved, Primer.open)
         case .reviewed:
             pullRequest.review == .changesRequested
                 ? (.changesRequested, Primer.danger) : (.comment, Primer.muted)
@@ -124,7 +134,9 @@ enum Octicon: String, CaseIterable {
     case merged = "git-merge"
     case closed = "git-pull-request-closed"
     case check
+    case dot = "dot-fill"
     case x
+    case approved = "check-circle-fill"
     case changesRequested = "file-diff"
     case comment
 
@@ -149,6 +161,7 @@ enum Octicon: String, CaseIterable {
 enum Primer {
     static let open = color(light: 0x1A7F37, dark: 0x3FB950)
     static let done = color(light: 0x8250DF, dark: 0xAB7DF8)
+    static let attention = color(light: 0x9A6700, dark: 0xD29922)
     static let danger = color(light: 0xD1242F, dark: 0xF85149)
     static let muted = color(light: 0x59636E, dark: 0x9198A1)
 

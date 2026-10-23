@@ -225,12 +225,13 @@ struct WindowSnapshotTests {
         let review = try #require(session.selected)
         func pullRequest(
             _ number: Int, _ state: PullRequest.State = .open, draft: Bool = false,
-            review: PullRequest.Review = .none, failed: Int = 0
+            review: PullRequest.Review = .none, failed: Int = 0, pending: Int = 0
         ) -> PullRequest {
             PullRequest(
                 number: number, title: "Count the lines", url: "https://github.com/o/a/pull/1",
                 state: state, isDraft: draft, head: "feature", headOwner: "o", headCommit: "abc",
-                base: "main", review: review, checks: .init(passed: 2, failed: failed),
+                base: "main", review: review,
+                checks: .init(passed: 2, failed: failed, pending: pending),
                 updated: Self.fixtureEpoch)
         }
         var saved = SavedPullRequests()
@@ -244,13 +245,16 @@ struct WindowSnapshotTests {
             pullRequest(1, draft: true), pullRequest(2), pullRequest(3, review: .commented),
             pullRequest(4, review: .changesRequested), pullRequest(5, review: .approved),
             pullRequest(6, .merged), pullRequest(7, .closed), pullRequest(8, failed: 1),
+            pullRequest(9, pending: 1),
         ]
         let view = VStack(alignment: .leading, spacing: 10) {
             WorktreeRow(review: review)
-            HStack(spacing: 10) {
-                ForEach(markers, id: \.number) { PullRequestBadge(pullRequest: $0) }
+            ForEach([markers.prefix(5), markers.dropFirst(5)], id: \.startIndex) { line in
+                HStack(spacing: 10) {
+                    ForEach(line, id: \.number) { PullRequestBadge(pullRequest: $0) }
+                }
+                .font(.caption).monospacedDigit().foregroundStyle(.secondary)
             }
-            .font(.caption).monospacedDigit().foregroundStyle(.secondary)
             FileList(
                 session: session, review: review, filterFocus: FocusState<Bool>().projectedValue
             )
@@ -260,7 +264,7 @@ struct WindowSnapshotTests {
         .frame(width: 420, alignment: .leading)
         for (appearance, name) in Self.appearances {
             assertSnapshot(
-                of: try render(view, size: CGSize(width: 420, height: 150), appearance),
+                of: try render(view, size: CGSize(width: 420, height: 170), appearance),
                 as: .image(precision: 0.99, perceptualPrecision: 0.98),
                 named: "pull-requests-\(name)-\(Self.os)")
         }
