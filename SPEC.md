@@ -44,7 +44,8 @@ That repo has 20 worktrees, several outside the repo directory (`~/Code/.worktre
 
 - Not a git client: no staging, committing, rebasing, pushing, or conflict resolution.
 - No editing files in the diff.
-- Hosted PRs (GitHub/Azure DevOps review threads).
+- Writing to hosted PRs: Seam reads GitHub pull requests (M6) and never changes them. Azure
+  DevOps.
 - Non-git VCS. Submodule contents (a submodule shows as one changed pointer).
 - Distribution, App Store, sandboxing, auto-update. Personal tool, built locally.
 
@@ -932,8 +933,28 @@ panel; Copy Prompt for Agent.
 with `seam`, the answer appears in the open app without a reload, and only the opener can
 resolve.
 
-**Later:** `gh` integration (PR status for the stale-parent check, PR number in
-the worktree row).
+**M6 — Pull requests (ADR 0005).** Read through the user's `gh`, never written. On whenever `gh`
+is found, with a Settings switch to turn it off; without `gh`, a login, or a GitHub remote nothing
+changes but a status line in Settings, never a banner or an alert.
+- Each worktree row shows its branch's pull request: `#12` and one marker for its state (draft,
+  waiting for review, reviewed without approval, approved, merged, closed), plus a marker when
+  CI failed. Each marker is its own symbol, not just a colour. The tooltip has the title, the
+  reviews, the checks, commits not yet in the PR, and when it was read. The selected worktree's
+  PR also shows beside its name in the window title, so it's visible with the sidebar hidden.
+  The toolbar doesn't change.
+- File › Open Pull Request in Browser and Copy Pull Request URL; Review › Open Failing Check in
+  Browser. The worktree row's context menu has the first two.
+- A PR whose base differs from the detected parent suggests that base in a banner (Use / Keep),
+  through the base override (§5.3). A parent whose own PR merged is a stale-parent signal
+  (§5.4). Both suggest; neither switches the base.
+- The last PR data read is kept across launches and shown at once, then refreshed: on opening,
+  after a ref change (a push), when the window becomes active, and every 2 min while it is (30 s
+  while checks run). Rate limits and lost connections back off.
+*Done when:* a repo's PR markers appear within 2 s of opening without delaying the list (§8.7),
+a push from a terminal updates its row with no action, and every test runs against a fake `gh`.
+
+**Later:** PR review comments shown read-only beside Seam's threads; failing checks in Copy Prompt
+for Agent.
 
 ## 15. Risks
 
@@ -947,6 +968,9 @@ the worktree row).
 ## 16. Open questions
 
 None.
+
+Decided (2026-10-23): GitHub is read-only, on by default when `gh` is found, and suggests bases
+rather than switching them; PR data persists across launches (M6).
 
 Decided (2026-10-21): a local parent's unpushed commits count as the base (§5.1); one window per
 repo (§7.1); the name is Seam; viewed marks survive a rebase for files whose content is unchanged (§11).
