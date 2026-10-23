@@ -33,6 +33,17 @@ import Testing
         #expect(results == ["1/2", "2/2", "1/2", "1/3", "0/0"])
     }
 
+    @Test func searchingBeforeTheViewHasASizeFindsWithoutScrolling() {
+        let view = DiffScrollView()
+        var results: [String] = []
+        view.onSearchResult = { current, total in results.append("\(current ?? 0)/\(total)") }
+        view.show(DiffContent(review: review(["alpha", "beta"])), position: .top)
+
+        view.search("alpha")
+
+        #expect(results == ["1/1"])
+    }
+
     @Test func theSelectionIsTheTextOnScreen() throws {
         let view = DiffScrollView()
         view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)

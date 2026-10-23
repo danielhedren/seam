@@ -298,7 +298,8 @@ public final class DiffScrollView: NSScrollView {
             byRow[match.row, default: []].append((match.side, match.range, index == currentMatch))
         }
         canvas.findMatches = byRow
-        if reveal, let currentMatch {
+        // A view without a size yet (its first update) has nothing to scroll.
+        if reveal, let currentMatch, contentSize.height > headerHeight {
             let row = matches[currentMatch].row
             let top = layout.top(of: row)
             let visible = visibleTop + headerHeight..<visibleTop + contentSize.height
