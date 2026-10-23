@@ -50,6 +50,26 @@ import Testing
         #expect(reviewed.content?.threads.isEmpty == true)
     }
 
+    /// The reader's comments carry their git email, so an agent or a teammate can tell whose
+    /// they are; "you" only when git has none.
+    @Test func theReadersCommentsAreSignedWithTheirGitEmail() async throws {
+        let repo = try await FixtureRepo()
+        try await repo.run("config", "user.email", "reader@example.com")
+        try repo.write("a.txt", "one\n")
+        let (session, review, _) = await session(repo)
+        let reviewed = try #require(review)
+        let anchor = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1))
+
+        session.draft = ThreadDraft(worktree: reviewed.id, anchor: anchor)
+        await session.post("Why one?")
+        let thread = try #require(reviewed.placedThreads.first?.thread)
+        #expect(await session.reply(to: thread.id, "Still?"))
+        let comments = try #require(reviewed.placedThreads.first?.thread.comments)
+        #expect(thread.author == "reader@example.com")
+        #expect(comments.map(\.author) == ["reader@example.com", "reader@example.com"])
+        session.close()
+    }
+
     @Test func cOpensTheComposerInTheDiffAndCommandReturnPostsIt() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\n")

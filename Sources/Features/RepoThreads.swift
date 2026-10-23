@@ -1,4 +1,5 @@
 import Foundation
+import GitKit
 import Observation
 import SeamCore
 import os
@@ -20,12 +21,28 @@ final class RepoThreads {
 
     private let repository: Repository
     private let store: ThreadStore
+    private let git: any GitClient
+    /// The reader's git email per worktree, which signs what they write.
+    private var readers: [String: String] = [:]
     private var watchTask: Task<Void, Never>?
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
 
-    init(repository: Repository, store: ThreadStore) {
+    init(repository: Repository, store: ThreadStore, git: any GitClient) {
         self.repository = repository
         self.store = store
+        self.git = git
+    }
+
+    /// The worktree's `user.email`, so a comment says who wrote it wherever it's read; "you"
+    /// when git has none.
+    func reader(in worktree: String) async -> String {
+        if let known = readers[worktree] { return known }
+        let email = try? await git.string(
+            ["config", "--get", "user.email"], in: URL(fileURLWithPath: worktree))
+        let name = email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let reader = name.isEmpty ? ReviewThread.reader : name
+        readers[worktree] = reader
+        return reader
     }
 
     func start(watching watcher: any FileWatcher) async {
@@ -91,18 +108,23 @@ final class RepoThreads {
     /// Nil, with `failure` set, when the store refused it.
     @discardableResult
     func open(worktree: String, anchor: ThreadAnchor, body: String) async -> ReviewThread? {
-        await change { threads throws(ThreadError) in
+        let author = await reader(in: worktree)
+        return await change { threads throws(ThreadError) in
             try ThreadRules.open(
-                &threads, worktree: worktree, anchor: anchor, author: ReviewThread.reader,
-                body: body, now: .now)
+                &threads, worktree: worktree, anchor: anchor, author: author, body: body,
+                now: .now)
         }
     }
 
     @discardableResult
     func reply(to id: String, body: String) async -> Bool {
-        await change { threads throws(ThreadError) in
-            try ThreadRules.reply(
-                &threads, to: id, author: ReviewThread.reader, body: body, now: .now)
+        var reader = ReviewThread.reader
+        if let worktree = threads.first(where: { $0.id == id })?.worktree {
+            reader = await self.reader(in: worktree)
+        }
+        let author = reader
+        return await change { threads throws(ThreadError) in
+            try ThreadRules.reply(&threads, to: id, author: author, body: body, now: .now)
         } != nil
     }
 

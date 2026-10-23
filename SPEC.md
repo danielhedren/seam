@@ -448,7 +448,8 @@ Comments on lines of a worktree's diff, in threads, as on a GitHub pull request:
 reviews an agent's work and the agent answers, or an agent reviews and the reader answers.
 
 - **A thread** is anchored to a file, a side (new or old) and a line range, and holds comments in
-  order. Each comment has an author (`you`, or the agent name a `seam` call gives), a Markdown
+  order. Each comment has an author (the reader's git `user.email` in that worktree, `you` when
+  git has none, or the agent name a `seam` call gives), a Markdown
   body and a time. A thread is open or resolved. Anyone may reply, resolve, reopen or delete any
   thread, in the app or with `seam`; a reply to a resolved thread reopens it. Seam doesn't
   police authorship: the agent prompt asks agents to leave the reader's threads to the reader,

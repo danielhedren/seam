@@ -143,7 +143,8 @@ final class RepoSession {
         do {
             let (repository, worktree) = try await service.open(directory)
             self.repository = repository
-            threads = RepoThreads(repository: repository, store: services.threads)
+            threads = RepoThreads(
+                repository: repository, store: services.threads, git: services.git)
             threads?.showsGitHub = { [settings = services.settings] in settings.showsPullRequests }
             repoState = await services.store.load(repository)
             startPullRequests(in: repository)
