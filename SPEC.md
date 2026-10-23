@@ -327,7 +327,8 @@ selection acts on its newest commit, and so do Review › Copy Commit ID and Cop
 
 ### 7.4 Diff view
 
-- Side-by-side and unified modes (`⇆` toggles, key `s`). The mode is global: toggling it
+- Side-by-side and unified modes: the toolbar's Unified | Side by Side control shows the current
+  one and picks either, `s` and View › Side by Side flip it. The mode is global: toggling it
   changes every worktree, and it is remembered.
 - A sticky file header per file: a collapse chevron, status, path, `+/−` counts (left out when
   both are 0), and the viewed checkbox with its label at the right edge, so it sits in the same

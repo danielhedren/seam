@@ -42,6 +42,21 @@ import Testing
         #expect(threadsItem(window)?.badge == nil)
     }
 
+    @Test func theViewModeControlFollowsTheSettingTheSKeyFlips() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\n")
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        await session.settled()
+        let window = toolbarWindow(session, try #require(session.selected))
+        let item = try #require(window.toolbar?.items.first { $0.label == "View Mode" })
+        #expect(item.toolTip == "Unified or side by side (S)")
+        #expect(session.settings.layoutMode == .unified)
+
+        session.toggleMode()
+        #expect(session.settings.layoutMode == .split)
+    }
+
     private func toolbarWindow(_ session: RepoSession, _ review: WorktreeReview) -> NSWindow {
         let root = NavigationStack {
             Color.clear.toolbar { ReviewToolbar(session: session, review: review) }

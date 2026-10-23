@@ -560,9 +560,6 @@
     "Side by side" : {
 
     },
-    "Side by side or unified" : {
-
-    },
     "Size" : {
 
     },
@@ -626,6 +623,9 @@
     "Unified" : {
 
     },
+    "Unified or side by side" : {
+
+    },
     "Use" : {
 
     },
@@ -636,6 +636,9 @@
 
     },
     "View" : {
+
+    },
+    "View Mode" : {
 
     },
     "View › Make Text Bigger and Make Text Smaller change the size too. A repository's .editorconfig overrides the tab width." : {

@@ -147,25 +147,10 @@ struct ReviewToolbar: ToolbarContent {
     let session: RepoSession
     let review: WorktreeReview?
 
-    private var unified: Bool { session.settings.layoutMode == .unified }
-
     var body: some ToolbarContent {
         ToolbarItem {
-            Button {
-                session.toggleMode()
-            } label: {
-                Label(
-                    unified
-                        ? String(localized: "Side by Side", bundle: .module)
-                        : String(localized: "Unified", bundle: .module),
-                    systemImage: unified ? "rectangle.split.2x1" : "rectangle")
-            }
-            .help(
-                CommandCatalog.help(
-                    String(localized: "Side by side or unified", bundle: .module),
-                    command: "side-by-side")
-            )
-            .disabled(review == nil)
+            ViewModePicker(settings: session.settings)
+                .disabled(review == nil)
         }
         ToolbarItem {
             Button {
@@ -194,6 +179,31 @@ struct ReviewToolbar: ToolbarContent {
             )
             .disabled(review == nil)
         }
+    }
+}
+
+/// Both modes with the current one selected, so the control says what's showing. `s` and
+/// View › Side by Side flip the same setting.
+struct ViewModePicker: View {
+    @Bindable var settings: AppSettings
+
+    var body: some View {
+        Picker(selection: $settings.layoutMode) {
+            Label(String(localized: "Unified", bundle: .module), systemImage: "rectangle")
+                .tag(DiffLayoutMode.unified)
+            Label(
+                String(localized: "Side by Side", bundle: .module),
+                systemImage: "rectangle.split.2x1"
+            )
+            .tag(DiffLayoutMode.split)
+        } label: {
+            Text("View Mode", bundle: .module)
+        }
+        .pickerStyle(.segmented)
+        .help(
+            CommandCatalog.help(
+                String(localized: "Unified or side by side", bundle: .module),
+                command: "side-by-side"))
     }
 }
 
