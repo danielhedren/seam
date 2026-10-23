@@ -1,4 +1,5 @@
 import Foundation
+import GitKit
 
 /// Where a thread sits (SPEC §7.7): a file, a side and a line range, with the lines' text so it
 /// can follow the file as it changes.
@@ -77,6 +78,17 @@ public struct ReviewThread: Codable, Equatable, Sendable, Identifiable {
     public var updated: Date?
     /// Set on a thread read from a pull request, which Seam can't change (SPEC §7.9).
     public var github: GitHubThreadSource?
+    /// The branch's tip when it was opened, and whether its file had uncommitted changes then,
+    /// for the commit list's dots (SPEC §7.2.1). Threads opened before Seam kept them have none.
+    public var commit: String?
+    public var uncommitted: Bool?
+
+    /// The commit list row it belongs on: a commit, or nil for uncommitted changes.
+    public var writtenOn: CommitSelection.End? {
+        if let commit = github?.commit { return .commit(commit) }
+        if uncommitted == true { return .workingTree }
+        return commit.map { .commit($0) }
+    }
 
     public var isFromGitHub: Bool { github != nil }
 
@@ -115,15 +127,18 @@ public enum ThreadError: Error, Equatable, Sendable {
 public enum ThreadRules {
     public static func open(
         _ threads: inout [ReviewThread], worktree: String, anchor: ThreadAnchor, author: String,
-        body: String, now: Date, newID: () -> String = ThreadRules.newID
+        body: String, now: Date, origin: ThreadOrigin? = nil,
+        newID: () -> String = ThreadRules.newID
     ) throws(ThreadError) -> ReviewThread {
         let body = try checked(body)
         var id = newID()
         while threads.contains(where: { $0.id == id }) { id = newID() }
-        let thread = ReviewThread(
+        var thread = ReviewThread(
             id: id, worktree: worktree, anchor: anchor, author: author,
             comments: [ThreadComment(id: newID(), author: author, body: body, date: now)],
             updated: now)
+        thread.commit = origin?.commit
+        thread.uncommitted = origin?.uncommitted
         threads.append(thread)
         return thread
     }
@@ -186,5 +201,36 @@ public enum ThreadRules {
         let body = body.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !body.isEmpty else { throw .emptyComment }
         return body
+    }
+}
+
+/// Where a new thread is being written: the worktree's tip, and whether its file differs from it.
+public struct ThreadOrigin: Equatable, Sendable {
+    public var commit: String
+    public var uncommitted: Bool
+
+    public init(commit: String, uncommitted: Bool) {
+        self.commit = commit
+        self.uncommitted = uncommitted
+    }
+
+    /// Nil on a branch with no commits.
+    public static func find(path: String, in worktree: URL, git: any GitClient) async
+        -> ThreadOrigin?
+    {
+        guard
+            let head = try? await git.string(["rev-parse", "--verify", "HEAD"], in: worktree)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+        else { return nil }
+        // `--quiet` exits 1 when the file differs from HEAD, which the client reports as a throw.
+        let clean =
+            (try? await git.string(
+                ["diff", "--quiet", "--no-ext-diff", "--no-textconv", "HEAD", "--", path],
+                in: worktree)) != nil
+        let untracked =
+            (try? await git.string(
+                ["ls-files", "--others", "--exclude-standard", "--", path], in: worktree))?
+            .isEmpty == false
+        return ThreadOrigin(commit: head, uncommitted: !clean || untracked)
     }
 }

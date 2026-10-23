@@ -70,6 +70,34 @@ import Testing
         session.close()
     }
 
+    /// The commit list's dots: a thread on committed lines sits on the tip it was written at,
+    /// one on uncommitted lines on the working tree's row.
+    @Test func aThreadsDotGoesOnTheCommitListRowItWasWrittenOn() async throws {
+        let repo = try await FixtureRepo()
+        let tree = try await repo.worktree("a", branch: "a", from: "origin/main")
+        try await repo.commit("a.txt", "one\n", "Add a", in: tree)
+        try repo.write("b.txt", "two\n", in: tree)
+        let (session, _, _) = await session(repo)
+        session.select(tree.path)
+        let reviewed = try #require(session.selected)
+        await reviewed.loaded()
+        let tip = try await repo.sha("a")
+
+        for path in ["a.txt", "b.txt"] {
+            let anchor = try #require(reviewed.anchor(path: path, side: .new, lines: 1...1))
+            session.draft = ThreadDraft(worktree: reviewed.id, anchor: anchor)
+            await session.post("Why?")
+        }
+
+        #expect(
+            reviewed.threadCountsByCommit
+                == [
+                    .commit(tip): FileThreadCounts(open: 1),
+                    .workingTree: FileThreadCounts(open: 1),
+                ])
+        session.close()
+    }
+
     @Test func cOpensTheComposerInTheDiffAndCommandReturnPostsIt() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\n")

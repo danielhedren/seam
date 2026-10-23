@@ -308,10 +308,11 @@ struct Comment: AsyncParsableCommand {
                 "\(relative) has \(file.count) lines on the \(old ? "old" : "new") side")
         }
         let author = signature.name
+        let origin = await ThreadOrigin.find(path: relative, in: worktree, git: CLIGitClient())
         let thread = try threadStore().update(repository) { threads throws(ThreadError) in
             try ThreadRules.open(
                 &threads, worktree: worktree.path, anchor: anchor, author: author, body: text,
-                now: .now)
+                now: .now, origin: origin)
         }
         print("Opened #\(thread.id).")
     }

@@ -10,14 +10,16 @@ struct CommitList: View {
     var body: some View {
         // A log loaded before the directory or the chosen base went is no longer true.
         if let log = review.commitLog, Self.status(of: review)?.keepsLog ?? true {
+            let threads = review.threadCountsByCommit
             List(selection: selection(log)) {
                 Section {
                     if uncommittedFiles > 0 {
-                        WorkingTreeRow(files: uncommittedFiles)
+                        WorkingTreeRow(files: uncommittedFiles, threads: threads[.workingTree])
                             .tag(CommitSelection.End.workingTree)
                     }
                     ForEach(log.commits) { commit in
-                        CommitRow(commit: commit).tag(CommitSelection.End.commit(commit.id))
+                        CommitRow(commit: commit, threads: threads[.commit(commit.id)])
+                            .tag(CommitSelection.End.commit(commit.id))
                     }
                     if log.isTruncated {
                         Text("Older commits not shown", bundle: .module)
@@ -155,10 +157,15 @@ struct CommitList: View {
 
 struct WorkingTreeRow: View {
     let files: Int
+    var threads: FileThreadCounts?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("Uncommitted changes", bundle: .module)
+            HStack(spacing: 4) {
+                Text("Uncommitted changes", bundle: .module)
+                Spacer(minLength: 0)
+                if let threads { ThreadDots(counts: threads) }
+            }
             Text(verbatim: Counted.files(files)).font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -183,10 +190,16 @@ struct DetectingRow: View {
 
 struct CommitRow: View {
     let commit: ReviewCommit
+    /// The threads written on it (SPEC §7.2.1).
+    var threads: FileThreadCounts?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(commit.subject).lineLimit(1).truncationMode(.tail)
+            HStack(spacing: 4) {
+                Text(commit.subject).lineLimit(1).truncationMode(.tail)
+                Spacer(minLength: 0)
+                if let threads { ThreadDots(counts: threads) }
+            }
             HStack(spacing: 6) {
                 Text(commit.shortID).monospaced()
                 AgeText(date: commit.date)

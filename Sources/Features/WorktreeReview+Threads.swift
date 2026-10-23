@@ -106,16 +106,25 @@ extension WorktreeReview {
 
     /// The file list's markers: each file's open and resolved threads, outdated ones included.
     var threadCountsByPath: [String: FileThreadCounts] {
-        var counts: [String: FileThreadCounts] = [:]
+        threadCounts { $0.anchor.path }
+    }
+
+    /// The commit list's markers: each row's threads, by the commit they were written on.
+    var threadCountsByCommit: [CommitSelection.End: FileThreadCounts] {
+        threadCounts(by: \.writtenOn)
+    }
+
+    private func threadCounts<Key: Hashable>(by key: (ReviewThread) -> Key?) -> [Key:
+        FileThreadCounts]
+    {
+        var counts: [Key: FileThreadCounts] = [:]
         for thread in threads?.threads(in: id) ?? [] {
+            guard let key = key(thread) else { continue }
             switch (thread.isFromGitHub, thread.isResolved) {
-            case (false, true):
-                counts[thread.anchor.path, default: FileThreadCounts()].resolved += 1
-            case (false, false): counts[thread.anchor.path, default: FileThreadCounts()].open += 1
-            case (true, true):
-                counts[thread.anchor.path, default: FileThreadCounts()].gitHubResolved += 1
-            case (true, false):
-                counts[thread.anchor.path, default: FileThreadCounts()].gitHubOpen += 1
+            case (false, true): counts[key, default: FileThreadCounts()].resolved += 1
+            case (false, false): counts[key, default: FileThreadCounts()].open += 1
+            case (true, true): counts[key, default: FileThreadCounts()].gitHubResolved += 1
+            case (true, false): counts[key, default: FileThreadCounts()].gitHubOpen += 1
             }
         }
         return counts

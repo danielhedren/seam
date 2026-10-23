@@ -291,6 +291,10 @@ first parents (a merge from main is one row):
 - An "Uncommitted changes" row on top, with the number of changed files, only while there are
   any. Without it, selecting every commit is the All scope, so later edits still show.
 - One row per commit: subject, short SHA, age. At most 500 are listed.
+- Threads show on the row they were written on, with the file list's dots (§7.7, §7.9): a pull
+  request's on the commit its first comment was written on, Seam's on the branch's tip when it
+  was opened, or on "Uncommitted changes" when its file had uncommitted changes then. Threads
+  opened before Seam recorded this show on no row.
 - The base at the bottom, marked as the branch point ("Branched from origin/main", its SHA and
   subject). It is not selectable: every range is measured from it or from a commit above it.
 - Until the first log arrives it is a list with one quiet "Detecting base…" row, its spinner

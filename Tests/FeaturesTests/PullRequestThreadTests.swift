@@ -227,6 +227,8 @@ import Testing
         let row = try review(session, feature)
         #expect(row.placedThreads.first?.placement == .outdated)
 
+        #expect(row.threadCountsByCommit == [.commit(first): FileThreadCounts(gitHubOpen: 1)])
+
         session.openThread("gh-7")
         let jump = try command("thread-commit")
         #expect(jump.isEnabled(session))

@@ -75,8 +75,18 @@ struct WindowSnapshotTests {
         let review = try #require(session.selected)
         let log = try #require(review.commitLog)
         let rows = VStack(alignment: .leading, spacing: 10) {
-            WorkingTreeRow(files: review.activity?.uncommittedFiles ?? 0)
-            ForEach(log.commits) { CommitRow(commit: $0) }
+            WorkingTreeRow(
+                files: review.activity?.uncommittedFiles ?? 0,
+                threads: FileThreadCounts(open: 1))
+            // The newest commit carries both kinds of thread, the next only resolved ones.
+            ForEach(Array(log.commits.enumerated()), id: \.element.id) { index, commit in
+                CommitRow(
+                    commit: commit,
+                    threads: [
+                        FileThreadCounts(open: 1, gitHubOpen: 2),
+                        FileThreadCounts(resolved: 1, gitHubResolved: 1),
+                    ].dropFirst(index).first)
+            }
             BaseRow(commit: log.base, parent: review.parentName)
         }
         .padding(12)
