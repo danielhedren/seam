@@ -43,6 +43,15 @@ struct CommitList: View {
             .contextMenu(forSelectionType: CommitSelection.End.self) { picked in
                 ActionMenu(groups: RowActions.actions(for: picked, of: review, in: session))
             }
+        } else if case .detecting(let showsProgress) = Self.status(of: review) {
+            // A list like the loaded one, so the commits arrive in place rather than moving it.
+            List {
+                Section {
+                    DetectingRow(showsProgress: showsProgress).selectionDisabled()
+                } header: {
+                    Text("Commits", bundle: .module)
+                }
+            }
         } else {
             placeholder
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -53,10 +62,8 @@ struct CommitList: View {
     /// Says why there are no commits; the diff's banner carries the details and fixes.
     @ViewBuilder private var placeholder: some View {
         switch Self.status(of: review) {
-        case nil:
+        case nil, .detecting:
             Color.clear
-        case .loading:
-            ProgressView().controlSize(.small)
         case .missingDirectory:
             message(String(localized: "The worktree's directory is missing", bundle: .module))
         case .failed:
@@ -80,19 +87,27 @@ struct CommitList: View {
     }
 
     enum Status: Equatable {
-        case loading, missingDirectory, failed
+        case detecting(showsProgress: Bool)
+        case missingDirectory, failed
         case baseGone(String)
 
-        var keepsLog: Bool { self == .loading || self == .failed }
+        var keepsLog: Bool {
+            switch self {
+            case .detecting, .failed: true
+            case .missingDirectory, .baseGone: false
+            }
+        }
     }
 
-    /// What the list says while it has no commits; nil while a load is too young to mention.
+    /// What the list says while it has no commits; nil once they're listed.
     static func status(of review: WorktreeReview) -> Status? {
         switch review.problem {
         case .missingDirectory: .missingDirectory
         case .overrideGone(let ref): .baseGone(ref)
         case .gitFailed: .failed
-        case .editorFailed, nil: review.showsProgress ? .loading : nil
+        case .editorFailed, nil:
+            review.commitLog == nil && review.isLoading
+                ? .detecting(showsProgress: review.showsProgress) : nil
         }
     }
 
@@ -148,6 +163,20 @@ struct WorkingTreeRow: View {
                 .foregroundStyle(.secondary)
         }
         // The selection highlight says which rows are picked; a sidebar list would also bold them.
+        .fontWeight(.regular)
+    }
+}
+
+/// Stands in for the commits until the first log arrives; the spinner waits 150 ms (SPEC §9).
+struct DetectingRow: View {
+    let showsProgress: Bool
+
+    var body: some View {
+        HStack {
+            Text("Detecting base…", bundle: .module).foregroundStyle(.secondary)
+            Spacer(minLength: 4)
+            if showsProgress { ProgressView().controlSize(.small) }
+        }
         .fontWeight(.regular)
     }
 }

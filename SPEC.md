@@ -290,7 +290,9 @@ first parents (a merge from main is one row):
 - One row per commit: subject, short SHA, age. At most 500 are listed.
 - The base at the bottom, marked as the branch point ("Branched from origin/main", its SHA and
   subject). It is not selectable: every range is measured from it or from a commit above it.
-- Without commits to list, it says why: a load past 150 ms shows progress, a missing directory
+- Until the first log arrives it is a list with one quiet "Detecting base…" row, its spinner
+  shown after 150 ms, so the commits arrive in place. A reload keeps the listed commits.
+- Without commits to list, it says why: a missing directory
   or unreadable log says so, and a chosen base that no longer exists is named, with "Choose
   Base…" opening the picker there (also from `b`). Commits listed before the directory or the
   base went away are taken down.

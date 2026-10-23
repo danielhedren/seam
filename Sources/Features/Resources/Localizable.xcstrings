@@ -121,6 +121,9 @@
     "Comment…" : {
 
     },
+    "Commits" : {
+
+    },
     "Commits on this branch show here once there are some." : {
 
     },
@@ -197,6 +200,9 @@
 
     },
     "Delete this thread (Undo brings it back)" : {
+
+    },
+    "Detecting base…" : {
 
     },
     "Diff" : {

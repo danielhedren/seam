@@ -21,7 +21,26 @@ struct CommitListTests {
         #expect(CommitList.status(of: review) == nil)
     }
 
-    @Test func aSlowLoadShowsProgressOnlyAfter150Milliseconds() async throws {
+    @Test func aColdOpenSaysItIsDetectingTheBaseAndSpinsOnlyAfter150Milliseconds() async throws {
+        let repo = try await FixtureRepo()
+        let git = GatedGit(repo.git, holding: repo.main, command: "log")
+        let clock = ManualClock()
+        let session = RepoSession(directory: repo.main, services: services(git, clock: clock))
+        await session.open()
+        let review = try #require(session.selected)
+
+        await clock.sleepers()
+        #expect(CommitList.status(of: review) == .detecting(showsProgress: false))
+        clock.advance(by: .milliseconds(150))
+        while !review.showsProgress { await Task.yield() }
+        #expect(CommitList.status(of: review) == .detecting(showsProgress: true))
+        git.release()
+        await review.loaded()
+        #expect(review.commitLog != nil)
+        #expect(CommitList.status(of: review) == nil)
+    }
+
+    @Test func aReloadKeepsTheListedCommitsWithoutSayingSo() async throws {
         let repo = try await FixtureRepo()
         let git = GatedGit(repo.git, holding: repo.main)
         let clock = ManualClock()
@@ -30,10 +49,10 @@ struct CommitListTests {
         let review = try #require(session.selected)
 
         await clock.sleepers()
-        #expect(CommitList.status(of: review) == nil)
         clock.advance(by: .milliseconds(150))
-        while !review.showsProgress { await Task.yield() }
-        #expect(CommitList.status(of: review) == .loading)
+        // The diff is held, so the load is still running once the commits are in.
+        await until { review.commitLog != nil && review.showsProgress }
+        #expect(CommitList.status(of: review) == nil)
         git.release()
         await review.loaded()
     }
