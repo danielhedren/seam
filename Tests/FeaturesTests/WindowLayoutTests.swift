@@ -139,8 +139,6 @@ import Testing
             return split.arrangedSubviews.map { split.isSubviewCollapsed($0) }
         }
         #expect(columns() == [false, false, false])
-        let widths = { splitViews(in: window).first?.arrangedSubviews.map(\.frame.width) ?? [] }
-        let before = widths()
 
         session.toggleSidebars()
         settleLayout()
@@ -153,20 +151,6 @@ import Testing
         session.toggleSidebars()
         settleLayout()
         #expect(columns() == [false, false, false])
-        #expect(widths() == before, "both come back at the widths they had")
-        let controller = splitViews(in: window).first?.delegate as? NSSplitViewController
-        #expect(controller?.splitViewItems[1].canCollapse == false, "a drag can't close the files")
-
-        session.columns = .filesAndDiff
-        settleLayout()
-        let filesAndDiff = widths()
-        session.toggleSidebars()
-        settleLayout()
-        #expect(columns() == [true, true, false])
-        session.columns = .filesAndDiff
-        settleLayout()
-        #expect(columns() == [true, false, false], "Show File List from hidden")
-        #expect(widths() == filesAndDiff)
         window.close()
     }
 

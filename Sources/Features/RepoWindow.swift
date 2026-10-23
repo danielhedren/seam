@@ -13,7 +13,6 @@ struct RepoWindow: View {
     @Environment(\.undoManager) private var undoManager
     @FocusState private var filterFocused: Bool
     @FocusState private var fileListFocused: Bool
-    @State private var splitVisibility = NavigationSplitViewVisibility.all
 
     init(session: RepoSession) {
         _session = State(initialValue: session)
@@ -53,13 +52,14 @@ struct RepoWindow: View {
         await session.handle(worktree: request.worktree, base: request.base)
     }
 
-    /// The split view also changes visibility itself, when the user drags a column closed or
-    /// `ColumnCollapser` collapses the sidebar.
+    /// The split view also changes visibility itself, when the user drags a column closed.
     private var columnVisibility: Binding<NavigationSplitViewVisibility> {
         Binding(
-            get: { splitVisibility },
+            get: {
+                session.columns == .all ? .all : .doubleColumn
+            },
             set: { visibility in
-                splitVisibility = visibility
+                // Collapsing the file list (ColumnCollapser) reports `.doubleColumn` too.
                 if visibility == .doubleColumn, session.columns == .diffOnly { return }
                 session.columns = visibility == .all ? .all : .filesAndDiff
             })
@@ -89,7 +89,7 @@ struct RepoWindow: View {
                 }
             }
             .navigationSplitViewColumnWidth(min: 200, ideal: 300)
-            .background(ColumnCollapser(columns: session.columns))
+            .background(ColumnCollapser(isCollapsed: session.columns == .diffOnly))
         } detail: {
             detail
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -97,11 +97,6 @@ struct RepoWindow: View {
         }
         .toolbarBackgroundVisibility(.visible, for: .windowToolbar)
         .toolbarBackground(Color(nsColor: .windowBackgroundColor), for: .windowToolbar)
-        .onChange(of: session.columns) { old, new in
-            // To and from `.diffOnly`, ColumnCollapser animates both columns together.
-            guard old != .diffOnly, new != .diffOnly else { return }
-            splitVisibility = new == .all ? .all : .doubleColumn
-        }
         .onChange(of: fileListFocused) { _, focused in
             session.fileListHasFocus = focused && !filterFocused
         }
