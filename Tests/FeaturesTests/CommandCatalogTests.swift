@@ -125,4 +125,14 @@ import Testing
         #expect(entries.first { $0.id == "find" }?.shortcut == "⌘F")
         #expect(entries.first { $0.id == "filter-files" }?.shortcut == "")
     }
+
+    @Test func specialKeysAreLabelledWithTheirSymbols() {
+        #expect(SeamCommand.label(.return, .command) == "⌘↩")
+        #expect(SeamCommand.label(.escape, []) == "⎋")
+        #expect(SeamCommand.label(.upArrow, .option) == "⌥↑")
+        #expect(SeamCommand.label(.downArrow, []) == "↓")
+        #expect(SeamCommand.label(.delete, .command) == "⌘⌫")
+        #expect(SeamCommand.label(.tab, .shift) == "⇧⇥")
+        #expect(SeamCommand.label("g", [.command, .shift]) == "⇧⌘G")
+    }
 }

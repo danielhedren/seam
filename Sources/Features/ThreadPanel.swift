@@ -277,9 +277,11 @@ private struct ThreadCard: View {
             Spacer()
             Button(String(localized: "Reply", bundle: .module)) { send() }
                 .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.return, modifiers: .command)
+                .keyboardShortcut(CommandCatalog.send)
                 .disabled(reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .help(String(localized: "Reply (⌘↩)", bundle: .module))
+                .help(
+                    CommandCatalog.help(
+                        String(localized: "Reply", bundle: .module), shortcut: CommandCatalog.send))
         }
         .controlSize(.small)
     }

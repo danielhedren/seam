@@ -123,9 +123,16 @@ struct SeamCommand: Identifiable {
         label +=
             character == " "
             ? String(localized: "Space", bundle: .module)
-            : String(character).uppercased()
+            : Self.symbols[key] ?? String(character).uppercased()
         return label
     }
+
+    /// Keys without a printable character, written as the menu bar writes them.
+    private static let symbols: [KeyEquivalent: String] = [
+        .return: "↩", .escape: "⎋", .delete: "⌫", .deleteForward: "⌦", .tab: "⇥",
+        .upArrow: "↑", .downArrow: "↓", .leftArrow: "←", .rightArrow: "→",
+        .home: "↖", .end: "↘", .pageUp: "⇞", .pageDown: "⇟",
+    ]
 }
 
 @MainActor
@@ -139,6 +146,8 @@ enum CommandCatalog {
     /// File › New Window and Open Repository, which the File menu builds itself.
     static let newWindow = KeyboardShortcut("n")
     static let openRepository = KeyboardShortcut("o")
+    /// Sends what's typed in the thread panel's reply box.
+    static let send = KeyboardShortcut(.return, modifiers: .command)
 
     private static let byID = Dictionary(all.map { ($0.id, $0) }) { first, _ in first }
 
