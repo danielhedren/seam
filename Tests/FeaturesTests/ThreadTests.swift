@@ -50,6 +50,26 @@ import Testing
         #expect(reviewed.content?.threads.isEmpty == true)
     }
 
+    /// The open thread belongs to its worktree: after switching, Review › Resolve and Delete
+    /// can't act on a thread that's no longer shown.
+    @Test func switchingWorktreesClosesTheOpenThread() async throws {
+        let repo = try await FixtureRepo()
+        let tree = try await repo.worktree("a", branch: "a", from: "origin/main")
+        try repo.write("a.txt", "one\n")
+        let (session, review, _) = await session(repo)
+        let reviewed = try #require(review)
+        let anchor = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1))
+        session.draft = ThreadDraft(worktree: reviewed.id, anchor: anchor)
+        await session.post("Why one?")
+        #expect(session.selectedThreadID != nil)
+
+        session.select(tree.path)
+        #expect(session.selectedThreadID == nil)
+        let resolve = try #require(CommandCatalog.all.first { $0.id == "resolve-thread" })
+        #expect(!resolve.isEnabled(session))
+        session.close()
+    }
+
     /// The reader's comments carry their git email, so an agent or a teammate can tell whose
     /// they are; "you" only when git has none.
     @Test func theReadersCommentsAreSignedWithTheirGitEmail() async throws {

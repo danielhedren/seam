@@ -239,6 +239,9 @@ final class RepoSession {
         }
         if let anchor = diff.anchor { selected?.savedAnchor = anchor }
         selected?.cancelLoading()
+        // The open thread is the old worktree's; the draft is kept per worktree (SPEC §7.7).
+        selectedThreadID = nil
+        openThreadIsHidden = false
         selectedID = id
         repoState.selectedWorktree = id
         persist()
