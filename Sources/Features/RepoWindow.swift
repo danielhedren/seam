@@ -56,19 +56,12 @@ struct RepoWindow: View {
     private var columnVisibility: Binding<NavigationSplitViewVisibility> {
         Binding(
             get: {
-                switch session.columns {
-                case .all: .all
-                case .filesAndDiff: .doubleColumn
-                case .diffOnly: .detailOnly
-                }
+                session.columns == .all ? .all : .doubleColumn
             },
             set: { visibility in
-                session.columns =
-                    switch visibility {
-                    case .detailOnly: .diffOnly
-                    case .doubleColumn: .filesAndDiff
-                    default: .all
-                    }
+                // Collapsing the file list (ColumnCollapser) reports `.doubleColumn` too.
+                if visibility == .doubleColumn, session.columns == .diffOnly { return }
+                session.columns = visibility == .all ? .all : .filesAndDiff
             })
     }
 
@@ -96,6 +89,7 @@ struct RepoWindow: View {
                 }
             }
             .navigationSplitViewColumnWidth(min: 200, ideal: 300)
+            .background(ColumnCollapser(isCollapsed: session.columns == .diffOnly))
         } detail: {
             detail
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

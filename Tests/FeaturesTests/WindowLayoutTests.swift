@@ -127,6 +127,40 @@ import Testing
         #expect(requests.savedFrame(for: "/r/a") == nil)
     }
 
+    @Test func hideSidebarsLeavesTheDiffTheWholeWindowAndShowBringsBothBack() async throws {
+        let repo = try await FixtureRepo()
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        let window = try window(showing: RepoWindow(session: session))
+        await session.open()
+        await session.settled()
+        settleLayout()
+        let columns = { () -> [Bool] in
+            guard let split = splitViews(in: window).first else { return [] }
+            return split.arrangedSubviews.map { split.isSubviewCollapsed($0) }
+        }
+        #expect(columns() == [false, false, false])
+
+        session.toggleSidebars()
+        settleLayout()
+        #expect(columns() == [true, true, false])
+        session.showsThreadPanel.toggle()
+        settleLayout()
+        #expect(columns() == [true, true, false], "other updates keep the file list collapsed")
+        #expect(session.columns == .diffOnly)
+
+        session.toggleSidebars()
+        settleLayout()
+        #expect(columns() == [false, false, false])
+        window.close()
+    }
+
+    private func splitViews(in window: NSWindow) -> [NSSplitView] {
+        func search(_ view: NSView) -> [NSSplitView] {
+            ((view as? NSSplitView).map { [$0] } ?? []) + view.subviews.flatMap(search)
+        }
+        return window.contentView.map(search) ?? []
+    }
+
     private func window(showing view: some View) throws -> NSWindow {
         let host = NSHostingController(
             rootView: view.environment(OpenRequests(defaults: try scratchDefaults())))

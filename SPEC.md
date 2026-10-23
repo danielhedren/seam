@@ -637,7 +637,9 @@ written down here.
 **Structure**
 - The window is a three-column `NavigationSplitView` (sidebar | content | detail). Column
   collapsing and resizing behave natively. The system's sidebar toggle is replaced by one that
-  hides both sidebars, as `⌘\` does: in three columns the system's hides only the first.
+  hides both sidebars, as `⌘\` does: in three columns the system's hides only the first. macOS's
+  three-column split view ignores `.detailOnly` and can't collapse its middle column, so hiding
+  both collapses the file list's `NSSplitViewItem` directly.
 - Toolbar in the unified style, holding only: the sidebar button, view mode, reload, and the
   thread panel (§7.7).
   The diff gets the rest of the window. The toolbar's background is solid across every column,
