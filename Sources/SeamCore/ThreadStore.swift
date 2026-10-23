@@ -110,7 +110,7 @@ public struct ThreadStore: Sendable {
     private func contents(of url: URL) throws(ThreadError) -> Contents? {
         guard let data = FileManager.default.contents(atPath: url.path) else { return nil }
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        decoder.dateDecodingStrategy = ThreadTime.decoding
         let contents: Contents
         do {
             contents = try decoder.decode(Contents.self, from: data)
@@ -127,7 +127,7 @@ public struct ThreadStore: Sendable {
         _ threads: [ReviewThread], read: [String: Date]? = nil, to url: URL
     ) throws(ThreadError) {
         let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
+        encoder.dateEncodingStrategy = ThreadTime.encoding
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let temporary = url.deletingLastPathComponent()
             .appending(path: ".\(url.lastPathComponent).\(UUID().uuidString)")
@@ -150,4 +150,37 @@ public struct ThreadStore: Sendable {
 public struct GitHubThreadFile: Equatable, Sendable {
     public var threads: [ReviewThread]
     public var read: [String: Date]
+}
+
+/// Thread times in ISO 8601 with milliseconds, because `seam wait --since` compares against
+/// them (SPEC §13); whole-second times from older files still read.
+public enum ThreadTime {
+    private static let withFraction = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
+
+    public static func string(_ date: Date) -> String {
+        date.formatted(withFraction)
+    }
+
+    public static func date(_ text: String) -> Date? {
+        (try? withFraction.parse(text)) ?? (try? Date.ISO8601FormatStyle().parse(text))
+    }
+
+    public static var encoding: JSONEncoder.DateEncodingStrategy {
+        .custom { date, encoder in
+            var container = encoder.singleValueContainer()
+            try container.encode(string(date))
+        }
+    }
+
+    public static var decoding: JSONDecoder.DateDecodingStrategy {
+        .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let text = try container.decode(String.self)
+            guard let date = date(text) else {
+                throw DecodingError.dataCorruptedError(
+                    in: container, debugDescription: "not an ISO 8601 time: \(text)")
+            }
+            return date
+        }
+    }
 }

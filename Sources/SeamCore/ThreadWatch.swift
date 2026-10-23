@@ -6,8 +6,8 @@ public struct ThreadScope: Sendable {
     public var worktree: String?
     public var includesResolved: Bool
     /// Only threads with activity at or after this time, resolved ones too, since resolving is
-    /// activity. At, not after: stored times have whole seconds, so a change in the same second
-    /// as the last "as of" is shown again rather than missed.
+    /// activity. At, not after: a write racing the read behind the last "as of" comes back
+    /// rather than being missed.
     public var since: Date?
 
     public init(worktree: String?, includesResolved: Bool = false, since: Date? = nil) {
@@ -56,13 +56,13 @@ public enum ThreadWait {
     /// `events` fires when the store's folder changes, and each one rereads the store; subscribe
     /// before calling, so nothing between the caller's last read and this one is lost. With a
     /// `since`, threads already active since then come back at once. `asOf` is when the read that
-    /// found the changes began, in whole seconds: the next call's `since`.
+    /// found the changes began: the next call's `since`, which then leaves out what this one saw.
     public static func next<Events: AsyncSequence & Sendable, C: Clock<Duration>>(
         in scope: ThreadScope, read: @escaping @Sendable () throws(ThreadError) -> [ReviewThread],
         events: Events, clock: C, timeout: Duration?,
         now: @escaping @Sendable () -> Date = { .now }
     ) async throws -> (changes: ThreadChanges, asOf: Date)? where Events.Element == [String] {
-        let startedAt = wholeSeconds(now())
+        let startedAt = now()
         let start = try read()
         if scope.since != nil {
             let recent = start.filter(scope.contains)
@@ -71,7 +71,7 @@ public enum ThreadWait {
         return try await withThrowingTaskGroup(of: (ThreadChanges, Date)?.self) { group in
             group.addTask {
                 for try await _ in events {
-                    let readAt = wholeSeconds(now())
+                    let readAt = now()
                     let changes = ThreadChanges.between(start, try read(), worktree: scope.worktree)
                     if !changes.isEmpty { return (changes, readAt) }
                 }
@@ -86,9 +86,5 @@ public enum ThreadWait {
             defer { group.cancelAll() }
             return try await group.next() ?? nil
         }
-    }
-
-    private static func wholeSeconds(_ date: Date) -> Date {
-        Date(timeIntervalSince1970: date.timeIntervalSince1970.rounded(.down))
     }
 }

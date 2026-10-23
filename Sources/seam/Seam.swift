@@ -143,7 +143,7 @@ struct Threads: AsyncParsableCommand {
             try printJSON(threads)
         } else if threads.isEmpty {
             print(
-                since.map { "No threads changed since \($0.formatted(.iso8601))." }
+                since.map { "No threads changed since \(ThreadTime.string($0))." }
                     ?? (all ? "No threads." : "No open threads."))
         } else {
             print(
@@ -210,7 +210,7 @@ struct Wait: AsyncParsableCommand {
             ThreadText.format($0, showsWorktree: repo, read: read[$0.worktree])
         }
         parts += changes.deleted.map { "#\($0) deleted" }
-        parts.append("As of \(asOf.formatted(.iso8601))")
+        parts.append("As of \(ThreadTime.string(asOf))")
         print(parts.joined(separator: "\n\n"))
     }
 }
@@ -224,11 +224,10 @@ private let textHelp = ArgumentHelp("The comment, in Markdown. Quote it for the 
 private let idHelp = ArgumentHelp("The thread's id, as `seam threads` prints it.")
 
 private func parseTime(_ text: String) throws -> Date {
-    do {
-        return try Date(text, strategy: .iso8601)
-    } catch {
+    guard let date = ThreadTime.date(text) else {
         throw ValidationError("expected an ISO 8601 time such as 2026-10-22T18:30:00Z")
     }
+    return date
 }
 
 struct ShowThread: AsyncParsableCommand {
@@ -458,7 +457,7 @@ private func threadStore() -> ThreadStore {
 
 private func printJSON(_ value: some Encodable) throws {
     let encoder = JSONEncoder()
-    encoder.dateEncodingStrategy = .iso8601
+    encoder.dateEncodingStrategy = ThreadTime.encoding
     encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
     print(String(decoding: try encoder.encode(value), as: UTF8.self))
 }

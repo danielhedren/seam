@@ -95,7 +95,30 @@ private final class Store: Sendable {
 
         let result = try #require(try await waiting.value)
         #expect(result.changes.changed.map(\.id) == ["3"])
-        #expect(result.asOf == start, "whole seconds, rounded down")
+        #expect(result.asOf == start + 0.7, "exact, so the next wait starts after this read")
+    }
+
+    /// An orchestrator loops `seam wait --since <As of>`: a change it was told about isn't
+    /// reported again, even within the same second.
+    @Test func theNextWaitFromAsOfDoesntRepeatWhatThisOneReported() async throws {
+        let (events, sender) = AsyncStream.makeStream(of: [String].self)
+        let clock = ManualClock()
+        let waiting = Task { [read = read()] in
+            try await ThreadWait.next(
+                in: ThreadScope(worktree: "/a"), read: read, events: events, clock: clock,
+                timeout: .seconds(60), now: { start + 0.4 })
+        }
+        await clock.sleepers()
+        store.threads.withLock { $0.append(thread("2", updated: start + 0.3)) }
+        sender.yield(["threads.json"])
+        let asOf = try #require(try await waiting.value).asOf
+
+        let (quiet, ended) = AsyncStream.makeStream(of: [String].self)
+        ended.finish()
+        let again = try await ThreadWait.next(
+            in: ThreadScope(worktree: "/a", since: asOf), read: read(), events: quiet,
+            clock: ManualClock(), timeout: nil, now: { start + 0.5 })
+        #expect(again == nil)
     }
 
     @Test func nothingChangingUntilTheTimeoutReturnsNil() async throws {

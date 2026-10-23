@@ -121,6 +121,29 @@ private func ids() -> () -> String {
         commonDirectory: URL(fileURLWithPath: "/r/app/.git"), anchor: URL(fileURLWithPath: "/r/app")
     )
 
+    /// `seam wait` compares against these times, so they keep their fractions of a second;
+    /// files written with whole seconds still read.
+    @Test func timesKeepTheirMillisecondsAndWholeSecondFilesStillRead() throws {
+        let directory = try TemporaryDirectory()
+        let store = ThreadStore(directory: directory.url)
+        let at = start + 0.25
+        try store.update(repository) { threads throws(ThreadError) in
+            _ = try ThreadRules.open(
+                &threads, worktree: "/r/app", anchor: anchor, author: "you", body: "Why?",
+                now: at)
+        }
+        #expect(try store.threads(for: repository).first?.updated == at)
+
+        let old = """
+            {"version":1,"threads":[{"id":"1","worktree":"/r/app","author":"you",
+            "anchor":{"path":"a","side":"new","lines":[1,1],"text":["x"]},"isResolved":false,
+            "comments":[{"id":"c","author":"you","body":"b","date":"2026-01-01T00:00:00Z"}],
+            "updated":"2026-01-01T00:00:00Z"}]}
+            """
+        try Data(old.utf8).write(to: store.file(for: repository))
+        #expect(try store.threads(for: repository).first?.updated == start)
+    }
+
     @Test func threadsRoundTripAndEachRepoHasItsOwnFile() throws {
         let directory = try TemporaryDirectory()
         let store = ThreadStore(directory: directory.url)

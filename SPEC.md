@@ -983,8 +983,9 @@ picked for the branch in the base picker.
 `seam wait` is how an agent that oversees several worktrees follows them: it watches the thread
 file, then prints the threads that changed (new, replied to, resolved or reopened, and the ids
 of deleted ones) and ends with "As of <time>". Passed as `--since` to the next wait, that time
-brings back anything that changed in between, so nothing is missed; a change in the same second
-can come back twice. Each thread keeps the time it last changed for this. `--timeout` ends the
+brings back anything that changed in between and nothing the last wait already printed: times
+are kept to the millisecond. Only a write racing that wait's read can come back twice. Each
+thread keeps the time it last changed for this. `--timeout` ends the
 wait with status 2. `--repo` widens `threads` and `wait` to every worktree, naming each
 thread's worktree.
 
