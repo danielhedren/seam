@@ -185,6 +185,41 @@ import Testing
         session.close()
     }
 
+    @Test func aWorktreeThatLeavesItsBranchLosesItsThreads() async throws {
+        let (repo, feature) = try await fixture()
+        github.answer(open: [Self.pullRequest()])
+        github.answer(threads: [Self.thread()], for: 12)
+        let session = await open(repo, selecting: feature)
+        #expect(try review(session, feature).placedThreads.map(\.id) == ["gh-7"])
+
+        try await repo.run("-C", feature.path, "checkout", "--detach")
+        // As the monitor reports it; the refresh after it is forced past the spacing.
+        await session.apply(RepoChange(refs: true))
+        await refresh(session)
+        #expect(try review(session, feature).placedThreads.isEmpty)
+        let repository = try #require(session.repository)
+        #expect(try threadStore.gitHubThreads(for: repository).threads.isEmpty)
+        session.close()
+    }
+
+    @Test func aRemovedWorktreesThreadsLeaveTheStore() async throws {
+        let (repo, feature) = try await fixture()
+        github.answer(open: [Self.pullRequest()])
+        github.answer(threads: [Self.thread()], for: 12)
+        let session = await open(repo, selecting: feature)
+
+        session.select(repo.main.path)
+        try await repo.run("worktree", "remove", "--force", feature.path)
+        // As the monitor reports it; the refresh after it is forced past the spacing.
+        await session.apply(RepoChange(refs: true))
+        await refresh(session)
+        let repository = try #require(session.repository)
+        let saved = try threadStore.gitHubThreads(for: repository)
+        #expect(saved.threads.isEmpty)
+        #expect(saved.read[feature.path] == nil)
+        session.close()
+    }
+
     @Test func turningPullRequestsOffHidesTheirThreads() async throws {
         let (repo, feature) = try await fixture()
         github.answer(open: [Self.pullRequest()])

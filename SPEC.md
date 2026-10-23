@@ -603,7 +603,8 @@ GitHub.
 - **Reading:** a worktree's PR's threads are read when the PR's update time changes (from the
   list §7.8 reads anyway), on opening and on Reload, and otherwise at most every 10 minutes,
   since resolving a thread may not change that time; for open, merged and closed PRs alike. A
-  worktree whose branch has no PR any more loses its threads. One
+  worktree whose branch has no PR any more, or that has no branch, loses its threads, and a
+  removed worktree's leave the file. Worktrees on one branch share its PR's threads, read once. One
   read is `gh api graphql` with a fixed query, 100 threads and 100 comments a page, following
   further pages. A failed read keeps the threads last read.
 - **For agents:** the threads last read are written beside the repo's thread file (§7.7) as

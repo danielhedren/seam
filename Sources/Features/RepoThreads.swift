@@ -83,6 +83,25 @@ final class RepoThreads {
             + (showsGitHub() ? gitHub.filter { $0.worktree == worktree } : [])
     }
 
+    /// Forgets the pull request threads of worktrees not in `worktrees`, in the file too.
+    func keepGitHub(only worktrees: Set<String>) async {
+        let (store, repository) = (store, repository)
+        let result = await Task.detached {
+            Result { () throws(ThreadError) in
+                try store.pruneGitHubThreads(keeping: worktrees, for: repository)
+            }
+        }.value
+        switch result {
+        case .success(let kept):
+            if kept != gitHub {
+                gitHub = kept
+                version += 1
+            }
+        case .failure(let error):
+            logger.error("pull request threads: \(String(describing: error), privacy: .public)")
+        }
+    }
+
     /// Replaces a worktree's pull request threads with a new read, kept for `seam` too.
     func saveGitHub(_ read: [ReviewThread], worktree: String) async {
         let current = gitHub.filter { $0.worktree == worktree }

@@ -96,6 +96,24 @@ public struct ThreadStore: Sendable {
         }
     }
 
+    /// Drops the pull request threads and read times of worktrees not in `worktrees`; writes only
+    /// when something goes. Returns the threads left.
+    @discardableResult
+    public func pruneGitHubThreads(keeping worktrees: Set<String>, for repository: Repository)
+        throws(ThreadError) -> [ReviewThread]
+    {
+        let url = gitHubFile(for: repository)
+        return try locked(url) { () throws(ThreadError) in
+            guard let contents = try contents(of: url) else { return [] }
+            let kept = contents.threads.filter { worktrees.contains($0.worktree) }
+            let read = (contents.read ?? [:]).filter { worktrees.contains($0.key) }
+            if kept.count != contents.threads.count || read.count != (contents.read ?? [:]).count {
+                try write(kept, read: read, to: url)
+            }
+            return kept
+        }
+    }
+
     private struct Contents: Codable {
         var version: Int
         var threads: [ReviewThread]

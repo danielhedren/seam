@@ -57,13 +57,15 @@ final class RepoPullRequests {
     @ObservationIgnored var onUpdate: (() -> Void)?
     /// Takes a worktree's pull request threads as read (SPEC §7.9), none when it has no PR.
     @ObservationIgnored var onThreads: ((_ worktree: String, [ReviewThread]) async -> Void)?
+    /// Drops the threads of worktrees that no longer exist.
+    @ObservationIgnored var onWorktreesGone: ((_ keeping: Set<String>) async -> Void)?
 
     private let services: SeamServices
     private let directory: URL
     /// The branches to look up: every worktree's, and every local parent's.
     private let branches: @MainActor () -> [String]
-    /// Each worktree's path by its branch, whose PR's threads are read.
-    private let worktrees: @MainActor () -> [String: String]
+    /// Every worktree's branch by its path, nil when detached; their PRs' threads are read.
+    private let worktrees: @MainActor () -> [String: String?]
     /// The PR each worktree's threads were last read for, as it was then.
     private var threadsRead: [String: (pullRequest: PullRequest, at: Date)] = [:]
     private var pending = false
@@ -84,7 +86,7 @@ final class RepoPullRequests {
     init(
         services: SeamServices, directory: URL, saved: SavedPullRequests?,
         branches: @escaping @MainActor () -> [String],
-        worktrees: @escaping @MainActor () -> [String: String] = { [:] }
+        worktrees: @escaping @MainActor () -> [String: String?] = { [:] }
     ) {
         self.services = services
         self.directory = directory
@@ -255,9 +257,11 @@ final class RepoPullRequests {
     /// a thread may not change the PR's update time.
     private func readThreads(in repo: GitHubRepo) async {
         guard let onThreads else { return }
+        let worktrees = worktrees()
+        await onWorktreesGone?(Set(worktrees.keys))
         var jobs: [(worktree: String, pullRequest: PullRequest)] = []
-        for (branch, worktree) in worktrees().sorted(by: { $0.key < $1.key }) {
-            guard let pullRequest = saved.byBranch[branch] else {
+        for (worktree, branch) in worktrees.sorted(by: { $0.key < $1.key }) {
+            guard let branch, let pullRequest = saved.byBranch[branch] else {
                 threadsRead[worktree] = nil
                 await onThreads(worktree, [])
                 continue
@@ -270,14 +274,18 @@ final class RepoPullRequests {
             }
             jobs.append((worktree, pullRequest))
         }
+        // Two worktrees on one branch share its PR, which is read once.
         let client = services.github.client
-        let read = try? await Self.concurrently(jobs) { job in
-            await Result { () async throws(GitHubError) in
-                try await client.reviewThreads(job.pullRequest.number, in: repo)
-            }
-        }
-        for (job, result) in read ?? [] {
+        let numbers = Array(Set(jobs.map(\.pullRequest.number)))
+        let read = Dictionary(
+            (try? await Self.concurrently(numbers) { number in
+                await Result { () async throws(GitHubError) in
+                    try await client.reviewThreads(number, in: repo)
+                }
+            }) ?? [], uniquingKeysWith: { first, _ in first })
+        for job in jobs {
             guard !isStopped else { return }
+            guard let result = read[job.pullRequest.number] else { continue }
             switch result {
             case .success(let threads):
                 threadsRead[job.worktree] = (job.pullRequest, .now)
