@@ -483,6 +483,13 @@ final class OpenedURLs {
         await session.settled()
         #expect(github.calls.last == "open github.com/owner/app")
         #expect(try review(session, feature).pullRequest?.number == 9)
+
+        clock.advance(by: .seconds(600))
+        session.reload()
+        await session.settled()
+        #expect(
+            github.calls.suffix(2) == ["open github.com/owner/app", "head feature"],
+            "after 10 minutes it's asked about again")
         session.close()
     }
 

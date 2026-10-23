@@ -15,6 +15,7 @@ import Testing
     let store = MemoryStore()
     let threadStore = scratchThreadStore()
     let opened = OpenedURLs()
+    let clock = ManualClock()
 
     private static func pullRequest(updated: TimeInterval = 0) -> PullRequest {
         PullRequest(
@@ -49,7 +50,7 @@ import Testing
 
     private func open(_ repo: FixtureRepo, selecting worktree: URL) async -> RepoSession {
         var services = SeamServices(
-            git: repo.git, watcher: SilentWatcher(), clock: ManualClock(), store: store,
+            git: repo.git, watcher: SilentWatcher(), clock: clock, store: store,
             threads: threadStore, settings: testSettings(), github: GitHubAccount(client: github))
         let opened = opened
         services.openURL = { opened.urls.append($0) }
@@ -125,6 +126,25 @@ import Testing
         session.reload()
         await session.settled()
         #expect(github.threadReads == [12, 12, 12])
+        session.close()
+    }
+
+    /// Resolving a thread on GitHub may not change the PR's update time, so threads are read
+    /// again after 10 minutes anyway, by the injected clock.
+    @Test func threadsAreReadAgainAfterTenMinutesWhenNothingSaysTheyChanged() async throws {
+        let (repo, feature) = try await fixture()
+        github.answer(open: [Self.pullRequest()])
+        github.answer(threads: [Self.thread()], for: 12)
+        let session = await open(repo, selecting: feature)
+        clock.advance(by: .seconds(599))
+        await refresh(session)
+        #expect(github.threadReads == [12])
+
+        github.answer(threads: [Self.thread(resolved: true)], for: 12)
+        clock.advance(by: .seconds(1))
+        await refresh(session)
+        #expect(github.threadReads == [12, 12])
+        #expect(try review(session, feature).placedThreads.first?.thread.isResolved == true)
         session.close()
     }
 

@@ -67,7 +67,7 @@ final class RepoPullRequests {
     /// Every worktree's branch by its path, nil when detached; their PRs' threads are read.
     private let worktrees: @MainActor () -> [String: String?]
     /// The PR each worktree's threads were last read for, as it was then.
-    private var threadsRead: [String: (pullRequest: PullRequest, at: Date)] = [:]
+    private var threadsRead: [String: (pullRequest: PullRequest, age: Stopwatch)] = [:]
     private var pending = false
     private var isRefreshing = false
     private var idleWaiters: [CheckedContinuation<Void, Never>] = []
@@ -79,7 +79,9 @@ final class RepoPullRequests {
     private var backoff: Duration?
     private var isStopped = false
     /// Branches with no open PR, looked up one by one; merged and closed PRs rarely change.
-    private var lookups: [String: (pullRequest: PullRequest?, at: Date)] = [:]
+    private var lookups: [String: (pullRequest: PullRequest?, age: Stopwatch)] = [:]
+    /// How long cached lookups and thread reads count as current.
+    static let rereadAfter = Duration.seconds(600)
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
     private let signposter = OSSignposter(subsystem: "com.danielhedren.seam", category: "Features")
 
@@ -269,7 +271,7 @@ final class RepoPullRequests {
             }
             if let last = threadsRead[worktree], last.pullRequest.number == pullRequest.number,
                 last.pullRequest.updated == pullRequest.updated,
-                Date.now.timeIntervalSince(last.at) < 600
+                last.age.elapsed < Self.rereadAfter
             {
                 continue
             }
@@ -289,7 +291,7 @@ final class RepoPullRequests {
             guard let result = read[job.pullRequest.number] else { continue }
             switch result {
             case .success(let threads):
-                threadsRead[job.worktree] = (job.pullRequest, .now)
+                threadsRead[job.worktree] = (job.pullRequest, Stopwatch(services.clock))
                 await onThreads(
                     job.worktree,
                     GitHubThreads.threads(
@@ -335,7 +337,7 @@ final class RepoPullRequests {
                 result.byBranch[branch] = pullRequest
                 jobs.append(.details(branch, pullRequest.number))
             } else if let cached = lookups[branch],
-                Date.now.timeIntervalSince(cached.at) < 600,
+                cached.age.elapsed < Self.rereadAfter,
                 cached.pullRequest?.state != PullRequest.State.open
             {
                 result.byBranch[branch] = cached.pullRequest
@@ -360,7 +362,7 @@ final class RepoPullRequests {
         }
         for (job, pullRequest) in done {
             if case .lookUp(let branch) = job {
-                lookups[branch] = (pullRequest, .now)
+                lookups[branch] = (pullRequest, Stopwatch(services.clock))
                 // Beyond the open list's limit: its checks weren't read.
                 if let pullRequest, pullRequest.state == .open {
                     result.byBranch[branch] = try await client.pullRequest(
@@ -409,5 +411,21 @@ final class RepoPullRequests {
             return results
         }
         return try results.map { (item, result) throws(GitHubError) in (item, try result.get()) }
+    }
+}
+
+/// Time since it was made, by the injected clock, so tests can move it.
+struct Stopwatch: Sendable {
+    private let read: @Sendable () -> Duration
+
+    init(_ clock: any Clock<Duration>) {
+        read = Self.start(clock)
+    }
+
+    var elapsed: Duration { read() }
+
+    private static func start<C: Clock<Duration>>(_ clock: C) -> @Sendable () -> Duration {
+        let start = clock.now
+        return { start.duration(to: clock.now) }
     }
 }
