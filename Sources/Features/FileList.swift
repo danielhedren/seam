@@ -1,3 +1,4 @@
+import DiffView
 import GitKit
 import SeamCore
 import SwiftUI
@@ -53,13 +54,17 @@ struct FileList: View {
     @ViewBuilder private var files: some View {
         let files = review.diff?.files ?? []
         let rows = review.fileListRows
+        let threads = review.threadCountsByPath
         VStack(spacing: 0) {
             FilterField(text: $review.fileFilter, focus: filterFocus) { listFocused = true }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
             List(selection: selection(files, rows)) {
                 ForEach(rows) { row in
-                    FileRowView(row: row, files: files, viewed: status(row, files)) {
+                    FileRowView(
+                        row: row, files: files, viewed: status(row, files),
+                        threads: path(row, files).flatMap { threads[$0] }
+                    ) {
                         toggle(row)
                     }
                     .tag(row.id)
@@ -103,6 +108,11 @@ struct FileList: View {
                 review.currentFile = path
                 session.diff.scroll(toFile: path)
             })
+    }
+
+    private func path(_ row: FileListRow, _ files: [ReviewFile]) -> String? {
+        guard case .file(let index) = row.kind else { return nil }
+        return files[index].diff.path
     }
 
     /// Each row gets only its own status, so a toggle redraws one row rather than all of them.
@@ -211,6 +221,7 @@ struct FileRowView: View {
     let row: FileListRow
     let files: [ReviewFile]
     let viewed: ViewedMarks.Status
+    var threads: FileThreadCounts?
     let onToggle: () -> Void
 
     var body: some View {
@@ -238,6 +249,7 @@ struct FileRowView: View {
                 Text(verbatim: "+\(file.diff.additions) −\(file.diff.deletions)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
+                if let threads { ThreadDot(counts: threads) }
                 switch viewed {
                 case .viewed:
                     Image(systemName: "checkmark").font(.caption).foregroundStyle(.secondary)
@@ -259,5 +271,23 @@ struct FileRowView: View {
         case .modified: .orange
         case .renamed, .copied: .blue
         }
+    }
+}
+
+/// A file's threads: filled while any is open, hollow once all are resolved.
+struct ThreadDot: View {
+    let counts: FileThreadCounts
+
+    var body: some View {
+        Image(systemName: counts.open > 0 ? "circle.fill" : "circle")
+            .font(.system(size: 7, weight: .bold))
+            .foregroundStyle(Color(nsColor: ThreadColor.accent))
+            .help(help)
+    }
+
+    private var help: String {
+        counts.open > 0
+            ? Counted.openThreads(counts.open)
+            : String(localized: "All threads resolved", bundle: .module)
     }
 }

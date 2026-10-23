@@ -15,6 +15,12 @@ enum Counted {
             : String(localized: "\(count) comments", bundle: .module)
     }
 
+    static func openThreads(_ count: Int) -> String {
+        count == 1
+            ? String(localized: "1 open thread", bundle: .module)
+            : String(localized: "\(count) open threads", bundle: .module)
+    }
+
     static func matches(_ count: Int) -> String {
         count == 1
             ? String(localized: "1 match", bundle: .module)

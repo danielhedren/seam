@@ -246,6 +246,34 @@ import Testing
         #expect(reviewed.content?.threads["a.txt"]?.first?.latestAuthor == "claude")
     }
 
+    @Test func aFilesDotFillsWhileAnyThreadIsOpenAndEmptiesOnceAllAreResolved() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\ntwo\n")
+        try repo.write("b.txt", "three\n")
+        let (session, review, _) = await session(repo)
+        let reviewed = try #require(review)
+        #expect(reviewed.threadCountsByPath.isEmpty)
+
+        for lines in [1...1, 2...2] {
+            session.draft = ThreadDraft(
+                worktree: reviewed.id,
+                anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: lines)))
+            await session.post("Why?")
+        }
+        #expect(reviewed.threadCountsByPath == ["a.txt": FileThreadCounts(open: 2)])
+        let ids = reviewed.placedThreads.map(\.id)
+
+        await session.setResolved(true, thread: ids[0])
+        #expect(reviewed.threadCountsByPath == ["a.txt": FileThreadCounts(open: 1, resolved: 1)])
+        await session.setResolved(true, thread: ids[1])
+        #expect(reviewed.threadCountsByPath == ["a.txt": FileThreadCounts(resolved: 2)])
+
+        await session.setResolved(false, thread: ids[0])
+        #expect(reviewed.threadCountsByPath == ["a.txt": FileThreadCounts(open: 1, resolved: 1)])
+        for id in ids { await session.deleteThread(id) }
+        #expect(reviewed.threadCountsByPath.isEmpty)
+    }
+
     @Test func theReaderResolvesAnyThreadAndResolvedOnesLeaveTheDiff() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\n")

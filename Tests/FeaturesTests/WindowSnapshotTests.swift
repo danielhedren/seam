@@ -189,6 +189,34 @@ struct WindowSnapshotTests {
         }
     }
 
+    @Test func fileRowsWithThreads() async throws {
+        let (session, _) = try await session()
+        let review = try #require(session.selected)
+        let repository = try #require(session.repository)
+        let anchor = try #require(review.anchor(path: "src/Order.cs", side: .new, lines: 3...3))
+        try session.services.threads.update(repository) { threads throws(ThreadError) in
+            _ = try ThreadRules.open(
+                &threads, worktree: review.id, anchor: anchor, author: "you", body: "Why?",
+                now: Self.fixtureEpoch)
+            let resolved = try ThreadRules.open(
+                &threads, worktree: review.id,
+                anchor: ThreadAnchor(path: "notes.md", side: .new, lines: 1...1, text: ["# Notes"]),
+                author: "claude", body: "Add a line.", now: Self.fixtureEpoch)
+            try ThreadRules.setResolved(true, &threads, id: resolved.id, now: Self.fixtureEpoch)
+        }
+        await session.threads?.load()
+        let list = FileList(
+            session: session, review: review, filterFocus: FocusState<Bool>().projectedValue
+        )
+        .frame(width: 280)
+        for (appearance, name) in Self.appearances {
+            assertSnapshot(
+                of: try render(list, size: CGSize(width: 280, height: 160), appearance),
+                as: .image(precision: 0.99, perceptualPrecision: 0.98),
+                named: "file-threads-\(name)-\(Self.os)")
+        }
+    }
+
     @Test func welcome() async throws {
         let repo = try await FixtureRepo()
         // Under the home folder, so the rows read the same "~/…" on any machine.

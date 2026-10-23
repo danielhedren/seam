@@ -310,7 +310,9 @@ selection acts on its newest commit, and so do Review › Copy Commit ID and Cop
 
 - A tree grouped by directory with single-child directories compacted (`src/Orders.Service/…`),
   or a flat list (toggle). Status letter (A/M/D/R/C), `+/−` counts, and a viewed checkmark per
-  file.
+  file. A file with threads (§7.7), outdated ones included, has an amber dot before its
+  checkmark: filled while any of them is open, hollow once all are resolved. Its tooltip says
+  how many are open.
 - The header shows totals and the viewed count ("7/19 viewed"), with a checkmark once every file
   is viewed. With no changed files it shows only the count.
 - A search field above the list (`⌘F` while the file list has focus), with a magnifier, a

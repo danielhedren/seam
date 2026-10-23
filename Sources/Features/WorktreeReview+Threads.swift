@@ -11,6 +11,11 @@ enum ThreadPlacement: Equatable {
     case notShown
 }
 
+struct FileThreadCounts: Equatable {
+    var open = 0
+    var resolved = 0
+}
+
 struct PlacedThread: Equatable, Identifiable {
     var thread: ReviewThread
     var placement: ThreadPlacement
@@ -66,6 +71,19 @@ extension WorktreeReview {
         placementCache.key = key
         placementCache.placed = placed
         return placed
+    }
+
+    /// The file list's markers: each file's open and resolved threads, outdated ones included.
+    var threadCountsByPath: [String: FileThreadCounts] {
+        var counts: [String: FileThreadCounts] = [:]
+        for thread in threads?.threads(in: id) ?? [] {
+            if thread.isResolved {
+                counts[thread.anchor.path, default: FileThreadCounts()].resolved += 1
+            } else {
+                counts[thread.anchor.path, default: FileThreadCounts()].open += 1
+            }
+        }
+        return counts
     }
 
     /// The toolbar's badge: open threads, whether or not the diff shows them.

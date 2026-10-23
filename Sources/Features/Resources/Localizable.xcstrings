@@ -60,6 +60,9 @@
     "%lld open" : {
 
     },
+    "%lld open threads" : {
+
+    },
     "%lld/%lld viewed" : {
       "localizations" : {
         "en" : {
@@ -82,10 +85,16 @@
     "1 match" : {
 
     },
+    "1 open thread" : {
+
+    },
     "Actual Size" : {
 
     },
     "All Changes" : {
+
+    },
+    "All threads resolved" : {
 
     },
     "Automatic" : {
