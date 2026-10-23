@@ -439,7 +439,9 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
 - **The thread panel** (an inspector on the right, `⌥⌘0`) lists the worktree's threads by file,
   open ones first, with the selected thread's conversation, a reply box, Resolve or Reopen (also
   Review › Resolve Thread), and Delete (also Review › Delete Thread; Undo brings it back). Agent replies appear live. Its
-  header has Copy Prompt for Agent and a close button. The toolbar's Threads button is a toggle,
+  header has Copy Prompt for Agent and a close button. The selected thread quotes its lines;
+  past 8 lines the quote shows 7 and an "N more lines" row that expands it until the thread is
+  closed again. The toolbar's Threads button is a toggle,
   on while the panel shows, and its badge counts the worktree's open threads (none at zero).
 - **Following edits:** a thread keeps the text of its lines. When the file changes, it moves to
   the nearest place where those lines still appear; when they're gone it is outdated, shown in

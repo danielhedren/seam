@@ -28,6 +28,9 @@
     "%lld files" : {
 
     },
+    "%lld more lines" : {
+
+    },
     "%lld of %lld" : {
       "localizations" : {
         "en" : {
