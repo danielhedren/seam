@@ -246,8 +246,10 @@ import Testing
         github.answer(threads: [Self.thread()], for: 12)
         let session = await open(repo, selecting: feature)
 
+        session.openThread("gh-7")
         session.settings.showsPullRequests = false
         #expect(try review(session, feature).placedThreads.isEmpty)
+        #expect(try !command("thread-on-github").isEnabled(session))
         #expect(try review(session, feature).openThreadCount == 0)
         session.settings.showsPullRequests = true
         #expect(try review(session, feature).placedThreads.map(\.id) == ["gh-7"])
