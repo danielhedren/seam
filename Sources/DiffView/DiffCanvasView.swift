@@ -462,7 +462,8 @@ final class DiffCanvasView: NSView {
         }
     }
 
-    /// Old on the left, new on the right, each fitted into its half with its aspect ratio kept.
+    /// Old on the left, new on the right, each fitted into its half with its aspect ratio kept
+    /// and captioned with its side and pixel size. A missing side stays an empty fill.
     private func drawImages(
         file: Int, in rect: NSRect, palette: DiffPalette, context: CGContext
     ) {
@@ -475,6 +476,7 @@ final class DiffCanvasView: NSView {
                 x: rect.minX + (isNew ? rect.width / 2 : 0), y: rect.minY, width: rect.width / 2,
                 height: rect.height
             ).insetBy(dx: 16, dy: 12)
+            guard half.width > 0, half.height > 0 else { continue }
             let key = ImageKey(file: file, isNew: isNew)
             if images[key] == nil {
                 let data = isNew ? contents[path]?.newImage : contents[path]?.oldImage
@@ -485,15 +487,77 @@ final class DiffCanvasView: NSView {
                 fill(half, palette.emptySide, context)
                 continue
             }
-            let scale = min(half.width / image.size.width, half.height / image.size.height, 1)
+            let captionTop = half.maxY - layout.metrics.lineHeight
+            let area = NSRect(
+                x: half.minX, y: half.minY, width: half.width,
+                height: max(0, captionTop - 6 - half.minY))
+            let scale = min(area.width / image.size.width, area.height / image.size.height, 1)
             let size = NSSize(width: image.size.width * scale, height: image.size.height * scale)
             let target = NSRect(
-                x: half.midX - size.width / 2, y: half.midY - size.height / 2, width: size.width,
+                x: area.midX - size.width / 2, y: area.midY - size.height / 2, width: size.width,
                 height: size.height)
+            drawCheckerboard(in: target, palette: palette, context: context)
             image.draw(
                 in: target, from: .zero, operation: .sourceOver, fraction: 1,
                 respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+            let pixels = Self.pixelSize(of: image)
+            let side =
+                isNew
+                ? String(localized: "New", bundle: .module)
+                : String(localized: "Old", bundle: .module)
+            let caption = String(
+                localized: "\(side) · \(pixels.width) × \(pixels.height)", bundle: .module)
+            drawCaption(
+                [caption, side], centeredIn: half.minX..<half.maxX, rowTop: captionTop,
+                color: palette.gutterText, context: context)
         }
+    }
+
+    /// The bitmap's pixels, so a Retina screenshot reads at its real size; vector images have
+    /// no pixels and give their size in points.
+    static func pixelSize(of image: NSImage) -> (width: Int, height: Int) {
+        let bitmap = image.representations.filter { $0.pixelsWide > 0 && $0.pixelsHigh > 0 }
+            .max { $0.pixelsWide < $1.pixelsWide }
+        if let bitmap { return (bitmap.pixelsWide, bitmap.pixelsHigh) }
+        return (Int(image.size.width.rounded()), Int(image.size.height.rounded()))
+    }
+
+    private func drawCheckerboard(in rect: NSRect, palette: DiffPalette, context: CGContext) {
+        let square = 8.0
+        fill(rect, palette.background, context)
+        context.saveGState()
+        context.clip(to: rect)
+        context.setFillColor(palette.checker.nsColor.cgColor)
+        for row in 0..<Int((rect.height / square).rounded(.up)) {
+            for column in stride(from: row % 2, to: Int((rect.width / square).rounded(.up)), by: 2)
+            {
+                context.fill(
+                    CGRect(
+                        x: rect.minX + Double(column) * square,
+                        y: rect.minY + Double(row) * square, width: square, height: square))
+            }
+        }
+        context.restoreGState()
+    }
+
+    /// The first choice that fits the half, else the last shortened, so the two never meet.
+    private func drawCaption(
+        _ choices: [String], centeredIn span: Range<Double>, rowTop: Double, color: RGB,
+        context: CGContext
+    ) {
+        let room = span.upperBound - span.lowerBound
+        let lines = choices.map { TextLine.make($0, font: font) }
+        guard
+            let line = lines.first(where: { CTLineGetTypographicBounds($0, nil, nil, nil) <= room })
+                ?? lines.last.flatMap({
+                    CTLineCreateTruncatedLine($0, room, .end, TextLine.make("…", font: font))
+                })
+        else { return }
+        let width = CTLineGetTypographicBounds(line, nil, nil, nil)
+        context.setFillColor(color.nsColor.cgColor)
+        context.textPosition = CGPoint(
+            x: (span.lowerBound + (room - width) / 2).rounded(), y: rowTop + 2 + font.ascender)
+        CTLineDraw(line, context)
     }
 
     private func fill(_ rect: NSRect, _ color: RGB, _ context: CGContext) {

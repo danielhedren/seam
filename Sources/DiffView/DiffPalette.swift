@@ -50,6 +50,8 @@ struct DiffPalette: Equatable, Sendable {
     var headerBackground: RGB
     var emptySide: RGB
     var separator: RGB
+    /// Alternates with `background` in the transparency checkerboard behind image previews.
+    var checker: RGB
     var syntax = Syntax.light
     var findMatch = RGB(0xFFF1A8)
     var findCurrent = RGB(0xFFD33D)
@@ -113,6 +115,7 @@ struct DiffPalette: Equatable, Sendable {
         addedMarker: RGB(0x116329), removedMarker: RGB(0xA40E26),
         hunkBackground: RGB(0xDDF4FF), hunkText: RGB(0x4B535C),
         headerBackground: RGB(0xF6F8FA), emptySide: RGB(0xF3F4F6), separator: RGB(0xD0D7DE),
+        checker: RGB(0xE8EAED),
         syntax: .light)
 
     static let dark = DiffPalette(
@@ -123,6 +126,7 @@ struct DiffPalette: Equatable, Sendable {
         addedMarker: RGB(0x56D364), removedMarker: RGB(0xFF7B72),
         hunkBackground: RGB(0x1C2B3D), hunkText: RGB(0xA8B1BB),
         headerBackground: RGB(0x262626), emptySide: RGB(0x242424), separator: RGB(0x3D3D3D),
+        checker: RGB(0x2E2E2E),
         syntax: .dark, findMatch: RGB(0x3A3005), findCurrent: RGB(0x544500), targetAlpha: 0.25)
 
     static let lightHighContrast = DiffPalette(
@@ -133,6 +137,7 @@ struct DiffPalette: Equatable, Sendable {
         addedMarker: RGB(0x00501A), removedMarker: RGB(0x7A0010),
         hunkBackground: RGB(0xCDEBFF), hunkText: RGB(0x1A1A1A),
         headerBackground: RGB(0xEDEDED), emptySide: RGB(0xE4E4E4), separator: RGB(0x6E6E6E),
+        checker: RGB(0xCFCFCF),
         syntax: .lightHighContrast, findMatch: RGB(0xFFEB80), findCurrent: RGB(0xFFD000))
 
     static let darkHighContrast = DiffPalette(
@@ -143,6 +148,7 @@ struct DiffPalette: Equatable, Sendable {
         addedMarker: RGB(0x7EF08E), removedMarker: RGB(0xFFA19B),
         hunkBackground: RGB(0x0F2A45), hunkText: RGB(0xE0E0E0),
         headerBackground: RGB(0x1A1A1A), emptySide: RGB(0x141414), separator: RGB(0x9A9A9A),
+        checker: RGB(0x3A3A3A),
         syntax: .darkHighContrast, findMatch: RGB(0x2E2600), findCurrent: RGB(0x4A3D00),
         targetAlpha: 0.25)
 

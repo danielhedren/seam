@@ -334,6 +334,11 @@ switches and launches.
   side-by-side mode, with the left column's. Line wrapping is off by default (toggle `w`). Without wrapping,
   unified mode scrolls horizontally; split mode keeps each side at half the width and clips long
   lines at the column edge, so both sides stay in view.
+- **Image previews** (§6.3): old on the left, new on the right, each fitted into its half with its
+  aspect ratio kept and never upscaled, over a light checkerboard so transparency shows. A caption
+  under each names the side and the pixel size (`Old · 80 × 40`); a half too narrow for it keeps
+  only the side's name. An added image's old half, and a deleted one's new half, stay an empty
+  fill like a split diff's missing side.
 - Text selection and copy work in both modes. In side-by-side mode a selection stays within one
   side. The pointer is an I-beam over lines and a pointing hand over what a click acts on: file
   headers, gap controls and thread rows.

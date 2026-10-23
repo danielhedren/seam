@@ -134,33 +134,59 @@ struct DiffSnapshotTests {
         assertSnapshot(of: view, as: .image, named: "gaps-\(Self.os)")
     }
 
-    @Test func imagesPreviewSideBySideUnderTheirSizes() throws {
-        func png(_ color: NSColor, _ size: NSSize) throws -> Data {
-            let image = NSImage(size: size, flipped: false) { rect in
-                color.setFill()
-                rect.fill()
-                return true
-            }
-            let rep = try #require(image.tiffRepresentation.flatMap(NSBitmapImageRep.init))
-            return try #require(rep.representation(using: .png, properties: [:]))
+    private static func png(_ size: NSSize, draw: @escaping (NSRect) -> Void) throws -> Data {
+        let image = NSImage(size: size, flipped: false) { rect in
+            draw(rect)
+            return true
         }
-        var file = FileDiff(oldPath: "logo.png", newPath: "logo.png", status: .modified)
+        let rep = try #require(image.tiffRepresentation.flatMap(NSBitmapImageRep.init))
+        return try #require(rep.representation(using: .png, properties: [:]))
+    }
+
+    private func imageView(
+        _ status: FileStatus, old: Data?, new: Data?, _ appearance: NSAppearance.Name
+    ) -> DiffScrollView {
+        var file = FileDiff(oldPath: "logo.png", newPath: "logo.png", status: status)
         file.isBinary = true
         let content = DiffContent(
             review: ReviewDiff(scope: .all, files: [ReviewFile(diff: file)]),
             contents: [
                 "logo.png": FileContents(
-                    oldSize: 1200, newSize: 2400,
-                    oldImage: try png(.systemBlue, NSSize(width: 80, height: 40)),
-                    newImage: try png(.systemOrange, NSSize(width: 40, height: 80)))
+                    oldSize: old.map { _ in 1200 }, newSize: new.map { _ in 2400 },
+                    oldImage: old, newImage: new)
             ])
         let view = DiffScrollView.forSnapshot()
-        view.appearance = NSAppearance(named: .aqua)
+        view.appearance = NSAppearance(named: appearance)
         view.increaseContrastOverride = false
         view.frame = NSRect(x: 0, y: 0, width: 700, height: 340)
         view.show(content, position: .top)
         view.layoutSubtreeIfNeeded()
+        return view
+    }
+
+    @Test func imagesPreviewSideBySideUnderTheirSizes() throws {
+        func png(_ color: NSColor, _ size: NSSize) throws -> Data {
+            try Self.png(size) { rect in
+                color.setFill()
+                rect.fill()
+            }
+        }
+        let view = imageView(
+            .modified, old: try png(.systemBlue, NSSize(width: 80, height: 40)),
+            new: try png(.systemOrange, NSSize(width: 40, height: 80)), .aqua)
         assertSnapshot(of: view, as: .image, named: "image-\(Self.os)")
+    }
+
+    @Test func transparentImagesShowTheCheckerboardBehindThem() throws {
+        let ring = try Self.png(NSSize(width: 120, height: 90)) { rect in
+            NSColor.systemPink.setStroke()
+            let path = NSBezierPath(ovalIn: rect.insetBy(dx: 10, dy: 10))
+            path.lineWidth = 12
+            path.stroke()
+        }
+        assertSnapshot(
+            of: imageView(.added, old: nil, new: ring, .darkAqua), as: .image,
+            named: "image-transparent-dark-\(Self.os)")
     }
 
     @Test func wrappedLinesContinueOnTheirOwnRows() {

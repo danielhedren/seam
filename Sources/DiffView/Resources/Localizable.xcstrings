@@ -4,6 +4,16 @@
     " · resolved" : {
 
     },
+    "%@ · %lld × %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$lld × %3$lld"
+          }
+        }
+      }
+    },
     "%lld comments" : {
 
     },
@@ -54,6 +64,9 @@
         }
       }
     },
+    "New" : {
+
+    },
     "New thread on %@, line %@" : {
       "localizations" : {
         "en" : {
@@ -75,6 +88,9 @@
       }
     },
     "No content changes" : {
+
+    },
+    "Old" : {
 
     },
     "Renamed without changes" : {
