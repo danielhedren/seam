@@ -1107,6 +1107,11 @@ command, and every test runs against a fake `gh`.
 
 None.
 
+Decided (2026-10-23): the next layout work is worktree rows that say what needs the reader
+(replies, failed checks), grouped by attention, and an Inbox navigator listing what awaits the
+reader across worktrees. Turning the sidebar into one branch's review waits. Both come after the
+current bug fixes and design-debt work.
+
 Decided (2026-10-23): GitHub is read-only, on by default when `gh` is found, and suggests bases
 rather than switching them; PR data persists across launches (M6).
 
