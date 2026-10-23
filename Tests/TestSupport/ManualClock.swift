@@ -25,7 +25,7 @@ public final class ManualClock: Clock, Sendable {
         var nextID = 0
         var sleepers: [Int: Sleeper] = [:]
         var cancelled: Set<Int> = []
-        var watchers: [(count: Int, continuation: CheckedContinuation<Void, Never>)] = []
+        var watchers: [(count: Int, resume: @Sendable () -> Void)] = []
     }
 
     private let state = Mutex(State())
@@ -42,7 +42,7 @@ public final class ManualClock: Clock, Sendable {
         }
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
-                let ready: [CheckedContinuation<Void, Never>]? = state.withLock { state in
+                let ready: [@Sendable () -> Void]? = state.withLock { state in
                     if state.cancelled.remove(id) != nil { return nil }
                     state.sleepers[id] = Sleeper(deadline: deadline, continuation: continuation)
                     return Self.takeWatchers(&state)
@@ -51,7 +51,7 @@ public final class ManualClock: Clock, Sendable {
                     continuation.resume(throwing: CancellationError())
                     return
                 }
-                for continuation in ready { continuation.resume() }
+                for resume in ready { resume() }
             }
         } onCancel: {
             let sleeper = state.withLock { state in
@@ -81,18 +81,18 @@ public final class ManualClock: Clock, Sendable {
 
     /// Returns once at least `count` tasks are sleeping on this clock.
     public func sleepers(_ count: Int = 1) async {
-        await withCheckedContinuation { continuation in
+        await waitCancellably { resume in
             let ready = state.withLock { state in
-                state.watchers.append((count, continuation))
+                state.watchers.append((count, resume))
                 return Self.takeWatchers(&state)
             }
-            for continuation in ready { continuation.resume() }
+            for resume in ready { resume() }
         }
     }
 
-    private static func takeWatchers(_ state: inout State) -> [CheckedContinuation<Void, Never>] {
+    private static func takeWatchers(_ state: inout State) -> [@Sendable () -> Void] {
         let count = state.sleepers.count
-        let ready = state.watchers.filter { $0.count <= count }.map(\.continuation)
+        let ready = state.watchers.filter { $0.count <= count }.map(\.resume)
         state.watchers.removeAll { $0.count <= count }
         return ready
     }

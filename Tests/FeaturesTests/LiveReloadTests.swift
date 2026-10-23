@@ -6,15 +6,16 @@ import Testing
 
 @testable import Features
 
-/// Returns once `condition` holds, re-checking whenever an observed property changes.
+/// Returns once `condition` holds, re-checking whenever an observed property changes, or once the
+/// test's time limit cancels it.
 @MainActor
 func until(_ condition: @escaping @MainActor () -> Bool) async {
-    while !condition() {
-        await withCheckedContinuation { continuation in
+    while !condition(), !Task.isCancelled {
+        await waitCancellably { resume in
             withObservationTracking {
                 _ = condition()
             } onChange: {
-                continuation.resume()
+                resume()
             }
         }
     }
