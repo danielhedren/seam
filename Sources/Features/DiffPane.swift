@@ -23,6 +23,7 @@ struct DiffRepresentable: NSViewRepresentable {
             var viewed: ViewedMarks
             var expansions: [String: [Int: GapExpansion]]
             var draft: DraftMarker?
+            var openThread: ThreadMarker?
         }
         var shown: Shown?
     }
@@ -41,6 +42,12 @@ struct DiffRepresentable: NSViewRepresentable {
             session.find.result = (current, total)
         }
         view.onOpenThread = { [session] id in session.openThread(id) }
+        view.onCloseThread = { [session] in session.closeThread() }
+        // Reported from inside a SwiftUI update, so the change waits for the next turn.
+        view.onOpenThreadHidden = { [session] hidden in
+            Task { @MainActor in session.noteOpenThreadHidden(hidden) }
+        }
+        view.makeThreadView = { [session] id in InlineThreadHost(session: session, id: id) }
         view.draftText = { [session] in session.draft?.body ?? "" }
         view.onDraftChange = { [session] text in session.draft?.body = text }
         view.onDraftSubmit = { [session] in Task { await session.submitDraft() } }
@@ -63,7 +70,8 @@ struct DiffRepresentable: NSViewRepresentable {
             mode: review.mode,
             collapsed: review.collapsed, contentsVersion: review.contentsVersion,
             syntaxVersion: review.syntaxVersion, wraps: review.wraps, viewed: review.viewed,
-            expansions: review.expansions, draft: session.draftMarker(for: review))
+            expansions: review.expansions, draft: session.draftMarker(for: review),
+            openThread: session.openThreadMarker(for: review))
         guard shown != context.coordinator.shown else { return }
         let previous = context.coordinator.shown
         // The view itself rebuilds only what a collapse or viewed toggle changes.
@@ -87,6 +95,14 @@ struct DiffRepresentable: NSViewRepresentable {
                 .top
             }
         content.draft = shown.draft
+        if let open = shown.openThread {
+            let path = review.placedThreads.first { $0.id == open.id }?.thread.anchor.path ?? ""
+            // A resolved thread shows while it's open, even with resolved threads hidden.
+            if content.threads[path]?.contains(where: { $0.id == open.id }) != true {
+                content.threads[path, default: []].append(open)
+            }
+            content.openThread = open.id
+        }
         view.show(content, position: position)
         context.coordinator.shown = shown
     }

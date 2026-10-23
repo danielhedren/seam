@@ -55,11 +55,34 @@ extension RepoSession {
         await threads?.setResolved(resolved, id: id)
     }
 
-    /// From the diff's thread row, or the panel: shows the thread there.
+    /// From the diff's thread row, `t`, or the panel: opens the thread in the diff, its file
+    /// expanded. A thread the diff can't show opens in the panel instead.
     func openThread(_ id: String) {
+        guard let review = selected, let placed = review.placedThreads.first(where: { $0.id == id })
+        else { return }
         selectedThreadID = id
         draft = nil
-        showsThreadPanel = true
+        let path = placed.thread.anchor.path
+        if placed.isInDiff, review.collapsed.contains(path) { review.toggleCollapsed(path) }
+        if !placed.isInDiff { showsThreadPanel = true }
+    }
+
+    func closeThread() {
+        selectedThreadID = nil
+        diff.focus()
+    }
+
+    /// The diff found no row for the open thread; the panel is where it can be read.
+    func noteOpenThreadHidden(_ hidden: Bool) {
+        guard hidden != openThreadIsHidden else { return }
+        openThreadIsHidden = hidden
+        if hidden { showsThreadPanel = true }
+    }
+
+    /// What the diff opens: the selected thread, which shows even when resolved ones are hidden.
+    func openThreadMarker(for review: WorktreeReview) -> ThreadMarker? {
+        guard let id = selectedThreadID else { return nil }
+        return review.marker(for: id)
     }
 
     /// `t`: the thread on the line being read, if there is one.
@@ -71,7 +94,8 @@ extension RepoSession {
             else { return false }
             return lines.contains(location.line)
         }
-        if let here { openThread(here.id) }
+        guard let here else { return }
+        if here.id == selectedThreadID { closeThread() } else { openThread(here.id) }
     }
 
     /// Review › Delete Thread; Undo puts it back where it was.

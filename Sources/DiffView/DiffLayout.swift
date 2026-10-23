@@ -23,10 +23,16 @@ struct DiffLayout: Equatable, Sendable {
     /// Characters per visual line when wrapping; nil when lines don't wrap.
     let wrapColumns: Int?
 
-    init(rows: [DiffRow], metrics: Metrics, wrapColumns: Int? = nil) {
+    /// The open thread's row is as tall as its conversation, which the view measures.
+    let openThreadHeight: Double
+
+    init(
+        rows: [DiffRow], metrics: Metrics, wrapColumns: Int? = nil, openThreadHeight: Double = 0
+    ) {
         self.rows = rows
         self.metrics = metrics
         self.wrapColumns = wrapColumns
+        self.openThreadHeight = openThreadHeight
         var offsets = [Double]()
         offsets.reserveCapacity(rows.count + 1)
         var y = 0.0
@@ -38,6 +44,7 @@ struct DiffLayout: Equatable, Sendable {
                 case .fileHeader: metrics.fileHeaderHeight
                 case .image: metrics.imageHeight
                 case .draft: metrics.draftHeight
+                case .openThread: openThreadHeight
                 case .hunkHeader(_, _, .separator): (metrics.lineHeight / 3).rounded()
                 case .hunkHeader(_, _, .hidden): 0.0
                 case .line(_, let line):
@@ -139,7 +146,7 @@ struct DiffLayout: Equatable, Sendable {
         case .hunkHeader(_, _, .titled(let text)), .notice(_, let text): text.count
         case .gap(_, let gap): DiffRowBuilder.gapLabel(gap).text.count
         case .thread(_, let marker): marker.text.count
-        case .fileHeader, .image, .hunkHeader, .draft: 0
+        case .fileHeader, .image, .hunkHeader, .draft, .openThread: 0
         }
     }
 }

@@ -28,7 +28,10 @@ final class RepoSession {
     /// The repo's review threads, once it's open (SPEC §7.7).
     private(set) var threads: RepoThreads?
     var showsThreadPanel = false
+    /// The thread open in the diff, and selected in the panel (SPEC §7.7).
     var selectedThreadID: String?
+    /// The open thread's lines are hidden in a gap, so it shows in the panel instead.
+    var openThreadIsHidden = false
     var draft: ThreadDraft?
     private(set) var reviews: [WorktreeReview] = []
     private(set) var selectedID: String?

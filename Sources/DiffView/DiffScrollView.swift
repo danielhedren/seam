@@ -32,6 +32,16 @@ public final class DiffScrollView: NSScrollView {
             }
         }
     }
+    /// The open thread's conversation, made when its row first shows (SPEC §7.7).
+    public var makeThreadView: ((String) -> any InlineThreadView)? {
+        didSet { canvas.makeThreadView = makeThreadView }
+    }
+    /// After each update: whether the open thread has no row, its lines being hidden in a gap.
+    public var onOpenThreadHidden: ((Bool) -> Void)?
+    /// Escape in the diff with nothing selected, while a thread is open.
+    public var onCloseThread: (() -> Void)? {
+        didSet { canvas.onCloseThread = onCloseThread }
+    }
     /// The viewed checkbox in a file header was clicked.
     public var onToggleViewed: ((String) -> Void)? {
         didSet { canvas.onToggleViewed = onToggleViewed }
@@ -110,6 +120,7 @@ public final class DiffScrollView: NSScrollView {
         let kept = position == .keep ? anchor : nil
         let matchRow = currentMatch.map { matches[$0].row }
         let previousDraft = canvas.shownDraft
+        let previousThread = canvas.shownOpenThread
         canvas.show(content)
         if !query.isEmpty { refreshMatches(near: matchRow ?? 0, reveal: false) }
         defer {
@@ -124,21 +135,26 @@ public final class DiffScrollView: NSScrollView {
         case .anchor(let anchor): restore(anchor)
         case .file(let path): scroll(toFile: path)
         }
-        if let draft = content.draft, draft != previousDraft { revealDraft() }
+        if let draft = content.draft, draft != previousDraft {
+            reveal(canvas.draftRow)
+            canvas.focusDraft()
+        }
+        if let open = content.openThread, open != previousThread { reveal(canvas.openThreadRow) }
+        onOpenThreadHidden?(content.openThread != nil && canvas.openThreadRow == nil)
         updateSticky()
     }
 
-    /// Scrolls a new draft's composer fully into view and puts the cursor in it.
-    private func revealDraft() {
-        guard let row = canvas.draftRow else { return }
+    /// Scrolls a new composer or an opened thread fully into view, its top first when it's
+    /// taller than the view.
+    private func reveal(_ row: Int?) {
+        guard let row else { return }
         let top = layout.top(of: row)
         let bottom = top + layout.height(of: row)
-        if top < visibleTop + headerHeight {
+        if top < visibleTop + headerHeight || bottom - top > contentSize.height - headerHeight {
             scroll(toY: top - headerHeight)
         } else if bottom > visibleTop + contentSize.height {
             scroll(toY: bottom - contentSize.height)
         }
-        canvas.focusDraft()
     }
 
     /// The line just below the sticky header, which is what the reader is looking at.
@@ -433,8 +449,13 @@ extension DiffCanvasView {
         }
     }
 
-    /// Escape drops the selection, and with it what `c` would comment on, as it drops a draft.
+    /// Escape drops the selection, and with it what `c` would comment on, as it drops a draft;
+    /// with nothing selected it closes the open thread.
     override func cancelOperation(_ sender: Any?) {
-        selection = nil
+        if selection == nil, threadView != nil {
+            onCloseThread?()
+        } else {
+            selection = nil
+        }
     }
 }

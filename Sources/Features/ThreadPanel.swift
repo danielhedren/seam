@@ -41,7 +41,7 @@ struct ThreadPanel: View {
                     ForEach(group.threads) { placed in
                         ThreadCard(
                             session: session, placed: placed,
-                            isExpanded: session.selectedThreadID == placed.id)
+                            isSelected: session.selectedThreadID == placed.id)
                     }
                 }
             }
@@ -160,20 +160,28 @@ struct QuotedLines: View {
     }
 }
 
+/// A thread in the panel's overview. Picking one opens it in the diff; only a thread the diff
+/// can't show (outdated, or its file not in the diff) opens its conversation here.
 private struct ThreadCard: View {
     let session: RepoSession
     let placed: PlacedThread
-    let isExpanded: Bool
+    let isSelected: Bool
     @State private var reply = ""
     @FocusState private var replyFocused: Bool
 
     private var thread: ReviewThread { placed.thread }
+    private var isExpanded: Bool {
+        isSelected && (!placed.isInDiff || session.openThreadIsHidden)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button {
-                session.selectedThreadID = isExpanded ? nil : thread.id
-                if !isExpanded { session.showInDiff(placed) }
+                if isSelected {
+                    session.closeThread()
+                } else {
+                    session.openThread(thread.id)
+                }
             } label: {
                 summary.contentShape(Rectangle())
             }
@@ -182,16 +190,16 @@ private struct ThreadCard: View {
         }
         .padding(8)
         .background(
-            isExpanded ? AnyShapeStyle(Color(nsColor: ThreadColor.wash)) : AnyShapeStyle(.clear),
+            isSelected ? AnyShapeStyle(Color(nsColor: ThreadColor.wash)) : AnyShapeStyle(.clear),
             in: RoundedRectangle(cornerRadius: 7)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 7).strokeBorder(
-                isExpanded
+                isSelected
                     ? AnyShapeStyle(Color(nsColor: ThreadColor.accent).opacity(0.6))
                     : AnyShapeStyle(.separator))
         )
-        .opacity(thread.isResolved && !isExpanded ? 0.6 : 1)
+        .opacity(thread.isResolved && !isSelected ? 0.6 : 1)
     }
 
     private var summary: some View {
@@ -233,24 +241,12 @@ private struct ThreadCard: View {
         guard let first = thread.comments.first else { return AttributedString() }
         var author = AttributedString("\(first.author)  ")
         author.inlinePresentationIntent = .stronglyEmphasized
-        return author + Self.markdown(first.body)
+        return author + CommentText.markdown(first.body)
     }
 
     @ViewBuilder private var conversation: some View {
         QuotedLines(anchor: thread.anchor)
-        VStack(alignment: .leading, spacing: 12) {
-            ForEach(thread.comments) { comment in
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(verbatim: comment.author).font(.callout.weight(.semibold))
-                        AgeText(date: comment.date).font(.caption).foregroundStyle(.secondary)
-                    }
-                    Text(Self.markdown(comment.body)).textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-        }
-        .padding(.vertical, 2)
+        ThreadComments(thread: thread).padding(.vertical, 2)
         TextField(
             String(localized: "Reply", bundle: .module), text: $reply, axis: .vertical
         )
@@ -293,6 +289,29 @@ private struct ThreadCard: View {
         }
     }
 
+}
+
+/// A thread's comments: author, age and Markdown body, oldest first.
+struct ThreadComments: View {
+    let thread: ReviewThread
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(thread.comments) { comment in
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(verbatim: comment.author).font(.callout.weight(.semibold))
+                        AgeText(date: comment.date).font(.caption).foregroundStyle(.secondary)
+                    }
+                    Text(CommentText.markdown(comment.body)).textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+}
+
+enum CommentText {
     /// Inline Markdown, keeping the comment's own line breaks.
     static func markdown(_ text: String) -> AttributedString {
         (try? AttributedString(

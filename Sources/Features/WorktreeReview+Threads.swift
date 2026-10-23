@@ -16,6 +16,9 @@ struct PlacedThread: Equatable, Identifiable {
     var placement: ThreadPlacement
 
     var id: String { thread.id }
+
+    /// The diff has a row for it, so it opens there rather than in the panel.
+    var isInDiff: Bool { if case .lines = placement { true } else { false } }
 }
 
 /// Placements and markers per (threads, diff, contents) version: placing splits each file's text,
@@ -78,27 +81,32 @@ extension WorktreeReview {
         let key = placementCache.key + [showsResolved ? 1 : 0]
         if placementCache.markersKey == key { return placementCache.markers }
         var markers: [String: [ThreadMarker]] = [:]
-        for placed in placedThreads {
-            guard case .lines(let lines) = placed.placement,
-                showsResolved || !placed.thread.isResolved,
-                let latest = placed.thread.comments.last
-            else { continue }
-            // The diff draws plain text: the Markdown's words, not its asterisks and backticks.
-            let plain =
-                (try? AttributedString(markdown: latest.body)).map {
-                    String($0.characters)
-                } ?? latest.body
-            let firstLine = plain.prefix { !$0.isNewline }
-            markers[placed.thread.anchor.path, default: []].append(
-                ThreadMarker(
-                    id: placed.id, side: placed.thread.anchor.side, lines: lines,
-                    latestAuthor: latest.author, latest: String(firstLine.prefix(120)),
-                    commentCount: placed.thread.comments.count,
-                    isResolved: placed.thread.isResolved))
+        for placed in placedThreads where showsResolved || !placed.thread.isResolved {
+            guard let marker = Self.marker(placed) else { continue }
+            markers[placed.thread.anchor.path, default: []].append(marker)
         }
         placementCache.markersKey = key
         placementCache.markers = markers
         return markers
+    }
+
+    /// One thread's marker, resolved or not; nil for a thread the diff has no lines for.
+    func marker(for id: String) -> ThreadMarker? {
+        placedThreads.first { $0.id == id }.flatMap(Self.marker)
+    }
+
+    private static func marker(_ placed: PlacedThread) -> ThreadMarker? {
+        guard case .lines(let lines) = placed.placement, let latest = placed.thread.comments.last
+        else { return nil }
+        // The diff draws plain text: the Markdown's words, not its asterisks and backticks.
+        let plain =
+            (try? AttributedString(markdown: latest.body)).map { String($0.characters) }
+            ?? latest.body
+        let firstLine = plain.prefix { !$0.isNewline }
+        return ThreadMarker(
+            id: placed.id, side: placed.thread.anchor.side, lines: lines,
+            latestAuthor: latest.author, latest: String(firstLine.prefix(120)),
+            commentCount: placed.thread.comments.count, isResolved: placed.thread.isResolved)
     }
 
     /// The anchor `c` would comment on, with the lines' text from the file as it is.

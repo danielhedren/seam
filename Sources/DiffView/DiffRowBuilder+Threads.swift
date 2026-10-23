@@ -14,9 +14,9 @@ extension DiffRowBuilder {
 
     /// Each thread's row goes after the row showing its last line. A thread whose last line
     /// isn't shown (in a hidden gap, or a collapsed file) gets no row; the panel still lists it.
-    static func insertingThreads(_ markers: [ThreadMarker], into rows: [DiffRow], file: Int)
-        -> [DiffRow]
-    {
+    static func insertingThreads(
+        _ markers: [ThreadMarker], into rows: [DiffRow], file: Int, open: String? = nil
+    ) -> [DiffRow] {
         guard !markers.isEmpty else { return rows }
         var result: [DiffRow] = []
         result.reserveCapacity(rows.count + markers.count)
@@ -25,7 +25,9 @@ extension DiffRowBuilder {
             result.append(row)
             for marker in markers where !placed.contains(marker.id) {
                 guard number(of: row, on: marker.side) == marker.lines.upperBound else { continue }
-                result.append(.thread(file: file, marker))
+                result.append(
+                    marker.id == open
+                        ? .openThread(file: file, marker) : .thread(file: file, marker))
                 placed.insert(marker.id)
             }
         }
@@ -41,7 +43,7 @@ extension DiffRowBuilder {
             })
         else { return rows }
         index += 1
-        while index < rows.count, case .thread = rows[index] { index += 1 }
+        while index < rows.count, rows[index].isThread { index += 1 }
         var result = rows
         result.insert(.draft(file: file, draft), at: index)
         return result

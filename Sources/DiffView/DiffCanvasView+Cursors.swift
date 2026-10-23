@@ -38,7 +38,7 @@ extension DiffCanvasView {
                                 height: row.height), .control
                         ))
                 }
-            case .hunkHeader, .notice, .image, .draft:
+            case .hunkHeader, .notice, .image, .draft, .openThread:
                 break
             }
         }

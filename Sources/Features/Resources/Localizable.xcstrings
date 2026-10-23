@@ -4,6 +4,12 @@
     "" : {
 
     },
+    " · resolved" : {
+
+    },
+    "%@ Reply   ⎋ Close" : {
+
+    },
     "%@ already exists and isn't Seam's. Remove it and try again." : {
 
     },
@@ -116,6 +122,12 @@
 
     },
     "Clear Search" : {
+
+    },
+    "Close" : {
+
+    },
+    "Close (⎋)" : {
 
     },
     "Collapse File" : {
@@ -522,6 +534,9 @@
     "Reply" : {
 
     },
+    "Reply…" : {
+
+    },
     "Resolve" : {
 
     },
@@ -653,6 +668,26 @@
     },
     "Thread #%@ no longer exists." : {
 
+    },
+    "Thread on %@, line %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Thread on %1$@, line %2$@"
+          }
+        }
+      }
+    },
+    "Thread on %@, old line %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Thread on %1$@, old line %2$@"
+          }
+        }
+      }
     },
     "Threads" : {
 

@@ -73,6 +73,42 @@ import Testing
         #expect(results == ["1/1"])
     }
 
+    @Test func anOpenThreadsRowIsAsTallAsItsViewAndEscapeClosesIt() throws {
+        final class Stub: NSView, InlineThreadView {
+            var widths: [Double] = []
+            func height(forWidth width: Double) -> Double {
+                widths.append(width)
+                return 120
+            }
+        }
+        let marker = ThreadMarker(
+            id: "t1", side: .new, lines: 1...1, latestAuthor: "you", latest: "Why?",
+            commentCount: 1, isResolved: false)
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        let stub = Stub()
+        view.makeThreadView = { _ in stub }
+        var closed = 0
+        view.onCloseThread = { closed += 1 }
+        let words = review(["alpha", "beta"])
+        view.show(
+            DiffContent(review: words, threads: ["a.txt": [marker]], openThread: "t1"),
+            position: .top)
+
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        let row = try #require(canvas.openThreadRow)
+        #expect(canvas.layout.height(of: row) == 120 + 8 + 2 * DraftEditor.margin)
+        #expect(stub.superview === canvas)
+        #expect(stub.frame.height == 120)
+        #expect(stub.widths.last == 600 - 16 - 2 * DraftEditor.margin)
+
+        canvas.cancelOperation(nil)
+        #expect(closed == 1)
+        view.show(DiffContent(review: words, threads: ["a.txt": [marker]]), position: .keep)
+        #expect(canvas.openThreadRow == nil)
+        #expect(stub.superview == nil)
+    }
+
     @Test func theSelectionIsTheTextOnScreen() throws {
         let view = DiffScrollView()
         view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)

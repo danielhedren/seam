@@ -37,6 +37,7 @@ final class DiffCanvasView: NSView {
     var onExpand: ((String, Int, ExpandDirection) -> Void)?
     var onToggleViewed: ((String) -> Void)?
     var onOpenThread: ((String) -> Void)?
+    var onCloseThread: (() -> Void)?
     private(set) var threads: [String: [ThreadMarker]] = [:]
     private var threadedRows: [Int: Set<ThreadAnchor.Side>] = [:]
     var menuForFile: ((String) -> NSMenu?)?
@@ -47,6 +48,9 @@ final class DiffCanvasView: NSView {
     var onDraftSubmit: (() -> Void)?
     var onDraftCancel: (() -> Void)?
     private var draftEditor: DraftEditor?
+    /// The open thread's view, which Features supplies; the canvas sizes and places it.
+    var makeThreadView: ((String) -> any InlineThreadView)?
+    var threadView: (id: String, view: any InlineThreadView)?
     /// Nil follows the system's Increase Contrast setting; snapshot tests force it.
     var increaseContrastOverride: Bool?
     var increaseContrast: Bool {
@@ -123,15 +127,23 @@ final class DiffCanvasView: NSView {
         same.collapsed = new.collapsed
         same.viewed = new.viewed
         same.draft = new.draft
+        same.openThread = new.openThread
         guard same == new else { return nil }
         var changed = old.collapsed.symmetricDifference(new.collapsed)
         if old.draft != new.draft {
             for draft in [old.draft, new.draft] { if let draft { changed.insert(draft.path) } }
         }
+        if old.openThread != new.openThread {
+            for (path, markers) in new.threads
+            where markers.contains(where: { [old.openThread, new.openThread].contains($0.id) }) {
+                changed.insert(path)
+            }
+        }
         return new.review.files.indices.filter { changed.contains(new.review.files[$0].diff.path) }
     }
 
     var shownDraft: DraftMarker? { shown?.draft }
+    var shownOpenThread: String? { shown?.openThread }
 
     /// Rebuilds only `files`, last first so earlier files' row positions stay valid: marking a
     /// file viewed collapses it, and rebuilding every row would cost a 20k-line diff tens of
@@ -168,14 +180,19 @@ final class DiffCanvasView: NSView {
     private func relayout(_ rows: [DiffRow], width: Double) {
         geometry = Geometry(
             rows: rows, metrics: layout.metrics, mode: mode, visibleWidth: width, wraps: wraps)
-        if rows != layout.rows || geometry.wrapColumns != layout.wrapColumns {
+        let threadHeight = openThreadHeight(in: rows)
+        if rows != layout.rows || geometry.wrapColumns != layout.wrapColumns
+            || threadHeight != layout.openThreadHeight
+        {
             layout = DiffLayout(
-                rows: rows, metrics: layout.metrics, wrapColumns: geometry.wrapColumns)
+                rows: rows, metrics: layout.metrics, wrapColumns: geometry.wrapColumns,
+                openThreadHeight: threadHeight)
             lineCache.removeAll(keepingCapacity: true)
         }
         threadedRows = DiffRowBuilder.threadedRows(rows, paths: paths, threads: threads)
         resize()
         updateDraftEditor()
+        updateThreadView()
         updateTargetRows()
     }
 
@@ -232,6 +249,8 @@ final class DiffCanvasView: NSView {
             drawImages(file: file, in: chromeRect(ofRow: index), palette: palette, context: context)
         case .draft(_, let marker):
             drawDraft(marker, row: index, palette: palette, context: context)
+        case .openThread(_, let marker):
+            drawComposerFrame(row: index, side: marker.side, palette: palette, context: context)
         case .thread(_, let marker):
             drawThreadRow(marker, row: index, in: rect, palette: palette, context: context)
         case .gap(_, let gap):
@@ -280,7 +299,7 @@ final class DiffCanvasView: NSView {
     func horizontalScrollDidChange() {
         for row in layout.rows(in: visibleRect.minY, visibleRect.maxY) {
             switch layout.rows[row] {
-            case .fileHeader, .image, .draft:
+            case .fileHeader, .image, .draft, .openThread:
                 setNeedsDisplay(
                     NSRect(
                         x: 0, y: layout.top(of: row), width: bounds.width,
@@ -289,6 +308,7 @@ final class DiffCanvasView: NSView {
             }
         }
         updateDraftEditor()
+        updateThreadView()
     }
 
     /// A tint of its own, so a thread never reads as a hunk header or a gap. Side by side it
@@ -636,7 +656,7 @@ private struct LineKey: Hashable {
 
 extension DiffCanvasView {
     /// The composer's frame: the draft's column in split mode, the visible width in unified.
-    private func draftFrame(row: Int, side: ThreadAnchor.Side) -> NSRect {
+    func draftFrame(row: Int, side: ThreadAnchor.Side) -> NSRect {
         var rect = chromeRect(ofRow: row)
         if mode == .split {
             rect.origin.x = side == .old ? 0 : geometry.columnWidth
@@ -648,30 +668,8 @@ extension DiffCanvasView {
     fileprivate func drawDraft(
         _ marker: DraftMarker, row: Int, palette: DiffPalette, context: CGContext
     ) {
-        if mode == .split {
-            let rect = chromeRect(ofRow: row)
-            fill(
-                NSRect(
-                    x: marker.side == .old ? geometry.columnWidth : 0, y: rect.minY,
-                    width: geometry.columnWidth, height: rect.height),
-                palette.emptySide, context)
-            fill(
-                NSRect(x: geometry.columnWidth, y: rect.minY, width: 1, height: rect.height),
-                palette.separator, context)
-        }
-        let frame = draftFrame(row: row, side: marker.side)
-        let shape = CGPath(
-            roundedRect: frame, cornerWidth: 6, cornerHeight: 6, transform: nil)
-        context.addPath(shape)
-        context.setFillColor(palette.background.nsColor.cgColor)
-        context.fillPath()
-        context.addPath(shape)
-        context.setFillColor(ThreadColor.wash.cgColor)
-        context.fillPath()
-        context.addPath(shape)
-        context.setStrokeColor(ThreadColor.accent.cgColor)
-        context.setLineWidth(1)
-        context.strokePath()
+        let frame = drawComposerFrame(
+            row: row, side: marker.side, palette: palette, context: context)
         let lines =
             marker.lines.count == 1
             ? "\(marker.lines.lowerBound)"
@@ -690,6 +688,39 @@ extension DiffCanvasView {
             x: frame.maxX - DraftEditor.textInset - Double(hint.count)
                 * layout.metrics.characterWidth,
             rowTop: frame.maxY - lineHeight - 2, color: palette.gutterText, context: context)
+    }
+
+    /// The amber card a draft and an open thread sit in; side by side, the other column is
+    /// left empty as beside an unpaired line.
+    @discardableResult
+    func drawComposerFrame(
+        row: Int, side: ThreadAnchor.Side, palette: DiffPalette, context: CGContext
+    ) -> NSRect {
+        if mode == .split {
+            let rect = chromeRect(ofRow: row)
+            fill(
+                NSRect(
+                    x: side == .old ? geometry.columnWidth : 0, y: rect.minY,
+                    width: geometry.columnWidth, height: rect.height),
+                palette.emptySide, context)
+            fill(
+                NSRect(x: geometry.columnWidth, y: rect.minY, width: 1, height: rect.height),
+                palette.separator, context)
+        }
+        let frame = draftFrame(row: row, side: side)
+        let shape = CGPath(
+            roundedRect: frame, cornerWidth: 6, cornerHeight: 6, transform: nil)
+        context.addPath(shape)
+        context.setFillColor(palette.background.nsColor.cgColor)
+        context.fillPath()
+        context.addPath(shape)
+        context.setFillColor(ThreadColor.wash.cgColor)
+        context.fillPath()
+        context.addPath(shape)
+        context.setStrokeColor(ThreadColor.accent.cgColor)
+        context.setLineWidth(1)
+        context.strokePath()
+        return frame
     }
 
     /// Keeps the editor on the draft's row, and removes it with the row, handing focus back.

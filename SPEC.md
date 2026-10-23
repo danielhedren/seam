@@ -413,8 +413,8 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 | `x` | collapse / expand the current file |
 | `o` | open the current line in the editor |
 | `c` | comment on the selected lines (§7.7) |
-| `esc` | drop the selection, and with it the lines `c` would comment on |
-| `t` | open the thread on the current line |
+| `esc` | drop the selection, and with it the lines `c` would comment on; with none, close the open thread |
+| `t` | open or close the thread on the current line |
 | `⌥⌘0` | thread panel |
 | `b` | base picker |
 | `r` | force reload |
@@ -465,11 +465,22 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   line: author, the first line of the latest comment, the number of comments, and open or
   resolved. Side by side, the row and the composer keep to their side's column, the other
   column left empty as beside an unpaired line, and a comment too long for the column is
-  shortened before its count. Clicking it, or `t` on that line, opens the thread in the panel. Resolved threads
-  show only the gutter marker unless Review › Show Resolved Threads is on.
-- **The thread panel** (an inspector on the right, `⌥⌘0`) lists the worktree's threads by file,
-  open ones first, with the selected thread's conversation, a reply box, Resolve or Reopen (also
-  Review › Resolve Thread), and Delete (also Review › Delete Thread; Undo brings it back). Agent replies appear live. Its
+  shortened before its count. Resolved threads show only the gutter marker unless Review › Show
+  Resolved Threads is on.
+- **Reading and answering in the diff:** clicking a thread's row, `t` on its lines, or picking it
+  in the panel opens it in place of its row, in the composer's amber card and column: a title
+  with its lines, comment count and status, Resolve or Reopen, Delete and Close, every comment
+  (author, age, Markdown body), and a reply box three lines tall whatever is typed, so the row
+  doesn't move under the reader. ⌘↩ replies. Escape in the card, Close, `t` again, or Escape in
+  the diff with nothing selected closes it back to its row. One thread is open at a time, and
+  opening one drops a draft. Opening a thread opens its collapsed file, and a resolved thread
+  stays while it's open. Its row is as tall as the conversation at the column's width.
+- **The thread panel** (an inspector on the right, `⌥⌘0`) is the overview: the worktree's
+  threads by file, open ones first. Picking one opens it in the diff and highlights its card;
+  picking it again closes it. Only a thread the diff can't show (outdated, its file not in the
+  diff, or its lines hidden in a gap) opens its conversation in the panel, with a reply box,
+  Resolve or Reopen, and Delete, and opening one shows the panel. Review › Resolve Thread and
+  Delete Thread (Undo brings it back) act on the open thread. Agent replies appear live. Its
   header has Copy Prompt for Agent and a close button. The selected thread quotes its lines;
   past 8 lines the quote shows 7 and an "N more lines" row that expands it until the thread is
   closed again. The toolbar's Threads button is a toggle,

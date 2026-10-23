@@ -72,6 +72,57 @@ import Testing
         #expect(reviewed.placedThreads.map(\.thread.comments.first?.body) == ["Why two?"])
     }
 
+    @Test func openingAThreadShowsItInTheDiffAndAnOutdatedOneInThePanel() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\ntwo\n")
+        let (session, review, _) = await session(repo)
+        let reviewed = try #require(review)
+        session.draft = ThreadDraft(
+            worktree: reviewed.id,
+            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
+        await session.post("Why one?")
+        let id = try #require(session.selectedThreadID)
+        session.closeThread()
+        session.toggleCollapsed("a.txt")
+
+        session.openThread(id)
+        #expect(session.selectedThreadID == id)
+        #expect(!session.showsThreadPanel, "the diff is where it's read")
+        #expect(!reviewed.collapsed.contains("a.txt"), "its file opens for it")
+        #expect(session.openThreadMarker(for: reviewed)?.id == id)
+
+        await session.setResolved(true, thread: id)
+        #expect(reviewed.threadMarkers["a.txt"] == nil)
+        #expect(session.openThreadMarker(for: reviewed)?.id == id, "resolved, it stays open")
+
+        try repo.write("a.txt", "zero\n")
+        reviewed.reloadDiff()
+        await reviewed.loaded()
+        session.closeThread()
+        session.openThread(id)
+        #expect(session.showsThreadPanel, "outdated, only the panel can show it")
+        #expect(session.openThreadMarker(for: reviewed) == nil)
+    }
+
+    @Test func tOpensTheThreadOnTheLineAndClosesItAgain() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\n")
+        let (session, review, _) = await session(repo)
+        let reviewed = try #require(review)
+        session.draft = ThreadDraft(
+            worktree: reviewed.id,
+            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
+        await session.post("Why?")
+        let id = try #require(session.selectedThreadID)
+        session.closeThread()
+        _ = try showDiff(session)
+
+        session.openThreadAtCursor()
+        #expect(session.selectedThreadID == id)
+        session.openThreadAtCursor()
+        #expect(session.selectedThreadID == nil)
+    }
+
     @Test func deletingAThreadRemovesItAndUndoAndRedoFollow() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\n")

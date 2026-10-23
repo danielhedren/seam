@@ -17,7 +17,8 @@ enum DiffRowBuilder {
     static func rows(forFile index: Int, in content: DiffContent) -> [DiffRow] {
         let path = content.review.files[index].diff.path
         let rows = insertingThreads(
-            content.threads[path] ?? [], into: fileRows(index, in: content), file: index)
+            content.threads[path] ?? [], into: fileRows(index, in: content), file: index,
+            open: content.openThread)
         guard let draft = content.draft, draft.path == path else { return rows }
         return insertingDraft(draft, into: rows, file: index)
     }
