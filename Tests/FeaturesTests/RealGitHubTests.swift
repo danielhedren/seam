@@ -48,8 +48,19 @@ struct RealGitHubTests {
                 + "base=\(review.pullRequests?.baseRef(for: review.worktree.branch ?? "") ?? "-")"
         }
         let timing = "rows \(rows), first markers \(shownAt), all read \(read)"
+        // SPEC §7.9: the fixed thread query runs against GitHub itself, not only the fake.
+        let repo = try #require(session.pullRequests?.repo)
+        var threads: [String] = []
+        for (review, pullRequest) in shown {
+            let read = try await services.github.client.reviewThreads(pullRequest.number, in: repo)
+            let placed = review.placedThreads.filter(\.thread.isFromGitHub)
+            threads.append(
+                "#\(pullRequest.number) threads=\(read.count) "
+                    + "comments=\(read.map(\.comments.count).reduce(0, +)) "
+                    + "inDiff=\(placed.count { $0.isInDiff }) shown=\(placed.count)")
+        }
         Attachment.record(
-            ([timing] + summary).joined(separator: "\n"), named: "pull-requests.txt")
+            ([timing] + summary + threads).joined(separator: "\n"), named: "pull-requests.txt")
         for (_, pullRequest) in shown where pullRequest.state == .open {
             #expect(!pullRequest.url.isEmpty)
         }

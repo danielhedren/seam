@@ -47,6 +47,8 @@ final class RepoPullRequests {
 
     private(set) var saved = SavedPullRequests()
     private(set) var status = Status.unknown
+    /// Where the PRs were last read from.
+    private(set) var repo: GitHubRepo?
     /// Counts finished refreshes, for tests to wait on.
     private(set) var refreshes = 0
     /// Set by the window; polling skips while the app is in the background.
@@ -222,6 +224,7 @@ final class RepoPullRequests {
             onUpdate?()
             return false
         }
+        repo = targets.repo
         do {
             let read = try await read(targets, refs: refs)
             guard !isStopped else { return true }
