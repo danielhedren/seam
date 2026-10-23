@@ -74,7 +74,7 @@ struct SeamCommand: Identifiable {
     /// Set for commands that show a checkmark in the menu.
     var isOn: (@MainActor (RepoSession) -> Bool)?
     /// Set for commands whose title says what they'll do now, as the HIG prefers to a "Toggle":
-    /// Hide Sidebars or Show Sidebars.
+    /// Hide Sidebar or Show Sidebar.
     var currentTitle: (@MainActor (RepoSession) -> String?)?
     let run: @MainActor (RepoSession) -> Void
 
@@ -202,21 +202,10 @@ enum CommandCatalog {
 
     static let view: [SeamCommand] = [
         SeamCommand(
-            id: "toggle-sidebars", title: localized("Hide Sidebars"), menu: .view, section: 0,
+            id: "toggle-sidebar", title: localized("Hide Sidebar"), menu: .view, section: 0,
             shortcut: .command("\\"), isEnabled: { _ in true },
-            currentTitle: { $0.columns == .diffOnly ? localized("Show Sidebars") : nil },
-            run: { $0.columns = $0.columns == .diffOnly ? .all : .diffOnly }),
-        SeamCommand(
-            id: "toggle-worktrees", title: localized("Hide Worktree List"), menu: .view,
-            section: 0, shortcut: .command("\\", [.command, .option]), isEnabled: { _ in true },
-            currentTitle: { session in
-                switch session.columns {
-                case .all: nil
-                case .filesAndDiff: localized("Show Worktree List")
-                case .diffOnly: localized("Show File List")
-                }
-            },
-            run: { $0.columns = $0.columns == .filesAndDiff ? .all : .filesAndDiff }),
+            currentTitle: { $0.showsWorktreeList ? nil : localized("Show Sidebar") },
+            run: { $0.showsWorktreeList.toggle() }),
         SeamCommand(
             id: "bigger", title: localized("Make Text Bigger"), menu: .view, section: 1,
             shortcut: .command("="), isEnabled: { _ in true },
@@ -389,7 +378,7 @@ enum CommandCatalog {
             shortcut: .single("b"),
             run: { session in
                 // The picker opens from the commit list, so that has to be showing.
-                session.columns = .all
+                session.showsWorktreeList = true
                 session.showsBasePicker.toggle()
             }),
         SeamCommand(

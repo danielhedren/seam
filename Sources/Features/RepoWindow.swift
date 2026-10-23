@@ -55,21 +55,8 @@ struct RepoWindow: View {
     /// The split view also changes visibility itself, when the user drags a column closed.
     private var columnVisibility: Binding<NavigationSplitViewVisibility> {
         Binding(
-            get: {
-                switch session.columns {
-                case .all: .all
-                case .filesAndDiff: .doubleColumn
-                case .diffOnly: .detailOnly
-                }
-            },
-            set: { visibility in
-                session.columns =
-                    switch visibility {
-                    case .detailOnly: .diffOnly
-                    case .doubleColumn: .filesAndDiff
-                    default: .all
-                    }
-            })
+            get: { session.showsWorktreeList ? .all : .doubleColumn },
+            set: { session.showsWorktreeList = $0 == .all })
     }
 
     /// The split view and its toolbar are there from the first frame, whatever the state: a

@@ -283,16 +283,13 @@
     "Hide Missing Worktrees" : {
 
     },
-    "Hide Sidebars" : {
+    "Hide Sidebar" : {
 
     },
     "Hide Threads" : {
 
     },
     "Hide Whitespace Changes" : {
-
-    },
-    "Hide Worktree List" : {
 
     },
     "Ignore all whitespace" : {
@@ -530,22 +527,16 @@
     "Show All Changes" : {
 
     },
-    "Show File List" : {
-
-    },
     "Show Only This Commit" : {
 
     },
     "Show Resolved Threads" : {
 
     },
-    "Show Sidebars" : {
+    "Show Sidebar" : {
 
     },
     "Show Threads" : {
-
-    },
-    "Show Worktree List" : {
 
     },
     "Show all changes" : {

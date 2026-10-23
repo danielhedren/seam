@@ -38,14 +38,9 @@ final class RepoSession {
     var fileListHasFocus = false
     var showsSwitcher = false
     var showsPalette = false
-    /// Which of the three columns show; ⌘\ and ⌘⌥\ toggle the sidebars.
-    var columns = Columns.all
-
-    enum Columns {
-        case all
-        case filesAndDiff
-        case diffOnly
-    }
+    /// The worktree column. The file list always shows: macOS's three-column split view ignores
+    /// `.detailOnly` and can't collapse its middle column.
+    var showsWorktreeList = true
     var showsBasePicker = false
     /// Bumped by Edit › Filter Files; the window moves focus to the filter field.
     var filterFocusRequests = 0

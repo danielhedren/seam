@@ -227,7 +227,7 @@ keeps the position.
 └────────────────────────┴───────────────────┴────────────────────────────────────────┘
 ```
 
-- Three panes: worktrees | files | diff. `⌘\` hides or shows both sidebars, `⌘⌥\` only the
+- Three panes: worktrees | files | diff. `⌘\` and the toolbar's sidebar button hide or show the
   worktree list. Pane widths are remembered.
 - One window per repo, listing only that repo's worktrees. Opening another repo opens another
   window; ``⌘` `` and the Window menu move between them. Window tabs are off: with a sidebar, macOS
@@ -636,7 +636,8 @@ written down here.
 **Structure**
 - The window is a three-column `NavigationSplitView` (sidebar | content | detail). Column
   collapsing, resizing and the sidebar toggle all behave natively. `⌘\` is the one custom
-  shortcut on top of that.
+  shortcut on top of that. The file list can't be hidden: macOS's three-column split view
+  ignores `.detailOnly` and its middle column doesn't collapse.
 - Toolbar in the unified style, holding only: view mode, reload, and the thread panel (§7.7).
   The diff gets the rest of the window. The toolbar's background is solid across every column,
   so the top of the window reads as one bar.
@@ -655,7 +656,7 @@ written down here.
   bindings supplement the menus and never replace them.
 - Find, Find Next, Find Previous and Filter Files sit in Edit › Find, as in other Mac apps. An
   item that shows or hides something, or flips a state, is named for what it will do now (Hide
-  Sidebars / Show Sidebars, Collapse File / Expand File, Mark as Viewed / Mark as Not Viewed,
+  Sidebar / Show Sidebar, Collapse File / Expand File, Mark as Viewed / Mark as Not Viewed,
   Resolve Thread / Reopen Thread) rather than "Toggle …". A checkmark marks a mode that stays on
   (Side by Side, Wrap Lines, the scope). Go › ⌘1…⌘9 are named after the worktrees they pick.
 - Shortcuts read the same everywhere they're shown: menu, command palette and tooltips use the

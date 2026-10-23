@@ -81,18 +81,13 @@ import Testing
         let repo = try await FixtureRepo()
         let session = RepoSession(directory: repo.main, services: services(repo.git))
         await session.open()
-        let sidebars = try command("toggle-sidebars")
-        let worktrees = try command("toggle-worktrees")
-        #expect(sidebars.title(for: session) == "Hide Sidebars")
-        #expect(worktrees.title(for: session) == "Hide Worktree List")
+        let sidebar = try command("toggle-sidebar")
+        #expect(sidebar.title(for: session) == "Hide Sidebar")
 
-        session.columns = .filesAndDiff
-        #expect(worktrees.title(for: session) == "Show Worktree List")
-
-        session.columns = .diffOnly
-        #expect(sidebars.title(for: session) == "Show Sidebars")
-        #expect(worktrees.title(for: session) == "Show File List")
-        #expect(sidebars.title(for: nil) == "Hide Sidebars")
+        sidebar.run(session)
+        #expect(!session.showsWorktreeList)
+        #expect(sidebar.title(for: session) == "Show Sidebar")
+        #expect(sidebar.title(for: nil) == "Hide Sidebar")
     }
 
     @Test func goMenuNamesTheWorktreeEachNumberPicks() async throws {
