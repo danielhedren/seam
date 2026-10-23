@@ -48,13 +48,15 @@ enum FileTree {
     /// files it matches; one that looks for something shows their directories expanded, while
     /// one that only leaves things out keeps the tree as the reader had it.
     /// Generated files (indices into `paths`) go under their own heading after the rest, as a
-    /// flat list.
+    /// flat list. `only` keeps just those files, for search results.
     static func rows(
         _ paths: [String], flat: Bool = false, collapsed: Set<String> = [], filter: String = "",
-        generated: Set<Int> = [], showsGenerated: Bool = false
+        generated: Set<Int> = [], showsGenerated: Bool = false, only: Set<Int>? = nil
     ) -> [FileListRow] {
         let filter = FileFilter(filter)
-        let matching = paths.indices.filter { filter.matches(paths[$0]) }
+        let matching = paths.indices.filter {
+            filter.matches(paths[$0]) && only?.contains($0) != false
+        }
         let generatedMatches = matching.filter(generated.contains)
         var rows = treeRows(
             paths, matching.filter { !generated.contains($0) }, flat: flat,

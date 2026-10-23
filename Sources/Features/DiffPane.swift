@@ -13,7 +13,7 @@ struct DiffRepresentable: NSViewRepresentable {
             var id: String
             var version: Int
             var range: Int
-            var filter: String
+            var narrowing: Narrowing
             var threads: [String: [ThreadMarker]]
             var mode: DiffLayoutMode
             var collapsed: Set<String>
@@ -56,9 +56,10 @@ struct DiffRepresentable: NSViewRepresentable {
         session.diff.view = view
         view.isStale = review.showsProgress
         view.setFont(session.settings.font)
+        defer { view.search(session.diffQuery) }
         let shown = Coordinator.Shown(
             id: review.id, version: review.diffVersion, range: review.shownRangeVersion,
-            filter: review.diffFilter, threads: review.threadMarkers,
+            narrowing: review.narrowing, threads: review.threadMarkers,
             mode: review.mode,
             collapsed: review.collapsed, contentsVersion: review.contentsVersion,
             syntaxVersion: review.syntaxVersion, wraps: review.wraps, viewed: review.viewed,
@@ -78,7 +79,8 @@ struct DiffRepresentable: NSViewRepresentable {
         }
         let position: DiffScrollView.Position =
             if previous?.id == review.id {
-                previous?.range == shown.range && previous?.filter == shown.filter ? .keep : .top
+                previous?.range == shown.range && previous?.narrowing == shown.narrowing
+                    ? .keep : .top
             } else if let anchor = review.savedAnchor {
                 .anchor(anchor)
             } else {
@@ -125,6 +127,7 @@ struct DiffPane: View {
 struct EmptyDiff: Equatable {
     enum Action: Equatable {
         case clearFilter
+        case clearSearch
         case showAll
     }
 
@@ -136,6 +139,23 @@ struct EmptyDiff: Equatable {
     @MainActor
     static func of(_ review: WorktreeReview) -> EmptyDiff? {
         guard let diff = review.diff, review.problem == nil else { return nil }
+        if !diff.files.isEmpty, review.isSearching {
+            if review.searchIsInvalid {
+                return EmptyDiff(
+                    title: String(localized: "Invalid regular expression", bundle: .module),
+                    detail: String(
+                        localized: "“\(review.appliedSearch.text)” doesn't compile.",
+                        bundle: .module),
+                    systemImage: "exclamationmark.magnifyingglass", action: .clearSearch)
+            }
+            guard review.searchResult?.files.isEmpty == true else { return nil }
+            return EmptyDiff(
+                title: String(localized: "No results", bundle: .module),
+                detail: String(
+                    localized: "Nothing in the diff matches “\(review.appliedSearch.text)”.",
+                    bundle: .module),
+                systemImage: "magnifyingglass", action: .clearSearch)
+        }
         if !diff.files.isEmpty {
             let filter = FileFilter(review.diffFilter)
             guard !filter.isEmpty, !diff.files.contains(where: { filter.matches($0.diff.path) })
@@ -199,6 +219,10 @@ private struct EmptyDiffView: View {
             case .clearFilter:
                 Button(String(localized: "Clear Filter", bundle: .module)) {
                     review.fileFilter = ""
+                }
+            case .clearSearch:
+                Button(String(localized: "Clear Search", bundle: .module)) {
+                    review.search.text = ""
                 }
             case .showAll:
                 Button(String(localized: "Show All Changes", bundle: .module)) {

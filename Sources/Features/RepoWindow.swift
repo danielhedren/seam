@@ -39,6 +39,10 @@ struct RepoWindow: View {
             }
             .focusedSceneValue(\.repoSession, session)
             .onChange(of: session.filterFocusRequests) { filterFocused = true }
+            // The search field may only appear with this update, so focus waits a turn for it.
+            .onChange(of: session.searchFocusRequests) {
+                Task { @MainActor in filterFocused = true }
+            }
             .sheet(isPresented: Bindable(session).showsSwitcher) {
                 WorktreeSwitcher(session: session)
             }

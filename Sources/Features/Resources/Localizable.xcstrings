@@ -7,6 +7,16 @@
     "%@ already exists and isn't Seam's. Remove it and try again." : {
 
     },
+    "%@ in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ in %2$@"
+          }
+        }
+      }
+    },
     "%@ is not in a git repository." : {
 
     },
@@ -26,6 +36,9 @@
 
     },
     "%lld files" : {
+
+    },
+    "%lld matches" : {
 
     },
     "%lld more lines" : {
@@ -63,6 +76,9 @@
     "1 file" : {
 
     },
+    "1 match" : {
+
+    },
     "Actual Size" : {
 
     },
@@ -97,6 +113,9 @@
 
     },
     "Clear Menu" : {
+
+    },
+    "Clear Search" : {
 
     },
     "Collapse File" : {
@@ -238,6 +257,9 @@
     "File" : {
 
     },
+    "Files" : {
+
+    },
     "Files as Flat List" : {
 
     },
@@ -262,7 +284,13 @@
     "Find in diff" : {
 
     },
+    "Finds text in the changed lines and file paths." : {
+
+    },
     "Find…" : {
+
+    },
+    "First %@ matches" : {
 
     },
     "Font" : {
@@ -310,6 +338,9 @@
     "Installed the seam command" : {
 
     },
+    "Invalid regular expression" : {
+
+    },
     "Keep %@" : {
 
     },
@@ -335,6 +366,9 @@
 
     },
     "Mark as Viewed" : {
+
+    },
+    "Match Case" : {
 
     },
     "Name" : {
@@ -382,6 +416,9 @@
     "No matching shortcuts" : {
 
     },
+    "No results" : {
+
+    },
     "No threads" : {
 
     },
@@ -395,6 +432,9 @@
 
     },
     "Not a git repository. Choose another folder." : {
+
+    },
+    "Nothing in the diff matches “%@”." : {
 
     },
     "Old line %@" : {
@@ -467,6 +507,9 @@
     "Recent Change" : {
 
     },
+    "Regular Expression" : {
+
+    },
     "Reload" : {
 
     },
@@ -509,7 +552,16 @@
     "Seam" : {
 
     },
+    "Search" : {
+
+    },
     "Search commands and worktrees" : {
+
+    },
+    "Search in Review" : {
+
+    },
+    "Search the Review" : {
 
     },
     "Search worktrees and branches" : {
@@ -573,6 +625,9 @@
 
     },
     "Tab width" : {
+
+    },
+    "Text in the diff's lines and paths" : {
 
     },
     "The base %@ no longer exists" : {
@@ -688,6 +743,9 @@
 
     },
     "the base" : {
+
+    },
+    "“%@” doesn't compile." : {
 
     }
   },

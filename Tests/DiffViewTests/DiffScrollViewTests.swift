@@ -33,6 +33,35 @@ import Testing
         #expect(results == ["1/2", "2/2", "1/2", "1/3", "0/0"])
     }
 
+    @Test(arguments: [DiffLayoutMode.unified, .split])
+    func showMatchMakesThatLinesMatchCurrentAndWaitsForACollapsedFile(_ mode: DiffLayoutMode) {
+        var hunk = Hunk(oldStart: 1, oldCount: 1, newStart: 1, newCount: 1, section: "")
+        hunk.lines = [
+            DiffLine(kind: .removed, text: "alpha one", oldNumber: 1, newNumber: nil),
+            DiffLine(kind: .added, text: "alpha two alpha", oldNumber: nil, newNumber: 1),
+        ]
+        var file = FileDiff(oldPath: "a.txt", newPath: "a.txt", status: .modified)
+        file.hunks = [hunk]
+        let review = ReviewDiff(scope: .all, files: [ReviewFile(diff: file)])
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        var results: [String] = []
+        view.onSearchResult = { current, total in results.append("\(current ?? 0)/\(total)") }
+        view.show(DiffContent(review: review, mode: mode), position: .top)
+        view.search(TextQuery("alpha"))
+
+        view.showMatch(inFile: "a.txt", line: 1, isOld: false, occurrence: 1)
+        view.showMatch(inFile: "a.txt", line: 1, isOld: true, occurrence: 0)
+        #expect(results == ["1/3", "3/3", "1/3"])
+
+        view.show(DiffContent(review: review, mode: mode, collapsed: ["a.txt"]), position: .keep)
+        results = []
+        view.showMatch(inFile: "a.txt", line: 1, isOld: false, occurrence: 0)
+        #expect(results.isEmpty, "nothing to point at while the file is collapsed")
+        view.show(DiffContent(review: review, mode: mode), position: .keep)
+        #expect(results.last == "2/3")
+    }
+
     @Test func searchingBeforeTheViewHasASizeFindsWithoutScrolling() {
         let view = DiffScrollView()
         var results: [String] = []

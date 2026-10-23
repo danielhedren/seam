@@ -44,6 +44,8 @@ final class RepoSession {
     var showsBasePicker = false
     /// Bumped by Edit › Filter Files; the window moves focus to the filter field.
     var filterFocusRequests = 0
+    /// Bumped by Search in Review; the window moves focus to the search field once it shows.
+    var searchFocusRequests = 0
     let diff: DiffController
     let find: FindState
 
@@ -69,9 +71,28 @@ final class RepoSession {
         let diff = DiffController()
         self.diff = diff
         find = FindState(diff: diff)
+        find.onQueryChange = { [weak self] in self?.refreshDiffQuery() }
     }
 
     var settings: AppSettings { services.settings }
+
+    /// What the diff highlights: find's query while there is one, else the search Search shows.
+    var diffQuery: TextQuery {
+        guard find.query.isEmpty else { return TextQuery(find.query) }
+        guard let review = selected, review.isSearching else { return TextQuery() }
+        return review.appliedSearch
+    }
+
+    func refreshDiffQuery() {
+        diff.search(diffQuery)
+    }
+
+    /// Edit › Find › Search in Review.
+    func showSearch() {
+        guard let review = selected else { return }
+        review.navigator = .search
+        searchFocusRequests += 1
+    }
 
     /// The diff or the file list has keyboard focus, so single-letter shortcuts apply (SPEC §9).
     /// The sheet and popover are separate windows, so the canvas keeps first responder under them;

@@ -189,6 +189,24 @@ extension DiffLayout {
         return top(of: best ?? header)
     }
 
+    /// The row showing `line` of the file: on the old side for a removed line, else the new.
+    func row(forLine line: Int, inFile file: Int, isOld: Bool) -> Int? {
+        guard let header = headerRow(ofFile: file) else { return nil }
+        for index in header..<rows.count {
+            guard rows[index].file == file else { break }
+            switch rows[index] {
+            case .line(_, let shown):
+                if isOld ? shown.new == nil && shown.old == line : shown.new == line {
+                    return index
+                }
+            case .split(_, let left, let right):
+                if isOld ? left?.number == line : right?.number == line { return index }
+            default: continue
+            }
+        }
+        return nil
+    }
+
     /// The first new-side line at or after `row` in the same file, for opening the file as it is
     /// now: a header reads as the hunk below it, a removed line as the next line that exists.
     /// Line 1 when the file has none (a deleted file).

@@ -15,6 +15,12 @@ enum Counted {
             : String(localized: "\(count) comments", bundle: .module)
     }
 
+    static func matches(_ count: Int) -> String {
+        count == 1
+            ? String(localized: "1 match", bundle: .module)
+            : String(localized: "\(count) matches", bundle: .module)
+    }
+
     static func files(_ count: Int) -> String {
         count == 1
             ? String(localized: "1 file", bundle: .module)

@@ -1,4 +1,5 @@
 import Foundation
+import SeamCore
 
 /// One occurrence of the find query: a row, the side it's on, and its characters.
 struct DiffMatch: Equatable, Sendable {
@@ -9,27 +10,24 @@ struct DiffMatch: Equatable, Sendable {
 
 /// Find in the diff (SPEC §8.5), on the row model rather than on a text storage.
 enum DiffSearch {
-    /// Every occurrence of `query` in line text, ignoring case and diacritics, in reading order:
-    /// row by row, left side before right.
-    static func matches(_ query: String, in layout: DiffLayout) -> [DiffMatch] {
-        guard !query.isEmpty else { return [] }
+    /// Every occurrence of `query` in line text, in reading order: row by row, left side
+    /// before right. None for a pattern that doesn't compile.
+    static func matches(_ query: TextQuery, in layout: DiffLayout) -> [DiffMatch] {
+        guard let matcher = query.matcher() else { return [] }
         var matches: [DiffMatch] = []
         for row in layout.rows.indices {
             for side in [DiffSide.unified, .left, .right] {
                 guard let text = layout.text(of: row, side: side) else { continue }
-                var searchStart = text.startIndex
-                while let found = text.range(
-                    of: query, options: [.caseInsensitive, .diacriticInsensitive],
-                    range: searchStart..<text.endIndex)
-                {
-                    let lower = text.distance(from: text.startIndex, to: found.lowerBound)
-                    let upper = text.distance(from: text.startIndex, to: found.upperBound)
-                    matches.append(DiffMatch(row: row, side: side, range: lower..<upper))
-                    searchStart = found.upperBound
+                for range in matcher.ranges(in: text) {
+                    matches.append(DiffMatch(row: row, side: side, range: range))
                 }
             }
         }
         return matches
+    }
+
+    static func matches(_ text: String, in layout: DiffLayout) -> [DiffMatch] {
+        matches(TextQuery(text), in: layout)
     }
 
     /// The match to show after the content changed: the first one at or after `row`.

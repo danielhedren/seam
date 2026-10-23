@@ -38,7 +38,10 @@ struct ShortcutSheetTests {
             ShortcutSheet.groups(matching: "⇧⌘g").flatMap(\.entries).map(\.id) == [
                 "find-previous"
             ])
-        #expect(ShortcutSheet.groups(matching: "view").first?.menu == "View")
+        let view = ShortcutSheet.groups.first { $0.menu == "View" }
+        #expect(
+            ShortcutSheet.groups(matching: "view").first { $0.menu == "View" } == view,
+            "a menu's name matches all of its entries")
         #expect(ShortcutSheet.groups(matching: "zzz").isEmpty)
         #expect(ShortcutSheet.groups(matching: " ") == ShortcutSheet.groups)
     }

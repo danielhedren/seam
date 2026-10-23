@@ -49,9 +49,11 @@ public final class DiffScrollView: NSScrollView {
     public var onSearchResult: ((_ current: Int?, _ total: Int) -> Void)?
 
     private let canvas = DiffCanvasView()
-    private var query = ""
+    private var query = TextQuery()
     private var matches: [DiffMatch] = []
     private var currentMatch: Int?
+    /// A match `showMatch` asked for in a file that isn't laid out yet (it was collapsed).
+    private var pendingMatch: (path: String, line: Int, isOld: Bool, occurrence: Int)?
     private let sticky = DiffStickyHeaderView()
     private var reportedFile: String?
     /// After a jump to a file, the clip view's top the jump landed on. A short file near the end
@@ -110,6 +112,10 @@ public final class DiffScrollView: NSScrollView {
         let previousDraft = canvas.shownDraft
         canvas.show(content)
         if !query.isEmpty { refreshMatches(near: matchRow ?? 0, reveal: false) }
+        defer {
+            applyPendingMatch()
+            pendingMatch = nil
+        }
         canvas.setVisibleWidth(contentSize.width)
         switch position {
         case .keep:
@@ -273,7 +279,8 @@ public final class DiffScrollView: NSScrollView {
     // MARK: - Find
 
     /// Searches as the reader types, starting from the line at the top of the view.
-    public func search(_ query: String) {
+    public func search(_ query: TextQuery) {
+        guard query != self.query else { return }
         self.query = query
         let top = layout.row(at: visibleTop + headerHeight) ?? 0
         refreshMatches(near: top, reveal: true)
@@ -283,6 +290,34 @@ public final class DiffScrollView: NSScrollView {
         guard !matches.isEmpty else { return }
         let current = currentMatch ?? (delta > 0 ? -1 : 0)
         currentMatch = (current + delta + matches.count) % matches.count
+        publishMatches(reveal: true)
+    }
+
+    public func search(_ text: String) {
+        search(TextQuery(text))
+    }
+
+    /// Makes the `occurrence`th match on a line current and scrolls to it. A file that isn't
+    /// laid out yet gets one more try when the next content arrives.
+    public func showMatch(inFile path: String, line: Int, isOld: Bool, occurrence: Int) {
+        pendingMatch = (path, line, isOld, occurrence)
+        applyPendingMatch()
+    }
+
+    private func applyPendingMatch() {
+        guard let target = pendingMatch, let file = canvas.paths.firstIndex(of: target.path),
+            let row = layout.row(forLine: target.line, inFile: file, isOld: target.isOld)
+        else { return }
+        pendingMatch = nil
+        // A context line shows on both sides of a split row; its match counts on the new one.
+        let side: DiffSide =
+            layout.text(of: row, side: .unified) != nil ? .unified : target.isOld ? .left : .right
+        let onLine = matches.indices.filter { matches[$0].row == row && matches[$0].side == side }
+        guard !onLine.isEmpty else {
+            scroll(toLine: target.line, inFile: target.path, oldSide: target.isOld)
+            return
+        }
+        currentMatch = onLine[min(target.occurrence, onLine.count - 1)]
         publishMatches(reveal: true)
     }
 

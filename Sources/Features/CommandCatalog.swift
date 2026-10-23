@@ -197,7 +197,13 @@ enum CommandCatalog {
         SeamCommand(
             id: "filter-files", title: localized("Filter Files"), menu: .find, section: 1,
             shortcut: .commandWhen("f", .fileList),
-            run: { $0.filterFocusRequests += 1 }),
+            run: { session in
+                session.selected?.navigator = .files
+                session.filterFocusRequests += 1
+            }),
+        SeamCommand(
+            id: "search", title: localized("Search in Review"), menu: .find, section: 1,
+            shortcut: .command("f", [.command, .shift]), run: { $0.showSearch() }),
     ]
 
     static let view: [SeamCommand] = [

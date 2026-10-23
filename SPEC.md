@@ -327,6 +327,36 @@ selection acts on its newest commit, and so do Review › Copy Commit ID and Cop
 - Selecting a file scrolls the diff to it. The diff is one continuous scroll of all files, and
   the file list follows the scroll position.
 
+### 7.3.1 Search
+
+The file list's column has two views, Files and Search, picked by the two buttons at the start
+of its header. Each worktree keeps its own view, query and options while the app runs.
+
+- Edit › Find › Search in Review (`⇧⌘F`) shows Search and puts the cursor in its field; Filter
+  Files (`⌘F` in the list) goes back to Files. The field looks like the filter's: Escape clears
+  it, and in an empty field returns focus to the list. Two toggles in the field: Match Case
+  (`Aa`) and Regular Expression (`.*`). Without them a query is plain text, ignoring case and
+  diacritics, like find. A pattern that doesn't compile says so instead of listing results.
+- What it searches: each changed file's path, and every line in the diff's hunks: added,
+  removed and context lines. Not the unchanged lines behind a gap, and not files without hunks
+  (binary, image and deferred files), except by path.
+- The results are a tree like Files (same order, compaction and flat-list toggle), of the files
+  with a match, folders always open. A file row shows its status letter, its name with any
+  matches highlighted, and how many matches its lines have. Under it, one row per matching line:
+  `−`, `+` or a blank for removed, added and context lines, the line number on that side (the
+  new one for context), and the line's text without its indent, cut so the first match shows,
+  with every match highlighted. A file with more than 20 matching lines starts folded; its
+  chevron opens it. The header says "23 matches in 5 files", or "No results".
+- At most 1,000 matching lines are listed; past that the header says "First 1,000 matches".
+- While Search shows a query, the diff narrows to the files in the results, and every match in
+  the shown lines is highlighted with find's colours. `⌘G` / `⇧⌘G` step through them. Picking a
+  line row expands its file if collapsed, scrolls the diff to the line and makes that match the
+  current one; picking a file row scrolls to the file. Going back to Files shows every file (as
+  the filter leaves them) without highlights. The find bar, while open, highlights its own query
+  instead.
+- The results follow typing once it pauses for 300 ms; clearing the field applies at once. A
+  search that finds nothing says so in both panes, with a Clear Search button.
+
 ### 7.4 Diff view
 
 - Side-by-side and unified modes: the toolbar's Unified | Side by Side control shows the current
@@ -388,9 +418,10 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 | `⌥⌘0` | thread panel |
 | `b` | base picker |
 | `r` | force reload |
-| `⌘\` | toggle sidebars |
+| `⌘\` | hide or show the worktree list |
 | `⌘K` | worktree switcher |
 | `⌘F` / `⌘G` / `⇧⌘G` | find in the diff, next / previous match (`⌘F` filters while the file list has focus) |
+| `⇧⌘F` | search the review's diff (§7.3.1) |
 | `⇧⌘P` | command palette (every action) |
 
 ### 7.6 Open in editor
@@ -654,7 +685,7 @@ written down here.
 - **Every action is in the menu bar**, with its shortcut shown (File, Edit, View, Go, Review,
   Window, Help). This is how macOS users discover shortcuts. The command palette and single-key
   bindings supplement the menus and never replace them.
-- Find, Find Next, Find Previous and Filter Files sit in Edit › Find, as in other Mac apps. An
+- Find, Find Next, Find Previous, Filter Files and Search in Review sit in Edit › Find, as in other Mac apps. An
   item that shows or hides something, or flips a state, is named for what it will do now (Hide
   Sidebar / Show Sidebar, Collapse File / Expand File, Mark as Viewed / Mark as Not Viewed,
   Resolve Thread / Reopen Thread) rather than "Toggle …". A checkmark marks a mode that stays on

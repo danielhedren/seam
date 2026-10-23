@@ -107,6 +107,31 @@ struct WindowSnapshotTests {
         }
     }
 
+    @Test func searchBesideTheDiff() async throws {
+        let (session, _) = try await session()
+        let review = try #require(session.selected)
+        let clock = try #require(session.services.clock as? ManualClock)
+        session.showSearch()
+        review.search.text = "total"
+        await clock.sleepers()
+        clock.advance(by: WorktreeReview.filterDelay)
+        await until { review.searchResult != nil }
+        let panes = HStack(spacing: 0) {
+            FileList(
+                session: session, review: review, filterFocus: FocusState<Bool>().projectedValue
+            )
+            .frame(width: 280)
+            Divider()
+            DiffPane(session: session, review: review)
+        }
+        for (appearance, name) in Self.appearances {
+            assertSnapshot(
+                of: try render(panes, size: CGSize(width: 1000, height: 420), appearance),
+                as: .image(precision: 0.99, perceptualPrecision: 0.98),
+                named: "search-diff-\(name)-\(Self.os)")
+        }
+    }
+
     @Test func threadPanelBesideTheDiff() async throws {
         let (session, _) = try await session()
         let review = try #require(session.selected)

@@ -1,4 +1,5 @@
 import Observation
+import SeamCore
 
 /// Find in the diff (SPEC §8.5): the bar, its query, and "current of total".
 @MainActor
@@ -7,8 +8,10 @@ final class FindState {
     var isShown = false
     /// Searches whenever it changes, typed or filled in from a selection before the bar exists.
     var query = "" {
-        didSet { if query != oldValue { diff.search(query) } }
+        didSet { if query != oldValue { onQueryChange?() } }
     }
+    /// The session decides what the diff highlights: this query, or the search's.
+    @ObservationIgnored var onQueryChange: (() -> Void)?
     var result: (current: Int?, total: Int) = (nil, 0)
     /// Bumped by Edit › Find while the bar is already open, to focus its field again.
     private(set) var focusRequests = 0

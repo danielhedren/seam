@@ -9,18 +9,12 @@ struct FileList: View {
     @FocusState private var listFocused: Bool
 
     var body: some View {
-        let files = review.diff?.files ?? []
-        let rows = review.fileListRows
         VStack(spacing: 0) {
             HStack {
-                if let diff = review.diff {
-                    Text(verbatim: Counted.files(diff.files.count))
-                    if !diff.files.isEmpty {
-                        Text(verbatim: "+\(diff.additions)").foregroundStyle(.green)
-                        Text(verbatim: "−\(diff.deletions)").foregroundStyle(.red)
-                        ViewedProgress(
-                            viewed: review.viewed.viewedCount(in: diff), of: diff.files.count)
-                    }
+                NavigatorPicker(review: review)
+                switch review.navigator {
+                case .files: totals
+                case .search: SearchSummary(review: review)
                 }
                 Spacer()
                 Toggle(isOn: $review.flatFileList) {
@@ -37,6 +31,29 @@ struct FileList: View {
             .padding(.horizontal, 10)
             .frame(height: PaneHeader.height(session) - 1)
             Divider()
+            switch review.navigator {
+            case .files: files
+            case .search:
+                SearchResults(session: session, review: review, fieldFocus: filterFocus)
+            }
+        }
+    }
+
+    @ViewBuilder private var totals: some View {
+        if let diff = review.diff {
+            Text(verbatim: Counted.files(diff.files.count))
+            if !diff.files.isEmpty {
+                Text(verbatim: "+\(diff.additions)").foregroundStyle(.green)
+                Text(verbatim: "−\(diff.deletions)").foregroundStyle(.red)
+                ViewedProgress(viewed: review.viewed.viewedCount(in: diff), of: diff.files.count)
+            }
+        }
+    }
+
+    @ViewBuilder private var files: some View {
+        let files = review.diff?.files ?? []
+        let rows = review.fileListRows
+        VStack(spacing: 0) {
             FilterField(text: $review.fileFilter, focus: filterFocus) { listFocused = true }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
@@ -111,20 +128,25 @@ struct FileList: View {
 /// A search field like Finder's: magnifier, placeholder, and a clear button once there's text.
 /// A styled SwiftUI field rather than an `NSSearchField`, so `FocusState` tracks it exactly:
 /// single-letter keys depend on knowing when it has focus. Escape clears it, then leaves it.
-struct FilterField: View {
+/// Search uses it too, with its toggles as the accessory.
+struct FilterField<Accessory: View>: View {
     @Binding var text: String
     var focus: FocusState<Bool>.Binding
+    var placeholder = String(localized: "Filter", bundle: .module)
+    var help = String(localized: "Words in the path; ^word leaves those out", bundle: .module)
+    var clearHelp = String(localized: "Clear Filter", bundle: .module)
+    @ViewBuilder var accessory: Accessory
     let onLeave: () -> Void
 
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
             // A plain field draws its prompt in the text colour, so the placeholder is drawn here.
-            TextField(String(localized: "Filter", bundle: .module), text: $text, prompt: Text(""))
+            TextField(placeholder, text: $text, prompt: Text(""))
                 .textFieldStyle(.plain)
                 .background(alignment: .leading) {
                     if text.isEmpty {
-                        Text("Filter", bundle: .module)
+                        Text(placeholder)
                             .foregroundStyle(Color(nsColor: .placeholderTextColor))
                             .allowsHitTesting(false)
                     }
@@ -145,8 +167,9 @@ struct FilterField: View {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
                 .buttonStyle(.borderless)
-                .help(String(localized: "Clear Filter", bundle: .module))
+                .help(clearHelp)
             }
+            accessory
         }
         .padding(.horizontal, 6)
         .frame(height: 24)
@@ -158,7 +181,13 @@ struct FilterField: View {
                 Capsule().strokeBorder(Color.accentColor.opacity(0.5), lineWidth: 2)
             }
         }
-        .help(String(localized: "Words in the path; ^word leaves those out", bundle: .module))
+        .help(help)
+    }
+}
+
+extension FilterField where Accessory == EmptyView {
+    init(text: Binding<String>, focus: FocusState<Bool>.Binding, onLeave: @escaping () -> Void) {
+        self.init(text: text, focus: focus, accessory: { EmptyView() }, onLeave: onLeave)
     }
 }
 
@@ -178,7 +207,7 @@ private struct ViewedProgress: View {
     }
 }
 
-private struct FileRowView: View {
+struct FileRowView: View {
     let row: FileListRow
     let files: [ReviewFile]
     let viewed: ViewedMarks.Status

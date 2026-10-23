@@ -17,7 +17,10 @@ final class DiffController {
     func page(by delta: Int) { view?.page(by: delta) }
     func scroll(toFile path: String) { view?.scroll(toFile: path) }
     func focus() { view?.focus() }
-    func search(_ query: String) { view?.search(query) }
+    func search(_ query: TextQuery) { view?.search(query) }
+    func showMatch(inFile path: String, line: Int, isOld: Bool, occurrence: Int) {
+        view?.showMatch(inFile: path, line: line, isOld: isOld, occurrence: occurrence)
+    }
     var readingLocation: (path: String, line: Int)? { view?.readingLocation }
     var selectedText: String? { view?.selectedText }
     var commentTarget: (path: String, side: ThreadAnchor.Side, lines: ClosedRange<Int>)? {

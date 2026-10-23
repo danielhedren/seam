@@ -91,6 +91,23 @@ final class WorktreeReview: Identifiable {
     private var filterTask: Task<Void, Never>?
     var flatFileList = false
     var collapsedDirectories: Set<String> = []
+    /// Files or Search in the file list's column (SPEC §7.3.1).
+    var navigator = Navigator.files
+    var search = TextQuery() {
+        didSet {
+            guard search != oldValue else { return }
+            searchFoldToggles = []
+            scheduleSearch()
+        }
+    }
+    /// The query the results and the diff show; it follows `search` as `diffFilter` follows
+    /// `fileFilter`.
+    private(set) var appliedSearch = TextQuery()
+    private var searchTask: Task<Void, Never>?
+    /// Result files whose fold the reader flipped from the default.
+    var searchFoldToggles: Set<String> = []
+    var selectedSearchRow: String?
+    @ObservationIgnored let searchCache = SearchCache()
 
     /// The repo's threads; this worktree's are placed on its diff (SPEC §7.7).
     var threads: RepoThreads?
@@ -330,11 +347,39 @@ final class WorktreeReview: Identifiable {
         }
     }
 
-    /// What the diff view shows, narrowed by the filter; nil until the diff has loaded.
+    private func scheduleSearch() {
+        searchTask?.cancel()
+        // Only the text waits for typing to pause; an empty field or a flipped toggle applies now.
+        guard !search.isEmpty, search.text != appliedSearch.text else {
+            appliedSearch = search
+            return
+        }
+        let clock = services.clock
+        searchTask = Task { [weak self] in
+            try? await clock.sleep(for: Self.filterDelay)
+            guard !Task.isCancelled, let self else { return }
+            self.appliedSearch = self.search
+        }
+    }
+
+    /// How the diff is narrowed: by the filter, or while Search shows a query, by its results.
+    var narrowing: Narrowing {
+        isSearching ? .search(appliedSearch) : .filter(diffFilter)
+    }
+
+    /// What the diff view shows, narrowed; nil until the diff has loaded.
     var content: DiffContent? {
         let filter = FileFilter(diffFilter)
+        let found = searchResult.map { Set($0.files.map(\.index)) }
         return diff.map { diff in
-            filter.isEmpty
+            if isSearching {
+                return ReviewDiff(
+                    scope: diff.scope,
+                    files: diff.files.indices.filter { found?.contains($0) == true }.map {
+                        diff.files[$0]
+                    })
+            }
+            return filter.isEmpty
                 ? diff
                 : ReviewDiff(
                     scope: diff.scope, files: diff.files.filter { filter.matches($0.diff.path) })
