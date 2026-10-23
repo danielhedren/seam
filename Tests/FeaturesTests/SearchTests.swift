@@ -1,6 +1,8 @@
+import AppKit
 import DiffView
 import Foundation
 import SeamCore
+import SwiftUI
 import TestSupport
 import Testing
 
@@ -66,12 +68,12 @@ import Testing
         let (_, review) = try await session(repo, clock: clock)
         await search("hit", in: review, clock: clock)
 
-        #expect(
-            review.searchRows.map(\.kind) == [
-                .file(0, isFolded: true), .file(1, isFolded: false), .line(1, 0),
-            ])
+        let folds = review.searchRows.map { row -> Bool? in
+            if case .file(let file) = row.kind { file.isFolded } else { nil }
+        }
+        #expect(folds == [true, false, nil] as [Bool?])
         review.toggleFold("many.txt")
-        #expect(review.searchRows.count == 2 + 25 + 1)
+        #expect(review.searchRows.count == 28, "two files, 25 lines and 1")
         let line = try #require(review.searchResult?.files[1].lines.first)
         #expect(line.kind == .added && line.number == 1 && line.text == "a hit")
     }
@@ -90,13 +92,35 @@ import Testing
 
         session.toggleCollapsed("a.txt")
         view.show(try #require(review.content), position: .keep)
-        let row = try #require(review.searchRows.first { $0.kind == .line(0, 1) })
+        let row = try #require(
+            review.searchRows.first {
+                if case .line(_, let line) = $0.kind { line.number == 3 } else { false }
+            })
         review.pick(row, controller: session.diff)
         #expect(!review.collapsed.contains("a.txt"))
         view.show(try #require(review.content), position: .keep)
 
         #expect(results.last == "2/3", "the first match on line 3")
         #expect(review.selectedSearchRow == row.id)
+    }
+
+    @Test func rowsFromAnEarlierResultStillDrawAndPickAfterTheResultShrinks() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "hit\n")
+        try repo.write("b.txt", "hit\nhit again\n")
+        let clock = ManualClock()
+        let (session, review) = try await session(repo, clock: clock)
+        await search("hit", in: review, clock: clock)
+        let stale = review.searchRows
+        #expect(stale.count == 5)
+
+        await search("again", in: review, clock: clock)
+        let host = NSHostingView(
+            rootView: VStack { ForEach(stale) { SearchRowView(row: $0, review: review) } })
+        host.frame = NSRect(x: 0, y: 0, width: 300, height: 300)
+        host.layoutSubtreeIfNeeded()
+        for row in stale { review.pick(row, controller: session.diff) }
+        #expect(review.selectedSearchRow == stale.last?.id)
     }
 
     @Test func searchInReviewShowsSearchAndFilterFilesGoesBack() async throws {

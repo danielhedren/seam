@@ -90,7 +90,7 @@ struct SearchResults: View {
                         .tag(row.id)
                         .listRowSeparator(.hidden)
                         .contextMenu {
-                            if let path = path(of: row) {
+                            if let path = row.path {
                                 FileContextMenu(path: path, session: session)
                             }
                         }
@@ -137,15 +137,6 @@ struct SearchResults: View {
                 review.pick(row, controller: session.diff)
             })
     }
-
-    private func path(of row: SearchRow) -> String? {
-        guard let result = review.searchResult, let files = review.diff?.files else { return nil }
-        switch row.kind {
-        case .heading: return nil
-        case .file(let position, _), .line(let position, _):
-            return files[result.files[position].index].diff.path
-        }
-    }
 }
 
 /// Match Case or Regular Expression, inside the search field.
@@ -165,57 +156,47 @@ private struct SearchOption: View {
     }
 }
 
-private struct SearchRowView: View {
+struct SearchRowView: View {
     let row: SearchRow
     let review: WorktreeReview
 
     var body: some View {
-        if let result = review.searchResult, let files = review.diff?.files {
-            content(result, files).padding(.leading, Double(row.depth) * 12)
-        }
+        content.padding(.leading, Double(row.depth) * 12)
     }
 
-    @ViewBuilder
-    private func content(_ result: ReviewSearch.Result, _ files: [ReviewFile]) -> some View {
+    @ViewBuilder private var content: some View {
         switch row.kind {
         case .heading:
             // Folders stay open, so they have no chevron; the indent lines them up with files.
             Text(row.name).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                 .padding(.leading, 18)
-        case .file(let position, let isFolded):
-            let found = result.files[position]
-            let file = files[found.index]
+        case .file(let file):
             HStack(spacing: 6) {
                 Button {
-                    review.toggleFold(file.diff.path)
+                    review.toggleFold(file.path)
                 } label: {
-                    Image(systemName: isFolded ? "chevron.right" : "chevron.down")
+                    Image(systemName: file.isFolded ? "chevron.right" : "chevron.down")
                         .font(.caption2)
                         .frame(width: 12)
                 }
                 .buttonStyle(.borderless)
-                .opacity(found.lines.isEmpty ? 0 : 1)
-                .disabled(found.lines.isEmpty)
-                Text(String(file.diff.status.letter))
+                .opacity(file.hasLines ? 1 : 0)
+                .disabled(!file.hasLines)
+                Text(String(file.status.letter))
                     .font(.caption.monospaced().bold())
-                    .foregroundStyle(FileRowView.color(file.diff.status))
+                    .foregroundStyle(FileRowView.color(file.status))
                     .frame(width: 12)
-                Text(
-                    Self.highlighted(
-                        row.name,
-                        SearchSnippet.name(row.name, path: file.diff.path, found.pathRanges))
-                )
-                .lineLimit(1)
-                .truncationMode(.middle)
+                Text(Self.highlighted(row.name, file.nameRanges))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
                 Spacer(minLength: 4)
-                if found.lineMatchCount > 0 {
-                    Text(verbatim: "\(found.lineMatchCount)")
+                if file.lineMatchCount > 0 {
+                    Text(verbatim: "\(file.lineMatchCount)")
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                 }
             }
-        case .line(let position, let index):
-            let line = result.files[position].lines[index]
+        case .line(_, let line):
             let snippet = SearchSnippet.make(line.text, line.ranges)
             HStack(spacing: 6) {
                 Text(verbatim: Self.marker(line.kind))

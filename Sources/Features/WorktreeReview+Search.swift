@@ -1,4 +1,5 @@
 import Foundation
+import GitKit
 import SeamCore
 
 /// What the file list's column shows (SPEC §7.3.1).
@@ -54,45 +55,46 @@ extension WorktreeReview {
 
     var searchRows: [SearchRow] {
         guard let result = searchResult, let files = diff?.files else { return [] }
-        return SearchRow.rows(
-            result, paths: files.map(\.diff.path), flat: flatFileList,
-            generated: Set(files.indices.filter { files[$0].isGenerated }),
-            isFolded: isFolded)
+        return SearchRow.rows(result, files: files, flat: flatFileList, isFolded: isFolded)
     }
 
     /// Picking a result: a file scrolls the diff to it, a line also makes its match current,
     /// opening the file first if it's collapsed.
     func pick(_ row: SearchRow, controller: DiffController) {
         selectedSearchRow = row.id
-        guard let result = searchResult, let files = diff?.files else { return }
         switch row.kind {
         case .heading: return
-        case .file(let position, _):
-            let path = files[result.files[position].index].diff.path
-            currentFile = path
-            controller.scroll(toFile: path)
-        case .line(let position, let line):
-            let file = result.files[position]
-            let path = files[file.index].diff.path
-            let shown = file.lines[line]
+        case .file(let file):
+            currentFile = file.path
+            controller.scroll(toFile: file.path)
+        case .line(let path, let line):
             if collapsed.contains(path) { toggleCollapsed(path) }
             currentFile = path
             controller.showMatch(
-                inFile: path, line: shown.number, isOld: shown.kind == .removed, occurrence: 0)
+                inFile: path, line: line.number, isOld: line.kind == .removed, occurrence: 0)
         }
     }
 }
 
 /// One row of the search results (SPEC §7.3.1): folders as in the file tree, matching files, and
-/// under each file its matching lines.
+/// under each file its matching lines. Rows carry what they show: SwiftUI can still draw a row
+/// from the previous result while the new one is in place.
 struct SearchRow: Equatable, Identifiable {
+    struct File: Equatable {
+        var path: String
+        var status: FileStatus
+        /// In the row's name, which is the end of the path.
+        var nameRanges: [Range<Int>]
+        var lineMatchCount: Int
+        var hasLines: Bool
+        var isFolded: Bool
+    }
+
     enum Kind: Equatable {
         /// A folder, or the "Generated" heading.
         case heading
-        /// Index into the result's files.
-        case file(Int, isFolded: Bool)
-        /// Index into the result's files, then into that file's lines.
-        case line(Int, Int)
+        case file(File)
+        case line(path: String, ReviewSearch.Line)
     }
 
     var id: String
@@ -100,33 +102,43 @@ struct SearchRow: Equatable, Identifiable {
     var depth: Int
     var kind: Kind
 
+    var path: String? {
+        switch kind {
+        case .heading: nil
+        case .file(let file): file.path
+        case .line(let path, _): path
+        }
+    }
+
     static func rows(
-        _ result: ReviewSearch.Result, paths: [String], flat: Bool, generated: Set<Int>,
+        _ result: ReviewSearch.Result, files: [ReviewFile], flat: Bool,
         isFolded: (ReviewSearch.File) -> Bool
     ) -> [SearchRow] {
-        let positions = Dictionary(
-            result.files.enumerated().map { ($1.index, $0) },
-            uniquingKeysWith: { first, _ in first })
+        let found = Dictionary(
+            result.files.map { ($0.index, $0) }, uniquingKeysWith: { first, _ in first })
         let tree = FileTree.rows(
-            paths, flat: flat, generated: generated, showsGenerated: true,
-            only: Set(positions.keys))
+            files.map(\.diff.path), flat: flat,
+            generated: Set(files.indices.filter { files[$0].isGenerated }), showsGenerated: true,
+            only: Set(found.keys))
         var rows: [SearchRow] = []
         for row in tree {
-            guard case .file(let index) = row.kind, let position = positions[index] else {
+            guard case .file(let index) = row.kind, let match = found[index] else {
                 rows.append(SearchRow(id: row.id, name: row.name, depth: row.depth, kind: .heading))
                 continue
             }
-            let file = result.files[position]
-            let folded = isFolded(file)
-            rows.append(
-                SearchRow(
-                    id: row.id, name: row.name, depth: row.depth,
-                    kind: .file(position, isFolded: folded)))
+            let diff = files[index].diff
+            let folded = isFolded(match)
+            let file = File(
+                path: diff.path, status: diff.status,
+                nameRanges: SearchSnippet.name(row.name, path: diff.path, match.pathRanges),
+                lineMatchCount: match.lineMatchCount, hasLines: !match.lines.isEmpty,
+                isFolded: folded)
+            rows.append(SearchRow(id: row.id, name: row.name, depth: row.depth, kind: .file(file)))
             guard !folded else { continue }
-            rows += file.lines.indices.map {
+            rows += match.lines.enumerated().map {
                 SearchRow(
                     id: "\(row.id)\u{0}\($0)", name: "", depth: row.depth + 1,
-                    kind: .line(position, $0))
+                    kind: .line(path: diff.path, $1))
             }
         }
         return rows
