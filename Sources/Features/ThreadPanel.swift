@@ -13,10 +13,6 @@ struct ThreadPanel: View {
         VStack(spacing: 0) {
             header(placed)
             Divider()
-            if let failure = session.threads?.failure {
-                Text(failure).font(.callout).foregroundStyle(.red)
-                    .frame(maxWidth: .infinity, alignment: .leading).padding(10)
-            }
             if placed.isEmpty {
                 ContentUnavailableView(
                     String(localized: "No threads", bundle: .module),

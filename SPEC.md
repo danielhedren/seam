@@ -517,6 +517,8 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   every change is a read-modify-write under an exclusive `flock` on a lock file beside it,
   written to a temporary file and renamed into place. The app watches the directory and reloads
   on change. The file carries a format version; an unknown version is refused, not overwritten.
+  A change that can't be read or saved says why in a banner above the diff, with Dismiss, and the
+  text being written stays where it was.
 
 ### 7.8 Pull requests
 

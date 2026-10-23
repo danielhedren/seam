@@ -115,6 +115,15 @@ struct DiffPane: View {
             if let problem = review.problem {
                 ProblemBanner(problem: problem, session: session)
             }
+            if let failure = session.threadFailure {
+                Banner(systemImage: "exclamationmark.triangle.fill", tint: .orange) {
+                    Text(failure).lineLimit(2).textSelection(.enabled).help(failure)
+                } actions: {
+                    Button(String(localized: "Dismiss", bundle: .module)) {
+                        session.dismissThreadFailure()
+                    }
+                }
+            }
             if let stale = review.staleParent {
                 StaleParentBanner(stale: stale, session: session)
             } else if let base = review.pullRequestBase, let pullRequest = review.pullRequest {

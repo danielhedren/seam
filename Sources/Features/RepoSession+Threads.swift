@@ -57,6 +57,13 @@ extension RepoSession {
         await threads?.setResolved(resolved, id: id)
     }
 
+    /// Why the last change to the threads didn't save; the diff shows it (SPEC §9).
+    var threadFailure: String? { threads?.failure }
+
+    func dismissThreadFailure() {
+        threads?.dismissFailure()
+    }
+
     /// A pull request's thread, which Seam only reads (SPEC §7.9).
     static func isGitHub(_ id: String) -> Bool {
         id.hasPrefix(ReviewThread.gitHubPrefix)

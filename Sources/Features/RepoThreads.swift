@@ -78,6 +78,10 @@ final class RepoThreads {
         apply(result.map { _ in () }, threads: try? result.get())
     }
 
+    func dismissFailure() {
+        failure = nil
+    }
+
     func threads(in worktree: String) -> [ReviewThread] {
         threads.filter { $0.worktree == worktree }
             + (showsGitHub() ? gitHub.filter { $0.worktree == worktree } : [])

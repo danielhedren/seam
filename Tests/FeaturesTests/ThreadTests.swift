@@ -50,6 +50,34 @@ import Testing
         #expect(reviewed.content?.threads.isEmpty == true)
     }
 
+    /// A thread that couldn't be saved says so above the diff, where the reader is, and keeps the
+    /// typed text; the panel needn't be open.
+    @Test func aThreadThatCantBeSavedSaysSoAboveTheDiffAndKeepsTheText() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\n")
+        let blocked = FileManager.default.temporaryDirectory.appending(
+            path: "seam-blocked-\(UUID().uuidString)")
+        try Data("not a folder".utf8).write(to: blocked)
+        let session = RepoSession(
+            directory: repo.main,
+            services: SeamServices(
+                git: repo.git, watcher: SilentWatcher(), clock: ManualClock(), store: MemoryStore(),
+                threads: ThreadStore(directory: blocked), settings: testSettings()))
+        await session.open()
+        await session.settled()
+        let reviewed = try #require(session.selected)
+        let anchor = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1))
+        session.draft = ThreadDraft(worktree: reviewed.id, anchor: anchor, body: "Why one?")
+
+        await session.submitDraft()
+        #expect(session.showsThreadPanel == false)
+        #expect(session.threadFailure != nil)
+        #expect(session.draft?.body == "Why one?")
+        session.dismissThreadFailure()
+        #expect(session.threadFailure == nil)
+        session.close()
+    }
+
     /// The open thread belongs to its worktree: after switching, Review › Resolve and Delete
     /// can't act on a thread that's no longer shown.
     @Test func switchingWorktreesClosesTheOpenThread() async throws {
