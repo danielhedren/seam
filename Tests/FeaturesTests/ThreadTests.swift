@@ -55,8 +55,7 @@ import Testing
     @Test func aThreadThatCantBeSavedSaysSoAboveTheDiffAndKeepsTheText() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\n")
-        let blocked = FileManager.default.temporaryDirectory.appending(
-            path: "seam-blocked-\(UUID().uuidString)")
+        let blocked = Scratch.path("seam-blocked")
         try Data("not a folder".utf8).write(to: blocked)
         let session = RepoSession(
             directory: repo.main,

@@ -1,4 +1,5 @@
 import Foundation
+import TestSupport
 import Testing
 
 @testable import Features
@@ -7,7 +8,7 @@ import Testing
 @Suite struct WorkspaceTests {
     /// A throwaway domain: the real one holds the user's workspace.
     private func scratchDefaults() throws -> UserDefaults {
-        try #require(UserDefaults(suiteName: "seam-workspace-\(UUID().uuidString)"))
+        Scratch.defaults("seam-workspace")
     }
 
     @Test func reposOpenedStayInOrderAndComeBackNextLaunch() throws {

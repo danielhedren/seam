@@ -45,7 +45,7 @@ import Testing
         var state = RepoState()
         state.baseOverrides["refs/heads/feature"] = "refs/remotes/origin/parent"
         await store.save(state, for: repository)
-        let defaults = try #require(UserDefaults(suiteName: "seam-choices-\(UUID())"))
+        let defaults = Scratch.defaults("seam-choices")
         let settings = AppSettings(defaults: defaults)
         settings.defaultBase = "origin/develop"
         settings.ignoredRefs = ["origin/wip/**"]

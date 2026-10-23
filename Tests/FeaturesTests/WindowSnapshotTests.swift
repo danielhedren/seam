@@ -335,7 +335,7 @@ struct WindowSnapshotTests {
     }
 
     private func scratchDefaults() throws -> UserDefaults {
-        try #require(UserDefaults(suiteName: "seam-snapshots-\(UUID().uuidString)"))
+        Scratch.defaults("seam-snapshots")
     }
 }
 

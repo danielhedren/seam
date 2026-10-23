@@ -8,7 +8,7 @@ import Testing
 
 @MainActor @Suite(.timeLimit(.minutes(1))) struct SettingsTests {
     @Test func valuesPersistInTheirDefaultsDomain() throws {
-        let defaults = try #require(UserDefaults(suiteName: "seam-settings-\(UUID())"))
+        let defaults = Scratch.defaults("seam-settings")
         let settings = AppSettings(defaults: defaults)
         settings.defaultBase = "origin/develop"
         settings.contextLines = 7

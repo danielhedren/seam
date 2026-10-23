@@ -1,4 +1,5 @@
 import Foundation
+import TestSupport
 import Testing
 
 @testable import GitKit
@@ -131,8 +132,7 @@ import Testing
     private let log: URL
 
     init() throws {
-        folder = FileManager.default.temporaryDirectory.appending(
-            path: "seam-gh-\(UUID().uuidString)", directoryHint: .isDirectory)
+        folder = Scratch.path("seam-gh")
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         gh = folder.appending(path: "gh")
         log = folder.appending(path: "log")

@@ -127,9 +127,7 @@ func services(
 
 /// Never the real store: that holds the reader's threads.
 func scratchThreadStore() -> ThreadStore {
-    ThreadStore(
-        directory: FileManager.default.temporaryDirectory.appending(
-            path: "seam-threads-\(UUID().uuidString)", directoryHint: .isDirectory))
+    ThreadStore(directory: Scratch.path("seam-threads"))
 }
 
 /// Records launched command lines; `next()` waits for the next one.
@@ -158,7 +156,7 @@ actor FakeLauncher: CommandLauncher {
 /// Settings in a throwaway defaults domain, so tests never read or write the user's.
 @MainActor
 func testSettings() -> AppSettings {
-    AppSettings(defaults: UserDefaults(suiteName: "seam-tests-\(UUID())") ?? UserDefaults())
+    AppSettings(defaults: Scratch.defaults("seam-tests"))
 }
 
 /// Set from a task the test starts, so it knows that task has begun.

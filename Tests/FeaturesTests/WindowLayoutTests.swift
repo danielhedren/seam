@@ -160,7 +160,7 @@ import Testing
     }
 
     private func scratchDefaults() throws -> UserDefaults {
-        try #require(UserDefaults(suiteName: "seam-windows-\(UUID().uuidString)"))
+        Scratch.defaults("seam-windows")
     }
 }
 

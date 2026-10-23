@@ -47,8 +47,8 @@ public final class TemporaryDirectory: Sendable {
     public let url: URL
 
     public init() throws {
-        url = FileManager.default.temporaryDirectory
-            .appending(path: "seam-tests-\(UUID().uuidString)", directoryHint: .isDirectory)
+        // Also removed at exit, for a directory a test keeps alive to the end.
+        url = Scratch.path("seam-tests")
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     }
 
