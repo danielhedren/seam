@@ -8,6 +8,12 @@ public protocol InlineThreadView: NSView {
     func height(forWidth width: Double) -> Double
 }
 
+/// Where an open thread's text starts inside its view, so it lines up with the composer's.
+@MainActor
+public enum InlineThreadMetrics {
+    public static let textInset = DraftEditor.textInset - DraftEditor.margin
+}
+
 extension DiffCanvasView {
     /// The row's height for its conversation: measured at the card's inner width, with the
     /// card's margins. Makes the view on first need and drops one for another thread.

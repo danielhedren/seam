@@ -292,16 +292,21 @@ private struct ThreadCard: View {
 }
 
 /// A thread's comments: author, age and Markdown body, oldest first.
+/// The panel's sizes by default; the diff's card passes its font for all of it.
 struct ThreadComments: View {
     let thread: ReviewThread
+    var font: Font?
+    var authorFont: Font?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             ForEach(thread.comments) { comment in
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(verbatim: comment.author).font(.callout.weight(.semibold))
-                        AgeText(date: comment.date).font(.caption).foregroundStyle(.secondary)
+                        Text(verbatim: comment.author)
+                            .font(authorFont ?? .callout.weight(.semibold))
+                        AgeText(date: comment.date).font(font ?? .caption)
+                            .foregroundStyle(.secondary)
                     }
                     Text(CommentText.markdown(comment.body)).textSelection(.enabled)
                         .fixedSize(horizontal: false, vertical: true)

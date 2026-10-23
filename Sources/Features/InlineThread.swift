@@ -4,7 +4,8 @@ import SeamCore
 import SwiftUI
 
 /// The thread open in the diff (SPEC §7.7): its conversation, a reply box and its actions, in the
-/// same amber card as the composer for a new thread.
+/// same amber card as the composer for a new thread, and in its style: the diff's font, a
+/// reply box without a background of its own, and the keys as hints at the bottom.
 struct InlineThread: View {
     let session: RepoSession
     let id: String
@@ -22,42 +23,59 @@ struct InlineThread: View {
     }
 
     private func content(_ thread: ReviewThread, lines: ThreadPlacement) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let diffFont = session.settings.font
+        let font = Font(diffFont)
+        // A weight on a font made from an NSFont is ignored, so the bold face is asked for.
+        let bold = Font(NSFontManager.shared.convert(diffFont, toHaveTrait: .boldFontMask))
+        let placeholder = String(localized: "Write a reply…", bundle: .module)
+        return VStack(alignment: .leading, spacing: 10) {
             header(thread, lines: lines)
-            ThreadComments(thread: thread)
+            ThreadComments(thread: thread, font: font, authorFont: bold)
             // Three lines whatever is typed, so the row's height doesn't change under the reader.
-            TextField(
-                String(localized: "Reply…", bundle: .module), text: $reply, axis: .vertical
-            )
-            .lineLimit(3, reservesSpace: true)
-            .textFieldStyle(.roundedBorder)
-            .focused($replyFocused)
-            HStack(spacing: 8) {
-                Text(
-                    "\(SeamCommand.label(CommandCatalog.send.key, CommandCatalog.send.modifiers)) Reply   ⎋ Close",
-                    bundle: .module
-                )
-                .font(.caption).foregroundStyle(.secondary)
+            TextField(placeholder, text: $reply, prompt: Text(""), axis: .vertical)
+                .lineLimit(3, reservesSpace: true)
+                .textFieldStyle(.plain)
+                .focused($replyFocused)
+                // A plain field draws its prompt in the text colour, so the placeholder is
+                // drawn here, as the filter field does.
+                .overlay(alignment: .topLeading) {
+                    if reply.isEmpty {
+                        Text(placeholder)
+                            .foregroundStyle(Color(nsColor: .placeholderTextColor))
+                            .allowsHitTesting(false)
+                    }
+                }
+            HStack(spacing: 24) {
                 Spacer()
-                Button(String(localized: "Reply", bundle: .module)) { send() }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(CommandCatalog.send)
-                    .disabled(reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                // The composer's hints, as buttons: they read the same and also work.
+                Button {
+                    send()
+                } label: {
+                    Text(
+                        "\(SeamCommand.label(CommandCatalog.send.key, CommandCatalog.send.modifiers)) Reply",
+                        bundle: .module)
+                }
+                .keyboardShortcut(CommandCatalog.send)
+                .disabled(reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button {
+                    session.closeThread()
+                } label: {
+                    Text("⎋ Close", bundle: .module)
+                }
             }
-            .controlSize(.small)
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .pointerStyle(.link)
         }
+        .font(font)
+        .padding(.horizontal, InlineThreadMetrics.textInset)
         .onExitCommand { session.closeThread() }
     }
 
     private func header(_ thread: ReviewThread, lines: ThreadPlacement) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: thread.isResolved ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(
-                    thread.isResolved
-                        ? AnyShapeStyle(.secondary)
-                        : AnyShapeStyle(Color(nsColor: ThreadColor.accent)))
+        HStack(spacing: 16) {
             Text(verbatim: Self.title(thread, lines: lines))
-                .font(.callout).foregroundStyle(.secondary)
+                .foregroundStyle(.secondary)
                 .lineLimit(1).truncationMode(.middle)
             Spacer(minLength: 4)
             Button(
@@ -67,6 +85,8 @@ struct InlineThread: View {
             ) {
                 Task { await session.setResolved(!thread.isResolved, thread: thread.id) }
             }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
             .help(
                 CommandCatalog.help(
                     thread.isResolved
@@ -80,18 +100,11 @@ struct InlineThread: View {
                 Label(String(localized: "Delete", bundle: .module), systemImage: "trash")
             }
             .labelStyle(.iconOnly)
-            .buttonStyle(.borderless)
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
             .help(String(localized: "Delete this thread (Undo brings it back)", bundle: .module))
-            Button {
-                session.closeThread()
-            } label: {
-                Label(String(localized: "Close", bundle: .module), systemImage: "xmark")
-            }
-            .labelStyle(.iconOnly)
-            .buttonStyle(.borderless)
-            .help(String(localized: "Close (⎋)", bundle: .module))
         }
-        .controlSize(.small)
+        .pointerStyle(.link)
     }
 
     /// "Thread on src/a.cs, line 12 · 3 comments · resolved".

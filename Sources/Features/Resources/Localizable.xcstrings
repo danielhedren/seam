@@ -7,7 +7,7 @@
     " · resolved" : {
 
     },
-    "%@ Reply   ⎋ Close" : {
+    "%@ Reply" : {
 
     },
     "%@ already exists and isn't Seam's. Remove it and try again." : {
@@ -122,12 +122,6 @@
 
     },
     "Clear Search" : {
-
-    },
-    "Close" : {
-
-    },
-    "Close (⎋)" : {
 
     },
     "Collapse File" : {
@@ -534,9 +528,6 @@
     "Reply" : {
 
     },
-    "Reply…" : {
-
-    },
     "Resolve" : {
 
     },
@@ -740,6 +731,9 @@
     "Wrap Lines" : {
 
     },
+    "Write a reply…" : {
+
+    },
     "Write something first." : {
 
     },
@@ -781,6 +775,9 @@
 
     },
     "“%@” doesn't compile." : {
+
+    },
+    "⎋ Close" : {
 
     }
   },
