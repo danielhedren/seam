@@ -1,4 +1,4 @@
-.PHONY: setup check format lint build test test-all app release run install uninstall dist strings
+.PHONY: setup check format lint build test test-github test-all app release run install uninstall dist strings
 
 setup:
 	git config core.hooksPath .githooks
@@ -67,6 +67,10 @@ strings:
 REAL_ENV = SEAM_REAL_REPO="$(REAL_REPO)" SEAM_REAL_COMMIT="$(REAL_COMMIT)" \
 	SEAM_REAL_BRANCH="$(REAL_BRANCH)" SEAM_REAL_PARENT="$(REAL_PARENT)" \
 	SEAM_REAL_BASE="$(REAL_BASE)" SEAM_REAL_STAT="$(REAL_STAT)"
+
+# Reads the real repo's pull requests with the user's own gh (SPEC §7.8): network and a login.
+test-github:
+	$(REAL_ENV) SEAM_REAL_GITHUB=1 swift test --filter RealGitHub
 
 test-all: check app
 	$(REAL_ENV) swift test --skip 'Budget|Benchmark'

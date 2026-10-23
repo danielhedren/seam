@@ -27,6 +27,8 @@ final class RepoSession {
     private(set) var repository: Repository?
     /// The repo's review threads, once it's open (SPEC §7.7).
     private(set) var threads: RepoThreads?
+    /// The repo's pull requests, once it's open (SPEC §7.8).
+    private(set) var pullRequests: RepoPullRequests?
     var showsThreadPanel = false
     /// The thread open in the diff, and selected in the panel (SPEC §7.7).
     var selectedThreadID: String?
@@ -143,6 +145,7 @@ final class RepoSession {
             self.repository = repository
             threads = RepoThreads(repository: repository, store: services.threads)
             repoState = await services.store.load(repository)
+            startPullRequests(in: repository)
             await services.store.noteOpened(directory)
             // Spotlight lists what Open Recent does, and never holds up the window.
             spotlightTask = Task { [services] in
@@ -157,7 +160,12 @@ final class RepoSession {
             let last = repoState.selectedWorktree.flatMap { id in reviews.first { $0.id == id } }
             select(last?.id ?? worktree.path)
             startMonitor()
-            rowsTask = Task { [weak self] in await self?.refreshRows(skippingSelected: true) }
+            rowsTask = Task { [weak self] in
+                await self?.refreshRows(skippingSelected: true)
+                // After detection, so local parents are among the branches looked up.
+                await self?.selected?.loaded()
+                self?.pullRequests?.request(.open)
+            }
         } catch {
             state = .failed(Self.openFailure(error))
         }
@@ -186,6 +194,7 @@ final class RepoSession {
             }
             let review = WorktreeReview(worktree: worktree, services: services)
             review.threads = threads
+            review.pullRequests = pullRequests
             review.restore(
                 repoState.worktrees[worktree.id],
                 override: worktree.branch.flatMap { repoState.baseOverrides[$0] })
@@ -351,6 +360,11 @@ final class RepoSession {
         persist()
     }
 
+    func dismissPullRequestBase() {
+        selected?.dismissPullRequestBase()
+        persist()
+    }
+
     func toggleWhitespace() {
         selected?.toggleWhitespace()
         persist()
@@ -394,6 +408,18 @@ final class RepoSession {
             guard self?.selectedID == review.id else { return }
             review.reloadDiff()
         }
+        pullRequests?.request(.reload)
+    }
+
+    var savedPullRequests: SavedPullRequests? { repoState.pullRequests }
+
+    func setPullRequests(_ pullRequests: RepoPullRequests) {
+        self.pullRequests = pullRequests
+    }
+
+    func notePullRequests(_ saved: SavedPullRequests) {
+        repoState.pullRequests = saved.byBranch.isEmpty ? nil : saved
+        persist()
     }
 
     func persist() {
@@ -437,6 +463,8 @@ final class RepoSession {
             }
             await refreshRows(skippingSelected: false)
             selected?.reloadDiff()
+            // A push moves a remote ref, so it's also the cue that a PR may have changed.
+            pullRequests?.request(.refs)
             if reviews.map(\.id) != before {
                 // Restarting from here would cancel this very task mid-apply.
                 Task { [weak self] in self?.restartMonitor() }
@@ -491,6 +519,7 @@ final class RepoSession {
         monitorTask?.cancel()
         monitorTask = nil
         threads?.stop()
+        pullRequests?.stop()
         rowsTask?.cancel()
         for task in deferredActivity.values { task.cancel() }
         selected?.cancelLoading()
@@ -540,6 +569,7 @@ final class RepoSession {
         await reloadTask?.value
         await selected?.loaded()
         await rowsTask?.value
+        await pullRequests?.idle()
         await saveTask?.value
     }
 }

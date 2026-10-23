@@ -180,6 +180,20 @@ enum CommandCatalog {
             id: "worktree-copy-branch", title: localized("Copy Branch Name"), menu: .file,
             section: 1, shortcut: .none, isEnabled: { $0.selected?.worktree.branch != nil },
             run: { session in session.selected.map { session.copyBranchName(of: $0) } }),
+        SeamCommand(
+            id: "pull-request-open", title: localized("Open Pull Request in Browser"),
+            menu: .file, section: 2, shortcut: .none,
+            isEnabled: { $0.selected?.pullRequest != nil },
+            run: { session in session.selected.map(session.openPullRequest) }),
+        SeamCommand(
+            id: "pull-request-copy", title: localized("Copy Pull Request URL"), menu: .file,
+            section: 2, shortcut: .none, isEnabled: { $0.selected?.pullRequest != nil },
+            run: { session in session.selected.map { session.copyPullRequestURL(of: $0) } }),
+        SeamCommand(
+            id: "pull-request-check", title: localized("Open Failed Check in Browser"),
+            menu: .file, section: 2, shortcut: .none,
+            isEnabled: { $0.selected?.pullRequest?.ciFailed == true },
+            run: { session in session.selected.map(session.openFailedCheck) }),
     ]
 
     static let find: [SeamCommand] = [
@@ -391,6 +405,14 @@ enum CommandCatalog {
             id: "keep-parent", title: localized("Keep Parent That Looks Merged"), menu: .review,
             section: 3, shortcut: .none, isEnabled: { $0.selected?.staleParent != nil },
             run: { $0.dismissStaleParent() }),
+        SeamCommand(
+            id: "pull-request-base", title: localized("Use Pull Request's Base"), menu: .review,
+            section: 3, shortcut: .none, isEnabled: { $0.selected?.pullRequestBase != nil },
+            run: { $0.usePullRequestBase() }),
+        SeamCommand(
+            id: "keep-detected-base", title: localized("Keep Detected Base"), menu: .review,
+            section: 3, shortcut: .none, isEnabled: { $0.selected?.pullRequestBase != nil },
+            run: { $0.dismissPullRequestBase() }),
         SeamCommand(
             id: "detected-base", title: localized("Use Detected Base"), menu: .review,
             section: 3, shortcut: .none, isEnabled: { $0.selected?.baseOverride != nil },

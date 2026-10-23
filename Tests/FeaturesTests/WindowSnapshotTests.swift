@@ -1,4 +1,5 @@
 import AppKit
+import GitKit
 import SeamCore
 import SnapshotTesting
 import SwiftUI
@@ -214,6 +215,54 @@ struct WindowSnapshotTests {
                 of: try render(list, size: CGSize(width: 280, height: 160), appearance),
                 as: .image(precision: 0.99, perceptualPrecision: 0.98),
                 named: "file-threads-\(name)-\(Self.os)")
+        }
+    }
+
+    /// Every PR marker, a worktree row carrying one, and the file list's header showing it while
+    /// the worktree list is hidden (SPEC §7.8).
+    @Test func pullRequestMarkers() async throws {
+        let (session, _) = try await session()
+        let review = try #require(session.selected)
+        func pullRequest(
+            _ number: Int, _ state: PullRequest.State = .open, draft: Bool = false,
+            review: PullRequest.Review = .none, failed: Int = 0
+        ) -> PullRequest {
+            PullRequest(
+                number: number, title: "Count the lines", url: "https://github.com/o/a/pull/1",
+                state: state, isDraft: draft, head: "feature", headOwner: "o", headCommit: "abc",
+                base: "main", review: review, checks: .init(passed: 2, failed: failed),
+                updated: Self.fixtureEpoch)
+        }
+        var saved = SavedPullRequests()
+        saved.byBranch["feature"] = pullRequest(12, review: .approved, failed: 1)
+        let pullRequests = RepoPullRequests(
+            services: session.services, directory: review.worktree.path, saved: saved,
+            branches: { [] })
+        review.pullRequests = pullRequests
+        session.showsWorktreeList = false
+        let markers: [PullRequest] = [
+            pullRequest(1, draft: true), pullRequest(2), pullRequest(3, review: .commented),
+            pullRequest(4, review: .changesRequested), pullRequest(5, review: .approved),
+            pullRequest(6, .merged), pullRequest(7, .closed), pullRequest(8, failed: 1),
+        ]
+        let view = VStack(alignment: .leading, spacing: 10) {
+            WorktreeRow(review: review)
+            HStack(spacing: 12) {
+                ForEach(markers, id: \.number) { PullRequestBadge(pullRequest: $0) }
+            }
+            .font(.caption).monospacedDigit().foregroundStyle(.secondary)
+            FileList(
+                session: session, review: review, filterFocus: FocusState<Bool>().projectedValue
+            )
+            .frame(width: 300, height: 40, alignment: .top)
+        }
+        .padding(12)
+        .frame(width: 420, alignment: .leading)
+        for (appearance, name) in Self.appearances {
+            assertSnapshot(
+                of: try render(view, size: CGSize(width: 420, height: 150), appearance),
+                as: .image(precision: 0.99, perceptualPrecision: 0.98),
+                named: "pull-requests-\(name)-\(Self.os)")
         }
     }
 

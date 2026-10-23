@@ -6,6 +6,7 @@ import SwiftUI
 /// The Settings window (SPEC §12). Lists are edited one entry per line.
 struct SettingsView: View {
     @Bindable var settings: AppSettings
+    let github: GitHubAccount
 
     var body: some View {
         TabView {
@@ -21,6 +22,13 @@ struct SettingsView: View {
                 .frame(width: 520, height: 200)
                 .tabItem {
                     Label(String(localized: "Editor", bundle: .module), systemImage: "pencil")
+                }
+            GitHubSettings(settings: settings, account: github)
+                .frame(width: 520, height: 220)
+                .tabItem {
+                    Label(
+                        String(localized: "GitHub", bundle: .module),
+                        systemImage: "arrow.triangle.pull")
                 }
         }
         .formStyle(.grouped)
@@ -77,6 +85,59 @@ struct ReviewSettings: View {
                 )
                 .settingsFootnote()
             }
+        }
+    }
+}
+
+/// Pull requests through gh (SPEC §7.8): on unless turned off, and what the last call said.
+struct GitHubSettings: View {
+    @Bindable var settings: AppSettings
+    let account: GitHubAccount
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle(
+                    String(localized: "Show pull requests", bundle: .module),
+                    isOn: $settings.showsPullRequests)
+                if settings.showsPullRequests {
+                    LabeledContent {
+                        Button(String(localized: "Check Again", bundle: .module)) {
+                            account.checkAgain()
+                        }
+                    } label: {
+                        Text(verbatim: Self.status(account.status))
+                    }
+                }
+            } footer: {
+                Text(
+                    "Seam reads each worktree's pull request with your gh login and never changes anything on GitHub.",
+                    bundle: .module
+                )
+                .settingsFootnote()
+            }
+        }
+    }
+
+    static func status(_ status: GitHubAccount.Status) -> String {
+        switch status {
+        case .unknown, .failed(.cancelled):
+            String(localized: "Checked when a repository on GitHub opens", bundle: .module)
+        case .ready: String(localized: "Reading pull requests with gh", bundle: .module)
+        case .failed(.notInstalled):
+            String(localized: "gh isn't installed. Install it, then check again.", bundle: .module)
+        case .failed(.notSignedIn):
+            String(
+                localized: "gh isn't signed in. Run gh auth login in Terminal, then check again.",
+                bundle: .module)
+        case .failed(.offline):
+            String(localized: "Can't reach GitHub. Seam tries again by itself.", bundle: .module)
+        case .failed(.rateLimited):
+            String(
+                localized: "GitHub's rate limit was reached. Seam tries again later.",
+                bundle: .module)
+        case .failed(.failed(let message)):
+            String(localized: "gh failed: \(message)", bundle: .module)
         }
     }
 }

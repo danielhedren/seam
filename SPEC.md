@@ -155,11 +155,13 @@ the old parent, and the diff shows only the commits after it. Signals:
 - The parent is a local branch with no remote ref, and it is fully contained in the default base
   or a remote candidate. A sibling branch cut from the same local parent also contains it, so
   local siblings don't count.
+- The parent is a local branch whose own pull request merged (§7.8). This catches a squash merge
+  before anyone has fetched. The banner names the PR: "Parent `X`'s pull request #7 merged."
 
 The check reruns with detection, on every ref change, and the worktree's row carries a "stale
 parent" marker. Dismissing the banner ("Keep X", also in the Review menu) is remembered per
-worktree. On either signal, show a non-blocking banner: "Parent `X` looks merged — diff against `origin/main`
-instead?" Asking `gh` whether the PR is merged is out of scope for v1.
+worktree. On any signal, show a non-blocking banner: "Parent `X` looks merged — diff against `origin/main`
+instead?" The suggestion is never applied by itself.
 
 ### 5.5 No git operations
 
@@ -264,7 +266,7 @@ Each row shows:
   files' modification times (from `git status`), and the last watcher event for it. Under a
   minute, or a time ahead of the clock (a file copied from another machine), reads "now".
 - State markers: detached, locked, prunable (from porcelain output), missing directory, stale
-  parent (§5.4).
+  parent (§5.4), and the branch's pull request (§7.8).
 - The totals are green and red and the markers orange, except on a selected row, where they
   take the row's text colour: the accent fill leaves those colours unreadable.
 
@@ -272,8 +274,8 @@ Sorting: most recently changed first (default), or by name. The main worktree is
 top. Worktrees whose directory is missing are listed dimmed, and can be hidden.
 
 A row's context menu has Open in Editor (the worktree's folder, §7.6), Reveal in Finder, Copy
-Path and Copy Branch Name (when it has a branch), then the list's Sort By and Hide Missing
-Worktrees. A missing worktree can only be copied. File › Open Worktree in Editor, Reveal Worktree
+Path and Copy Branch Name (when it has a branch), Open Pull Request in Browser and Copy Pull
+Request URL (when it has one), then the list's Sort By and Hide Missing Worktrees. A missing worktree can only be copied. File › Open Worktree in Editor, Reveal Worktree
 in Finder, Copy Worktree Path and Copy Branch Name do the same for the selected worktree.
 
 Switching: `⌘1`…`⌘9` pick by position, `⌘[`/`⌘]` go to the previous or next worktree, and `⌘K`
@@ -506,6 +508,55 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   written to a temporary file and renamed into place. The app watches the directory and reloads
   on change. The file carries a format version; an unknown version is refused, not overwritten.
 
+### 7.8 Pull requests
+
+Each worktree's branch shows its GitHub pull request, read through the user's own `gh` (ADR
+0005). Seam never changes anything on GitHub.
+
+- **Markers:** `#12` and one symbol for the PR's state: draft (dashed circle), waiting for review
+  (pull arrow), reviewed without approval, including changes requested (speech bubble), approved
+  (seal), merged (merge arrow), closed (crossed circle). A red octagon follows when CI failed on
+  an open PR. Each state has its own symbol, so colour is never the only sign; on a selected row
+  they all take the row's text colour. The tooltip has the number and title, the state ("Changes
+  requested", "Reviewed, not approved", …), the checks ("Checks: 3 passed, 1 failed, 2
+  running"), commits on the local branch the PR doesn't have yet, and when it was read. With the
+  worktree list hidden, the selected worktree's marker shows in the file list's header.
+- **Reviews:** GitHub's review decision where the repo requires reviews; elsewhere the latest
+  review of each reviewer: changes requested, then approved, then commented. One approval of two
+  required is "reviewed, not approved".
+- **Checks:** passed (success, neutral), failed (failure, error, timed out, startup failure),
+  running (queued, in progress, expected, and workflows waiting for approval). Cancelled and
+  skipped checks don't count, as on GitHub. A merged or closed PR shows no CI marker.
+- **Which PR:** the open one from the branch's upstream name (its own name without an upstream)
+  and, when the upstream's remote is on GitHub, from that remote's owner, so a fork's branch
+  isn't confused with the main repo's. A branch with none open shows its newest merged or closed
+  one. PRs live on the remote named `upstream` when it's on GitHub, else `origin`, else the first
+  GitHub remote. A remote is on GitHub when its URL (as git rewrites it with `insteadOf`) names
+  github.com, a GHE.com host, or a host gh has an account for. The default branch isn't looked
+  up.
+- **Base suggestion:** when an open PR merges into a branch other than the detected parent's, and
+  that branch exists here (the PR repo's remote, `origin`, or a local branch), a banner says "Pull
+  request #12 merges into origin/release. Diff against origin/release instead?" with Keep Detected
+  Base and Use origin/release, also in the Review menu. Keeping is remembered per worktree. It
+  isn't shown while the stale-parent banner is, nor once a base is chosen.
+- **Commands:** File › Open Pull Request in Browser, Copy Pull Request URL, and Open Failed Check
+  in Browser (the first failed check's page) act on the selected worktree.
+- **Reading:** the last PRs read are kept (§11) and shown at once on reopening. They're read
+  again after the worktree list loads; after a ref change, such as a push; when the app comes to
+  the front and they're over a minute old; on Reload; and every 2 minutes while the app is in
+  front, every 30 seconds while an open PR's checks are running. Reads are at least 15 seconds
+  apart except on opening, Reload or a Settings change. A lost connection or a rate limit waits 1
+  minute, then twice as long each time, up to 16 minutes.
+- **Without gh:** when `gh` isn't installed or isn't signed in, or no remote is on GitHub,
+  nothing shows and nothing polls; there's no banner or alert. Settings › GitHub says which, with
+  Check Again.
+- **Cost:** GitHub charges a query for every check and review it reaches, and the review
+  decision takes it seconds over a hundred PRs, so a repo's open PRs are one `gh pr list`
+  without them (under a second); each worktree's open PR then gets one `gh pr view` for its
+  reviews and checks, and each branch with none open one `--head` lookup, repeated at most every
+  10 minutes. Those run side by side, at most six at once. The open PRs show as soon as the list
+  is in, with the reviews and checks last read until the new ones arrive.
+
 ## 8. Technical design
 
 ### 8.1 Language and toolchain
@@ -572,7 +623,7 @@ seam-debug (M1)       ─ SeamCore
   Results arrive on the main actor. Each selection change cancels the task tree for the previous
   selection. Nothing blocks the main thread on I/O.
 - **Dependency injection:** protocol seams passed in through initialisers: `GitClient`,
-  `FileSystem`, `FileWatcher`, `Clock`, `Store`. No singletons, no DI framework. Tests and SwiftUI
+  `GitHubClient`, `FileSystem`, `FileWatcher`, `Clock`, `Store`. No singletons, no DI framework. Tests and SwiftUI
   previews use in-memory fakes.
 - **Errors:** typed domain errors (`GitError`, `DetectionError`, …) as `throws(E)` where the set is
   closed. The UI turns them into inline banners (§9). They never cause a crash or a modal unless
@@ -604,6 +655,11 @@ seam-debug (M1)       ─ SeamCore
 - A first load shows the diff as soon as it's parsed and adds contents when they arrive. A
   reload swaps diff and contents together, so new hunks never meet the old file's lines.
 - Cancellation: switching worktrees or scopes cancels in-flight processes for the old selection.
+- **gh** (§7.8, ADR 0005): `GitHubClient` in GitKit has read methods only. Every call passes
+  `-R host/owner/repo`, runs in a temporary folder outside any repository with
+  `GH_PROMPT_DISABLED=1`, and drops `GH_REPO` and `GH_HOST`, so gh can't pick a remote, prompt, or
+  write to `.git/config`. gh is found on the login shell's PATH, then in Homebrew's folders. Exit
+  status 4 means signed out; rate limits and lost connections are told by gh's message.
 
 ### 8.4 Syntax highlighting
 
@@ -806,7 +862,8 @@ Rules:
 - `repos.json`: recently opened repos (paths of common git dirs).
 - `<repo-id>/state.json`, per repo:
   - Per branch: the base override (§5.3).
-  - Per worktree: scope, scroll anchor, selected file.
+  - Per worktree: scope, scroll anchor, selected file, dismissed stale parents and PR bases.
+  - The pull requests last read, by branch (§7.8).
   - **Viewed state:** keyed by (worktree path, file path), storing the blob id of the new side
     when it was marked viewed. If the file's content changes later, the viewed mark is cleared
     and the file is marked "changed since viewed".
@@ -822,13 +879,15 @@ Seam writes nothing inside the repository or `.git`.
 - Editor command template (§7.6).
 - Font and size (default: SF Mono 12). Tab width (default 4, or `.editorconfig` if present).
 - View mode (unified or side by side), whitespace mode, and number of context lines.
+- Show pull requests (default on; §7.8).
 
 Settings apply to the next load of each worktree; font changes apply at once (`⌘+`, `⌘−`, `⌘0`
 in the View menu too). The default base may be a short name (`origin/develop`, `main`). Tab widths
 come from the repository's root `.editorconfig` (`tab_width`, or a numeric `indent_size`) where a
 section matches, else the setting; nested `.editorconfig` files aren't read.
 
-The Settings window has three tabs: Review (the base and the diff), Display and Editor. Each
+The Settings window has four tabs: Review (the base and the diff), Display, Editor and GitHub
+(the pull request switch, what gh last said, and Check Again). Each
 group says under it what its settings do. Lists of patterns take one per line. Font offers the
 installed fixed-pitch fonts, SF Mono first; a font set before that isn't installed stays listed
 under its name.
@@ -939,11 +998,11 @@ changes but a status line in Settings, never a banner or an alert.
 - Each worktree row shows its branch's pull request: `#12` and one marker for its state (draft,
   waiting for review, reviewed without approval, approved, merged, closed), plus a marker when
   CI failed. Each marker is its own symbol, not just a colour. The tooltip has the title, the
-  reviews, the checks, commits not yet in the PR, and when it was read. The selected worktree's
-  PR also shows beside its name in the window title, so it's visible with the sidebar hidden.
-  The toolbar doesn't change.
-- File › Open Pull Request in Browser and Copy Pull Request URL; Review › Open Failing Check in
-  Browser. The worktree row's context menu has the first two.
+  reviews, the checks, commits not yet in the PR, and when it was read. With the worktree list
+  hidden, the selected worktree's marker shows in the file list's header (the window draws no
+  title). The toolbar doesn't change.
+- File › Open Pull Request in Browser, Copy Pull Request URL and Open Failed Check in Browser.
+  The worktree row's context menu has the first two.
 - A PR whose base differs from the detected parent suggests that base in a banner (Use / Keep),
   through the base override (§5.3). A parent whose own PR merged is a stale-parent signal
   (§5.4). Both suggest; neither switches the base.

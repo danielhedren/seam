@@ -23,7 +23,7 @@ enum RowActions {
                     session.copyBranchName(of: review)
                 })
         }
-        return [
+        var groups = [
             [
                 Action(title: localized("Open in Editor"), isEnabled: exists) {
                     session.openWorktreeInEditor(review)
@@ -34,6 +34,17 @@ enum RowActions {
             ],
             copies,
         ]
+        if review.pullRequest != nil {
+            groups.append([
+                Action(title: localized("Open Pull Request in Browser")) {
+                    session.openPullRequest(of: review)
+                },
+                Action(title: localized("Copy Pull Request URL")) {
+                    session.copyPullRequestURL(of: review)
+                },
+            ])
+        }
+        return groups
     }
 
     /// For the rows a right-click picked: the newest of them, as in the menu bar.

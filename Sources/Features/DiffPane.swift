@@ -117,6 +117,9 @@ struct DiffPane: View {
             }
             if let stale = review.staleParent {
                 StaleParentBanner(stale: stale, session: session)
+            } else if let base = review.pullRequestBase, let pullRequest = review.pullRequest {
+                PullRequestBaseBanner(
+                    number: pullRequest.number, base: base.name, session: session)
             }
             if session.find.isShown {
                 FindBar(find: session.find)
@@ -362,15 +365,43 @@ struct StaleParentBanner: View {
 
     var body: some View {
         Banner(systemImage: "arrow.triangle.merge", tint: .accentColor) {
-            Text(
-                "Parent \(stale.parent) looks merged. Diff against \(stale.suggestion.name) instead?",
-                bundle: .module)
+            if case .pullRequestMerged(let number) = stale.reason {
+                Text(
+                    "Parent \(stale.parent)'s pull request #\(number) merged. Diff against \(stale.suggestion.name) instead?",
+                    bundle: .module)
+            } else {
+                Text(
+                    "Parent \(stale.parent) looks merged. Diff against \(stale.suggestion.name) instead?",
+                    bundle: .module)
+            }
         } actions: {
             Button(String(localized: "Keep \(stale.parent)", bundle: .module)) {
                 session.dismissStaleParent()
             }
             Button(String(localized: "Use \(stale.suggestion.name)", bundle: .module)) {
                 session.setBaseOverride(stale.suggestion.ref)
+            }
+        }
+    }
+}
+
+/// The worktree's open PR merges into another branch than the detected parent (SPEC §7.8).
+struct PullRequestBaseBanner: View {
+    let number: Int
+    let base: String
+    let session: RepoSession
+
+    var body: some View {
+        Banner(systemImage: "arrow.triangle.pull", tint: .accentColor) {
+            Text(
+                "Pull request #\(number) merges into \(base). Diff against \(base) instead?",
+                bundle: .module)
+        } actions: {
+            Button(String(localized: "Keep Detected Base", bundle: .module)) {
+                session.dismissPullRequestBase()
+            }
+            Button(String(localized: "Use \(base)", bundle: .module)) {
+                session.usePullRequestBase()
             }
         }
     }

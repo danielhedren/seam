@@ -14,7 +14,35 @@ struct FileList: View {
             HStack {
                 NavigatorPicker(review: review)
                 switch review.navigator {
-                case .files: totals
+                case .files:
+                    // With the worktree list hidden, its row's PR marker would be out of sight;
+                    // it wins over the line totals and then the viewed count when space is short.
+                    if !session.showsWorktreeList, let pullRequest = review.pullRequest {
+                        let badge = PullRequestBadge(
+                            pullRequest: pullRequest, unpushed: review.unpushedCount,
+                            read: review.pullRequests?.saved.read
+                        )
+                        .fixedSize()
+                        ViewThatFits(in: .horizontal) {
+                            HStack {
+                                totals(.all)
+                                Spacer(minLength: 4)
+                                badge
+                            }
+                            HStack {
+                                totals(.withoutLines)
+                                Spacer(minLength: 4)
+                                badge
+                            }
+                            HStack {
+                                totals(.filesOnly)
+                                Spacer(minLength: 4)
+                                badge
+                            }
+                        }
+                    } else {
+                        totals(.all)
+                    }
                 case .search: SearchSummary(review: review)
                 }
                 Spacer()
@@ -40,13 +68,24 @@ struct FileList: View {
         }
     }
 
-    @ViewBuilder private var totals: some View {
+    private enum Totals {
+        case all, withoutLines, filesOnly
+    }
+
+    @ViewBuilder private func totals(_ shown: Totals) -> some View {
         if let diff = review.diff {
-            Text(verbatim: Counted.files(diff.files.count))
+            Text(verbatim: Counted.files(diff.files.count)).fixedSize()
             if !diff.files.isEmpty {
-                Text(verbatim: "+\(diff.additions)").foregroundStyle(.green)
-                Text(verbatim: "−\(diff.deletions)").foregroundStyle(.red)
-                ViewedProgress(viewed: review.viewed.viewedCount(in: diff), of: diff.files.count)
+                if shown == .all {
+                    Text(verbatim: "+\(diff.additions)").foregroundStyle(.green).fixedSize()
+                    Text(verbatim: "−\(diff.deletions)").foregroundStyle(.red).fixedSize()
+                }
+                if shown != .filesOnly {
+                    ViewedProgress(
+                        viewed: review.viewed.viewedCount(in: diff), of: diff.files.count
+                    )
+                    .fixedSize()
+                }
             }
         }
     }

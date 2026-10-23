@@ -38,7 +38,13 @@
     "%lld commits" : {
 
     },
+    "%lld failed" : {
+
+    },
     "%lld files" : {
+
+    },
+    "%lld local commits aren't in the pull request" : {
 
     },
     "%lld matches" : {
@@ -63,6 +69,12 @@
     "%lld open threads" : {
 
     },
+    "%lld passed" : {
+
+    },
+    "%lld running" : {
+
+    },
     "%lld/%lld viewed" : {
       "localizations" : {
         "en" : {
@@ -82,6 +94,9 @@
     "1 file" : {
 
     },
+    "1 local commit isn't in the pull request" : {
+
+    },
     "1 match" : {
 
     },
@@ -97,6 +112,9 @@
     "All threads resolved" : {
 
     },
+    "Approved" : {
+
+    },
     "Automatic" : {
 
     },
@@ -109,13 +127,28 @@
     "Branched from %@" : {
 
     },
+    "Can't reach GitHub. Seam tries again by itself." : {
+
+    },
     "Cancel" : {
 
     },
     "Cancelled" : {
 
     },
+    "Changes requested" : {
+
+    },
     "Changes show here as soon as files in this worktree are edited." : {
+
+    },
+    "Check Again" : {
+
+    },
+    "Checked when a repository on GitHub opens" : {
+
+    },
+    "Checks: %@" : {
 
     },
     "Choose Base" : {
@@ -134,6 +167,9 @@
 
     },
     "Close" : {
+
+    },
+    "Closed" : {
 
     },
     "Collapse File" : {
@@ -198,6 +234,9 @@
 
     },
     "Copy Prompt for Agent" : {
+
+    },
+    "Copy Pull Request URL" : {
 
     },
     "Copy Relative Path" : {
@@ -266,6 +305,9 @@
     "Done" : {
 
     },
+    "Draft" : {
+
+    },
     "Edit › Find" : {
 
     },
@@ -323,6 +365,12 @@
     "Generated files" : {
 
     },
+    "GitHub" : {
+
+    },
+    "GitHub's rate limit was reached. Seam tries again later." : {
+
+    },
     "Go" : {
 
     },
@@ -365,6 +413,9 @@
     "Keep %@" : {
 
     },
+    "Keep Detected Base" : {
+
+    },
     "Keep Parent That Looks Merged" : {
 
     },
@@ -390,6 +441,9 @@
 
     },
     "Match Case" : {
+
+    },
+    "Merged" : {
 
     },
     "Name" : {
@@ -487,6 +541,12 @@
     "Open" : {
 
     },
+    "Open Failed Check in Browser" : {
+
+    },
+    "Open Pull Request in Browser" : {
+
+    },
     "Open Recent" : {
 
     },
@@ -530,6 +590,16 @@
         }
       }
     },
+    "Parent %@'s pull request #%lld merged. Diff against %@ instead?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Parent %1$@'s pull request #%2$lld merged. Diff against %3$@ instead?"
+          }
+        }
+      }
+    },
     "Previous File" : {
 
     },
@@ -540,6 +610,22 @@
 
     },
     "Previous match" : {
+
+    },
+    "Pull request #%lld merges into %@. Diff against %@ instead?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Pull request #%1$lld merges into %2$@. Diff against %3$@ instead?"
+          }
+        }
+      }
+    },
+    "Read from GitHub %@" : {
+
+    },
+    "Reading pull requests with gh" : {
 
     },
     "Recent" : {
@@ -587,10 +673,16 @@
     "Review › Open in Editor (O) runs the command with {path} and {line} filled in, using your login shell's PATH." : {
 
     },
+    "Reviewed, not approved" : {
+
+    },
     "SF Mono" : {
 
     },
     "Seam" : {
+
+    },
+    "Seam reads each worktree's pull request with your gh login and never changes anything on GitHub." : {
 
     },
     "Search" : {
@@ -639,6 +731,9 @@
 
     },
     "Show as Tree" : {
+
+    },
+    "Show pull requests" : {
 
     },
     "Side by Side" : {
@@ -745,6 +840,9 @@
     "Use Detected Base" : {
 
     },
+    "Use Pull Request's Base" : {
+
+    },
     "View" : {
 
     },
@@ -752,6 +850,9 @@
 
     },
     "View › Make Text Bigger and Make Text Smaller change the size too. A repository's .editorconfig overrides the tab width." : {
+
+    },
+    "Waiting for review" : {
 
     },
     "Whitespace" : {
@@ -779,6 +880,15 @@
 
     },
     "detected" : {
+
+    },
+    "gh failed: %@" : {
+
+    },
+    "gh isn't installed. Install it, then check again." : {
+
+    },
+    "gh isn't signed in. Run gh auth login in Terminal, then check again." : {
 
     },
     "git %@ failed: %@" : {

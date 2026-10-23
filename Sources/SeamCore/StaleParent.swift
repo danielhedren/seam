@@ -4,27 +4,43 @@ import GitKit
 /// A parent that looks merged (SPEC §5.4): squash-merged branches never reach main, so detection
 /// keeps choosing them and the diff silently shrinks to the commits after them.
 public struct StaleParent: Equatable, Sendable {
-    enum Reason: Equatable, Sendable {
+    public enum Reason: Equatable, Sendable {
         /// The parent's upstream was deleted after its pull request merged.
         case upstreamGone
         /// A local-only parent whose tip is already in `suggestion`.
         case containedIn
+        /// The parent's own pull request merged (SPEC §7.8); a squash merge leaves no other trace
+        /// until someone fetches.
+        case pullRequestMerged(Int)
     }
 
     public var parent: String
-    var reason: Reason
+    public var reason: Reason
     /// The base to offer instead: the default base, or another candidate.
     public var suggestion: ParentCandidate
+
+    /// For a local parent whose pull request `number` merged.
+    public static func pullRequestMerged(_ detection: BaseDetection, number: Int) -> StaleParent? {
+        guard let parent = detection.parent, parent.ref.hasPrefix(RefName.heads),
+            let suggestion = suggestion(detection, besides: parent)
+        else { return nil }
+        return StaleParent(
+            parent: parent.name, reason: .pullRequestMerged(number), suggestion: suggestion)
+    }
+
+    private static func suggestion(_ detection: BaseDetection, besides parent: ParentCandidate)
+        -> ParentCandidate?
+    {
+        detection.candidates.first { $0.isDefaultBase && $0.ref != parent.ref }
+            ?? detection.candidates.first { $0.ref != parent.ref }
+    }
 
     /// Nil when the parent is a remote ref, has a live upstream, or shows no sign of merging.
     public static func check(_ detection: BaseDetection, in worktree: URL, git: any GitClient)
         async throws(GitError) -> StaleParent?
     {
         guard let parent = detection.parent, parent.ref.hasPrefix(RefName.heads),
-            let suggestion = detection.candidates.first(where: {
-                $0.isDefaultBase && $0.ref != parent.ref
-            })
-                ?? detection.candidates.first(where: { $0.ref != parent.ref })
+            let suggestion = suggestion(detection, besides: parent)
         else { return nil }
         let tracking = try await git.string(
             ["for-each-ref", "--format=%(upstream)%00%(upstream:track)", parent.ref], in: worktree

@@ -1,3 +1,4 @@
+import AppKit
 import DiffView
 import SeamCore
 import SwiftUI
@@ -38,6 +39,14 @@ struct RepoWindow: View {
                 session.close()
             }
             .focusedSceneValue(\.repoSession, session)
+            .onChange(of: session.settings.showsPullRequests) { session.refreshPullRequests() }
+            .onChange(of: session.services.github.retries) { session.refreshPullRequests() }
+            .onReceive(
+                NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
+            ) { _ in session.noteActivation(true) }
+            .onReceive(
+                NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)
+            ) { _ in session.noteActivation(false) }
             .onChange(of: session.filterFocusRequests) { filterFocused = true }
             // The search field may only appear with this update, so focus waits a turn for it.
             .onChange(of: session.searchFocusRequests) {

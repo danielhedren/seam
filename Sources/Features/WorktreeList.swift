@@ -56,6 +56,11 @@ struct WorktreeRow: View {
                     ForEach(markers, id: \.self) { marker in
                         Text(marker).foregroundStyle(tint(.orange))
                     }
+                    if let pullRequest = review.pullRequest {
+                        PullRequestBadge(
+                            pullRequest: pullRequest, unpushed: review.unpushedCount,
+                            read: review.pullRequests?.saved.read)
+                    }
                     Spacer(minLength: 0)
                     if let changes = review.activity?.changes, changes.files > 0 {
                         Text(verbatim: "+\(changes.additions)").foregroundStyle(tint(.green))
@@ -81,7 +86,7 @@ struct WorktreeRow: View {
 
     /// A row level with its base and in no special state is just its name.
     private var hasDetails: Bool {
-        !summary.isEmpty || uncommittedFiles > 0 || !markers.isEmpty
+        !summary.isEmpty || uncommittedFiles > 0 || !markers.isEmpty || review.pullRequest != nil
     }
 
     /// "5 commits · 19 files": what the branch adds, against its base.

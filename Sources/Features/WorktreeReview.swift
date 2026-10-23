@@ -41,12 +41,13 @@ final class WorktreeReview: Identifiable {
     }
     /// Files marked viewed, by path (SPEC §11).
     private(set) var viewed = ViewedMarks()
-    /// A detected parent that looks merged (SPEC §5.4); nil once dismissed or overridden.
-    private(set) var staleParent: StaleParent?
+    /// What the git checks found (SPEC §5.4); `staleParent` adds the pull request's word.
+    private var checkedStaleParent: StaleParent?
     /// The worktree's root `.editorconfig`, for per-file tab widths (SPEC §12).
     private var editorConfig: EditorConfig?
     private var tabWidths: [String: Int] = [:]
     private var dismissedStaleParents: Set<String> = []
+    private var dismissedPullRequestBases: Set<String> = []
     private var lastEvent: Date?
     private var overrideCommitCount: Int?
     /// The chosen parent's merge base, once a load has resolved it.
@@ -111,6 +112,8 @@ final class WorktreeReview: Identifiable {
 
     /// The repo's threads; this worktree's are placed on its diff (SPEC §7.7).
     var threads: RepoThreads?
+    /// The repo's pull requests; this worktree's branch's is its row's (SPEC §7.8).
+    var pullRequests: RepoPullRequests?
     @ObservationIgnored let placementCache = ThreadPlacementCache()
     @ObservationIgnored let fileListCache = FileListCache()
 
@@ -164,6 +167,7 @@ final class WorktreeReview: Identifiable {
         whitespace = state?.whitespace.flatMap(WhitespaceMode.init)
         if let viewed = state?.viewed { self.viewed = viewed }
         dismissedStaleParents = Set(state?.dismissedStaleParents ?? [])
+        dismissedPullRequestBases = Set(state?.dismissedPullRequestBases ?? [])
         savedAnchor = state?.anchor
         currentFile = state?.currentFile
         baseOverride = override
@@ -175,6 +179,8 @@ final class WorktreeReview: Identifiable {
             whitespace: whitespace?.rawValue, viewed: viewed,
             dismissedStaleParents: dismissedStaleParents.isEmpty
                 ? nil : dismissedStaleParents.sorted(),
+            dismissedPullRequestBases: dismissedPullRequestBases.isEmpty
+                ? nil : dismissedPullRequestBases.sorted(),
             anchor: savedAnchor, currentFile: currentFile)
     }
 
@@ -484,21 +490,67 @@ final class WorktreeReview: Identifiable {
 
     func dismissStaleParent() {
         if let parent = staleParent?.parent { dismissedStaleParents.insert(parent) }
-        staleParent = nil
+    }
+
+    /// A detected parent that looks merged (SPEC §5.4), by git's evidence or because its own
+    /// pull request merged; nil once dismissed or overridden.
+    var staleParent: StaleParent? {
+        guard baseOverride == nil else { return nil }
+        let stale = checkedStaleParent ?? mergedParentPullRequest
+        return stale.flatMap { dismissedStaleParents.contains($0.parent) ? nil : $0 }
+    }
+
+    private var mergedParentPullRequest: StaleParent? {
+        guard let detection, let parent = detection.parent, parent.ref.hasPrefix(RefName.heads),
+            let pullRequest = pullRequests?.pullRequest(for: RefName.shortBranch(parent.ref)),
+            pullRequest.state == .merged
+        else { return nil }
+        return StaleParent.pullRequestMerged(detection, number: pullRequest.number)
+    }
+
+    var pullRequest: PullRequest? {
+        pullRequests?.pullRequest(for: worktree.branch)
+    }
+
+    /// Commits on this branch its pull request doesn't have yet.
+    var unpushedCount: Int? {
+        guard pullRequest != nil, let branch = worktree.branch else { return nil }
+        return pullRequests?.unpushedCount(for: branch)
+    }
+
+    /// An open PR's base, offered when it isn't the parent the diff is against (SPEC §7.8):
+    /// the full ref here, and its short name. Not while the stale-parent banner already asks.
+    var pullRequestBase: (ref: String, name: String)? {
+        guard baseOverride == nil, staleParent == nil, let pullRequest,
+            pullRequest.state == .open, let branch = worktree.branch,
+            let ref = pullRequests?.baseRef(for: branch), let parent = detection?.parent,
+            ref != parent.ref, Self.branchName(ref) != Self.branchName(parent.ref),
+            !dismissedPullRequestBases.contains(ref)
+        else { return nil }
+        return (ref, RefName.short(ref))
+    }
+
+    func dismissPullRequestBase() {
+        if let ref = pullRequestBase?.ref { dismissedPullRequestBases.insert(ref) }
+    }
+
+    /// `main` for `refs/heads/main` and `refs/remotes/origin/main` alike.
+    private static func branchName(_ ref: String) -> String {
+        if ref.hasPrefix(RefName.remotes) {
+            return String(RefName.short(ref).drop { $0 != "/" }.dropFirst())
+        }
+        return RefName.short(ref)
     }
 
     /// Runs once per detection, which reruns on every ref change: a fetch that prunes the parent
     /// leaves detection's answer the same, so the result can't be compared instead. Working-tree
     /// reloads skip it. A failure leaves the banner off rather than failing the load.
     private func checkStaleParent(_ detection: BaseDetection) async {
-        guard baseOverride == nil else {
-            staleParent = nil
-            return
-        }
+        guard baseOverride == nil else { return }
         guard detectionRuns != staleCheckedAt else { return }
         let stale = try? await StaleParent.check(detection, in: worktree.path, git: services.git)
         staleCheckedAt = detectionRuns
-        staleParent = stale.flatMap { dismissedStaleParents.contains($0.parent) ? nil : $0 }
+        checkedStaleParent = stale ?? nil
     }
 
     func report(_ problem: Problem) {

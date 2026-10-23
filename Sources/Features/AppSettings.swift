@@ -27,6 +27,9 @@ public final class AppSettings {
         didSet { save(showsResolvedThreads, "showsResolvedThreads") }
     }
 
+    /// Pull request markers through gh (SPEC §7.8), on wherever gh is installed.
+    var showsPullRequests: Bool { didSet { save(showsPullRequests, "showsPullRequests") } }
+
     private let defaults: UserDefaults
 
     public init(defaults: UserDefaults = .standard) {
@@ -46,6 +49,7 @@ public final class AppSettings {
         contextLines = value("contextLines", 3)
         collapsesViewed = value("collapsesViewed", true)
         showsResolvedThreads = value("showsResolvedThreads", false)
+        showsPullRequests = value("showsPullRequests", true)
     }
 
     private func save(_ value: some Any, _ key: String) {

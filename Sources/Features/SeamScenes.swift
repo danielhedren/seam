@@ -127,7 +127,7 @@ public struct SeamScenes: Scene {
                 showShortcuts: { openWindow(id: Self.shortcutsID) })
         }
         Settings {
-            SettingsView(settings: services.settings)
+            SettingsView(settings: services.settings, github: services.github)
         }
         Window(String(localized: "Keyboard Shortcuts", bundle: .module), id: Self.shortcutsID) {
             ShortcutsView()

@@ -1,3 +1,4 @@
+import AppKit
 import DiffView
 import Foundation
 import GitKit
@@ -14,6 +15,8 @@ public struct RepoState: Codable, Equatable, Sendable {
         public var viewed: ViewedMarks?
         /// Parents whose "looks merged" banner the reader dismissed.
         public var dismissedStaleParents: [String]?
+        /// Pull request bases whose suggestion the reader dismissed, by full ref.
+        public var dismissedPullRequestBases: [String]?
         /// Where the reader was, restored when the worktree is shown again.
         public var anchor: ScrollAnchor?
         public var currentFile: String?
@@ -25,6 +28,8 @@ public struct RepoState: Codable, Equatable, Sendable {
     public var worktrees: [String: WorktreeState] = [:]
     /// The worktree the window last showed, selected again on reopen.
     public var selectedWorktree: String?
+    /// The last pull requests read, shown at once on reopen (SPEC §7.8).
+    public var pullRequests: SavedPullRequests?
 
     public init() {}
 }
@@ -111,15 +116,20 @@ public struct SeamServices: Sendable {
     public var threads: ThreadStore
     /// The recent repositories, for Spotlight to find.
     public var spotlight: any RepoIndex
+    /// Pull requests through gh (SPEC §7.8); tests get one that never runs anything.
+    public var github: GitHubAccount
     var launcher: any CommandLauncher = ShellLauncher()
+    var openURL: @MainActor @Sendable (URL) -> Void = { NSWorkspace.shared.open($0) }
 
+    @MainActor
     public init(
         git: any GitClient, fileSystem: any FileSystem = LocalFileSystem(),
         watcher: any FileWatcher, clock: any Clock<Duration>, store: any StateStore,
         threads: ThreadStore, settings: AppSettings,
         highlighter: SyntaxHighlighter = SyntaxHighlighter(),
-        spotlight: any RepoIndex = NoRepoIndex()
+        spotlight: any RepoIndex = NoRepoIndex(), github: GitHubAccount = .none()
     ) {
+        self.github = github
         self.threads = threads
         self.spotlight = spotlight
         self.highlighter = highlighter
@@ -136,6 +146,6 @@ public struct SeamServices: Sendable {
         SeamServices(
             git: CLIGitClient(), watcher: FSEventsWatcher(), clock: ContinuousClock(),
             store: JSONStateStore(), threads: ThreadStore(), settings: AppSettings(),
-            spotlight: SpotlightRepoIndex())
+            spotlight: SpotlightRepoIndex(), github: .live())
     }
 }
