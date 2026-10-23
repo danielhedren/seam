@@ -218,16 +218,17 @@ final class RepoPullRequests {
         guard let refs = try? await RefSnapshot.load(in: directory, git: git) else { return false }
         let remotes = await PullRequestTargets.remotes(in: directory, refs: refs, git: git)
         let account = services.github
-        let hosts = await account.gitHubHosts(among: Set(remotes.values.map(\.host)))
-        guard !isStopped, services.settings.showsPullRequests else { return false }
-        guard let targets = PullRequestTargets(remotes: remotes, hosts: hosts, refs: refs) else {
-            status = .notGitHub
-            saved = SavedPullRequests()
-            onUpdate?()
-            return false
-        }
-        repo = targets.repo
         do {
+            let hosts = try await account.gitHubHosts(among: Set(remotes.values.map(\.host)))
+            guard !isStopped, services.settings.showsPullRequests else { return false }
+            guard let targets = PullRequestTargets(remotes: remotes, hosts: hosts, refs: refs)
+            else {
+                status = .notGitHub
+                saved = SavedPullRequests()
+                onUpdate?()
+                return false
+            }
+            repo = targets.repo
             let read = try await read(targets, refs: refs)
             guard !isStopped else { return true }
             saved = read

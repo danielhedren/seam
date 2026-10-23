@@ -417,6 +417,27 @@ final class OpenedURLs {
         session.close()
     }
 
+    /// An Enterprise remote is GitHub only if gh has an account for its host; when gh can't be
+    /// asked, the reason shows, the PRs read before stay, and the next read asks again.
+    @Test func aHostGhCantBeAskedAboutIsntTakenForNotGitHub() async throws {
+        let (repo, feature) = try await fixture()
+        github.answer(open: [Self.pullRequest(12)])
+        let first = await open(repo, selecting: feature)
+        first.close()
+
+        try await repo.run("remote", "set-url", "origin", "https://code.example.com/owner/app.git")
+        github.fail(.notSignedIn)
+        let session = await open(repo, selecting: feature)
+        #expect(session.pullRequests?.status == .failed(.notSignedIn))
+        #expect(session.services.github.status == .failed(.notSignedIn))
+        #expect(try review(session, feature).pullRequest?.number == 12, "kept, not wiped")
+
+        session.refreshPullRequests()
+        await until { session.pullRequests?.refreshes == 2 }
+        #expect(github.calls.count { $0 == "hosts" } == 2, "a failed answer isn't remembered")
+        session.close()
+    }
+
     @Test func aRepoWithoutAGitHubRemoteNeverAsksGh() async throws {
         let repo = try await FixtureRepo()
         let feature = try await repo.worktree("feature", branch: "feature", from: "origin/main")

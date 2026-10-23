@@ -41,12 +41,12 @@ public final class GitHubAccount {
     }
 
     /// Which of `hosts` are GitHub: github.com and GHE.com always, any other only when gh has an
-    /// account there, which it's asked about once.
-    func gitHubHosts(among hosts: Set<String>) async -> Set<String> {
+    /// account there. gh is asked once; a failed answer isn't kept, so the next read asks again.
+    func gitHubHosts(among hosts: Set<String>) async throws(GitHubError) -> Set<String> {
         let known = hosts.filter(PullRequestTargets.isKnownHost)
         guard known.count < hosts.count else { return known }
         if accountHosts == nil {
-            accountHosts = Set((try? await client.hosts()) ?? [])
+            accountHosts = Set(try await client.hosts())
         }
         return known.union(hosts.intersection(accountHosts ?? []))
     }

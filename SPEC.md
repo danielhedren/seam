@@ -549,7 +549,9 @@ Each worktree's branch shows its GitHub pull request, read through the user's ow
   isn't confused with the main repo's. A branch with none open shows its newest merged or closed
   one. PRs live on the remote named `upstream` when it's on GitHub, else `origin`, else the first
   GitHub remote. A remote is on GitHub when its URL (as git rewrites it with `insteadOf`) names
-  github.com, a GHE.com host, or a host gh has an account for. The default branch isn't looked
+  github.com, a GHE.com host, or a host gh has an account for. When gh can't say which hosts
+  it has accounts for, that failure shows like any other and the PRs read before stay; gh is
+  asked again on the next read. The default branch isn't looked
   up.
 - **Base suggestion:** when an open PR merges into a branch other than the detected parent's, and
   that branch exists here (the PR repo's remote, `origin`, or a local branch), a banner says "Pull
