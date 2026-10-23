@@ -28,7 +28,40 @@ struct SeamCommand: Identifiable {
         case single(KeyEquivalent, EventModifiers = [])
         /// Attached only while the condition holds: ⌘F belongs to Filter Files in the file list
         /// and to Find elsewhere, and to neither with no repo window, where both are disabled.
-        case commandWhen(KeyEquivalent, @MainActor (RepoSession) -> Bool)
+        case commandWhen(KeyEquivalent, Focus)
+    }
+
+    /// Where a shortcut works, for the conditions a menu item can't show by itself.
+    enum Focus {
+        case anywhere, review, fileList, outsideFileList
+
+        @MainActor
+        func holds(in session: RepoSession) -> Bool {
+            switch self {
+            case .anywhere: true
+            case .review: session.reviewHasFocus
+            case .fileList: session.fileListHasFocus
+            case .outsideFileList: !session.fileListHasFocus
+            }
+        }
+
+        /// The Keyboard Shortcuts window's note; nil where the key works in the whole window.
+        var note: String? {
+            switch self {
+            case .anywhere: nil
+            case .review: String(localized: "In the diff or file list", bundle: .module)
+            case .fileList: String(localized: "In the file list", bundle: .module)
+            case .outsideFileList: String(localized: "Outside the file list", bundle: .module)
+            }
+        }
+    }
+
+    var focus: Focus {
+        switch shortcut {
+        case .none, .command: .anywhere
+        case .single: .review
+        case .commandWhen(_, let focus): focus
+        }
     }
 
     let id: String
@@ -56,9 +89,9 @@ struct SeamCommand: Identifiable {
         case .none: nil
         case .command(let key, let modifiers): KeyboardShortcut(key, modifiers: modifiers)
         case .single(let key, let modifiers):
-            session?.reviewHasFocus == true ? KeyboardShortcut(key, modifiers: modifiers) : nil
-        case .commandWhen(let key, let condition):
-            session.map(condition) == true ? KeyboardShortcut(key) : nil
+            session.map(focus.holds) == true ? KeyboardShortcut(key, modifiers: modifiers) : nil
+        case .commandWhen(let key, let focus):
+            session.map(focus.holds) == true ? KeyboardShortcut(key) : nil
         }
     }
 
@@ -76,7 +109,7 @@ struct SeamCommand: Identifiable {
     /// Files it runs now.
     @MainActor
     func shortcutLabel(for session: RepoSession) -> String {
-        if case .commandWhen(_, let condition) = shortcut, !condition(session) { return "" }
+        if case .commandWhen(_, let focus) = shortcut, !focus.holds(in: session) { return "" }
         return shortcutLabel
     }
 
@@ -103,7 +136,8 @@ enum CommandCatalog {
 
     static let all: [SeamCommand] = file + find + view + go + review
 
-    /// File › Open Repository, which the File menu builds itself.
+    /// File › New Window and Open Repository, which the File menu builds itself.
+    static let newWindow = KeyboardShortcut("n")
     static let openRepository = KeyboardShortcut("o")
 
     private static let byID = Dictionary(all.map { ($0.id, $0) }) { first, _ in first }
@@ -142,7 +176,7 @@ enum CommandCatalog {
     static let find: [SeamCommand] = [
         SeamCommand(
             id: "find", title: localized("Find…"), menu: .find, section: 0,
-            shortcut: .commandWhen("f", { !$0.fileListHasFocus }), run: { $0.find.show() }),
+            shortcut: .commandWhen("f", .outsideFileList), run: { $0.find.show() }),
         SeamCommand(
             id: "find-next", title: localized("Find Next"), menu: .find, section: 0,
             shortcut: .command("g"), isEnabled: { $0.find.result.total > 0 },
@@ -153,7 +187,7 @@ enum CommandCatalog {
             run: { $0.find.move(by: -1) }),
         SeamCommand(
             id: "filter-files", title: localized("Filter Files"), menu: .find, section: 1,
-            shortcut: .commandWhen("f", { $0.fileListHasFocus }),
+            shortcut: .commandWhen("f", .fileList),
             run: { $0.filterFocusRequests += 1 }),
     ]
 

@@ -101,6 +101,7 @@ public struct SeamScenes: Scene {
     }
 
     private static let windowID = "repository"
+    private static let shortcutsID = "shortcuts"
 
     public var body: some Scene {
         WindowGroup(id: Self.windowID, for: URL.self) { $url in
@@ -122,11 +123,18 @@ public struct SeamScenes: Scene {
                         await services.spotlight.replace(with: [])
                     }
                 }, installCommandLineTool: installTool,
-                newWindow: { openWindow(id: Self.windowID) })
+                newWindow: { openWindow(id: Self.windowID) },
+                showShortcuts: { openWindow(id: Self.shortcutsID) })
         }
         Settings {
             SettingsView(settings: services.settings)
         }
+        Window(String(localized: "Keyboard Shortcuts", bundle: .module), id: Self.shortcutsID) {
+            ShortcutsView()
+        }
+        .defaultSize(width: 460, height: 640)
+        // Help › Keyboard Shortcuts opens it; the Window menu lists it once it's open.
+        .commandsRemoved()
     }
 
     /// A one-off answer to an explicit menu command, so an alert is the right shape (SPEC §9).

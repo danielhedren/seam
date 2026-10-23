@@ -653,6 +653,11 @@ written down here.
 - Shortcuts read the same everywhere they're shown: menu, command palette and tooltips use the
   menu bar's symbols and order (`⇧⌘G`), and a single key is a capital as the menu prints it
   ("Reload (R)").
+- Help › Keyboard Shortcuts opens a window listing every shortcut by menu, with where a key
+  works when that's narrower than the window (single keys in the diff or file list, `⌘F`'s two
+  meanings), and a search field. It's built from the same command list as the menus, so it
+  can't disagree with them. It has no shortcut of its own: `⇧⌘?` is the Help menu's search, and
+  the Help menu has no other items.
 - The command palette (`⇧⌘P`) lists the commands that apply now, each with its menu, its
   shortcut and a checkmark when it's on, then "Go to <worktree>" for each worktree. The first
   row is selected, so Return runs the best match.

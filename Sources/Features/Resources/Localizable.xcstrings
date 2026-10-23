@@ -214,6 +214,9 @@
     "Done" : {
 
     },
+    "Edit › Find" : {
+
+    },
     "Editor" : {
 
     },
@@ -286,6 +289,12 @@
     "Ignore changes in amount" : {
 
     },
+    "In the diff or file list" : {
+
+    },
+    "In the file list" : {
+
+    },
     "Install Command Line Tool…" : {
 
     },
@@ -296,6 +305,9 @@
 
     },
     "Keep Parent That Looks Merged" : {
+
+    },
+    "Keyboard Shortcuts" : {
 
     },
     "Latest Commit Only" : {
@@ -358,6 +370,9 @@
     "No matching files" : {
 
     },
+    "No matching shortcuts" : {
+
+    },
     "No threads" : {
 
     },
@@ -404,6 +419,9 @@
 
     },
     "Outdated" : {
+
+    },
+    "Outside the file list" : {
 
     },
     "Page Down" : {

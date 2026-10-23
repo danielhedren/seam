@@ -10,11 +10,13 @@ struct SeamCommands: Commands {
     private let clearRecent: () -> Void
     private let installCommandLineTool: () -> Void
     private let newWindow: () -> Void
+    private let showShortcuts: () -> Void
 
     init(
         requests: OpenRequests, openRepository: @escaping () -> Void,
         openRecent: @escaping (URL) -> Void, clearRecent: @escaping () -> Void,
-        installCommandLineTool: @escaping () -> Void, newWindow: @escaping () -> Void
+        installCommandLineTool: @escaping () -> Void, newWindow: @escaping () -> Void,
+        showShortcuts: @escaping () -> Void
     ) {
         self.requests = requests
         self.openRepository = openRepository
@@ -22,12 +24,13 @@ struct SeamCommands: Commands {
         self.clearRecent = clearRecent
         self.installCommandLineTool = installCommandLineTool
         self.newWindow = newWindow
+        self.showShortcuts = showShortcuts
     }
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
             Button(String(localized: "New Window", bundle: .module), action: newWindow)
-                .keyboardShortcut("n")
+                .keyboardShortcut(CommandCatalog.newWindow)
             Divider()
             Button(String(localized: "Open Repository…", bundle: .module), action: openRepository)
                 .keyboardShortcut(CommandCatalog.openRepository)
@@ -52,6 +55,10 @@ struct SeamCommands: Commands {
         CommandGroup(after: .sidebar) { items(.view) }
         CommandMenu(String(localized: "Go", bundle: .module)) { items(.go) }
         CommandMenu(String(localized: "Review", bundle: .module)) { items(.review) }
+        // No shortcut: ⇧⌘? is the Help menu's search field.
+        CommandGroup(replacing: .help) {
+            Button(String(localized: "Keyboard Shortcuts", bundle: .module), action: showShortcuts)
+        }
     }
 
     @ViewBuilder
