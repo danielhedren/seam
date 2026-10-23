@@ -227,8 +227,9 @@ keeps the position.
 └────────────────────────┴───────────────────┴────────────────────────────────────────┘
 ```
 
-- Three panes: worktrees | files | diff. `⌘\` hides or shows both sidebars, `⌘⌥\` only the
-  worktree list. Pane widths are remembered.
+- Three panes: worktrees | files | diff. `⌘\` and the toolbar's sidebar button hide or show
+  both sidebars, so the diff gets the whole window; `⌘⌥\` hides only the worktree list. Pane
+  widths are remembered.
 - One window per repo, listing only that repo's worktrees. Opening another repo opens another
   window; ``⌘` `` and the Window menu move between them. Window tabs are off: with a sidebar, macOS
   puts the tab bar beside it, so the tab bar moves between tabs whose sidebars differ. A window's
@@ -635,9 +636,10 @@ written down here.
 
 **Structure**
 - The window is a three-column `NavigationSplitView` (sidebar | content | detail). Column
-  collapsing, resizing and the sidebar toggle all behave natively. `⌘\` is the one custom
-  shortcut on top of that.
-- Toolbar in the unified style, holding only: view mode, reload, and the thread panel (§7.7).
+  collapsing and resizing behave natively. The system's sidebar toggle is replaced by one that
+  hides both sidebars, as `⌘\` does: in three columns the system's hides only the first.
+- Toolbar in the unified style, holding only: the sidebar button, view mode, reload, and the
+  thread panel (§7.7).
   The diff gets the rest of the window. The toolbar's background is solid across every column,
   so the top of the window reads as one bar.
 - The panes' header rows (the file list's counts, the diff's sticky file header, the thread

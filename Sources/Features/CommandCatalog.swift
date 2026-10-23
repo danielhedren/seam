@@ -205,7 +205,7 @@ enum CommandCatalog {
             id: "toggle-sidebars", title: localized("Hide Sidebars"), menu: .view, section: 0,
             shortcut: .command("\\"), isEnabled: { _ in true },
             currentTitle: { $0.columns == .diffOnly ? localized("Show Sidebars") : nil },
-            run: { $0.columns = $0.columns == .diffOnly ? .all : .diffOnly }),
+            run: { $0.toggleSidebars() }),
         SeamCommand(
             id: "toggle-worktrees", title: localized("Hide Worktree List"), menu: .view,
             section: 0, shortcut: .command("\\", [.command, .option]), isEnabled: { _ in true },

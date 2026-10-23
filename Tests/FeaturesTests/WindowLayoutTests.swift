@@ -38,6 +38,8 @@ import Testing
         #expect(session.selected != nil)
         #expect(Chrome(window) == opening)
         #expect(opening.toolbar.contains("Reload"))
+        #expect(opening.toolbar.contains("Hide Sidebars"))
+        #expect(!opening.toolbar.contains("Hide Sidebar"), "the system's hides only the worktrees")
         window.close()
     }
 
