@@ -434,7 +434,7 @@ private func refuseGitHub(_ id: String, in repository: Repository) throws {
     else { return }
     throw Failure(
         "#\(id) is a thread on GitHub pull request #\(github.pullRequest), which seam can't "
-            + "change. Answer it on GitHub:\n  \(reply)")
+            + "change. Answer it on GitHub: write your reply to reply.md, then run\n  \(reply)")
 }
 
 /// A failure while running, not in the arguments: printed as "Error: …" with status 1, without

@@ -30,7 +30,7 @@ public enum ThreadText {
         if let github = thread.github, let reply = thread.gitHubReply {
             let when = read.map { " at \(formatter.string(from: $0))" } ?? ""
             text += [
-                "  Read from \(github.repo.slug)\(when). Seam can't answer it; reply on GitHub with:",
+                "  Read from \(github.repo.slug)\(when). Seam can't answer it; write your reply to reply.md, then run:",
                 "    \(reply)",
                 "  GitHub thread \(github.threadID) · \(github.url)",
             ]

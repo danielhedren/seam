@@ -61,7 +61,7 @@ private func gitHubThread(
                     url: "https://github.com/owner/app/pull/12#discussion_r7"))
         #expect(
             thread.gitHubReply
-                == "gh api --hostname github.com -X POST repos/owner/app/pulls/12/comments/7/replies -f body='…'"
+                == "gh api --hostname github.com -X POST repos/owner/app/pulls/12/comments/7/replies -F body=@reply.md"
         )
     }
 
@@ -119,8 +119,8 @@ private func gitHubThread(
         #expect(
             text == """
                 #gh-7  open  a.swift:11-12  opened by octocat on GitHub pull request #12
-                  Read from github.com/owner/app at 2026-01-01 00:00. Seam can't answer it; reply on GitHub with:
-                    gh api --hostname github.com -X POST repos/owner/app/pulls/12/comments/7/replies -f body='…'
+                  Read from github.com/owner/app at 2026-01-01 00:00. Seam can't answer it; write your reply to reply.md, then run:
+                    gh api --hostname github.com -X POST repos/owner/app/pulls/12/comments/7/replies -F body=@reply.md
                   GitHub thread PRRT_1 · https://github.com/owner/app/pull/12#discussion_r7
                     11 │ let b = 3
                     12 │ let c = 4

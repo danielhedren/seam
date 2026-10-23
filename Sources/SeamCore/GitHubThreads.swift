@@ -30,12 +30,13 @@ public struct GitHubThreadSource: Codable, Equatable, Sendable {
 extension ReviewThread {
     public static let gitHubPrefix = "gh-"
 
-    /// The command that answers this thread on GitHub; nil for Seam's own threads.
+    /// The command that answers this thread on GitHub; nil for Seam's own threads. The body comes
+    /// from a file, so it fails rather than posting when pasted unwritten, and any text quotes.
     public var gitHubReply: String? {
         guard let github, let first = comments.first?.githubID else { return nil }
         return "gh api --hostname \(github.repo.host) -X POST repos/\(github.repo.owner)/"
             + "\(github.repo.name)/pulls/\(github.pullRequest)/comments/\(first)/replies "
-            + "-f body='…'"
+            + "-F body=@reply.md"
     }
 }
 

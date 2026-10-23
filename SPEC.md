@@ -605,7 +605,9 @@ GitHub.
   `<name>.github.json`, so `seam threads`, `seam thread` and `seam wait` include them without the
   app answering. Each says it comes from GitHub: the PR, when it was read, GitHub's thread id
   and URL, every comment's login and GitHub comment id, and the `gh` command that replies to it
-  (`gh api --hostname github.com -X POST repos/o/a/pulls/12/comments/<id>/replies -f body=…`).
+  (`gh api --hostname github.com -X POST repos/o/a/pulls/12/comments/<id>/replies -F
+  body=@reply.md`, after writing the reply to `reply.md`: pasted unwritten it fails rather than
+  posting, and any text survives the shell).
   Their ids are `gh-` and the first comment's GitHub id. `seam reply`, `resolve`, `reopen` and
   `delete` refuse them with that command (status 1).
 - **Copy Prompt for Agent** adds that GitHub's threads are answered on GitHub with the command
