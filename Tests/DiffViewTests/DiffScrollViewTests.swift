@@ -74,8 +74,9 @@ import Testing
     }
 
     @Test func anOpenThreadsRowIsAsTallAsItsViewAndEscapeClosesIt() throws {
-        final class Stub: NSView, InlineThreadView {
+        final class Stub: NSView, DiffCardView {
             var widths: [Double] = []
+            var onHeightChange: (() -> Void)?
             func height(forWidth width: Double) -> Double {
                 widths.append(width)
                 return 120
@@ -87,9 +88,9 @@ import Testing
         let view = DiffScrollView()
         view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
         let stub = Stub()
-        view.makeThreadView = { _ in stub }
+        view.makeCardView = { _ in stub }
         var closed = 0
-        view.onCloseThread = { closed += 1 }
+        view.onCloseCard = { closed += 1 }
         let words = review(["alpha", "beta"])
         view.show(
             DiffContent(review: words, threads: ["a.txt": [marker]], openThread: "t1"),
@@ -97,10 +98,10 @@ import Testing
 
         let canvas = try #require(view.documentView as? DiffCanvasView)
         let row = try #require(canvas.openThreadRow)
-        #expect(canvas.layout.height(of: row) == 120 + 8 + 2 * DraftEditor.margin)
+        #expect(canvas.layout.height(of: row) == 120 + 8 + 2 * DiffCardMetrics.margin)
         #expect(stub.superview === canvas)
         #expect(stub.frame.height == 120)
-        #expect(stub.widths.last == 600 - 16 - 2 * DraftEditor.margin)
+        #expect(stub.widths.last == 600 - 16 - 2 * DiffCardMetrics.margin)
 
         canvas.cancelOperation(nil)
         #expect(closed == 1)

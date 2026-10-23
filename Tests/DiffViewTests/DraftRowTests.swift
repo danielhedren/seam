@@ -1,7 +1,6 @@
 import AppKit
 import GitKit
 import SeamCore
-import SnapshotTesting
 import Testing
 
 @testable import DiffView
@@ -55,45 +54,30 @@ private func texts(_ rows: [DiffRow]) -> [String] {
         #expect(DiffCanvasView.spliceableChange(from: drafted, to: content) == [0])
     }
 
-    @Test func theEditorStartsWithTheDraftsTextAndReportsEditsSubmitAndCancel() throws {
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 600, height: 400), styleMask: [.titled],
-            backing: .buffered, defer: false)
+    @Test func theDraftsCardIsHostedInItsRowAndGoesWithIt() throws {
+        final class Stub: NSView, DiffCardView {
+            var onHeightChange: (() -> Void)?
+            func height(forWidth width: Double) -> Double { 90 }
+        }
         let view = DiffScrollView()
-        window.contentView = view
-        var edits: [String] = []
-        var submits = 0
-        var cancels = 0
-        view.draftText = { "Half" }
-        view.onDraftChange = { edits.append($0) }
-        view.onDraftSubmit = { submits += 1 }
-        view.onDraftCancel = { cancels += 1 }
-
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        var cards: [DiffCard] = []
+        view.makeCardView = { card in
+            cards.append(card)
+            return Stub()
+        }
         view.show(DiffContent(review: review(), draft: draft), position: .top)
         let canvas = try #require(view.documentView as? DiffCanvasView)
-        let editor = try #require(canvas.subviews.compactMap { $0 as? DraftEditor }.first)
-        #expect(editor.textView.string == "Half")
-        #expect(window.firstResponder === editor.textView)
         let row = try #require(canvas.draftRow)
-        let rowTop = canvas.layout.top(of: row)
-        #expect(editor.frame.minY > rowTop)
-        #expect(editor.frame.maxY < rowTop + canvas.layout.height(of: row))
-
-        editor.textView.insertText(" a thought", replacementRange: editor.textView.selectedRange())
-        #expect(edits.last == "Half a thought")
-        let submit = try #require(
-            NSEvent.keyEvent(
-                with: .keyDown, location: .zero, modifierFlags: .command, timestamp: 0,
-                windowNumber: window.windowNumber, context: nil, characters: "\r",
-                charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
-        #expect(editor.textView.performKeyEquivalent(with: submit))
-        #expect(submits == 1)
-        editor.textView.cancelOperation(nil)
-        #expect(cancels == 1)
+        let card = try #require(canvas.shownCard?.view)
+        #expect(cards == [.draft(draft)])
+        #expect(canvas.layout.height(of: row) == 90 + 8 + 2 * DiffCardMetrics.margin)
+        #expect(card.frame.minY > canvas.layout.top(of: row))
+        #expect(card.frame.maxY < canvas.layout.top(of: row) + canvas.layout.height(of: row))
 
         view.show(DiffContent(review: review()), position: .keep)
-        #expect(canvas.subviews.compactMap { $0 as? DraftEditor }.isEmpty)
-        #expect(window.firstResponder === canvas)
+        #expect(card.superview == nil)
+        #expect(canvas.shownCard == nil)
     }
 
     @Test func theLinesCWouldCommentOnAreMarkedAsAreTheOpenDrafts() throws {
@@ -149,19 +133,5 @@ private func texts(_ rows: [DiffRow]) -> [String] {
 
         #expect(canvas.selection == nil)
         #expect(canvas.targetRows.isEmpty)
-    }
-
-    @Test(arguments: [DiffLayoutMode.unified, .split])
-    func theComposerSitsInItsColumn(mode: DiffLayoutMode) {
-        let view = DiffScrollView()
-        view.appearance = NSAppearance(named: .aqua)
-        view.scrollerStyle = .overlay
-        view.increaseContrastOverride = false
-        view.frame = NSRect(x: 0, y: 0, width: 700, height: 300)
-        view.draftText = { "Why two lines?" }
-        view.show(DiffContent(review: review(), mode: mode, draft: draft), position: .top)
-        view.layoutSubtreeIfNeeded()
-        let os = "macOS\(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)"
-        assertSnapshot(of: view, as: .image, named: "draft-\(mode)-\(os)")
     }
 }

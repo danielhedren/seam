@@ -37,20 +37,14 @@ final class DiffCanvasView: NSView {
     var onExpand: ((String, Int, ExpandDirection) -> Void)?
     var onToggleViewed: ((String) -> Void)?
     var onOpenThread: ((String) -> Void)?
-    var onCloseThread: (() -> Void)?
+    var onCloseCard: (() -> Void)?
     private(set) var threads: [String: [ThreadMarker]] = [:]
     private var threadedRows: [Int: Set<ThreadAnchor.Side>] = [:]
     var menuForFile: ((String) -> NSMenu?)?
     var menuForLines: (() -> NSMenu?)?
-    /// The draft's text when its composer appears; edits go back through `onDraftChange`.
-    var draftText: (() -> String)?
-    var onDraftChange: ((String) -> Void)?
-    var onDraftSubmit: (() -> Void)?
-    var onDraftCancel: (() -> Void)?
-    private var draftEditor: DraftEditor?
-    /// The open thread's view, which Features supplies; the canvas sizes and places it.
-    var makeThreadView: ((String) -> any InlineThreadView)?
-    var threadView: (id: String, view: any InlineThreadView)?
+    /// The card's view, which Features supplies; the canvas sizes and places it.
+    var makeCardView: ((DiffCard) -> any DiffCardView)?
+    var shownCard: (card: DiffCard, view: any DiffCardView)?
     /// Nil follows the system's Increase Contrast setting; snapshot tests force it.
     var increaseContrastOverride: Bool?
     var increaseContrast: Bool {
@@ -180,20 +174,24 @@ final class DiffCanvasView: NSView {
     private func relayout(_ rows: [DiffRow], width: Double) {
         geometry = Geometry(
             rows: rows, metrics: layout.metrics, mode: mode, visibleWidth: width, wraps: wraps)
-        let threadHeight = openThreadHeight(in: rows)
+        let cardHeight = cardHeight(in: rows)
         if rows != layout.rows || geometry.wrapColumns != layout.wrapColumns
-            || threadHeight != layout.openThreadHeight
+            || cardHeight != layout.cardHeight
         {
             layout = DiffLayout(
                 rows: rows, metrics: layout.metrics, wrapColumns: geometry.wrapColumns,
-                openThreadHeight: threadHeight)
+                cardHeight: cardHeight)
             lineCache.removeAll(keepingCapacity: true)
         }
         threadedRows = DiffRowBuilder.threadedRows(rows, paths: paths, threads: threads)
         resize()
-        updateDraftEditor()
-        updateThreadView()
+        updateCardView()
         updateTargetRows()
+    }
+
+    /// The card's view needs another height: the same rows, measured again.
+    func remeasureCard() {
+        relayout(layout.rows, width: geometry.visibleWidth)
     }
 
     private func resize() {
@@ -248,9 +246,9 @@ final class DiffCanvasView: NSView {
         case .image(let file):
             drawImages(file: file, in: chromeRect(ofRow: index), palette: palette, context: context)
         case .draft(_, let marker):
-            drawDraft(marker, row: index, palette: palette, context: context)
+            drawCardFrame(row: index, side: marker.side, palette: palette, context: context)
         case .openThread(_, let marker):
-            drawComposerFrame(row: index, side: marker.side, palette: palette, context: context)
+            drawCardFrame(row: index, side: marker.side, palette: palette, context: context)
         case .thread(_, let marker):
             drawThreadRow(marker, row: index, in: rect, palette: palette, context: context)
         case .gap(_, let gap):
@@ -307,8 +305,7 @@ final class DiffCanvasView: NSView {
             default: break
             }
         }
-        updateDraftEditor()
-        updateThreadView()
+        updateCardView()
     }
 
     /// A tint of its own, so a thread never reads as a hunk header or a gap. Side by side it
@@ -652,10 +649,10 @@ private struct LineKey: Hashable {
     var chunk = 0
 }
 
-// MARK: - Draft composer
+// MARK: - Card frame
 
 extension DiffCanvasView {
-    /// The composer's frame: the draft's column in split mode, the visible width in unified.
+    /// The card's frame: its side's column in split mode, the visible width in unified.
     func draftFrame(row: Int, side: ThreadAnchor.Side) -> NSRect {
         var rect = chromeRect(ofRow: row)
         if mode == .split {
@@ -665,37 +662,11 @@ extension DiffCanvasView {
         return rect.insetBy(dx: 8, dy: 4)
     }
 
-    fileprivate func drawDraft(
-        _ marker: DraftMarker, row: Int, palette: DiffPalette, context: CGContext
-    ) {
-        let frame = drawComposerFrame(
-            row: row, side: marker.side, palette: palette, context: context)
-        let lines =
-            marker.lines.count == 1
-            ? "\(marker.lines.lowerBound)"
-            : "\(marker.lines.lowerBound)–\(marker.lines.upperBound)"
-        let title =
-            marker.side == .old
-            ? String(localized: "New thread on \(marker.path), old line \(lines)", bundle: .module)
-            : String(localized: "New thread on \(marker.path), line \(lines)", bundle: .module)
-        let lineHeight = layout.metrics.lineHeight
-        drawText(
-            title, key: nil, x: frame.minX + DraftEditor.textInset, rowTop: frame.minY + 2,
-            color: palette.gutterText, context: context)
-        let hint = String(localized: "⌘↩ Comment   ⎋ Cancel", bundle: .module)
-        drawText(
-            hint, key: nil,
-            x: frame.maxX - DraftEditor.textInset - Double(hint.count)
-                * layout.metrics.characterWidth,
-            rowTop: frame.maxY - lineHeight - 2, color: palette.gutterText, context: context)
-    }
-
     /// The amber card a draft and an open thread sit in; side by side, the other column is
     /// left empty as beside an unpaired line.
-    @discardableResult
-    func drawComposerFrame(
+    func drawCardFrame(
         row: Int, side: ThreadAnchor.Side, palette: DiffPalette, context: CGContext
-    ) -> NSRect {
+    ) {
         if mode == .split {
             let rect = chromeRect(ofRow: row)
             fill(
@@ -720,42 +691,6 @@ extension DiffCanvasView {
         context.setStrokeColor(ThreadColor.accent.cgColor)
         context.setLineWidth(1)
         context.strokePath()
-        return frame
-    }
-
-    /// Keeps the editor on the draft's row, and removes it with the row, handing focus back.
-    fileprivate func updateDraftEditor() {
-        guard let row = draftRow, case .draft(_, let marker) = layout.rows[row] else {
-            guard let editor = draftEditor else { return }
-            let hadFocus = window?.firstResponder === editor.textView
-            editor.removeFromSuperview()
-            draftEditor = nil
-            if hadFocus { window?.makeFirstResponder(self) }
-            return
-        }
-        let editor = draftEditor ?? makeDraftEditor()
-        if editor.textView.font != font { editor.textView.font = font }
-        let lineHeight = layout.metrics.lineHeight
-        editor.frame =
-            draftFrame(row: row, side: marker.side).insetBy(dx: DraftEditor.margin, dy: 0)
-            .divided(atDistance: lineHeight + 4, from: .minYEdge).remainder
-            .divided(atDistance: lineHeight + 4, from: .maxYEdge).remainder
-    }
-
-    private func makeDraftEditor() -> DraftEditor {
-        let editor = DraftEditor(text: draftText?() ?? "", font: font)
-        editor.textView.placeholder = String(localized: "Write a comment…", bundle: .module)
-        editor.onChange = { [weak self] text in self?.onDraftChange?(text) }
-        editor.textView.onSubmit = { [weak self] in self?.onDraftSubmit?() }
-        editor.textView.onCancel = { [weak self] in self?.onDraftCancel?() }
-        addSubview(editor)
-        draftEditor = editor
-        return editor
-    }
-
-    func focusDraft() {
-        guard let draftEditor else { return }
-        window?.makeFirstResponder(draftEditor.textView)
     }
 
     var draftRow: Int? {

@@ -3,6 +3,7 @@ import DiffView
 import Foundation
 import GitKit
 import SeamCore
+import SwiftUI
 import TestSupport
 import Testing
 
@@ -102,6 +103,57 @@ import Testing
         session.openThread(id)
         #expect(session.showsThreadPanel, "outdated, only the panel can show it")
         #expect(session.openThreadMarker(for: reviewed) == nil)
+    }
+
+    /// The diff pane the app shows, in a window that's never on screen, driven by keys as the
+    /// reader would: `c`, typing, ⌘↩ to post, typing a reply, ⌘↩ again, Escape. After each step
+    /// the card must fit its row, or its hints and buttons hang below it out of reach.
+    @Test(.timeLimit(.minutes(1)), arguments: [DiffLayoutMode.unified, .split])
+    func writingAThreadAndReplyingHappenInOneCardThatAlwaysFitsItsRow(_ mode: DiffLayoutMode)
+        async throws
+    {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\ntwo\n")
+        let (session, review, store) = await session(repo)
+        let reviewed = try #require(review)
+        session.settings.layoutMode = mode
+        let card = CardWindow(session: session, review: reviewed)
+        await card.settle()
+
+        session.comment()
+        await card.settle()
+        let draft = try #require(card.host)
+        #expect(try card.fits())
+        let field = try #require(card.window.firstResponder as? NSTextView, "the cursor is in it")
+        #expect(field.isDescendant(of: draft))
+        field.insertText("Why one?", replacementRange: field.selectedRange())
+        #expect(session.draft?.body == "Why one?")
+
+        card.press("\r", .command)
+        #expect(await card.wait { session.selectedThreadID != nil }, "⌘↩ posts it")
+        let repository = try #require(session.repository)
+        #expect(try store.threads(for: repository).map(\.comments.count) == [1])
+        let thread = try #require(card.host, "posting opens the new thread in the same place")
+        #expect(thread !== draft)
+        #expect(try card.fits())
+        let posted = thread.frame.height
+
+        let replyBox = try #require(card.textField(in: thread) as NSView?)
+        card.window.makeFirstResponder(replyBox)
+        let reply = try #require(card.window.firstResponder as? NSTextView)
+        reply.insertText("Because.\nTwo lines, too.", replacementRange: reply.selectedRange())
+        card.press("\r", .command)
+        #expect(
+            await card.wait { reviewed.placedThreads.first?.thread.comments.count == 2 },
+            "⌘↩ sends the reply")
+        #expect(try card.fits())
+        #expect(try #require(card.host).frame.height > posted, "the reply made it taller")
+        #expect(reply.string.isEmpty, "the box empties once it's sent")
+
+        card.press("\u{1b}", [])
+        await card.settle()
+        #expect(session.selectedThreadID == nil)
+        #expect(card.host == nil)
     }
 
     @Test func tOpensTheThreadOnTheLineAndClosesItAgain() async throws {
@@ -250,5 +302,73 @@ import Testing
         #expect(prompt.contains("seam threads") && prompt.contains("seam reply"))
         #expect(prompt.contains("Don't resolve threads you didn't open"))
         pasteboard.releaseGlobally()
+    }
+}
+
+/// One short turn of the run loop, for AppKit and SwiftUI layout; a sync function, since an
+/// async one can't run the loop itself.
+@MainActor
+private func runLoopOnce() {
+    RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.01))
+}
+
+/// The real diff pane in a window that's never shown, for driving the thread card end to end.
+@MainActor
+private struct CardWindow {
+    let window: NSWindow
+
+    init(session: RepoSession, review: WorktreeReview) {
+        window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 700), styleMask: [.titled],
+            backing: .buffered, defer: false)
+        window.contentView = NSHostingView(rootView: DiffPane(session: session, review: review))
+    }
+
+    /// Settles until `condition` holds, for a bounded time; false if it never did.
+    func wait(_ condition: () -> Bool) async -> Bool {
+        for _ in 0..<50 {
+            if condition() {
+                await settle()
+                return true
+            }
+            await settle()
+        }
+        return condition()
+    }
+
+    /// Lets SwiftUI, AppKit and the card's main-actor tasks all catch up.
+    func settle() async {
+        for _ in 0..<30 {
+            runLoopOnce()
+            await Task.yield()
+        }
+    }
+
+    var host: ThreadCardHost? { Self.find(ThreadCardHost.self, in: window.contentView) }
+
+    func textField(in view: NSView) -> NSView? {
+        Self.find(NSTextView.self, in: view) ?? Self.find(NSTextField.self, in: view)
+    }
+
+    /// The card is exactly as tall as its contents need, so nothing hangs out of it.
+    func fits() throws -> Bool {
+        let card = try #require(host)
+        return card.frame.height == card.height(forWidth: card.frame.width)
+    }
+
+    func press(_ key: String, _ modifiers: NSEvent.ModifierFlags) {
+        guard
+            let event = NSEvent.keyEvent(
+                with: .keyDown, location: .zero, modifierFlags: modifiers, timestamp: 0,
+                windowNumber: window.windowNumber, context: nil, characters: key,
+                charactersIgnoringModifiers: key, isARepeat: false,
+                keyCode: key == "\r" ? 36 : 53)
+        else { return }
+        if !window.performKeyEquivalent(with: event) { window.sendEvent(event) }
+    }
+
+    private static func find<T: NSView>(_ type: T.Type, in view: NSView?) -> T? {
+        guard let view else { return nil }
+        return (view as? T) ?? view.subviews.lazy.compactMap { find(type, in: $0) }.first
     }
 }

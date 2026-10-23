@@ -32,15 +32,15 @@ public final class DiffScrollView: NSScrollView {
             }
         }
     }
-    /// The open thread's conversation, made when its row first shows (SPEC §7.7).
-    public var makeThreadView: ((String) -> any InlineThreadView)? {
-        didSet { canvas.makeThreadView = makeThreadView }
+    /// The card's contents, made when its row first shows (SPEC §7.7).
+    public var makeCardView: ((DiffCard) -> any DiffCardView)? {
+        didSet { canvas.makeCardView = makeCardView }
     }
     /// After each update: whether the open thread has no row, its lines being hidden in a gap.
     public var onOpenThreadHidden: ((Bool) -> Void)?
-    /// Escape in the diff with nothing selected, while a thread is open.
-    public var onCloseThread: (() -> Void)? {
-        didSet { canvas.onCloseThread = onCloseThread }
+    /// Escape in the diff with nothing selected, while a card shows.
+    public var onCloseCard: (() -> Void)? {
+        didSet { canvas.onCloseCard = onCloseCard }
     }
     /// The viewed checkbox in a file header was clicked.
     public var onToggleViewed: ((String) -> Void)? {
@@ -135,10 +135,7 @@ public final class DiffScrollView: NSScrollView {
         case .anchor(let anchor): restore(anchor)
         case .file(let path): scroll(toFile: path)
         }
-        if let draft = content.draft, draft != previousDraft {
-            reveal(canvas.draftRow)
-            canvas.focusDraft()
-        }
+        if let draft = content.draft, draft != previousDraft { reveal(canvas.draftRow) }
         if let open = content.openThread, open != previousThread { reveal(canvas.openThreadRow) }
         onOpenThreadHidden?(content.openThread != nil && canvas.openThreadRow == nil)
         updateSticky()
@@ -170,22 +167,6 @@ public final class DiffScrollView: NSScrollView {
 
     public var onOpenThread: ((String) -> Void)? {
         didSet { canvas.onOpenThread = onOpenThread }
-    }
-
-    /// The draft's text when its composer appears (SPEC §7.7).
-    public var draftText: (() -> String)? {
-        didSet { canvas.draftText = draftText }
-    }
-    public var onDraftChange: ((String) -> Void)? {
-        didSet { canvas.onDraftChange = onDraftChange }
-    }
-    /// ⌘↩ in the composer.
-    public var onDraftSubmit: (() -> Void)? {
-        didSet { canvas.onDraftSubmit = onDraftSubmit }
-    }
-    /// Escape in the composer.
-    public var onDraftCancel: (() -> Void)? {
-        didSet { canvas.onDraftCancel = onDraftCancel }
     }
 
     /// Where `c` puts a new thread (SPEC §7.7): the selected lines, else the one being read.
@@ -449,11 +430,11 @@ extension DiffCanvasView {
         }
     }
 
-    /// Escape drops the selection, and with it what `c` would comment on, as it drops a draft;
-    /// with nothing selected it closes the open thread.
+    /// Escape drops the selection, and with it what `c` would comment on; with nothing
+    /// selected it closes the card.
     override func cancelOperation(_ sender: Any?) {
-        if selection == nil, threadView != nil {
-            onCloseThread?()
+        if selection == nil, shownCard != nil {
+            onCloseCard?()
         } else {
             selection = nil
         }

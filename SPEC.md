@@ -451,8 +451,12 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
 - **Creating:** select lines in the diff (or put the cursor on one) and press `c`, or Review ›
   Comment…, or right-click: "Comment on Line N…" for the clicked line, or "Comment on Lines N–M…"
   when the click is inside a selection, which a right-click elsewhere replaces with the clicked
-  line. A composer opens in the diff under the last of those lines (in their column side by
-  side), with the cursor in it; ⌘↩ posts and Escape cancels. The lines a selection or a clicked
+  line. A card opens in the diff under the last of those lines (in their column side by side),
+  with the cursor in its text box; ⌘↩ posts and Escape cancels, and posting turns it into the
+  new thread's card. The card is in the diff's font on an amber frame: a title ("New thread on
+  src/a.cs, line 3"), a text box four lines tall whatever is typed, without a background of its
+  own, and its keys as hints at the bottom ("⌘↩ Comment ⎋ Cancel"), which are also buttons.
+  The row is as tall as the card, measured again whenever what it shows changes. The lines a selection or a clicked
   line would comment on, and the open draft's, have their gutter washed in the threads' amber,
   the one colour of everything about threads: their rows, the composer and the panel. An unposted draft, text included,
   stays while the reader looks at other worktrees and is there again on coming back.
@@ -468,12 +472,10 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   shortened before its count. Resolved threads show only the gutter marker unless Review › Show
   Resolved Threads is on.
 - **Reading and answering in the diff:** clicking a thread's row, `t` on its lines, or picking it
-  in the panel opens it in place of its row, in the composer's amber card, column and style:
-  the diff's font throughout, a title with its lines, comment count and status, Resolve or
-  Reopen and Delete beside it, every comment (author in bold, age, Markdown body), a reply box
-  without a background of its own, three lines tall whatever is typed, so the row doesn't move
-  under the reader, and "⌘↩ Reply ⎋ Close" at the bottom, where the composer has its keys; both
-  are also buttons. Escape in the card, `t` again, or Escape in
+  in the panel opens it in place of its row, in the same card as the composer (one view for
+  both, so they can't look different): a title with its lines, comment count and status,
+  Resolve or Reopen and Delete beside it, every comment (author in bold, age, Markdown body),
+  the reply box, and "⌘↩ Reply ⎋ Close". Escape in the card, `t` again, or Escape in
   the diff with nothing selected closes it back to its row. One thread is open at a time, and
   opening one drops a draft. Opening a thread opens its collapsed file, and a resolved thread
   stays while it's open. Its row is as tall as the conversation at the column's width.

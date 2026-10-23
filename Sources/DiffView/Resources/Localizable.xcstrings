@@ -67,26 +67,6 @@
     "New" : {
 
     },
-    "New thread on %@, line %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "New thread on %1$@, line %2$@"
-          }
-        }
-      }
-    },
-    "New thread on %@, old line %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "New thread on %1$@, old line %2$@"
-          }
-        }
-      }
-    },
     "No content changes" : {
 
     },
@@ -105,9 +85,6 @@
     "Viewed" : {
 
     },
-    "Write a comment…" : {
-
-    },
     "generated" : {
 
     },
@@ -115,9 +92,6 @@
 
     },
     "⊘ no newline at end of file" : {
-
-    },
-    "⌘↩ Comment   ⎋ Cancel" : {
 
     }
   },

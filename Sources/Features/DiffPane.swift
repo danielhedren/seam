@@ -42,16 +42,14 @@ struct DiffRepresentable: NSViewRepresentable {
             session.find.result = (current, total)
         }
         view.onOpenThread = { [session] id in session.openThread(id) }
-        view.onCloseThread = { [session] in session.closeThread() }
+        view.onCloseCard = { [session] in
+            if session.draft != nil { session.draft = nil } else { session.closeThread() }
+        }
         // Reported from inside a SwiftUI update, so the change waits for the next turn.
         view.onOpenThreadHidden = { [session] hidden in
             Task { @MainActor in session.noteOpenThreadHidden(hidden) }
         }
-        view.makeThreadView = { [session] id in InlineThreadHost(session: session, id: id) }
-        view.draftText = { [session] in session.draft?.body ?? "" }
-        view.onDraftChange = { [session] text in session.draft?.body = text }
-        view.onDraftSubmit = { [session] in Task { await session.submitDraft() } }
-        view.onDraftCancel = { [session] in session.draft = nil }
+        view.makeCardView = { [session] card in ThreadCardHost(session: session, card: card) }
         view.menuForLines = { [session] in FileActions.lineMenu(in: session) }
         view.onExpand = { [session] path, gap, direction in
             session.selected?.expand(path, gap: gap, direction)

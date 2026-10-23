@@ -132,6 +132,23 @@ struct WindowSnapshotTests {
         }
     }
 
+    @Test func aNewThreadsCardInTheDiff() async throws {
+        let (session, _) = try await session()
+        let review = try #require(session.selected)
+        session.draft = ThreadDraft(
+            worktree: review.id,
+            anchor: try #require(review.anchor(path: "src/Order.cs", side: .new, lines: 3...3)),
+            body: "Why did the total change?")
+        for (appearance, name) in Self.appearances {
+            assertSnapshot(
+                of: try render(
+                    DiffPane(session: session, review: review),
+                    size: CGSize(width: 700, height: 420), appearance),
+                as: .image(precision: 0.99, perceptualPrecision: 0.98),
+                named: "new-thread-\(name)-\(Self.os)")
+        }
+    }
+
     @Test func threadPanelBesideTheDiff() async throws {
         let (session, _) = try await session()
         let review = try #require(session.selected)

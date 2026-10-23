@@ -7,9 +7,6 @@
     " · resolved" : {
 
     },
-    "%@ Reply" : {
-
-    },
     "%@ already exists and isn't Seam's. Remove it and try again." : {
 
     },
@@ -103,6 +100,9 @@
     "Branched from %@" : {
 
     },
+    "Cancel" : {
+
+    },
     "Cancelled" : {
 
     },
@@ -124,6 +124,9 @@
     "Clear Search" : {
 
     },
+    "Close" : {
+
+    },
     "Collapse File" : {
 
     },
@@ -134,6 +137,9 @@
 
     },
     "Command Palette…" : {
+
+    },
+    "Comment" : {
 
     },
     "Comment on Line %lld…" : {
@@ -385,6 +391,26 @@
     },
     "New Window" : {
 
+    },
+    "New thread on %@, line %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "New thread on %1$@, line %2$@"
+          }
+        }
+      }
+    },
+    "New thread on %@, old line %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "New thread on %1$@, old line %2$@"
+          }
+        }
+      }
     },
     "Next File" : {
 
@@ -731,6 +757,9 @@
     "Wrap Lines" : {
 
     },
+    "Write a comment…" : {
+
+    },
     "Write a reply…" : {
 
     },
@@ -775,9 +804,6 @@
 
     },
     "“%@” doesn't compile." : {
-
-    },
-    "⎋ Close" : {
 
     }
   },

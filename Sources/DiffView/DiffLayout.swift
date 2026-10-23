@@ -10,8 +10,6 @@ struct DiffLayout: Equatable, Sendable {
         var characterWidth: Double
         var imageHeight = 240.0
 
-        /// A title line, four lines of text and the key hints.
-        var draftHeight: Double { (lineHeight * 7).rounded() }
     }
 
     let rows: [DiffRow]
@@ -23,16 +21,14 @@ struct DiffLayout: Equatable, Sendable {
     /// Characters per visual line when wrapping; nil when lines don't wrap.
     let wrapColumns: Int?
 
-    /// The open thread's row is as tall as its conversation, which the view measures.
-    let openThreadHeight: Double
+    /// The card's row (a draft or the open thread) is as tall as its view says.
+    let cardHeight: Double
 
-    init(
-        rows: [DiffRow], metrics: Metrics, wrapColumns: Int? = nil, openThreadHeight: Double = 0
-    ) {
+    init(rows: [DiffRow], metrics: Metrics, wrapColumns: Int? = nil, cardHeight: Double = 0) {
         self.rows = rows
         self.metrics = metrics
         self.wrapColumns = wrapColumns
-        self.openThreadHeight = openThreadHeight
+        self.cardHeight = cardHeight
         var offsets = [Double]()
         offsets.reserveCapacity(rows.count + 1)
         var y = 0.0
@@ -43,8 +39,7 @@ struct DiffLayout: Equatable, Sendable {
                 switch row {
                 case .fileHeader: metrics.fileHeaderHeight
                 case .image: metrics.imageHeight
-                case .draft: metrics.draftHeight
-                case .openThread: openThreadHeight
+                case .draft, .openThread: cardHeight
                 case .hunkHeader(_, _, .separator): (metrics.lineHeight / 3).rounded()
                 case .hunkHeader(_, _, .hidden): 0.0
                 case .line(_, let line):
