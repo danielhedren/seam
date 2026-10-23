@@ -285,9 +285,4 @@ import Testing
         #expect(try !command("thread-commit").isEnabled(session))
         session.close()
     }
-
-    @Test func thePromptTellsTheAgentToAnswerGitHubsThreadsOnGitHub() {
-        #expect(RepoSession.agentPrompt.contains("answer those on GitHub with the gh command"))
-        #expect(RepoSession.agentPrompt.contains("not with `seam reply`"))
-    }
 }

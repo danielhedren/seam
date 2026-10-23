@@ -59,7 +59,7 @@ struct ThreadPanel: View {
             }
             Spacer()
             Button {
-                session.copyAgentPrompt()
+                Task { await session.copyAgentPrompt() }
             } label: {
                 Label(
                     String(localized: "Copy Prompt for Agent", bundle: .module),

@@ -471,7 +471,8 @@ enum CommandCatalog {
             run: { $0.settings.showsResolvedThreads.toggle() }),
         SeamCommand(
             id: "agent-prompt", title: localized("Copy Prompt for Agent"), menu: .review,
-            section: 6, shortcut: .none, run: { $0.copyAgentPrompt() }),
+            section: 6, shortcut: .none,
+            run: { session in Task { await session.copyAgentPrompt() } }),
     ]
 
     static func items(in menu: SeamCommand.Menu) -> [SeamCommand] {

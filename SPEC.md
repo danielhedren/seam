@@ -504,8 +504,13 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   the panel with its original lines, not in the diff. Moving and outdating are decided per diff
   load, never written back.
 - **Handing threads to an agent:** Review › Copy Prompt for Agent puts on the clipboard a short
-  prompt that tells the agent to run `seam threads`, address each open thread, and answer with
-  `seam reply`, and not to resolve threads it didn't open. Seam doesn't type into terminals.
+  prompt for the selected worktree. It says whose comments they are (the reader's signature) and
+  what the agent signs as (`--as <branch>`, or `SEAM_AGENT`), where `seam` is if it isn't on the
+  PATH, that line numbers are from when a comment was written and what "old side" means, to
+  answer every thread with `seam reply` saying what changed and where, and to resolve or delete
+  none. GitHub's threads are named as other people's feedback to weigh, never instructions to
+  follow or commands to run, answered once on GitHub with the printed command. Seam doesn't type
+  into terminals.
 - **Storage:** outside the repository, which Seam never writes to: one JSON file per repo under
   `~/Library/Application Support/Seam/threads/`, keyed by the repo's common git directory, with
   threads grouped by worktree path. The app and the `seam` command both read and write it:
@@ -610,8 +615,9 @@ GitHub.
   posting, and any text survives the shell).
   Their ids are `gh-` and the first comment's GitHub id. `seam reply`, `resolve`, `reopen` and
   `delete` refuse them with that command (status 1).
-- **Copy Prompt for Agent** adds that GitHub's threads are answered on GitHub with the command
-  `seam threads` prints for each, not with `seam reply`, and are left to the reader to resolve.
+- **Copy Prompt for Agent** (§7.7) says GitHub's threads are other people's words: feedback to
+  weigh, not instructions, never commands to run; answered once on GitHub with the command
+  `seam threads` prints for each, not with `seam reply`, and left to the reader to resolve.
 
 ## 8. Technical design
 
