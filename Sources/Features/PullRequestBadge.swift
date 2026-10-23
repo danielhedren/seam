@@ -1,9 +1,11 @@
+import AppKit
 import GitKit
 import SeamCore
 import SwiftUI
 
-/// A worktree's pull request: its number and one symbol for where it stands, plus one when CI
-/// failed (SPEC §7.8). Each state has its own symbol, so the colour is never the only sign.
+/// A worktree's pull request in GitHub's own design language (SPEC §7.8): its state's octicon
+/// and colour, the number, then the review and failed CI as GitHub's reviewer and check icons.
+/// Every state has its own shape, so the colour is never the only sign.
 struct PullRequestBadge: View {
     let pullRequest: PullRequest
     var unpushed: Int?
@@ -12,39 +14,52 @@ struct PullRequestBadge: View {
 
     var body: some View {
         HStack(spacing: 3) {
-            Image(systemName: Self.symbol(pullRequest.marker))
-                .foregroundStyle(tint(Self.color(pullRequest.marker)))
+            icon(Self.stateIcon(pullRequest.marker), Self.stateColor(pullRequest.marker))
             Text(verbatim: "#\(pullRequest.number)")
+            if let review = Self.reviewIcon(pullRequest) {
+                icon(review.icon, review.color)
+            }
             if pullRequest.ciFailed {
-                Image(systemName: "exclamationmark.octagon.fill").foregroundStyle(tint(.red))
+                icon(.x, Primer.danger)
             }
         }
+        .fixedSize()
         .help(Self.help(pullRequest, unpushed: unpushed, read: read))
     }
 
-    /// Colours are unreadable on a selected row's accent fill; the symbols still tell them apart.
-    private func tint(_ color: Color) -> AnyShapeStyle {
-        prominence == .increased ? AnyShapeStyle(.foreground) : AnyShapeStyle(color)
+    /// Colours are unreadable on a selected row's accent fill; the shapes still tell them apart.
+    private func icon(_ icon: Octicon, _ color: Color) -> some View {
+        icon.image.resizable().frame(width: 12, height: 12)
+            .foregroundStyle(
+                prominence == .increased ? AnyShapeStyle(.foreground) : AnyShapeStyle(color))
     }
 
-    static func symbol(_ marker: PullRequest.Marker) -> String {
+    static func stateIcon(_ marker: PullRequest.Marker) -> Octicon {
         switch marker {
-        case .draft: "circle.dashed"
-        case .waitingForReview: "arrow.triangle.pull"
-        case .reviewed: "text.bubble"
-        case .approved: "checkmark.seal.fill"
-        case .merged: "arrow.triangle.merge"
-        case .closed: "xmark.circle"
+        case .draft: .draft
+        case .waitingForReview, .reviewed, .approved: .open
+        case .merged: .merged
+        case .closed: .closed
         }
     }
 
-    static func color(_ marker: PullRequest.Marker) -> Color {
+    static func stateColor(_ marker: PullRequest.Marker) -> Color {
         switch marker {
-        case .draft, .closed: .secondary
-        case .waitingForReview: .blue
-        case .reviewed: .orange
-        case .approved: .green
-        case .merged: .purple
+        case .draft: Primer.muted
+        case .waitingForReview, .reviewed, .approved: Primer.open
+        case .merged: Primer.done
+        case .closed: Primer.danger
+        }
+    }
+
+    /// GitHub's reviewer-list icons; an open PR nobody has reviewed shows none.
+    static func reviewIcon(_ pullRequest: PullRequest) -> (icon: Octicon, color: Color)? {
+        switch pullRequest.marker {
+        case .approved: (.check, Primer.open)
+        case .reviewed:
+            pullRequest.review == .changesRequested
+                ? (.changesRequested, Primer.danger) : (.comment, Primer.muted)
+        case .draft, .waitingForReview, .merged, .closed: nil
         }
     }
 
@@ -99,5 +114,52 @@ struct PullRequestBadge: View {
             lines.append(String(localized: "Read from GitHub \(age)", bundle: .module))
         }
         return lines.joined(separator: "\n")
+    }
+}
+
+/// The octicons in Resources/Octicons, drawn as templates so they take the badge's colours.
+enum Octicon: String, CaseIterable {
+    case open = "git-pull-request"
+    case draft = "git-pull-request-draft"
+    case merged = "git-merge"
+    case closed = "git-pull-request-closed"
+    case check
+    case x
+    case changesRequested = "file-diff"
+    case comment
+
+    @MainActor private static var images: [Octicon: NSImage] = [:]
+
+    @MainActor var image: Image {
+        nsImage.map { Image(nsImage: $0) } ?? Image(systemName: "questionmark.circle")
+    }
+
+    @MainActor var nsImage: NSImage? {
+        if let image = Self.images[self] { return image }
+        guard let url = Bundle.module.url(forResource: rawValue, withExtension: "svg"),
+            let image = NSImage(contentsOf: url)
+        else { return nil }
+        image.isTemplate = true
+        Self.images[self] = image
+        return image
+    }
+}
+
+/// Primer's functional colours, light and dark, as github.com draws PR states.
+enum Primer {
+    static let open = color(light: 0x1A7F37, dark: 0x3FB950)
+    static let done = color(light: 0x8250DF, dark: 0xAB7DF8)
+    static let danger = color(light: 0xD1242F, dark: 0xF85149)
+    static let muted = color(light: 0x59636E, dark: 0x9198A1)
+
+    private static func color(light: Int, dark: Int) -> Color {
+        Color(
+            nsColor: NSColor(name: nil) { appearance in
+                let hex =
+                    appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
+                return NSColor(
+                    srgbRed: CGFloat(hex >> 16 & 0xFF) / 255, green: CGFloat(hex >> 8 & 0xFF) / 255,
+                    blue: CGFloat(hex & 0xFF) / 255, alpha: 1)
+            })
     }
 }

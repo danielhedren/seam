@@ -513,14 +513,17 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
 Each worktree's branch shows its GitHub pull request, read through the user's own `gh` (ADR
 0005). Seam never changes anything on GitHub.
 
-- **Markers:** `#12` and one symbol for the PR's state: draft (dashed circle), waiting for review
-  (pull arrow), reviewed without approval, including changes requested (speech bubble), approved
-  (seal), merged (merge arrow), closed (crossed circle). A red octagon follows when CI failed on
-  an open PR. Each state has its own symbol, so colour is never the only sign; on a selected row
-  they all take the row's text colour. The tooltip has the number and title, the state ("Changes
-  requested", "Reviewed, not approved", …), the checks ("Checks: 3 passed, 1 failed, 2
-  running"), commits on the local branch the PR doesn't have yet, and when it was read. With the
-  worktree list hidden, the selected worktree's marker shows in the file list's header.
+- **Markers:** GitHub's own design language, so a state reads as it does on github.com: the
+  state's octicon in Primer's colour, open (green pull request), draft (grey draft pull
+  request), merged (purple merge) or closed (red closed pull request), then `#12`. An open PR
+  that has been reviewed adds GitHub's reviewer icon: approved (green check), changes requested
+  (red file diff) or commented (grey speech bubble). A red cross follows when CI failed on an
+  open PR. The octicons (MIT) are bundled as SVGs. Each state has its own shape, so colour is
+  never the only sign; on a selected row they all take the row's text colour. The tooltip has
+  the number and title, the state ("Changes requested", "Reviewed, not approved", …), the
+  checks ("Checks: 3 passed, 1 failed, 2 running"), commits on the local branch the PR doesn't
+  have yet, and when it was read. With the worktree list hidden, the selected worktree's marker
+  shows in the file list's header.
 - **Reviews:** GitHub's review decision where the repo requires reviews; elsewhere the latest
   review of each reviewer: changes requested, then approved, then commented. One approval of two
   required is "reviewed, not approved".
@@ -997,7 +1000,8 @@ is found, with a Settings switch to turn it off; without `gh`, a login, or a Git
 changes but a status line in Settings, never a banner or an alert.
 - Each worktree row shows its branch's pull request: `#12` and one marker for its state (draft,
   waiting for review, reviewed without approval, approved, merged, closed), plus a marker when
-  CI failed. Each marker is its own symbol, not just a colour. The tooltip has the title, the
+  CI failed, drawn with GitHub's octicons and colours. Each marker is its own symbol, not just a
+  colour. The tooltip has the title, the
   reviews, the checks, commits not yet in the PR, and when it was read. With the worktree list
   hidden, the selected worktree's marker shows in the file list's header (the window draws no
   title). The toolbar doesn't change.

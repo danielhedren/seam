@@ -247,7 +247,7 @@ struct WindowSnapshotTests {
         ]
         let view = VStack(alignment: .leading, spacing: 10) {
             WorktreeRow(review: review)
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 ForEach(markers, id: \.number) { PullRequestBadge(pullRequest: $0) }
             }
             .font(.caption).monospacedDigit().foregroundStyle(.secondary)

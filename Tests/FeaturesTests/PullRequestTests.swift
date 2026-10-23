@@ -462,6 +462,24 @@ final class OpenedURLs {
         session.close()
     }
 
+    /// GitHub's octicons, bundled: every marker shows a different set of shapes.
+    @MainActor @Test func everyMarkerDrawsItsOwnGitHubIcons() throws {
+        for icon in Octicon.allCases {
+            let image = try #require(icon.nsImage, "\(icon)")
+            #expect(image.isValid && image.isTemplate)
+        }
+        let markers = [
+            Self.pullRequest(1, draft: true), Self.pullRequest(2),
+            Self.pullRequest(3, review: .commented), Self.pullRequest(4, review: .changesRequested),
+            Self.pullRequest(5, review: .approved), Self.pullRequest(6, state: .merged),
+            Self.pullRequest(7, state: .closed),
+        ]
+        let shapes = markers.map {
+            [PullRequestBadge.stateIcon($0.marker), PullRequestBadge.reviewIcon($0)?.icon]
+        }
+        #expect(Set(shapes).count == markers.count)
+    }
+
     @Test func aPullRequestIntoAnotherBranchOffersItsBaseAndUseDiffsAgainstIt() async throws {
         let (repo, feature) = try await fixture()
         try await repo.run("update-ref", "refs/remotes/origin/release", "origin/main")
