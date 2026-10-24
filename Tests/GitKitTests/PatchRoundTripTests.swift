@@ -9,9 +9,7 @@ import Testing
     static let cases = 500
 
     @Test func parsedHunksReproduceTheNewFile() async throws {
-        let seed =
-            UInt64(ProcessInfo.processInfo.environment["SEAM_SEED"] ?? "")
-            ?? UInt64.random(in: 1...UInt64.max)
+        let seed = SplitMix64.seed()
         var random = SplitMix64(seed: seed)
         let directory = try TemporaryDirectory()
         let git = HermeticGit(home: directory.url)
@@ -108,19 +106,5 @@ import Testing
             tailCopied ? oldEndsWithNewline : !(lastNewSide?.noNewlineAtEnd ?? !oldEndsWithNewline)
         guard !output.isEmpty else { return Data() }
         return Data((output.joined(separator: "\n") + (newEndsWithNewline ? "\n" : "")).utf8)
-    }
-}
-
-struct SplitMix64 {
-    private var state: UInt64
-
-    init(seed: UInt64) { state = seed }
-
-    mutating func next() -> UInt64 {
-        state &+= 0x9E37_79B9_7F4A_7C15
-        var z = state
-        z = (z ^ (z >> 30)) &* 0xBF58_476D_1CE4_E5B9
-        z = (z ^ (z >> 27)) &* 0x94D0_49BB_1331_11EB
-        return z ^ (z >> 31)
     }
 }
