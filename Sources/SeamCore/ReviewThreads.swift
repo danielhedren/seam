@@ -90,8 +90,6 @@ public struct ReviewThread: Codable, Equatable, Sendable, Identifiable {
         return commit.map { .commit($0) }
     }
 
-    public var isFromGitHub: Bool { github != nil }
-
     /// When the thread last changed, for `seam threads --since`: the latest comment when an
     /// older file has no `updated`.
     public var lastActivity: Date {

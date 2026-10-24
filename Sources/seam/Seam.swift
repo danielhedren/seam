@@ -430,7 +430,8 @@ private func refuseGitHub(_ id: String, in repository: Repository) throws {
         let thread = try threadStore().gitHubThreads(for: repository).threads.first(where: {
             $0.id == id
         }),
-        let github = thread.github, let reply = thread.gitHubReply
+        !thread.capabilities.contains(.reply), let github = thread.github,
+        let reply = thread.gitHubReply
     else { return }
     throw Failure(
         "#\(id) is a thread on GitHub pull request #\(github.pullRequest), which seam can't "

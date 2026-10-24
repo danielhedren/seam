@@ -26,7 +26,7 @@ struct ThreadCardView: View {
                 onDismiss: { session.draft = nil })
         case .thread(let id):
             if let placed = session.selected?.placedThreads.first(where: { $0.id == id }),
-                placed.thread.isFromGitHub
+                !placed.thread.capabilities.contains(.reply)
             {
                 // Read-only (SPEC §7.9): no reply box, and the one action is GitHub's page.
                 layout(
@@ -61,7 +61,7 @@ struct ThreadCardView: View {
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 16) {
                 HStack(spacing: 6) {
-                    if thread?.isFromGitHub == true {
+                    if thread?.source == .gitHub {
                         Octicon.mark.image.resizable().frame(width: 13, height: 13)
                             .foregroundStyle(Color(nsColor: ThreadColor.gitHubAccent))
                     }
@@ -69,7 +69,7 @@ struct ThreadCardView: View {
                         .lineLimit(1).truncationMode(.middle)
                 }
                 Spacer(minLength: 4)
-                if let thread, !thread.isFromGitHub { actions(thread) }
+                if let thread, thread.capabilities.contains(.resolve) { actions(thread) }
             }
             if let thread { ThreadComments(thread: thread, font: Font(diffFont), authorFont: bold) }
             if let text {

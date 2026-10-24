@@ -489,6 +489,6 @@ extension RepoSession {
 
     var selectedGitHubThread: ReviewThread? {
         selectedThreadID.flatMap { id in selected?.placedThreads.first { $0.id == id }?.thread }
-            .flatMap { $0.isFromGitHub ? $0 : nil }
+            .flatMap { $0.capabilities.contains(.openRemote) ? $0 : nil }
     }
 }

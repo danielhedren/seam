@@ -70,7 +70,7 @@ extension WorktreeReview {
                 return PlacedThread(thread: thread, placement: .lines(lines))
             }
             // A pull request comment whose hunk didn't show its lines was never placeable.
-            if thread.isFromGitHub, anchor.text.isEmpty {
+            if thread.source == .gitHub, anchor.text.isEmpty {
                 return PlacedThread(thread: thread, placement: .notShown)
             }
             return PlacedThread(
@@ -124,7 +124,7 @@ extension WorktreeReview {
         var counts: [Key: FileThreadCounts] = [:]
         for thread in threads?.threads(in: id) ?? [] {
             guard let key = key(thread) else { continue }
-            switch (thread.isFromGitHub, thread.isResolved) {
+            switch (thread.source == .gitHub, thread.isResolved) {
             case (false, true): counts[key, default: FileThreadCounts()].resolved += 1
             case (false, false): counts[key, default: FileThreadCounts()].open += 1
             case (true, true): counts[key, default: FileThreadCounts()].gitHubResolved += 1
@@ -173,7 +173,7 @@ extension WorktreeReview {
             id: placed.id, side: placed.thread.anchor.side, lines: lines,
             latestAuthor: latest.author, latest: String(firstLine.prefix(120)),
             commentCount: placed.thread.comments.count, isResolved: placed.thread.isResolved,
-            source: placed.thread.isFromGitHub ? .gitHub : .seam)
+            source: placed.thread.source)
     }
 
     /// The anchor `c` would comment on, with the lines' text from the file as it is.

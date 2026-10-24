@@ -53,7 +53,7 @@ struct RealGitHubTests {
         var threads: [String] = []
         for (review, pullRequest) in shown {
             let read = try await services.github.client.reviewThreads(pullRequest.number, in: repo)
-            let placed = review.placedThreads.filter(\.thread.isFromGitHub)
+            let placed = review.placedThreads.filter { $0.thread.source == .gitHub }
             threads.append(
                 "#\(pullRequest.number) threads=\(read.count) "
                     + "comments=\(read.map(\.comments.count).reduce(0, +)) "

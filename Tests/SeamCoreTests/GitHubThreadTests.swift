@@ -65,6 +65,24 @@ private func gitHubThread(
         )
     }
 
+    /// One place says what may be done with a thread: Seam's are Seam's to change, a pull
+    /// request's are only read and opened, and jumped to when GitHub said its commit.
+    @Test func seamsThreadsCanBeChangedAndAPullRequestsOnlyReadAndOpened() throws {
+        let read = GitHubThreads.threads(
+            from: [gitHubThread(), gitHubThread("PRRT_2", comments: [9])], worktree: "/w",
+            repo: repo, pullRequest: 12)
+        var withCommit = try #require(read.first)
+        withCommit.github?.commit = "abc"
+        #expect(withCommit.capabilities == [.openRemote, .jumpToCommit])
+        #expect(read[1].capabilities == [.openRemote])
+        #expect(read[1].source == .gitHub)
+
+        var local = read[1]
+        local.github = nil
+        #expect(local.capabilities == [.reply, .resolve, .delete])
+        #expect(local.source == .seam)
+    }
+
     @Test func aFileCommentAndAnEmptyThreadAreKeptApart() {
         let threads = GitHubThreads.threads(
             from: [gitHubThread(lines: nil), gitHubThread("PRRT_2", comments: [])], worktree: "/w",

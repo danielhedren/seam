@@ -60,11 +60,6 @@ public struct DraftMarker: Equatable, Sendable {
     }
 }
 
-/// Seam's own threads, or a pull request's read from GitHub (SPEC §7.9).
-public enum ThreadSource: Sendable {
-    case seam, gitHub
-}
-
 /// Review threads' colour wherever they show: posted, being written, and the lines `c` would
 /// comment on (SPEC §7.7); GitHub's threads in its blue (§7.9).
 public enum ThreadColor {

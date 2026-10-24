@@ -48,12 +48,12 @@ extension RepoSession {
     }
 
     func reply(to id: String, _ body: String) async -> Bool {
-        guard !Self.isGitHub(id) else { return false }
+        guard capabilities(of: id).contains(.reply) else { return false }
         return await threads?.reply(to: id, body: body) ?? false
     }
 
     func setResolved(_ resolved: Bool, thread id: String) async {
-        guard !Self.isGitHub(id) else { return }
+        guard capabilities(of: id).contains(.resolve) else { return }
         await threads?.setResolved(resolved, id: id)
     }
 
@@ -64,9 +64,10 @@ extension RepoSession {
         threads?.dismissFailure()
     }
 
-    /// A pull request's thread, which Seam only reads (SPEC §7.9).
-    static func isGitHub(_ id: String) -> Bool {
-        id.hasPrefix(ReviewThread.gitHubPrefix)
+    /// What may be done to a thread; an unknown one may be tried, and the store says no.
+    func capabilities(of id: String) -> ThreadCapabilities {
+        let all = (threads?.threads ?? []) + (threads?.gitHub ?? [])
+        return all.first { $0.id == id }?.capabilities ?? [.reply, .resolve, .delete]
     }
 
     /// Shows the branch as it was when the thread was written, with the thread open on its lines.
@@ -127,7 +128,8 @@ extension RepoSession {
 
     /// Review › Delete Thread; Undo puts it back where it was.
     func deleteThread(_ id: String) async {
-        guard !Self.isGitHub(id), let threads, let (thread, index) = await threads.delete(id: id)
+        guard capabilities(of: id).contains(.delete), let threads,
+            let (thread, index) = await threads.delete(id: id)
         else { return }
         if selectedThreadID == id { selectedThreadID = nil }
         let name = String(localized: "Delete Thread", bundle: .module)
