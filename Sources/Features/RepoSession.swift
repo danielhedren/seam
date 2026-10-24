@@ -7,6 +7,8 @@ import SeamCore
 import os
 
 enum WorktreeSort: String, CaseIterable, Sendable {
+    /// Worktrees with something awaiting the reader first, then by recent change.
+    case attention
     case recent
     case name
 }
@@ -47,7 +49,7 @@ final class RepoSession {
     var draft: ThreadDraft?
     private(set) var reviews: [WorktreeReview] = []
     private(set) var selectedID: String?
-    var sort = WorktreeSort.recent
+    var sort = WorktreeSort.attention
     var hidesMissing = false
     var diffHasFocus = false
     var fileListHasFocus = false
@@ -129,20 +131,28 @@ final class RepoSession {
     }
 
     /// Main worktree pinned first, then by recent change or name (SPEC §7.2).
+    /// The main worktree first, except that sorting by attention puts every worktree needing
+    /// the reader above it (SPEC §7.2).
     var sortedReviews: [WorktreeReview] {
         let visible = reviews.filter { !(hidesMissing && $0.worktree.isMissing) }
-        let main = visible.filter(\.worktree.isMain)
-        let others = visible.filter { !$0.worktree.isMain }.sorted { lhs, rhs in
-            switch sort {
-            case .name:
-                return lhs.worktree.name.localizedStandardCompare(rhs.worktree.name)
-                    == .orderedAscending
-            case .recent:
-                let (left, right) = (lhs.lastChange ?? .distantPast, rhs.lastChange ?? .distantPast)
-                return left == right ? lhs.worktree.name < rhs.worktree.name : left > right
-            }
+        func ordered(_ reviews: [WorktreeReview]) -> [WorktreeReview] {
+            reviews.filter(\.worktree.isMain)
+                + reviews.filter { !$0.worktree.isMain }.sorted { lhs, rhs in
+                    switch sort {
+                    case .name:
+                        return lhs.worktree.name.localizedStandardCompare(rhs.worktree.name)
+                            == .orderedAscending
+                    case .recent, .attention:
+                        let (left, right) = (
+                            lhs.lastChange ?? .distantPast, rhs.lastChange ?? .distantPast
+                        )
+                        return left == right ? lhs.worktree.name < rhs.worktree.name : left > right
+                    }
+                }
         }
-        return main + others
+        guard sort == .attention else { return ordered(visible) }
+        return ordered(visible.filter(\.attention.needsReader))
+            + ordered(visible.filter { !$0.attention.needsReader })
     }
 
     // MARK: - Opening
@@ -242,11 +252,13 @@ final class RepoSession {
         await withTaskGroup(of: Void.self) { group in
             for (index, review) in reviews.enumerated() {
                 if index >= limit { await group.next() }
-                group.addTask { [refs] in
+                group.addTask { [refs, threads] in
                     if !(skippingSelected && review.id == selectedID) {
                         await review.refreshDetection(refs: refs)
                     }
                     await review.refreshActivity()
+                    // Whose turn a thread is depends on who the reader is in that worktree.
+                    _ = await threads?.reader(in: review.id)
                 }
             }
         }

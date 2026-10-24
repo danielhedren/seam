@@ -258,6 +258,9 @@ keeps the position.
 
 Each row shows:
 - The worktree directory name in bold, and the branch name if it differs.
+- What awaits the reader, in orange words on a line of its own: "2 awaiting you" for Seam
+  threads whose latest comment isn't the reader's (an agent's answer or question; notes and
+  resolved threads don't count), "checks failed" for an open pull request's failed checks.
 - The commits unique to the branch (from §5) and the files changed against its base ("5 commits ·
   19 files"), `✎N` uncommitted files (its tooltip says so), and the line totals (`+454 −948`) on the right. Totals
   include uncommitted changes and untracked text files, and are measured from the same base as
@@ -270,8 +273,9 @@ Each row shows:
 - The totals are green and red and the markers orange, except on a selected row, where they
   take the row's text colour: the accent fill leaves those colours unreadable.
 
-Sorting: most recently changed first (default), or by name. The main worktree is pinned to the
-top. Worktrees whose directory is missing are listed dimmed, and can be hidden.
+Sorting: Needs You First (default) lists the worktrees with something awaiting the reader at the
+top, then the rest, each most recently changed first; or by recent change, or by name. Apart from
+those needing the reader, the main worktree is pinned to the top. `⌘[`/`⌘]` follow the order. Worktrees whose directory is missing are listed dimmed, and can be hidden.
 
 A row's context menu has Open in Editor (the worktree's folder, §7.6), Reveal in Finder, Copy
 Path and Copy Branch Name (when it has a branch), Open Pull Request in Browser and Copy Pull

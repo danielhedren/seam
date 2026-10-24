@@ -22,6 +22,7 @@ struct WorktreeList: View {
             }
             Picker(String(localized: "Sort By", bundle: .module), selection: Bindable(session).sort)
             {
+                Text("Needs You First", bundle: .module).tag(WorktreeSort.attention)
                 Text("Recent Change", bundle: .module).tag(WorktreeSort.recent)
                 Text("Name", bundle: .module).tag(WorktreeSort.name)
             }
@@ -48,6 +49,11 @@ struct WorktreeRow: View {
             if let branch = review.worktree.branch, branch != review.worktree.name {
                 Text(branch).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     .truncationMode(.middle)
+            }
+            // In words, on a line of its own: it's what the reader scans the list for.
+            if let attention = review.attention.summary {
+                Text(verbatim: attention).font(.caption.weight(.semibold))
+                    .foregroundStyle(tint(.orange)).lineLimit(1)
             }
             if hasDetails {
                 HStack(spacing: 6) {

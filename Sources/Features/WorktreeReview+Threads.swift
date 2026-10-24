@@ -116,6 +116,15 @@ extension WorktreeReview {
         return placedThreads.filter { $0.thread.source == .seam && reader.awaitsReply($0.thread) }
     }
 
+    /// What awaits the reader here, for the worktree's row and the Needs You sort (SPEC §7.2).
+    /// Unlike `awaitingReply`, it needs no diff, so every row has it.
+    var attention: WorktreeAttention {
+        let reader = threads?.knownReader(in: id) ?? ReviewerIdentity(name: ReviewThread.reader)
+        return WorktreeAttention(
+            awaiting: (threads?.threads(in: id) ?? []).count { reader.awaitsReply($0) },
+            checksFailed: pullRequest.map { $0.state == .open && $0.ciFailed } ?? false)
+    }
+
     /// The toolbar's badge: open threads, whether or not the diff shows them.
     var openThreadCount: Int {
         allThreads.count { !$0.isResolved && !$0.isNote }
@@ -177,5 +186,24 @@ extension WorktreeReview {
         return text.flatMap {
             ThreadAnchor(path: path, side: side, lines: lines, in: TextLines.split($0))
         }
+    }
+}
+
+/// What in a worktree is the reader's to act on: threads whose latest word isn't theirs (an
+/// agent's answer or question), and an open pull request's failed checks.
+struct WorktreeAttention: Equatable {
+    var awaiting = 0
+    var checksFailed = false
+
+    var needsReader: Bool { awaiting > 0 || checksFailed }
+
+    /// "2 awaiting you · checks failed"; nil when nothing does.
+    var summary: String? {
+        var parts: [String] = []
+        if awaiting > 0 {
+            parts.append(String(localized: "\(awaiting) awaiting you", bundle: .module))
+        }
+        if checksFailed { parts.append(String(localized: "checks failed", bundle: .module)) }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 }

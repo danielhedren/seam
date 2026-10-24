@@ -1,0 +1,69 @@
+import Foundation
+import GitKit
+import SeamCore
+import TestSupport
+import Testing
+
+@testable import Features
+
+/// Worktree rows say what awaits the reader, and Needs You First lists those worktrees at the
+/// top (SPEC §7.2).
+@MainActor
+@Suite(.timeLimit(.minutes(1)))
+struct WorktreeAttentionTests {
+    private func session(_ repo: FixtureRepo) async -> RepoSession {
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        await session.settled()
+        return session
+    }
+
+    private func names(_ session: RepoSession) -> [String] {
+        session.sortedReviews.map(\.worktree.name)
+    }
+
+    @Test func aWorktreeWhoseAgentAnsweredComesFirstAndSaysSo() async throws {
+        let repo = try await FixtureRepo()
+        let quiet = try await repo.worktree("quiet", branch: "quiet", from: "origin/main")
+        let answered = try await repo.worktree("answered", branch: "answered", from: "origin/main")
+        try repo.write("a.txt", "a\n", in: answered)
+        try repo.write("q.txt", "q\n", in: quiet)
+        let session = await session(repo)
+        let row = try #require(session.reviews.first { $0.id == answered.path })
+        #expect(row.attention.summary == nil)
+
+        // The reader asks; their own thread isn't theirs to act on.
+        session.select(answered.path)
+        await session.settled()
+        session.draft = ThreadDraft(
+            worktree: row.id,
+            anchor: try #require(row.anchor(path: "a.txt", side: .new, lines: 1...1)))
+        await session.post("Why a?")
+        #expect(row.attention.needsReader == false)
+
+        // The agent answers in the other worktree's thread, as `seam reply` does.
+        let repository = try #require(session.repository)
+        let id = try #require(session.threads?.threads(in: row.id).first?.id)
+        try session.services.threads.update(repository) { threads throws(ThreadError) in
+            try ThreadRules.reply(&threads, to: id, author: "claude", body: "Because.", now: .now)
+        }
+        await session.threads?.load()
+        #expect(row.attention.summary == "1 awaiting you")
+        session.select(repo.main.path)
+        try repo.write("q.txt", "qq\n", in: quiet)
+        await session.apply(RepoChange(worktrees: [quiet.path]))
+        await session.settled()
+        #expect(names(session) == ["wt-answered", repo.main.lastPathComponent, "wt-quiet"])
+
+        try #require(CommandCatalog.all.first { $0.id == "sort-recent" }).run(session)
+        #expect(names(session).first == repo.main.lastPathComponent)
+    }
+
+    @Test func anOpenPullRequestsFailedChecksNeedTheReader() {
+        var attention = WorktreeAttention(checksFailed: true)
+        #expect(attention.needsReader)
+        #expect(attention.summary == "checks failed")
+        attention.awaiting = 2
+        #expect(attention.summary == "2 awaiting you · checks failed")
+    }
+}

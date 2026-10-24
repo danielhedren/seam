@@ -279,6 +279,10 @@ enum CommandCatalog {
             shortcut: .none, isOn: { $0.selected?.flatFileList == true },
             run: { $0.selected?.flatFileList.toggle() }),
         SeamCommand(
+            id: "sort-attention", title: localized("Sort Worktrees Needing You First"),
+            menu: .view, section: 3, shortcut: .none, isEnabled: { _ in true },
+            isOn: { $0.sort == .attention }, run: { $0.sort = .attention }),
+        SeamCommand(
             id: "sort-recent", title: localized("Sort Worktrees by Recent Change"), menu: .view,
             section: 3, shortcut: .none, isEnabled: { _ in true }, isOn: { $0.sort == .recent },
             run: { $0.sort = .recent }),

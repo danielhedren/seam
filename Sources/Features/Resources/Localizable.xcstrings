@@ -52,6 +52,9 @@
         }
       }
     },
+    "%lld awaiting you" : {
+
+    },
     "%lld comments" : {
 
     },
@@ -532,6 +535,9 @@
     "Name" : {
 
     },
+    "Needs You First" : {
+
+    },
     "Never use as a parent" : {
 
     },
@@ -883,6 +889,9 @@
     "Sort By" : {
 
     },
+    "Sort Worktrees Needing You First" : {
+
+    },
     "Sort Worktrees by Name" : {
 
     },
@@ -1024,6 +1033,9 @@
 
     },
     "Write something first." : {
+
+    },
+    "checks failed" : {
 
     },
     "detached" : {
