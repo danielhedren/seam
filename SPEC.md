@@ -956,7 +956,9 @@ Rules:
 
 `state.json` is written as soon as anything in it changes, moving to another file included,
 since nothing runs on ⌘Q; changes made while a write is under way go out in one more write after
-it. A worktree no longer listed drops out of the file.
+it. A worktree no longer listed drops out of the file. A file that can't be read is moved aside as
+`state.json.unreadable` rather than overwritten, and a banner above the diff says so; one that
+can't be written says why the same way.
 
 Seam writes nothing inside the repository or `.git`.
 

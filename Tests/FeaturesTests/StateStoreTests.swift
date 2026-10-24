@@ -58,6 +58,35 @@ import Testing
         #expect(state.pullRequests?.read == Date(timeIntervalSinceReferenceDate: 782_913_600))
     }
 
+    /// An unreadable state file isn't overwritten by the next save: it's kept beside, and the
+    /// store says what happened so the window can.
+    @Test func anUnreadableStateFileIsKeptAndReported() async throws {
+        let directory = try TemporaryDirectory()
+        let store = JSONStateStore(root: directory.resolved)
+        let repository = Repository(
+            commonDirectory: URL(fileURLWithPath: "/r/.git"), anchor: URL(fileURLWithPath: "/r"))
+        let file = AppChoices.stateFile(for: repository, in: directory.resolved)
+        try FileManager.default.createDirectory(
+            at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("{ not json".utf8).write(to: file)
+
+        #expect(await store.load(repository) == RepoState())
+        #expect(await store.loadProblem(for: repository)?.contains("state.json.unreadable") == true)
+        #expect(await store.save(RepoState(), for: repository) == nil)
+        let kept = file.deletingLastPathComponent().appending(path: "state.json.unreadable")
+        #expect(try String(contentsOf: kept, encoding: .utf8) == "{ not json")
+    }
+
+    @Test func aStateFileThatCantBeWrittenSaysWhy() async throws {
+        let directory = try TemporaryDirectory()
+        let blocked = directory.resolved.appending(path: "blocked")
+        try Data("a file where a folder goes".utf8).write(to: blocked)
+        let store = JSONStateStore(root: blocked)
+        let repository = Repository(
+            commonDirectory: URL(fileURLWithPath: "/r/.git"), anchor: URL(fileURLWithPath: "/r"))
+        #expect(await store.save(RepoState(), for: repository) != nil)
+    }
+
     @Test @MainActor func theCommandReadsTheBaseChoicesTheAppSaves() async throws {
         let directory = try TemporaryDirectory()
         let store = JSONStateStore(root: directory.resolved)

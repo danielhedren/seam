@@ -18,10 +18,14 @@ actor MemoryStore: StateStore {
         states[repository.commonDirectory.path] ?? RepoState()
     }
 
-    func save(_ state: RepoState, for repository: Repository) {
+    @discardableResult
+    func save(_ state: RepoState, for repository: Repository) -> String? {
         states[repository.commonDirectory.path] = state
         saves += 1
+        return nil
     }
+
+    func loadProblem(for repository: Repository) -> String? { nil }
 
     func seed(_ state: RepoState, for repository: Repository) {
         states[repository.commonDirectory.path] = state

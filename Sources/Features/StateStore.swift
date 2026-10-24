@@ -7,8 +7,13 @@ import SeamCore
 import os
 
 public protocol StateStore: Sendable {
+    /// An empty state when there's none or it can't be read; `loadProblem` says which.
     func load(_ repository: Repository) async -> RepoState
-    func save(_ state: RepoState, for repository: Repository) async
+    /// Why the last load fell back to an empty state, for the window to say (SPEC §11).
+    func loadProblem(for repository: Repository) async -> String?
+    /// Nil when it saved, else why not.
+    @discardableResult
+    func save(_ state: RepoState, for repository: Repository) async -> String?
     func recentRepositories() async -> [URL]
     func noteOpened(_ directory: URL) async
     func clearRecent() async
@@ -17,17 +22,40 @@ public protocol StateStore: Sendable {
 /// JSON files under `~/Library/Application Support/Seam/`. Nothing is written into the repo.
 actor JSONStateStore: StateStore {
     private let root: URL
+    private var loadProblems: [String: String] = [:]
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
 
     init(root: URL = AppChoices.stateRoot) {
         self.root = root
     }
 
+    /// A file that won't decode is moved aside rather than overwritten by the next save, so
+    /// the reader's viewed marks and bases can still be recovered by hand.
     func load(_ repository: Repository) -> RepoState {
-        read(RepoState.self, from: file(for: repository)) ?? RepoState()
+        let url = file(for: repository)
+        loadProblems[url.path] = nil
+        guard let data = try? Data(contentsOf: url) else { return RepoState() }
+        do {
+            return try JSONDecoder().decode(RepoState.self, from: data)
+        } catch {
+            logger.error("unreadable \(url.path, privacy: .public): \(error)")
+            let kept = url.deletingLastPathComponent().appending(path: "state.json.unreadable")
+            try? FileManager.default.removeItem(at: kept)
+            try? FileManager.default.moveItem(at: url, to: kept)
+            loadProblems[url.path] = String(
+                localized:
+                    "Seam couldn't read what it saved for this repository, so viewed files and chosen bases start afresh. The old file is kept as \(kept.path).",
+                bundle: .module)
+            return RepoState()
+        }
     }
 
-    func save(_ state: RepoState, for repository: Repository) {
+    func loadProblem(for repository: Repository) -> String? {
+        loadProblems[file(for: repository).path]
+    }
+
+    @discardableResult
+    func save(_ state: RepoState, for repository: Repository) -> String? {
         write(state, to: file(for: repository))
     }
 
@@ -61,15 +89,20 @@ actor JSONStateStore: StateStore {
         }
     }
 
-    private func write<Value: Encodable>(_ value: Value, to url: URL) {
+    @discardableResult
+    private func write<Value: Encodable>(_ value: Value, to url: URL) -> String? {
         do {
             try FileManager.default.createDirectory(
                 at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             try encoder.encode(value).write(to: url, options: .atomic)
+            return nil
         } catch {
             logger.error("could not write \(url.path, privacy: .public): \(error)")
+            return String(
+                localized: "Seam couldn't save its state: \(error.localizedDescription)",
+                bundle: .module)
         }
     }
 }

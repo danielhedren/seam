@@ -165,6 +165,21 @@ import Testing
         session.close()
     }
 
+    /// What Seam couldn't save shows above the diff, as a thread that couldn't be saved does.
+    @Test func stateThatCantBeSavedSaysSoAboveTheDiff() async throws {
+        let repo = try await FixtureRepo()
+        let store = FailingStore()
+        let session = RepoSession(directory: repo.main, services: services(repo.git, store: store))
+        await session.open()
+        await session.settled()
+        session.noteReading("a.txt")
+        await session.settled()
+        #expect(session.stateProblem == "disk full")
+        session.dismissStateProblem()
+        #expect(session.stateProblem == nil)
+        session.close()
+    }
+
     /// After a fetch, the diff being read reloads first; the other rows' counts follow and
     /// don't hold it up.
     @Test func aRefChangeReloadsTheShownDiffBeforeEveryRowIsCounted() async throws {
@@ -1017,7 +1032,10 @@ private actor HoldingStore: StateStore {
 
     func load(_ repository: Repository) async -> RepoState { await inner.load(repository) }
 
-    func save(_ state: RepoState, for repository: Repository) async {
+    func loadProblem(for repository: Repository) -> String? { nil }
+
+    @discardableResult
+    func save(_ state: RepoState, for repository: Repository) async -> String? {
         if holding {
             await withCheckedContinuation { continuation in
                 waiting = continuation
@@ -1026,10 +1044,20 @@ private actor HoldingStore: StateStore {
             }
         }
         saves += 1
-        await inner.save(state, for: repository)
+        return await inner.save(state, for: repository)
     }
 
     func recentRepositories() async -> [URL] { [] }
     func noteOpened(_ directory: URL) async {}
     func clearRecent() async {}
+}
+
+private actor FailingStore: StateStore {
+    func load(_ repository: Repository) -> RepoState { RepoState() }
+    func loadProblem(for repository: Repository) -> String? { nil }
+    @discardableResult
+    func save(_ state: RepoState, for repository: Repository) -> String? { "disk full" }
+    func recentRepositories() -> [URL] { [] }
+    func noteOpened(_ directory: URL) {}
+    func clearRecent() {}
 }

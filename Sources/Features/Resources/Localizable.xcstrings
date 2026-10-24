@@ -726,6 +726,12 @@
     "Seam" : {
 
     },
+    "Seam couldn't read what it saved for this repository, so viewed files and chosen bases start afresh. The old file is kept as %@." : {
+
+    },
+    "Seam couldn't save its state: %@" : {
+
+    },
     "Seam reads each worktree's pull request with your gh login and never changes anything on GitHub." : {
 
     },

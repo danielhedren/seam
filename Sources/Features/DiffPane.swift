@@ -116,6 +116,15 @@ struct DiffPane: View {
             if let problem = review.problem {
                 ProblemBanner(problem: problem, session: session)
             }
+            if let problem = session.stateProblem {
+                Banner(systemImage: "exclamationmark.triangle.fill", tint: .orange) {
+                    Text(problem).lineLimit(2).textSelection(.enabled).help(problem)
+                } actions: {
+                    Button(String(localized: "Dismiss", bundle: .module)) {
+                        session.dismissStateProblem()
+                    }
+                }
+            }
             if let failure = session.threadFailure {
                 Banner(systemImage: "exclamationmark.triangle.fill", tint: .orange) {
                     Text(failure).lineLimit(2).textSelection(.enabled).help(failure)

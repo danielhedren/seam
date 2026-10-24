@@ -31,6 +31,9 @@ final class RepoSession {
     private var rowRefresh: Task<Void, Never>?
     /// A save asked for while one is being written; it runs once that one is done.
     private var saveIsWaiting = false
+    /// What Seam couldn't read or save of its own state, shown above the diff (SPEC §11).
+    private(set) var stateProblem: String?
+    private var stateProblemIsSaving = false
     private var rowRefreshPending = false
     /// The repo's pull requests, once it's open (SPEC §7.8).
     private(set) var pullRequests: RepoPullRequests?
@@ -158,6 +161,7 @@ final class RepoSession {
             }
             self.pullRequestThreads = pullRequestThreads
             repoState = await services.store.load(repository)
+            stateProblem = await services.store.loadProblem(for: repository)
             startPullRequests(in: repository)
             await services.store.noteOpened(directory)
             // Spotlight lists what Open Recent does, and never holds up the window.
@@ -441,6 +445,11 @@ final class RepoSession {
         persist()
     }
 
+    func dismissStateProblem() {
+        stateProblem = nil
+        stateProblemIsSaving = false
+    }
+
     /// Writes the state at once, since nothing runs on ⌘Q. Saves asked for while one is being
     /// written become one more write after it, with the state as it is then.
     func persist() {
@@ -454,9 +463,16 @@ final class RepoSession {
             uniqueKeysWithValues: reviews.map { ($0.id, $0.persistentState) })
         let (snapshot, store) = (repoState, services.store)
         saveTask = Task { [weak self] in
-            await store.save(snapshot, for: repository)
+            let failure = await store.save(snapshot, for: repository)
             guard let self else { return }
             saveTask = nil
+            if let failure {
+                stateProblem = failure
+                stateProblemIsSaving = true
+            } else if stateProblemIsSaving {
+                stateProblem = nil
+                stateProblemIsSaving = false
+            }
             if saveIsWaiting {
                 saveIsWaiting = false
                 persist()
