@@ -137,12 +137,24 @@ private func gitHubThread(
         #expect(store.gitHubFile(for: repository).lastPathComponent.hasSuffix(".github.json"))
     }
 
+    /// What the app read an hour ago may have changed on GitHub; the agent is told.
+    @Test func aPullRequestReadLongAgoIsFlaggedAsPossiblyStale() throws {
+        let thread = try #require(
+            GitHubThreads.threads(
+                from: [gitHubThread()], worktree: "/w", repo: repo, pullRequest: 12
+            ).first)
+        let fresh = ThreadText.format(thread, read: start, now: start + 60, timeZone: .gmt)
+        let stale = ThreadText.format(thread, read: start, now: start + 3600, timeZone: .gmt)
+        #expect(!fresh.contains("may be out of date"))
+        #expect(stale.contains("This may be out of date: Seam reads the pull request again"))
+    }
+
     @Test func seamThreadsSaysWhereAGitHubThreadCameFromAndHowToAnswerIt() throws {
         let thread = try #require(
             GitHubThreads.threads(
                 from: [gitHubThread()], worktree: "/w", repo: repo, pullRequest: 12
             ).first)
-        let text = ThreadText.format(thread, read: start, timeZone: .gmt)
+        let text = ThreadText.format(thread, read: start, now: start, timeZone: .gmt)
         #expect(
             text == """
                 #gh-7  open  a.swift:11-12  opened by octocat on GitHub pull request #12

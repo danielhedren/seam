@@ -7,7 +7,7 @@ public enum ThreadText {
     /// the worktree now. Times are ISO 8601, as `--since` takes them.
     public static func format(
         _ thread: ReviewThread, showsWorktree: Bool = false, read: Date? = nil,
-        placement: ThreadPlacement? = nil, timeZone: TimeZone = .current
+        placement: ThreadPlacement? = nil, now: Date = .now, timeZone: TimeZone = .current
     ) -> String {
         let anchor = thread.anchor
         let formatter = DateFormatter()
@@ -36,6 +36,11 @@ public enum ThreadText {
                 "    \(reply)",
                 "  GitHub thread \(github.threadID) · \(github.url)",
             ]
+            if let read, now.timeIntervalSince(read) > staleAfter {
+                text.append(
+                    "  This may be out of date: Seam reads the pull request again only while it's open."
+                )
+            }
         }
         let width = String(anchor.lines.upperBound).count
         for (offset, line) in anchor.text.enumerated() {
@@ -52,6 +57,9 @@ public enum ThreadText {
         }
         return text.joined(separator: "\n")
     }
+
+    /// A pull request read longer ago than this is flagged: the app reads it every few minutes.
+    static let staleAfter: TimeInterval = 15 * 60
 
     /// What the line numbers mean now: the comment's are from when it was written.
     private static func note(_ anchor: ThreadAnchor, _ placement: ThreadPlacement?) -> String? {

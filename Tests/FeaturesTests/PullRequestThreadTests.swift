@@ -271,8 +271,16 @@ import Testing
         #expect(try review(session, feature).placedThreads.isEmpty)
         #expect(try !command("thread-on-github").isEnabled(session))
         #expect(try review(session, feature).openThreadCount == 0)
+        // As the window does on the switch: the file seam reads is emptied, not left to go stale.
+        await session.refreshPullRequests()
+        let repository = try #require(session.repository)
+        #expect(try threadStore.gitHubThreads(for: repository).threads.isEmpty)
+
         session.settings.showsPullRequests = true
+        await session.refreshPullRequests()
+        await session.settled()
         #expect(try review(session, feature).placedThreads.map(\.id) == ["gh-7"])
+        #expect(github.threadReads == [12, 12])
         session.close()
     }
 

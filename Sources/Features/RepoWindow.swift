@@ -39,8 +39,12 @@ struct RepoWindow: View {
                 session.close()
             }
             .focusedSceneValue(\.repoSession, session)
-            .onChange(of: session.settings.showsPullRequests) { session.refreshPullRequests() }
-            .onChange(of: session.services.github.retries) { session.refreshPullRequests() }
+            .onChange(of: session.settings.showsPullRequests) {
+                Task { await session.refreshPullRequests() }
+            }
+            .onChange(of: session.services.github.retries) {
+                Task { await session.refreshPullRequests() }
+            }
             .onReceive(
                 NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
             ) { _ in session.noteActivation(true) }

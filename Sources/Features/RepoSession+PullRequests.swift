@@ -39,8 +39,13 @@ extension RepoSession {
         if isActive { pullRequests?.request(.activation) }
     }
 
-    /// Settings turned pull requests on, or asked gh to check again.
-    func refreshPullRequests() {
+    /// Settings turned pull requests on or off, or asked gh to check again. Off, the threads
+    /// `seam` would list are cleared rather than left to go stale.
+    func refreshPullRequests() async {
+        if !settings.showsPullRequests {
+            await pullRequestThreads?.clearAll()
+            return
+        }
         pullRequests?.request(.settings)
     }
 

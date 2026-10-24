@@ -262,7 +262,7 @@ import Testing
         github.answer(open: [Self.pullRequest(12)])
         session.services.github.checkAgain()
         await until { session.services.github.retries == 1 }
-        session.refreshPullRequests()
+        await session.refreshPullRequests()
         await until { session.pullRequests?.refreshes == 3 }
         #expect(try review(session, feature).pullRequest?.number == 12)
         #expect(session.services.github.status == .ready)
@@ -284,7 +284,7 @@ import Testing
         #expect(session.services.github.status == .failed(.notSignedIn))
         #expect(try review(session, feature).pullRequest?.number == 12, "kept, not wiped")
 
-        session.refreshPullRequests()
+        await session.refreshPullRequests()
         await until { session.pullRequests?.refreshes == 2 }
         #expect(github.calls.count { $0 == "hosts" } == 2, "a failed answer isn't remembered")
         session.close()
@@ -318,7 +318,7 @@ import Testing
         #expect(refreshes(session) == 1)
 
         session.settings.showsPullRequests = true
-        session.refreshPullRequests()
+        await session.refreshPullRequests()
         await until { session.pullRequests?.refreshes == 2 }
         #expect(try review(session, feature).pullRequest?.number == 12)
         session.close()

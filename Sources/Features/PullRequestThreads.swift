@@ -67,6 +67,12 @@ final class PullRequestThreads {
         read = [:]
     }
 
+    /// Pull requests were switched off: nothing is kept, here or in the file.
+    func clearAll() async {
+        read = [:]
+        await keep(only: [])
+    }
+
     /// Brings the threads in line with a read of the PRs: every worktree's PR's threads are read
     /// when the PR changed or 10 minutes passed; worktrees without one, and gone ones, lose theirs.
     func reconcile(

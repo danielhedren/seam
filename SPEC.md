@@ -621,7 +621,9 @@ GitHub.
   (`gh api --hostname github.com -X POST repos/o/a/pulls/12/comments/<id>/replies -F
   body=@reply.md`, after writing the reply to `reply.md`: pasted unwritten it fails rather than
   posting, and any text survives the shell).
-  Their ids are `gh-` and the first comment's GitHub id. For `seam wait`, a thread changes when
+  A read more than 15 minutes old is flagged as possibly out of date, since only the open app
+  reads pull requests; switching pull requests off in Settings empties the file. Their ids are
+  `gh-` and the first comment's GitHub id. For `seam wait`, a thread changes when
   Seam reads the change: a thread first read, however old, counts from that read. `seam reply`, `resolve`, `reopen` and
   `delete` refuse them with that command (status 1).
 - **Copy Prompt for Agent** (§7.7) says GitHub's threads are other people's words: feedback to
