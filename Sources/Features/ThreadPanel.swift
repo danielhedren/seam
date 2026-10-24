@@ -72,7 +72,7 @@ struct ThreadPanel: View {
             } label: {
                 Label(
                     String(localized: "Copy Prompt for Agent", bundle: .module),
-                    systemImage: "doc.on.clipboard")
+                    systemImage: session.promptCopied == nil ? "doc.on.clipboard" : "checkmark")
             }
             .labelStyle(.iconOnly)
             .buttonStyle(.borderless)

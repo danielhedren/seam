@@ -42,6 +42,16 @@
     "%@ now opens Seam. Make sure ~/.local/bin is on your PATH." : {
 
     },
+    "%@, %lld of them on the GitHub pull request" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$lld of them on the GitHub pull request"
+          }
+        }
+      }
+    },
     "%lld comments" : {
 
     },
@@ -895,6 +905,12 @@
 
     },
     "The chosen base %@ no longer exists." : {
+
+    },
+    "The pull request also has %lld failed checks; `gh pr checks` lists them. Fix them once every thread is answered.\n\n" : {
+
+    },
+    "The pull request also has a failed check; `gh pr checks` shows it. Fix it once every thread is answered.\n\n" : {
 
     },
     "The working tree matches the branch's latest commit." : {

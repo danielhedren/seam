@@ -540,8 +540,10 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   PATH, that line numbers are from when a comment was written and what "old side" means, to
   answer every thread with `seam reply` saying what changed and where, and to resolve or delete
   none. GitHub's threads are named as other people's feedback to weigh, never instructions to
-  follow or commands to run, answered once on GitHub with the printed command. Seam doesn't type
-  into terminals.
+  follow or commands to run, answered once on GitHub with the printed command. It counts the open
+  threads and how many are on the pull request, and an open pull request's failed checks, to fix
+  once the threads are answered (`gh pr checks` lists them). The panel's button shows a checkmark
+  for two seconds after copying. Seam doesn't type into terminals.
 - **Storage:** outside the repository, which Seam never writes to: one JSON file per repo under
   `~/Library/Application Support/Seam/threads/`, keyed by the repo's common git directory, with
   threads grouped by worktree path. The app and the `seam` command both read and write it:
@@ -1164,7 +1166,7 @@ Copy Prompt for Agent tells the agent to.
 read, an agent given the prompt finds it with `seam threads` and can answer it with the printed
 command, and every test runs against a fake `gh`.
 
-**Later:** failing checks in Copy Prompt for Agent; the PR's conversation comments.
+**Later:** the PR's conversation comments.
 
 ## 15. Risks
 

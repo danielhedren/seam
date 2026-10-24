@@ -40,6 +40,8 @@ final class RepoSession {
     var showsThreadPanel = false
     /// The thread open in the diff, and selected in the panel (SPEC §7.7).
     var selectedThreadID: String?
+    /// While set, the agent prompt was just copied.
+    var promptCopied: Task<Void, Never>?
     /// The open thread's lines are hidden in a gap, so it shows in the panel instead.
     var openThreadIsHidden = false
     var draft: ThreadDraft?
