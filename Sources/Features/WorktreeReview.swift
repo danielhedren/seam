@@ -608,29 +608,25 @@ final class WorktreeReview: Identifiable {
             // Another parent, or detection's first answer, moves the row's totals too.
             if statsBase != activityBase { await refreshActivity() }
             await checkStaleParent(detection)
-            let log = try await CommitLog.load(
-                base: base.commit, in: worktree.path, git: services.git)
+            let loader = ReviewLoader(git: services.git, fileSystem: services.fileSystem)
+            let log = try await loader.commits(from: base.commit, in: worktree.path)
             guard generation == loadGeneration else { return }
             commitLog = log
+            let loadedDiff = try await loader.diff(
+                log, from: base.commit, in: worktree.path, selection: commitSelection,
+                scope: scope, options: diffOptions)
+            guard generation == loadGeneration else { return }
             // Picked commits a rebase or reset removed fall back to the scope.
-            let picked = commitSelection.flatMap(log.range)
-            if picked == nil { commitSelection = nil }
-            let range = picked ?? (base.commit, "HEAD", scope)
-            let result = try await ReviewDiffBuilder(
-                git: services.git, fileSystem: services.fileSystem
-            ).build(
-                worktree: worktree.path, base: range.base, head: range.head, scope: range.scope,
-                options: diffOptions)
-            let config = await Self.editorConfig(in: worktree.path, services.fileSystem)
+            commitSelection = loadedDiff.selection
+            let result = loadedDiff.diff
+            let config = await loader.editorConfig(in: worktree.path)
             guard generation == loadGeneration, !Task.isCancelled else { return }
             editorConfig = config
             // A first load shows the diff before its contents arrive. A reload waits for both,
             // so the new hunks are never drawn with the old files' gap lines.
             let isReload = !contents.isEmpty
             if !isReload { present(result, rangeVersion) }
-            let loaded = try await FileContentLoader(
-                git: services.git, fileSystem: services.fileSystem
-            ).load(result, worktree: worktree.path)
+            let loaded = try await loader.contents(of: result, in: worktree.path)
             guard generation == loadGeneration, !Task.isCancelled else { return }
             if isReload { present(result, rangeVersion) }
             // Spans of files whose text changed would paint the new lines wrongly until redone.
@@ -644,14 +640,6 @@ final class WorktreeReview: Identifiable {
             problem = .gitFailed(Self.describe(error))
         }
         finish(generation)
-    }
-
-    /// Off the main actor: a nonisolated async function runs on the global executor.
-    nonisolated private static func editorConfig(in worktree: URL, _ fileSystem: any FileSystem)
-        async -> EditorConfig?
-    {
-        (try? fileSystem.contents(of: worktree.appending(path: ".editorconfig")))
-            .map { EditorConfig(String(decoding: $0, as: UTF8.self)) }
     }
 
     private func present(_ diff: ReviewDiff, _ rangeVersion: Int) {
