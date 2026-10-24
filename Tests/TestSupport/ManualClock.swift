@@ -35,7 +35,10 @@ public final class ManualClock: Clock, Sendable {
     public var now: Instant { state.withLock { $0.now } }
     public var minimumResolution: Duration { .zero }
 
+    /// A deadline already past returns at once, as a real clock's does.
     public func sleep(until deadline: Instant, tolerance: Duration?) async throws {
+        try Task.checkCancellation()
+        if deadline <= now { return }
         let id = state.withLock { state in
             state.nextID += 1
             return state.nextID

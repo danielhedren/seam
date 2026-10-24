@@ -142,3 +142,16 @@ private final class Store: Sendable {
         #expect(result?.changes.changed.map(\.id) == ["1"])
     }
 }
+
+@Suite(.timeLimit(.minutes(1)))
+struct ManualClockTests {
+    /// Code that works out a deadline, awaits something, then sleeps mustn't park in tests
+    /// when the deadline has passed meanwhile.
+    @Test func aDeadlineAlreadyPastReturnsAtOnce() async throws {
+        let clock = ManualClock()
+        let deadline = clock.now.advanced(by: .seconds(1))
+        clock.advance(by: .seconds(5))
+        try await clock.sleep(until: deadline, tolerance: nil)
+        #expect(clock.sleeperCount == 0)
+    }
+}
