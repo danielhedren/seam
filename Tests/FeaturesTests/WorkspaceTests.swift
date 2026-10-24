@@ -54,3 +54,21 @@ import Testing
         #expect(WelcomeView.launchPath(arguments) == expected)
     }
 }
+
+/// SPEC §7.1 and §13: one window per repo, whichever window a `seam` call or a drop reaches.
+@Suite(.timeLimit(.minutes(1)))
+struct OpenRouteTests {
+    @Test(
+        arguments: [
+            ("/r", "/r", Set<String>(), OpenRoute.here),
+            ("/r", nil, [], .becomeRepo),
+            ("/r", nil, ["/r"], .repoWindow(closesWelcome: true)),
+            ("/r", "/other", ["/other"], .repoWindow(closesWelcome: false)),
+            ("/r", "/other", ["/other", "/r"], .repoWindow(closesWelcome: false)),
+        ] as [(String, String?, Set<String>, OpenRoute)])
+    func anOpenGoesToTheRepositorysOwnWindow(
+        repo: String, shown: String?, open: Set<String>, route: OpenRoute
+    ) {
+        #expect(OpenRoute.decide(repo: repo, shown: shown, open: open) == route)
+    }
+}

@@ -264,14 +264,32 @@ struct WindowRoot: View {
         else { return false }
         requests.pending[resolved.main.path] = .init(
             worktree: resolved.worktree.path, base: request.base)
-        if url == resolved.main { return true }
-        if url == nil, !requests.openWindows.contains(resolved.main.path) {
-            url = resolved.main
-            return true
+        switch OpenRoute.decide(
+            repo: resolved.main.path, shown: url?.path, open: requests.openWindows)
+        {
+        case .here: break
+        case .becomeRepo: url = resolved.main
+        case .repoWindow(let closesWelcome):
+            requests.openWindow(for: resolved.main) { openWindow(value: resolved.main) }
+            if closesWelcome { dismiss() }
         }
-        requests.openWindow(for: resolved.main) { openWindow(value: resolved.main) }
-        if url == nil { dismiss() }
         return true
+    }
+}
+
+/// Where an open request for a repo lands (SPEC §7.1, §13): one window per repo.
+enum OpenRoute: Equatable {
+    /// This window shows the repo: it selects the worktree.
+    case here
+    /// This is a welcome window and the repo has none: it becomes the repo's.
+    case becomeRepo
+    /// The repo's own window, opened or brought up; a welcome window that asked goes away.
+    case repoWindow(closesWelcome: Bool)
+
+    static func decide(repo: String, shown: String?, open: Set<String>) -> OpenRoute {
+        if shown == repo { return .here }
+        if shown == nil, !open.contains(repo) { return .becomeRepo }
+        return .repoWindow(closesWelcome: shown == nil)
     }
 }
 
