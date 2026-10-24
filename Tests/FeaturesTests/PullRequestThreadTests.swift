@@ -48,9 +48,12 @@ import Testing
         return (repo, feature)
     }
 
-    private func open(_ repo: FixtureRepo, selecting worktree: URL) async -> RepoSession {
+    private func open(
+        _ repo: FixtureRepo, selecting worktree: URL,
+        watcher: any FileWatcher = SilentWatcher()
+    ) async -> RepoSession {
         var services = SeamServices(
-            git: repo.git, watcher: SilentWatcher(), clock: clock, store: store,
+            git: repo.git, watcher: watcher, clock: clock, store: store,
             threads: threadStore, settings: testSettings(), github: GitHubAccount(client: github))
         let opened = opened
         services.openURL = { opened.urls.append($0) }
@@ -145,6 +148,27 @@ import Testing
         await refresh(session)
         #expect(github.threadReads == [12, 12])
         #expect(try review(session, feature).placedThreads.first?.thread.isResolved == true)
+        session.close()
+    }
+
+    /// Two windows on one repo share the GitHub file: what one reads shows in the other without
+    /// it asking gh again.
+    @Test func threadsAnotherWindowReadShowHereWithoutAskingGh() async throws {
+        let (repo, feature) = try await fixture()
+        github.answer(open: [Self.pullRequest()])
+        let watcher = ManualWatcher()
+        let session = await open(repo, selecting: feature, watcher: watcher)
+        let row = try review(session, feature)
+        #expect(row.placedThreads.isEmpty)
+        let repository = try #require(session.repository)
+
+        let read = GitHubThreads.threads(
+            from: [Self.thread()], worktree: feature.path,
+            repo: GitHubRepo(host: "github.com", owner: "owner", name: "app"), pullRequest: 12)
+        try threadStore.saveGitHubThreads(read, worktree: feature.path, read: .now, for: repository)
+        watcher.send([threadStore.gitHubFile(for: repository).path])
+        await until { row.placedThreads.map(\.id) == ["gh-7"] }
+        #expect(github.threadReads == [12], "only this window's own first read")
         session.close()
     }
 

@@ -20,11 +20,16 @@ final class ThreadPlacementCache {
 }
 
 extension WorktreeReview {
+    /// Seam's threads and the pull request's, this worktree's.
+    var allThreads: [ReviewThread] {
+        (threads?.threads(in: id) ?? []) + (pullRequestThreads?.threads(in: id) ?? [])
+    }
+
     /// This worktree's threads with where they are now, open ones first, then by file and line.
     var placedThreads: [PlacedThread] {
-        guard let threads else { return [] }
+        guard threads != nil || pullRequestThreads != nil else { return [] }
         let key = [
-            threads.version, diffVersion, contentsVersion,
+            threads?.version ?? 0, pullRequestThreads?.version ?? 0, diffVersion, contentsVersion,
             services.settings.showsPullRequests ? 1 : 0,
         ]
         if placementCache.key == key { return placementCache.placed }
@@ -43,7 +48,7 @@ extension WorktreeReview {
                 return split
             },
             commits: commitLog?.commits.map(\.id) ?? [], newestShown: newest)
-        let placed = ThreadPlacer.place(threads.threads(in: id), in: context)
+        let placed = ThreadPlacer.place(allThreads, in: context)
         placementCache.key = key
         placementCache.placed = placed
         return placed
@@ -72,7 +77,7 @@ extension WorktreeReview {
         FileThreadCounts]
     {
         var counts: [Key: FileThreadCounts] = [:]
-        for thread in threads?.threads(in: id) ?? [] {
+        for thread in allThreads {
             guard let key = key(thread) else { continue }
             switch (thread.source == .gitHub, thread.isResolved) {
             case (false, true): counts[key, default: FileThreadCounts()].resolved += 1
@@ -86,14 +91,14 @@ extension WorktreeReview {
 
     /// The toolbar's badge: open threads, whether or not the diff shows them.
     var openThreadCount: Int {
-        threads?.threads(in: id).count { !$0.isResolved } ?? 0
+        allThreads.count { !$0.isResolved }
     }
 
     /// What the diff draws: placed threads, without resolved ones unless they're asked for.
     var threadMarkers: [String: [ThreadMarker]] {
         let showsResolved = services.settings.showsResolvedThreads
         let placedThreads = placedThreads
-        guard threads != nil else { return [:] }
+        guard threads != nil || pullRequestThreads != nil else { return [:] }
         let key = placementCache.key + [showsResolved ? 1 : 0]
         if placementCache.markersKey == key { return placementCache.markers }
         var markers: [String: [ThreadMarker]] = [:]

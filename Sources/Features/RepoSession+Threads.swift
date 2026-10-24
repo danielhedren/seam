@@ -66,7 +66,7 @@ extension RepoSession {
 
     /// What may be done to a thread; an unknown one may be tried, and the store says no.
     func capabilities(of id: String) -> ThreadCapabilities {
-        let all = (threads?.threads ?? []) + (threads?.gitHub ?? [])
+        let all = (threads?.threads ?? []) + (pullRequestThreads?.threads ?? [])
         return all.first { $0.id == id }?.capabilities ?? [.reply, .resolve, .delete]
     }
 

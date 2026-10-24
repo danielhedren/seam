@@ -112,6 +112,8 @@ final class WorktreeReview: Identifiable {
 
     /// The repo's threads; this worktree's are placed on its diff (SPEC §7.7).
     var threads: RepoThreads?
+    /// The repo's pull requests' threads, placed beside Seam's (SPEC §7.9).
+    var pullRequestThreads: PullRequestThreads?
     /// The repo's pull requests; this worktree's branch's is its row's (SPEC §7.8).
     var pullRequests: RepoPullRequests?
     @ObservationIgnored let placementCache = ThreadPlacementCache()

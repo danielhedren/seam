@@ -27,6 +27,7 @@ final class RepoSession {
     private(set) var repository: Repository?
     /// The repo's review threads, once it's open (SPEC §7.7).
     private(set) var threads: RepoThreads?
+    private(set) var pullRequestThreads: PullRequestThreads?
     /// The repo's pull requests, once it's open (SPEC §7.8).
     private(set) var pullRequests: RepoPullRequests?
     var showsThreadPanel = false
@@ -145,7 +146,13 @@ final class RepoSession {
             self.repository = repository
             threads = RepoThreads(
                 repository: repository, store: services.threads, git: services.git)
-            threads?.showsGitHub = { [settings = services.settings] in settings.showsPullRequests }
+            let pullRequestThreads = PullRequestThreads(
+                repository: repository, store: services.threads, client: services.github.client,
+                clock: services.clock)
+            pullRequestThreads.isShown = { [settings = services.settings] in
+                settings.showsPullRequests
+            }
+            self.pullRequestThreads = pullRequestThreads
             repoState = await services.store.load(repository)
             startPullRequests(in: repository)
             await services.store.noteOpened(directory)
@@ -158,6 +165,7 @@ final class RepoSession {
             guard !isClosed else { return }
             state = .open
             await threads?.start(watching: services.watcher)
+            await pullRequestThreads.start(watching: services.watcher)
             guard !isClosed else { return }
             let last = repoState.selectedWorktree.flatMap { id in reviews.first { $0.id == id } }
             select(last?.id ?? worktree.path)
@@ -196,6 +204,7 @@ final class RepoSession {
             }
             let review = WorktreeReview(worktree: worktree, services: services)
             review.threads = threads
+            review.pullRequestThreads = pullRequestThreads
             review.pullRequests = pullRequests
             review.restore(
                 repoState.worktrees[worktree.id],
@@ -413,6 +422,7 @@ final class RepoSession {
             guard self?.selectedID == review.id else { return }
             review.reloadDiff()
         }
+        pullRequestThreads?.forgetReads()
         pullRequests?.request(.reload)
     }
 
@@ -524,6 +534,7 @@ final class RepoSession {
         monitorTask?.cancel()
         monitorTask = nil
         threads?.stop()
+        pullRequestThreads?.stop()
         pullRequests?.stop()
         rowsTask?.cancel()
         for task in deferredActivity.values { task.cancel() }

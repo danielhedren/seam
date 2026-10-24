@@ -609,7 +609,8 @@ GitHub.
   list §7.8 reads anyway), on opening and on Reload, and otherwise at most every 10 minutes,
   since resolving a thread may not change that time; for open, merged and closed PRs alike. A
   worktree whose branch has no PR any more, or that has no branch, loses its threads, and a
-  removed worktree's leave the file. Worktrees on one branch share its PR's threads, read once. One
+  removed worktree's leave the file. Worktrees on one branch share its PR's threads, read once. Every
+  window on the repo shows what the file holds, so one window's read appears in the others. One
   read is `gh api graphql` with a fixed query, 100 threads and 100 comments a page, following
   further pages. A failed read keeps the threads last read.
 - **For agents:** the threads last read are written beside the repo's thread file (§7.7) as

@@ -55,19 +55,13 @@ final class RepoPullRequests {
     var appIsActive = true
     /// Runs after every refresh, so the session can save what was read.
     @ObservationIgnored var onUpdate: (() -> Void)?
-    /// Takes a worktree's pull request threads as read (SPEC §7.9), none when it has no PR.
-    @ObservationIgnored var onThreads: ((_ worktree: String, [ReviewThread]) async -> Void)?
-    /// Drops the threads of worktrees that no longer exist.
-    @ObservationIgnored var onWorktreesGone: ((_ keeping: Set<String>) async -> Void)?
+    /// Runs after every read that worked, with what was read and where from.
+    @ObservationIgnored var onRead: ((SavedPullRequests, GitHubRepo) async -> Void)?
 
     private let services: SeamServices
     private let directory: URL
     /// The branches to look up: every worktree's, and every local parent's.
     private let branches: @MainActor () -> [String]
-    /// Every worktree's branch by its path, nil when detached; their PRs' threads are read.
-    private let worktrees: @MainActor () -> [String: String?]
-    /// The PR each worktree's threads were last read for, as it was then.
-    private var threadsRead: [String: (pullRequest: PullRequest, age: Stopwatch)] = [:]
     private var pending = false
     private var isRefreshing = false
     private var idleWaiters: [CheckedContinuation<Void, Never>] = []
@@ -80,20 +74,18 @@ final class RepoPullRequests {
     private var isStopped = false
     /// Branches with no open PR, looked up one by one; merged and closed PRs rarely change.
     private var lookups: [String: (pullRequest: PullRequest?, age: Stopwatch)] = [:]
-    /// How long cached lookups and thread reads count as current.
+    /// How long a lookup of a branch with no open PR counts as current.
     static let rereadAfter = Duration.seconds(600)
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
     private let signposter = OSSignposter(subsystem: "com.danielhedren.seam", category: "Features")
 
     init(
         services: SeamServices, directory: URL, saved: SavedPullRequests?,
-        branches: @escaping @MainActor () -> [String],
-        worktrees: @escaping @MainActor () -> [String: String?] = { [:] }
+        branches: @escaping @MainActor () -> [String]
     ) {
         self.services = services
         self.directory = directory
         self.branches = branches
-        self.worktrees = worktrees
         if let saved { self.saved = saved }
     }
 
@@ -117,7 +109,6 @@ final class RepoPullRequests {
         guard !isStopped, services.settings.showsPullRequests else { return }
         if trigger == .activation, isFresh { return }
         if trigger == .poll, case .failed(let error) = status, !Self.isTransient(error) { return }
-        if trigger == .reload { threadsRead = [:] }
         pending = true
         if trigger.isForced {
             spacer?.cancel()
@@ -239,7 +230,7 @@ final class RepoPullRequests {
             account.note(nil)
             markFresh()
             startPolling()
-            await readThreads(in: targets.repo)
+            await onRead?(read, targets.repo)
         } catch {
             guard !isStopped else { return true }
             logger.info("pull requests unavailable: \(String(describing: error), privacy: .public)")
@@ -254,53 +245,6 @@ final class RepoPullRequests {
         }
         onUpdate?()
         return true
-    }
-
-    /// Threads are read again when their PR has changed since, or every 10 minutes: resolving
-    /// a thread may not change the PR's update time.
-    private func readThreads(in repo: GitHubRepo) async {
-        guard let onThreads else { return }
-        let worktrees = worktrees()
-        await onWorktreesGone?(Set(worktrees.keys))
-        var jobs: [(worktree: String, pullRequest: PullRequest)] = []
-        for (worktree, branch) in worktrees.sorted(by: { $0.key < $1.key }) {
-            guard let branch, let pullRequest = saved.byBranch[branch] else {
-                threadsRead[worktree] = nil
-                await onThreads(worktree, [])
-                continue
-            }
-            if let last = threadsRead[worktree], last.pullRequest.number == pullRequest.number,
-                last.pullRequest.updated == pullRequest.updated,
-                last.age.elapsed < Self.rereadAfter
-            {
-                continue
-            }
-            jobs.append((worktree, pullRequest))
-        }
-        // Two worktrees on one branch share its PR, which is read once.
-        let client = services.github.client
-        let numbers = Array(Set(jobs.map(\.pullRequest.number)))
-        let read = Dictionary(
-            (try? await Self.concurrently(numbers) { number in
-                await Result { () async throws(GitHubError) in
-                    try await client.reviewThreads(number, in: repo)
-                }
-            }) ?? [], uniquingKeysWith: { first, _ in first })
-        for job in jobs {
-            guard !isStopped else { return }
-            guard let result = read[job.pullRequest.number] else { continue }
-            switch result {
-            case .success(let threads):
-                threadsRead[job.worktree] = (job.pullRequest, Stopwatch(services.clock))
-                await onThreads(
-                    job.worktree,
-                    GitHubThreads.threads(
-                        from: threads, worktree: job.worktree, repo: repo,
-                        pullRequest: job.pullRequest.number))
-            case .failure(let error):
-                logger.info("review threads unread: \(String(describing: error), privacy: .public)")
-            }
-        }
     }
 
     private enum Job: Sendable {
@@ -394,7 +338,7 @@ final class RepoPullRequests {
     }
 
     /// Runs `body` for each item, at most six gh processes at once; the first failure wins.
-    private static func concurrently<Item: Sendable, Value: Sendable>(
+    static func concurrently<Item: Sendable, Value: Sendable>(
         _ items: [Item],
         _ body: @escaping @Sendable (Item) async throws(GitHubError) -> Value
     ) async throws(GitHubError) -> [(Item, Value)] {
