@@ -77,6 +77,36 @@ import Testing
         session.close()
     }
 
+    /// After handing threads to an agent, its answers and questions are what the reader looks
+    /// at next: those threads are awaiting them until they answer.
+    @Test func anAgentsAnswerOrQuestionAwaitsTheReader() async throws {
+        let repo = try await FixtureRepo()
+        try await repo.run("config", "user.email", "reader@example.com")
+        try repo.write("a.txt", "one\ntwo\n")
+        let (session, review, store) = await session(repo)
+        let reviewed = try #require(review)
+        let repository = try #require(session.repository)
+        let anchor = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1))
+        session.draft = ThreadDraft(worktree: reviewed.id, anchor: anchor)
+        await session.post("Why one?")
+        let mine = try #require(session.selectedThreadID)
+        #expect(reviewed.awaitingReply.isEmpty, "the reader spoke last")
+
+        let other = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 2...2))
+        let asked = try store.update(repository) { threads throws(ThreadError) in
+            try ThreadRules.reply(&threads, to: mine, author: "claude", body: "Because.", now: .now)
+            return try ThreadRules.open(
+                &threads, worktree: reviewed.id, anchor: other, author: "claude",
+                body: "Should two stay?", now: .now)
+        }
+        await session.threads?.load()
+        #expect(Set(reviewed.awaitingReply.map(\.id)) == [mine, asked.id])
+
+        #expect(await session.reply(to: mine, "Thanks."))
+        #expect(reviewed.awaitingReply.map(\.id) == [asked.id])
+        session.close()
+    }
+
     /// A panel card says where its thread is whenever that isn't on its lines in the diff.
     @Test func aPanelCardSaysWhereItsThreadIsWhenNotOnItsLines() throws {
         let thread = ReviewThread(

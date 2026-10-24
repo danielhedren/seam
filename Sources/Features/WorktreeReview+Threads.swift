@@ -95,6 +95,13 @@ extension WorktreeReview {
         return counts
     }
 
+    /// Seam's open threads whose latest word isn't the reader's: an agent's answer or question,
+    /// waiting on them. A pull request's threads are answered on GitHub, so they aren't here.
+    var awaitingReply: [PlacedThread] {
+        let reader = threads?.knownReader(in: id) ?? ReviewerIdentity(name: ReviewThread.reader)
+        return placedThreads.filter { $0.thread.source == .seam && reader.awaitsReply($0.thread) }
+    }
+
     /// The toolbar's badge: open threads, whether or not the diff shows them.
     var openThreadCount: Int {
         allThreads.count { !$0.isResolved }

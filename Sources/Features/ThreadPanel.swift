@@ -28,9 +28,22 @@ struct ThreadPanel: View {
     }
 
     private func threadList(_ placed: [PlacedThread]) -> some View {
-        ScrollView {
+        let awaiting = review.awaitingReply
+        let waiting = Set(awaiting.map(\.id))
+        return ScrollView {
             LazyVStack(alignment: .leading, spacing: 10) {
-                ForEach(groups(placed), id: \.path) { group in
+                // Answers and questions come first: reviewing them is the reader's next step.
+                if !awaiting.isEmpty {
+                    Text(String(localized: "Awaiting you (\(awaiting.count))", bundle: .module))
+                        .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        .padding(.top, 4)
+                    ForEach(awaiting) { placed in
+                        ThreadCard(
+                            session: session, placed: placed,
+                            isSelected: session.selectedThreadID == placed.id, showsPath: true)
+                    }
+                }
+                ForEach(groups(placed.filter { !waiting.contains($0.id) }), id: \.path) { group in
                     Text(group.path).font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                         .padding(.top, 4)
@@ -162,6 +175,8 @@ struct ThreadCard: View {
     let session: RepoSession
     let placed: PlacedThread
     let isSelected: Bool
+    /// Outside its file's group, the card names the file.
+    var showsPath = false
     @State private var reply = ""
     @FocusState private var replyFocused: Bool
 
@@ -230,7 +245,8 @@ struct ThreadCard: View {
                     : AnyShapeStyle(Color(nsColor: ThreadColor.accent(thread.source))))
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(verbatim: lineLabel).monospacedDigit()
+                    Text(verbatim: showsPath ? "\(placed.path) · \(lineLabel)" : lineLabel)
+                        .monospacedDigit().lineLimit(1).truncationMode(.middle)
                     if let location = Self.location(placed) {
                         Text(verbatim: location)
                             .padding(.horizontal, 5)

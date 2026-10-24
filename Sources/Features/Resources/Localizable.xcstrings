@@ -127,6 +127,9 @@
     "Automatic tries origin/HEAD, then origin/main, then main. Refs matching a pattern, one per line, are never picked as a worktree's parent." : {
 
     },
+    "Awaiting you (%lld)" : {
+
+    },
     "Base" : {
 
     },

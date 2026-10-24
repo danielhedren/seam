@@ -173,6 +173,7 @@ final class RepoSession {
             guard !isClosed else { return }
             state = .open
             await threads?.start(watching: services.watcher)
+            _ = await threads?.reader(in: worktree.path)
             await pullRequestThreads.start(watching: services.watcher)
             guard !isClosed else { return }
             let last = repoState.selectedWorktree.flatMap { id in reviews.first { $0.id == id } }
@@ -260,6 +261,8 @@ final class RepoSession {
         selectedThreadID = nil
         openThreadIsHidden = false
         selectedID = id
+        // Known before the panel sorts threads by whose turn it is.
+        Task { [threads] in _ = await threads?.reader(in: id) }
         repoState.selectedWorktree = id
         persist()
         review.reloadDiff()

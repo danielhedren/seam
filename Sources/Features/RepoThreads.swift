@@ -32,6 +32,11 @@ final class RepoThreads {
         self.git = git
     }
 
+    /// The reader as far as already known, without asking git: "you" until `reader(in:)` ran.
+    func knownReader(in worktree: String) -> ReviewerIdentity {
+        readers[worktree] ?? ReviewerIdentity(name: ReviewThread.reader)
+    }
+
     /// The worktree's `user.email`, so a comment says who wrote it wherever it's read; "you"
     /// when git has none.
     func reader(in worktree: String) async -> ReviewerIdentity {

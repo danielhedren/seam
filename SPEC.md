@@ -491,7 +491,10 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   worktrees closes it. Opening a thread opens its collapsed file, and a resolved thread
   stays while it's open. Its row is as tall as the conversation at the column's width.
 - **The thread panel** (an inspector on the right, `⌥⌘0`) is the overview: the worktree's
-  threads by file, open ones first, each showing its latest comment. Picking one always opens
+  threads by file, open ones first, each showing its latest comment. Above them, Awaiting You
+  lists Seam's open threads whose latest comment isn't the reader's (an agent's answer or
+  question), naming each one's file; a pull request's threads are answered on GitHub and aren't
+  in it. Picking one always opens
   its conversation in the panel, with a reply box, Resolve or Reopen, and Delete, and also in
   the diff when the diff can show it; picking it again closes it. A card says where its thread
   is when that isn't on its lines: Outdated, From a later commit, Not in this diff, or Whole
