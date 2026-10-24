@@ -17,7 +17,7 @@ public protocol DiffCardView: NSView {
     var onHeightChange: (() -> Void)? { get set }
 }
 
-public enum DiffCardMetrics {
+enum DiffCardMetrics {
     /// From the frame to the view, on every side.
     public static let margin = 8.0
 }
