@@ -28,7 +28,7 @@ extension DiffCanvasView {
     func cardHeight(in rows: [DiffRow]) -> Double {
         guard let (_, card, _) = Self.card(in: rows), let view = cardView(for: card)
         else { return 0 }
-        let width = (mode == .split ? geometry.columnWidth : geometry.visibleWidth) - 16
+        let width = geometry.visibleWidth - 16
         let inner = max(width - 2 * DiffCardMetrics.margin, 100)
         return (view.height(forWidth: inner) + 8 + 2 * DiffCardMetrics.margin).rounded(.up)
     }
@@ -45,13 +45,13 @@ extension DiffCanvasView {
 
     /// Keeps the view in its row's frame, and removes it with the row, handing focus back.
     func updateCardView() {
-        guard let (row, card, side) = Self.card(in: layout.rows), let shownCard,
+        guard let (row, card, _) = Self.card(in: layout.rows), let shownCard,
             shownCard.card == card
         else {
             removeCardView()
             return
         }
-        shownCard.view.frame = draftFrame(row: row, side: side)
+        shownCard.view.frame = draftFrame(row: row)
             .insetBy(dx: DiffCardMetrics.margin, dy: DiffCardMetrics.margin)
     }
 

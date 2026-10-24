@@ -238,6 +238,25 @@ struct DiffSnapshotTests {
         assertSnapshot(of: view, as: .image2x, named: "resolved-marks-\(Self.os)")
     }
 
+    @Test func sideBySideAThreadsRowSpansBothColumns() {
+        let view = DiffScrollView.forSnapshot()
+        view.appearance = NSAppearance(named: .aqua)
+        view.increaseContrastOverride = false
+        view.frame = NSRect(x: 0, y: 0, width: 900, height: 260)
+        let marker = ThreadMarker(
+            id: "t", side: .old, lines: 9...9, latestAuthor: "claude",
+            latest:
+                "The total was an Int because the old API sent whole kronor; Decimal keeps öre.",
+            commentCount: 2, isResolved: false)
+        view.show(
+            DiffContent(
+                review: Self.review, mode: .split, collapsed: ["Legacy.txt"], syntax: Self.syntax,
+                threads: ["Sources/Order.swift": [marker]]),
+            position: .top)
+        view.layoutSubtreeIfNeeded()
+        assertSnapshot(of: view, as: .image2x, named: "split-thread-\(Self.os)")
+    }
+
     @Test func collapsedFileShowsOnlyItsHeader() {
         let view = view(.unified, .aqua, collapsed: ["Sources/Order.swift"])
         assertSnapshot(of: view, as: .image2x, named: "collapsed-\(Self.os)")

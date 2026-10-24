@@ -175,10 +175,10 @@ private func texts(_ rows: [DiffRow]) -> [String] {
 }
 
 @MainActor @Suite(.timeLimit(.minutes(1))) struct ThreadRowDrawingTests {
-    /// Side by side, a thread's row is washed only in its own column, the other left empty as
-    /// beside an unpaired line, so a long summary can't read as belonging to both sides.
+    /// Side by side, a thread's row spans both columns, since it's prose rather than code; only
+    /// the gutter mark keeps to its side.
     @Test(arguments: [ThreadAnchor.Side.new, .old])
-    func aSplitThreadRowKeepsToItsColumn(side: ThreadAnchor.Side) throws {
+    func aSplitThreadRowSpansBothColumns(side: ThreadAnchor.Side) throws {
         let view = DiffScrollView()
         view.appearance = NSAppearance(named: .aqua)
         view.increaseContrastOverride = false
@@ -201,13 +201,9 @@ private func texts(_ rows: [DiffRow]) -> [String] {
             try #require(rep.colorAt(x: Int(x * scale), y: y)?.usingColorSpace(.sRGB))
         }
         let column = canvas.geometry.columnWidth
-        let (own, other) =
-            side == .new ? (column * 1.9, column * 0.1) : (column * 0.1, column * 1.9)
-        let empty = DiffPalette.light.emptySide
-        let otherColor = try color(atX: other)
-        #expect(abs(otherColor.redComponent - empty.red) < 0.02)
-        #expect(abs(otherColor.blueComponent - empty.blue) < 0.02)
-        let ownColor = try color(atX: own)
-        #expect(ownColor.blueComponent < ownColor.redComponent - 0.05)
+        for x in [column * 0.1, column * 0.99, column * 1.01, column * 1.9] {
+            let washed = try color(atX: x)
+            #expect(washed.blueComponent < washed.redComponent - 0.05, "at \(x)")
+        }
     }
 }

@@ -21,13 +21,8 @@ extension DiffCanvasView {
                 regions.append((row, .text))
             case .fileHeader:
                 regions.append((chromeRect(ofRow: index), .control))
-            case .thread(_, let marker):
-                var band = row
-                if mode == .split {
-                    band.size.width = geometry.columnWidth
-                    if marker.side == .new { band.origin.x = geometry.columnWidth }
-                }
-                regions.append((band, .control))
+            case .thread:
+                regions.append((row, .control))
             case .gap(_, let gap):
                 for (columns, _) in DiffRowBuilder.gapLabel(gap).controls {
                     regions.append(

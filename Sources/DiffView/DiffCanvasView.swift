@@ -270,12 +270,11 @@ final class DiffCanvasView: NSView {
                 rowTop: rect.minY, color: palette.gutterText, context: context)
         case .image(let file):
             drawImages(file: file, in: chromeRect(ofRow: index), palette: palette, context: context)
-        case .draft(_, let marker):
-            drawCardFrame(row: index, side: marker.side, palette: palette, context: context)
+        case .draft:
+            drawCardFrame(row: index, palette: palette, context: context)
         case .openThread(_, let marker):
             drawCardFrame(
-                row: index, side: marker.side, source: marker.source, isNote: marker.isNote,
-                palette: palette,
+                row: index, source: marker.source, isNote: marker.isNote, palette: palette,
                 context: context)
         case .thread(_, let marker):
             drawThreadRow(marker, row: index, in: rect, palette: palette, context: context)
@@ -337,23 +336,15 @@ final class DiffCanvasView: NSView {
     }
 
     /// A tint of its own, so a thread never reads as a hunk header or a gap. Side by side it
-    /// keeps to its column, the other left empty as beside an unpaired line.
+    /// spans both columns, since it's prose, not code; the gutter mark says which side it's on.
     private func drawThreadRow(
         _ marker: ThreadMarker, row: Int, in rect: NSRect, palette: DiffPalette,
         context: CGContext
     ) {
-        var band = rect
-        var side = DiffSide.unified
-        if mode == .split {
-            side = marker.side == .old ? .left : .right
-            let (own, other) = rect.divided(
-                atDistance: geometry.columnWidth, from: side == .left ? .minXEdge : .maxXEdge)
-            band = own
-            fill(other, palette.emptySide, context)
-        }
+        let band = rect
         context.setFillColor(ThreadColor.wash(marker.source, note: marker.isNote).cgColor)
         context.fill(band)
-        let x = geometry.textX(for: side)
+        let x = geometry.textX(for: mode == .split ? .left : .unified)
         let color = marker.isResolved ? palette.gutterText : palette.text
         let columns = Int((band.maxX - geometry.padding - x) / layout.metrics.characterWidth)
         if mode == .unified || marker.text.count <= columns {
@@ -370,11 +361,6 @@ final class DiffCanvasView: NSView {
             CTLineDraw(line, context)
             let tallyX = x + CTLineGetTypographicBounds(line, nil, nil, nil)
             drawText(tally, key: nil, x: tallyX, rowTop: rect.minY, color: color, context: context)
-        }
-        if mode == .split {
-            fill(
-                NSRect(x: geometry.columnWidth, y: rect.minY, width: 1, height: rect.height),
-                palette.separator, context)
         }
     }
 
@@ -694,35 +680,17 @@ private struct LineKey: Hashable {
 // MARK: - Card frame
 
 extension DiffCanvasView {
-    /// The card's frame: its side's column in split mode, the visible width in unified.
-    func draftFrame(row: Int, side: ThreadAnchor.Side) -> NSRect {
-        var rect = chromeRect(ofRow: row)
-        if mode == .split {
-            rect.origin.x = side == .old ? 0 : geometry.columnWidth
-            rect.size.width = geometry.columnWidth
-        }
-        return rect.insetBy(dx: 8, dy: 4)
+    /// The card's frame: the visible width, in both modes, since a conversation is prose.
+    func draftFrame(row: Int) -> NSRect {
+        chromeRect(ofRow: row).insetBy(dx: 8, dy: 4)
     }
 
-    /// The card a draft and an open thread sit in, amber or GitHub's blue; side by side, the
-    /// other column is left empty as beside an unpaired line.
+    /// The card a draft and an open thread sit in, amber or GitHub's blue.
     func drawCardFrame(
-        row: Int, side: ThreadAnchor.Side, source: ThreadSource = .seam, isNote: Bool = false,
-        palette: DiffPalette,
+        row: Int, source: ThreadSource = .seam, isNote: Bool = false, palette: DiffPalette,
         context: CGContext
     ) {
-        if mode == .split {
-            let rect = chromeRect(ofRow: row)
-            fill(
-                NSRect(
-                    x: side == .old ? geometry.columnWidth : 0, y: rect.minY,
-                    width: geometry.columnWidth, height: rect.height),
-                palette.emptySide, context)
-            fill(
-                NSRect(x: geometry.columnWidth, y: rect.minY, width: 1, height: rect.height),
-                palette.separator, context)
-        }
-        let frame = draftFrame(row: row, side: side)
+        let frame = draftFrame(row: row)
         let shape = CGPath(
             roundedRect: frame, cornerWidth: 6, cornerHeight: 6, transform: nil)
         context.addPath(shape)
