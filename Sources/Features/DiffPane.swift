@@ -15,6 +15,7 @@ struct DiffRepresentable: NSViewRepresentable {
             var range: Int
             var narrowing: Narrowing
             var threads: [String: [ThreadMarker]]
+            var resolvedMarks: [String: [ThreadMarker]]
             var sinceViewed: [String: String]
             var mode: DiffLayoutMode
             var collapsed: Set<String>
@@ -72,7 +73,7 @@ struct DiffRepresentable: NSViewRepresentable {
         let shown = Coordinator.Shown(
             id: review.id, version: review.diffVersion, range: review.shownRangeVersion,
             narrowing: review.narrowing, threads: review.threadMarkers,
-            sinceViewed: review.sinceViewed,
+            resolvedMarks: review.hiddenResolvedMarkers, sinceViewed: review.sinceViewed,
             mode: review.mode,
             collapsed: review.collapsed, contentsVersion: review.contentsVersion,
             syntaxVersion: review.syntaxVersion, wraps: review.wraps, viewed: review.viewed,
@@ -107,6 +108,7 @@ struct DiffRepresentable: NSViewRepresentable {
             if content.threads[path]?.contains(where: { $0.id == open.id }) != true {
                 content.threads[path, default: []].append(open)
             }
+            content.resolvedMarks[path]?.removeAll { $0.id == open.id }
             content.openThread = open.id
         }
         view.show(content, position: position)

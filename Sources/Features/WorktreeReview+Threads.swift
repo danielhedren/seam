@@ -139,6 +139,17 @@ extension WorktreeReview {
     }
 
     /// One thread's marker, resolved or not; nil for a thread the diff has no lines for.
+    /// Resolved threads while they're hidden, which still mark their lines, hollow (SPEC §7.7).
+    var hiddenResolvedMarkers: [String: [ThreadMarker]] {
+        guard !services.settings.showsResolvedThreads else { return [:] }
+        var markers: [String: [ThreadMarker]] = [:]
+        for placed in placedThreads where placed.thread.isResolved {
+            guard let marker = Self.marker(placed) else { continue }
+            markers[placed.path, default: []].append(marker)
+        }
+        return markers
+    }
+
     func marker(for id: String) -> ThreadMarker? {
         placedThreads.first { $0.id == id }.flatMap(Self.marker)
     }

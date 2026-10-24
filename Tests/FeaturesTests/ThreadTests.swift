@@ -515,8 +515,13 @@ import Testing
         let resolved = Set(reviewed.placedThreads.filter(\.thread.isResolved).map(\.id))
         #expect(resolved == [mine.id, agents.id])
         #expect(reviewed.content?.threads["a.txt"] == nil)
+        // Hidden, they still mark their line, hollow.
+        #expect(
+            Set(reviewed.content?.resolvedMarks["a.txt"]?.map(\.id) ?? [])
+                == [mine.id, agents.id])
         session.settings.showsResolvedThreads = true
         #expect(reviewed.content?.threads["a.txt"]?.count == 2)
+        #expect(reviewed.content?.resolvedMarks == [:])
     }
 
     @Test func reloadingUnchangedThreadsKeepsPlacementsCached() async throws {

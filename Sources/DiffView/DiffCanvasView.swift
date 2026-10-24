@@ -51,6 +51,7 @@ final class DiffCanvasView: NSView {
     var onOpenThread: ((String) -> Void)?
     var onCloseCard: (() -> Void)?
     private(set) var threads: [String: [ThreadMarker]] = [:]
+    private var resolvedMarks: [String: [ThreadMarker]] = [:]
     private var threadedRows: [Int: Set<ThreadMark>] = [:]
     var menuForFile: ((String) -> NSMenu?)?
     var menuForLines: (() -> NSMenu?)?
@@ -125,6 +126,7 @@ final class DiffCanvasView: NSView {
         viewed = content.viewed
         sinceViewed = content.sinceViewed
         threads = content.threads
+        resolvedMarks = content.resolvedMarks
         defer { shown = content }
         selection = nil
         if let shown, let files = Self.spliceableChange(from: shown, to: content) {
@@ -202,7 +204,8 @@ final class DiffCanvasView: NSView {
                 cardHeight: cardHeight)
             lineCache.removeAll(keepingCapacity: true)
         }
-        threadedRows = DiffRowBuilder.threadedRows(rows, paths: paths, threads: threads)
+        threadedRows = DiffRowBuilder.threadedRows(
+            rows, paths: paths, threads: threads, resolved: resolvedMarks)
         resize()
         updateCardView()
         updateTargetRows()
@@ -237,7 +240,9 @@ final class DiffCanvasView: NSView {
                 x: 0, y: layout.top(of: index), width: bounds.width,
                 height: layout.height(of: index))
             draw(row: index, in: rect, palette: palette, context: context)
-            if let marks = threadedRows[index] { drawThreadMark(marks, in: rect, context) }
+            if let marks = threadedRows[index] {
+                drawThreadMark(marks, in: rect, palette: palette, context)
+            }
             if let side = targetRows[index] { drawTargetMark(side, in: rect, context) }
         }
     }
@@ -375,14 +380,26 @@ final class DiffCanvasView: NSView {
 
     /// A bar at the left of the gutter beside a thread's lines, on the side the thread is on;
     /// where both Seam's and GitHub's threads cover a line, GitHub's bar is beside Seam's.
-    private func drawThreadMark(_ marks: Set<ThreadMark>, in rect: NSRect, _ context: CGContext) {
+    private func drawThreadMark(
+        _ marks: Set<ThreadMark>, in rect: NSRect, palette: DiffPalette, _ context: CGContext
+    ) {
         for mark in marks {
             var x = mode == .split && mark.side == .new ? geometry.columnWidth : 0
             if mark.source == .gitHub, marks.contains(ThreadMark(side: mark.side, source: .seam)) {
                 x += 3
             }
-            context.setFillColor(ThreadColor.accent(mark.source, note: mark.isNote).cgColor)
-            context.fill(NSRect(x: x, y: rect.minY, width: 3, height: rect.height))
+            let bar = NSRect(x: x, y: rect.minY, width: 3, height: rect.height)
+            let color = ThreadColor.accent(mark.source, note: mark.isNote).cgColor
+            // Hollow and grey, as resolved threads are elsewhere: only the sides, so a run of lines
+            // reads as one outlined bar.
+            if mark.isResolved {
+                context.setFillColor(palette.gutterText.nsColor.cgColor)
+                context.fill(NSRect(x: bar.minX, y: bar.minY, width: 1, height: bar.height))
+                context.fill(NSRect(x: bar.maxX - 1, y: bar.minY, width: 1, height: bar.height))
+            } else {
+                context.setFillColor(color)
+                context.fill(bar)
+            }
         }
     }
 

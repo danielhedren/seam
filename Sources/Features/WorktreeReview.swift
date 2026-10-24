@@ -494,7 +494,11 @@ final class WorktreeReview: Identifiable {
                     uniquingKeysWith: { first, _ in first }),
                 tabWidth: services.settings.tabWidth, tabWidths: tabWidths,
                 threads: threadMarkers)
-        }.map(showingSinceViewed)
+        }.map { content in
+            var content = content
+            content.resolvedMarks = hiddenResolvedMarkers
+            return showingSinceViewed(content)
+        }
     }
 
     /// The old side of a file shown since viewed is the text the reader saw, so the base's
@@ -513,6 +517,7 @@ final class WorktreeReview: Identifiable {
             content.syntax[path]?.old = nil
             content.syntax[path]?.oldScopes = []
             content.threads[path]?.removeAll { $0.side == .old }
+            content.resolvedMarks[path]?.removeAll { $0.side == .old }
         }
         content.sinceViewed = Set(sinceViewedDiffs.keys)
         return content

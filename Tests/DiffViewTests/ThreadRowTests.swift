@@ -72,6 +72,22 @@ private func texts(_ rows: [DiffRow]) -> [String] {
         #expect(marked.values.allSatisfy { $0 == [ThreadMark(side: .new, source: .seam)] })
     }
 
+    @Test func hiddenResolvedThreadsMarkTheirLinesHollowWithoutARow() {
+        let resolved = ["a.txt": [marker("r", .new, 2...2)]]
+        let content = DiffContent(review: review())
+        var withMarks = content
+        withMarks.resolvedMarks = resolved
+        let rows = DiffRowBuilder.rows(for: withMarks)
+        #expect(rows == DiffRowBuilder.rows(for: content))
+        let marked = DiffRowBuilder.threadedRows(
+            rows, paths: ["a.txt"], threads: [:], resolved: resolved)
+        #expect(Set(marked.keys.map { texts([rows[$0]]).first ?? "" }) == ["two a"])
+        #expect(
+            marked.values.allSatisfy {
+                $0 == [ThreadMark(side: .new, source: .seam, isResolved: true)]
+            })
+    }
+
     @MainActor
     @Test func aCommentGoesOnTheSelectedLinesNewSideFirst() throws {
         let view = DiffScrollView()

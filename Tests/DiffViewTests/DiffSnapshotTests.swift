@@ -218,6 +218,26 @@ struct DiffSnapshotTests {
         assertSnapshot(of: view, as: .image2x, named: "since-viewed-\(Self.os)")
     }
 
+    /// An open thread's lines carry a solid bar; a hidden resolved one's, a hollow one.
+    @Test func hiddenResolvedThreadsMarkTheirLinesHollow() {
+        func marker(_ id: String, _ lines: ClosedRange<Int>, resolved: Bool) -> ThreadMarker {
+            ThreadMarker(
+                id: id, side: .new, lines: lines, latestAuthor: "you", latest: "Why?",
+                commentCount: 1, isResolved: resolved)
+        }
+        let view = DiffScrollView.forSnapshot()
+        view.appearance = NSAppearance(named: .aqua)
+        view.increaseContrastOverride = false
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 300)
+        var content = DiffContent(
+            review: Self.review, collapsed: ["Legacy.txt"], syntax: Self.syntax,
+            threads: ["Sources/Order.swift": [marker("open", 11...11, resolved: false)]])
+        content.resolvedMarks = ["Sources/Order.swift": [marker("done", 9...10, resolved: true)]]
+        view.show(content, position: .top)
+        view.layoutSubtreeIfNeeded()
+        assertSnapshot(of: view, as: .image2x, named: "resolved-marks-\(Self.os)")
+    }
+
     @Test func collapsedFileShowsOnlyItsHeader() {
         let view = view(.unified, .aqua, collapsed: ["Sources/Order.swift"])
         assertSnapshot(of: view, as: .image2x, named: "collapsed-\(Self.os)")

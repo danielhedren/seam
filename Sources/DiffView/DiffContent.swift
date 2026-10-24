@@ -25,6 +25,8 @@ public struct DiffContent: Equatable, Sendable {
     public var tabWidths: [String: Int]
     /// Review threads by path, placed on the lines they're on now (SPEC §7.7).
     public var threads: [String: [ThreadMarker]]
+    /// Resolved threads while they're hidden: no row, only a hollow mark on their lines.
+    public var resolvedMarks: [String: [ThreadMarker]] = [:]
     public var draft: DraftMarker?
     /// The thread open in the diff, by id: its row shows the whole conversation.
     public var openThread: String?

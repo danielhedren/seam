@@ -503,8 +503,8 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   line: author, the first line of the latest comment, the number of comments, and open or
   resolved. Side by side, the row and the composer keep to their side's column, the other
   column left empty as beside an unpaired line, and a comment too long for the column is
-  shortened before its count. Resolved threads show only the gutter marker unless Review › Show
-  Resolved Threads is on.
+  shortened before its count. Resolved threads show only the gutter marker, a hollow grey bar,
+  unless Review › Show Resolved Threads is on; `t` on their lines opens them.
 - **Reading and answering in the diff:** clicking a thread's row, `t` on its lines, or picking it
   in the panel opens it in place of its row, in the same card as the composer (one view for
   both, so they can't look different): a title with its lines, comment count and status,

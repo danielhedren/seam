@@ -51,16 +51,22 @@ extension DiffRowBuilder {
 
     /// The rows inside a thread's range, with the side the range is on and whose threads they
     /// are, for the gutter mark.
-    static func threadedRows(_ rows: [DiffRow], paths: [String], threads: [String: [ThreadMarker]])
-        -> [Int: Set<ThreadMark>]
-    {
-        guard !threads.isEmpty else { return [:] }
+    static func threadedRows(
+        _ rows: [DiffRow], paths: [String], threads: [String: [ThreadMarker]],
+        resolved: [String: [ThreadMarker]] = [:]
+    ) -> [Int: Set<ThreadMark>] {
+        guard !threads.isEmpty || !resolved.isEmpty else { return [:] }
         var marked: [Int: Set<ThreadMark>] = [:]
         for (index, row) in rows.enumerated() where row.file < paths.count {
-            for marker in threads[paths[row.file]] ?? [] {
+            let path = paths[row.file]
+            for (marker, isResolved) in (threads[path] ?? []).map({ ($0, false) })
+                + (resolved[path] ?? []).map({ ($0, true) })
+            {
                 if let number = number(of: row, on: marker.side), marker.lines.contains(number) {
                     marked[index, default: []].insert(
-                        ThreadMark(side: marker.side, source: marker.source, isNote: marker.isNote))
+                        ThreadMark(
+                            side: marker.side, source: marker.source, isNote: marker.isNote,
+                            isResolved: isResolved))
                 }
             }
         }
@@ -72,4 +78,6 @@ struct ThreadMark: Hashable {
     var side: ThreadAnchor.Side
     var source: ThreadSource
     var isNote = false
+    /// A hidden resolved thread's, drawn hollow.
+    var isResolved = false
 }
