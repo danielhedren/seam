@@ -157,6 +157,37 @@ import Testing
         #expect(stub.superview == nil)
     }
 
+    /// Opening a thread ends the selection's job as what `c` comments on, so the first Escape
+    /// closes the card rather than clearing a selection the reader may not see.
+    @Test func openingAThreadDropsTheSelectionSoEscapeClosesItAtOnce() throws {
+        final class Stub: NSView, DiffCardView {
+            var onHeightChange: (() -> Void)?
+            func height(forWidth width: Double) -> Double { 60 }
+        }
+        let marker = ThreadMarker(
+            id: "t1", side: .new, lines: 1...1, latestAuthor: "you", latest: "Why?",
+            commentCount: 1, isResolved: false)
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        view.makeCardView = { _ in Stub() }
+        var closed = 0
+        view.onCloseCard = { closed += 1 }
+        let words = review(["alpha", "beta"])
+        view.show(DiffContent(review: words, threads: ["a.txt": [marker]]), position: .top)
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        let row = try #require(
+            canvas.layout.rows.firstIndex { if case .line = $0 { true } else { false } })
+        canvas.selection = DiffSelection(
+            side: .unified, anchor: TextPosition(row: row, column: 0),
+            head: TextPosition(row: row, column: 3))
+
+        view.show(
+            DiffContent(review: words, threads: ["a.txt": [marker]], openThread: "t1"),
+            position: .keep)
+        canvas.cancelOperation(nil)
+        #expect(closed == 1)
+    }
+
     @Test func theSelectionIsTheTextOnScreen() throws {
         let view = DiffScrollView()
         view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
