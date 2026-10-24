@@ -366,6 +366,37 @@ import Testing
         session.close()
     }
 
+    /// Once every file is viewed and nothing awaits the reader, the file list says what the
+    /// pull request does, where the approval is decided.
+    @Test func finishingTheReviewSaysWhatThePullRequestSays() async throws {
+        let (repo, feature) = try await fixture()
+        let pushed = try await repo.sha("origin/main")
+        github.answer(open: [
+            Self.pullRequest(12, checks: .init(passed: 3, failed: 1), headCommit: pushed)
+        ])
+        let session = await open(repo, selecting: feature)
+        let row = try review(session, feature)
+        #expect(row.completionSummary == nil)
+
+        session.toggleViewed("a.txt", advance: false)
+        #expect(
+            row.completionSummary
+                == "#12 Waiting for review · Checks: 3 passed, 1 failed · "
+                + "1 local commit isn't in the pull request")
+
+        // An agent's question waits for the reader first.
+        let repository = try #require(session.repository)
+        let anchor = try #require(row.anchor(path: "a.txt", side: .new, lines: 1...1))
+        try session.services.threads.update(repository) { threads throws(ThreadError) in
+            _ = try ThreadRules.open(
+                &threads, worktree: row.id, anchor: anchor, author: "claude", body: "Why a?",
+                now: .now, newID: { "0000000a" })
+        }
+        await session.threads?.load()
+        #expect(row.completionSummary == nil)
+        session.close()
+    }
+
     /// GitHub's octicons, bundled: every marker shows a different set of shapes.
     @MainActor @Test func everyMarkerDrawsItsOwnGitHubIcons() throws {
         for icon in Octicon.allCases {

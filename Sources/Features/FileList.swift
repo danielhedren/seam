@@ -74,6 +74,22 @@ struct FileList: View {
                 .padding(.horizontal, 10).padding(.vertical, 4)
                 Divider()
             }
+            if let summary = review.completionSummary {
+                // Every fact counts here, so the line wraps rather than cutting any off.
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(verbatim: summary).fixedSize(horizontal: false, vertical: true)
+                    if review.pullRequest?.ciFailed == true {
+                        Button(String(localized: "Open Failed Check", bundle: .module)) {
+                            session.openFailedCheck(of: review)
+                        }
+                        .buttonStyle(.link)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .font(.caption).foregroundStyle(.secondary)
+                .padding(.horizontal, 10).padding(.vertical, 4)
+                Divider()
+            }
             switch review.navigator {
             case .files: files
             case .search:

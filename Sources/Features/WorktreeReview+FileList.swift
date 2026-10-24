@@ -16,6 +16,23 @@ final class FileListCache {
 }
 
 extension WorktreeReview {
+    /// Once every file is viewed and no thread awaits the reader, what the pull request says,
+    /// where the approval is decided: "#12 Waiting for review · Checks: 1 failed" (SPEC §7.8).
+    /// Nil before then, or without a pull request.
+    var completionSummary: String? {
+        guard let diff, !diff.files.isEmpty, viewed.viewedCount(in: diff) == diff.files.count,
+            awaitingReply.isEmpty, let pullRequest
+        else { return nil }
+        var parts = ["#\(pullRequest.number) \(PullRequestBadge.state(pullRequest))"]
+        if pullRequest.state == .open, let checks = PullRequestBadge.checks(pullRequest.checks) {
+            parts.append(checks)
+        }
+        if let unpushed = unpushedCount, unpushed > 0 {
+            parts.append(PullRequestBadge.unpushed(unpushed))
+        }
+        return parts.joined(separator: " · ")
+    }
+
     var fileListRows: [FileListRow] {
         let key = FileListCache.Key(
             diffVersion: diffVersion, flat: flatFileList, collapsed: collapsedDirectories,

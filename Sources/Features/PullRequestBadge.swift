@@ -22,6 +22,8 @@ struct PullRequestBadge: View {
             if let review = Self.reviewIcon(pullRequest) {
                 icon(review.icon, review.color)
             }
+            // GitHub's reviewers see other code than the reader does, so it's said, not hovered.
+            if let unpushed, unpushed > 0 { Text(verbatim: "↑\(unpushed)") }
         }
         .fixedSize()
         .help(Self.help(pullRequest, unpushed: unpushed, read: read))
@@ -104,6 +106,13 @@ struct PullRequestBadge: View {
             localized: "Checks: \(parts.joined(separator: ", "))", bundle: .module)
     }
 
+    static func unpushed(_ count: Int) -> String {
+        count == 1
+            ? String(localized: "1 local commit isn't in the pull request", bundle: .module)
+            : String(
+                localized: "\(count) local commits aren't in the pull request", bundle: .module)
+    }
+
     static func help(_ pullRequest: PullRequest, unpushed: Int?, read: Date?) -> String {
         var lines = ["#\(pullRequest.number) \(pullRequest.title)"]
         var status = [state(pullRequest)]
@@ -111,14 +120,7 @@ struct PullRequestBadge: View {
             status.append(checks)
         }
         lines.append(status.joined(separator: " · "))
-        if let unpushed {
-            lines.append(
-                unpushed == 1
-                    ? String(localized: "1 local commit isn't in the pull request", bundle: .module)
-                    : String(
-                        localized: "\(unpushed) local commits aren't in the pull request",
-                        bundle: .module))
-        }
+        if let unpushed { lines.append(Self.unpushed(unpushed)) }
         if let read {
             let age = RelativeDateTimeFormatter().localizedString(for: read, relativeTo: .now)
             lines.append(String(localized: "Read from GitHub \(age)", bundle: .module))

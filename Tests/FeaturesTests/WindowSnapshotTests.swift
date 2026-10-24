@@ -281,6 +281,34 @@ struct WindowSnapshotTests {
         }
     }
 
+    @Test func aFinishedReviewSaysWhatThePullRequestSays() async throws {
+        let (session, _) = try await session()
+        let review = try #require(session.selected)
+        var saved = SavedPullRequests()
+        saved.byBranch["feature"] = PullRequest(
+            number: 12, title: "Count the lines", url: "https://github.com/o/a/pull/12",
+            state: .open, isDraft: false, head: "feature", headOwner: "o", headCommit: "abc",
+            base: "main", review: .none, checks: .init(passed: 3, failed: 1),
+            updated: Self.fixtureEpoch)
+        saved.unpushed["feature"] = 2
+        review.pullRequests = RepoPullRequests(
+            services: session.services, directory: review.worktree.path, saved: saved,
+            branches: { [] })
+        for path in review.diff?.files.map(\.diff.path) ?? [] {
+            session.toggleViewed(path, advance: false)
+        }
+        let view = FileList(
+            session: session, review: review, filterFocus: FocusState<Bool>().projectedValue
+        )
+        .frame(width: 300, height: 140, alignment: .top)
+        for (appearance, name) in Self.appearances {
+            check(
+                of: try render(view, size: CGSize(width: 300, height: 140), appearance),
+                as: .image(precision: 0.99, perceptualPrecision: 0.98),
+                named: "finished-\(name)-\(Self.os)")
+        }
+    }
+
     @Test func welcome() async throws {
         let repo = try await FixtureRepo()
         // Under the home folder, so the rows read the same "~/…" on any machine.
