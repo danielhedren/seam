@@ -27,7 +27,8 @@ final class WorktreeReview: Identifiable {
     /// Commits picked in the commit list, in place of `scope` until a scope is picked again.
     private(set) var commitSelection: CommitSelection?
     private(set) var commitLog: CommitLog?
-    private(set) var collapsed: Set<String> = []
+    private var collapse = CollapseState()
+    var collapsed: Set<String> { collapse.collapsed }
     private(set) var wraps = false
     /// Starts from the setting; Review › Hide Whitespace Changes flips it for this worktree.
     private(set) var whitespace: WhitespaceMode?
@@ -62,9 +63,6 @@ final class WorktreeReview: Identifiable {
     private(set) var syntax: [String: FileSyntax] = [:]
     private(set) var syntaxVersion = 0
     private var highlightTask: Task<Void, Never>?
-    private var openedByReader: Set<String> = []
-    /// Each file's viewed status at the last load, to spot a viewed file that changed.
-    private var lastStatuses: [String: ViewedMarks.Status] = [:]
     /// Whether the file list's "Generated" group is open.
     var showsGenerated = false
     /// Revealed context per file and gap. Kept across reloads; gaps that moved simply reset.
@@ -259,17 +257,11 @@ final class WorktreeReview: Identifiable {
         collapseIfViewed(path)
     }
 
-    /// With the setting on, a viewed file folds away and opens again once unmarked or changed.
     private func collapseIfViewed(_ path: String) {
         guard let file = file(path) else { return }
-        lastStatuses[path] = viewed.status(of: file)
-        guard services.settings.collapsesViewed else { return }
-        if viewed.status(of: file) == .viewed {
-            collapsed.insert(path)
-            openedByReader.remove(path)
-        } else {
-            collapsed.remove(path)
-        }
+        collapse.viewedChanged(
+            path, to: viewed.status(of: file),
+            collapsesViewed: services.settings.collapsesViewed)
     }
 
     /// Where "open in editor" lands for a whole file: its first hunk's first new line.
@@ -300,34 +292,16 @@ final class WorktreeReview: Identifiable {
     }
 
     func toggleCollapsed(_ path: String) {
-        if collapsed.remove(path) == nil {
-            collapsed.insert(path)
-            openedByReader.remove(path)
-        } else {
-            openedByReader.insert(path)
-        }
+        collapse.toggle(path)
     }
 
-    /// Generated and large files start collapsed, except ones the reader has opened.
     private func applyDefaultCollapse(_ diff: ReviewDiff) {
-        let collapsesViewed = services.settings.collapsesViewed
-        var statuses: [String: ViewedMarks.Status] = [:]
-        for file in diff.files {
-            let path = file.diff.path
-            let status = viewed.status(of: file)
-            statuses[path] = status
-            // Opens once, when a viewed file changes, so a reader's later collapse sticks.
-            if collapsesViewed, status == .changedSinceViewed, lastStatuses[path] == .viewed,
-                !file.startsCollapsed
-            {
-                collapsed.remove(path)
-            } else if file.startsCollapsed || (collapsesViewed && status == .viewed),
-                !openedByReader.contains(path)
-            {
-                collapsed.insert(path)
-            }
-        }
-        lastStatuses = statuses
+        collapse.load(
+            diff.files.map {
+                CollapseState.File(
+                    path: $0.diff.path, startsCollapsed: $0.startsCollapsed,
+                    status: viewed.status(of: $0))
+            }, collapsesViewed: services.settings.collapsesViewed)
     }
 
     func expand(_ path: String, gap: Int, _ direction: ExpandDirection) {
