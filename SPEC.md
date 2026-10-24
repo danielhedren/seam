@@ -347,8 +347,9 @@ selection acts on its newest commit, and so do Review › Copy Commit ID and Cop
 
 ### 7.3.1 Search
 
-The file list's column has two views, Files and Search, picked by the two buttons at the start
-of its header. Each worktree keeps its own view, query and options while the app runs.
+The file list's column has three views, Files, Search and Inbox (§7.3.2), picked by the buttons
+at the start of its header. Each worktree keeps its own view, query and options while the app
+runs.
 
 - Edit › Find › Search in Review (`⇧⌘F`) shows Search and puts the cursor in its field; Filter
   Files (`⌘F` in the list) goes back to Files. The field looks like the filter's: Escape clears
@@ -374,6 +375,22 @@ of its header. Each worktree keeps its own view, query and options while the app
   instead.
 - The results follow typing once it pauses for 300 ms; clearing the field applies at once. A
   search that finds nothing says so in both panes, with a Clear Search button.
+
+### 7.3.2 Inbox
+
+What awaits the reader across every worktree of the repo, so coming back to a round of agents'
+work starts in one list rather than a click per worktree.
+
+- It lists Seam's threads whose latest comment isn't the reader's (an agent's answer or
+  question; not notes or resolved threads) and open pull requests whose checks failed, grouped
+  by worktree, newest first. A thread's row has its file and line, its age, and the latest
+  comment with its author in bold; a failed check's has Open Failed Check. The header says
+  "3 awaiting you", and the tray button is filled while anything is listed.
+- Picking a thread selects its worktree, keeps the Inbox showing there, and opens the thread in
+  the diff on its lines, or in the panel when the diff can't show it (§7.7). Answering it or
+  resolving it takes it off the list.
+- Go › Show Inbox (`⇧⌘I`), and Go › Next Awaiting You (`⌥⌘]`) opens the next item, wrapping,
+  whichever view shows. With nothing listed, it says "Nothing awaits you".
 
 ### 7.4 Diff view
 

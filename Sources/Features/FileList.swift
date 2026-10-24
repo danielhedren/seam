@@ -12,7 +12,7 @@ struct FileList: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                NavigatorPicker(review: review)
+                NavigatorPicker(review: review, inboxHasItems: !session.inbox.isEmpty)
                 switch review.navigator {
                 case .files:
                     // With the worktree list hidden, its row's PR marker would be out of sight;
@@ -44,6 +44,7 @@ struct FileList: View {
                         totals(.all)
                     }
                 case .search: SearchSummary(review: review)
+                case .inbox: InboxSummary(session: session)
                 }
                 Spacer()
                 Toggle(isOn: $review.flatFileList) {
@@ -94,6 +95,7 @@ struct FileList: View {
             case .files: files
             case .search:
                 SearchResults(session: session, review: review, fieldFocus: filterFocus)
+            case .inbox: InboxList(session: session)
             }
         }
     }

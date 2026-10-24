@@ -7,6 +7,9 @@
     " · resolved" : {
 
     },
+    "#%lld checks failed" : {
+
+    },
     "%@ (%@ marks it and goes to the next unviewed file)" : {
       "localizations" : {
         "en" : {
@@ -139,6 +142,9 @@
 
     },
     "Actual Size" : {
+
+    },
+    "Agents' answers and questions, and failed checks, show here from every worktree." : {
 
     },
     "All Changes" : {
@@ -481,6 +487,9 @@
     "In the file list" : {
 
     },
+    "Inbox" : {
+
+    },
     "Install Command Line Tool…" : {
 
     },
@@ -564,6 +573,9 @@
         }
       }
     },
+    "Next Awaiting You" : {
+
+    },
     "Next Commit" : {
 
     },
@@ -639,6 +651,9 @@
           }
         }
       }
+    },
+    "Nothing awaits you" : {
+
     },
     "Nothing in the diff matches “%@”." : {
 
@@ -851,6 +866,9 @@
 
     },
     "Show Full Diff" : {
+
+    },
+    "Show Inbox" : {
 
     },
     "Show Only This Commit" : {

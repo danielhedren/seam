@@ -67,3 +67,53 @@ struct WorktreeAttentionTests {
         #expect(attention.summary == "2 awaiting you · checks failed")
     }
 }
+
+/// The Inbox navigator (SPEC §7.3.2): what awaits the reader across worktrees, opened in place.
+@MainActor
+@Suite(.timeLimit(.minutes(1)))
+struct InboxTests {
+    /// The main worktree selected, and an agent's question in `feature`, as `seam comment` leaves it.
+    private func asked() async throws -> (RepoSession, FixtureRepo, URL, String) {
+        let repo = try await FixtureRepo()
+        let feature = try await repo.worktree("feature", branch: "feature", from: "origin/main")
+        try repo.write("a.txt", "one\ntwo\n", in: feature)
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        await session.settled()
+        let repository = try #require(session.repository)
+        let thread = try session.services.threads.update(repository) {
+            threads throws(ThreadError) in
+            try ThreadRules.open(
+                &threads, worktree: feature.path,
+                anchor: ThreadAnchor(path: "a.txt", side: .new, lines: 2...2, text: ["two"]),
+                author: "claude", body: "Should two stay?", now: .now)
+        }
+        await session.threads?.load()
+        return (session, repo, feature, thread.id)
+    }
+
+    @Test func anAgentsQuestionInAnotherWorktreeOpensFromTheInbox() async throws {
+        let (session, repo, feature, id) = try await asked()
+        #expect(session.selectedID == repo.main.path)
+        try command("inbox").run(session)
+        #expect(session.selected?.navigator == .inbox)
+        #expect(session.inbox.map(\.id) == [id])
+
+        try command("next-inbox").run(session)
+        await until { session.selectedThreadID == id }
+        #expect(session.selectedID == feature.path)
+        // The Inbox stays in view in the worktree it opened.
+        #expect(session.selected?.navigator == .inbox)
+        #expect(session.selected?.placedThreads.first?.isInDiff == true)
+    }
+
+    @Test func answeringTakesItOutOfTheInbox() async throws {
+        // The fixture is kept: releasing it deletes its folder, and the store's file name with it.
+        let (session, repo, feature, id) = try await asked()
+        defer { _ = repo }
+        await session.open(try #require(session.inbox.first))
+        #expect(await session.reply(to: id, "Yes."))
+        #expect(session.inbox.isEmpty)
+        #expect(session.reviews.first { $0.id == feature.path }?.attention.needsReader == false)
+    }
+}

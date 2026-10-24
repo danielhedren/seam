@@ -307,6 +307,14 @@ enum CommandCatalog {
                 shortcut: .command("p", [.command, .shift]), isEnabled: { _ in true },
                 run: { $0.showsPalette = true }),
             SeamCommand(
+                id: "inbox", title: localized("Show Inbox"), menu: .go, section: 0,
+                shortcut: .command("i", [.command, .shift]), run: { $0.showInbox() }),
+            SeamCommand(
+                id: "next-inbox", title: localized("Next Awaiting You"), menu: .go, section: 0,
+                shortcut: .command("]", [.command, .option]),
+                isEnabled: { !$0.inbox.isEmpty },
+                run: { session in Task { await session.openNextInInbox() } }),
+            SeamCommand(
                 id: "previous-worktree", title: localized("Previous Worktree"), menu: .go,
                 section: 0, shortcut: .command("["), isEnabled: { _ in true },
                 run: { $0.selectAdjacent(-1) }),

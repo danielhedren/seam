@@ -201,6 +201,34 @@ struct WindowSnapshotTests {
         }
     }
 
+    @Test func theInboxAcrossWorktrees() async throws {
+        let (session, _) = try await session()
+        let review = try #require(session.selected)
+        let repository = try #require(session.repository)
+        let anchor = try #require(review.anchor(path: "src/Order.cs", side: .new, lines: 3...3))
+        try session.services.threads.update(repository) { threads throws(ThreadError) in
+            let thread = try ThreadRules.open(
+                &threads, worktree: review.id, anchor: anchor, author: "you",
+                body: "Why did the total change?", now: Self.fixtureEpoch, newID: { "0000000a" })
+            try ThreadRules.reply(
+                &threads, to: thread.id, author: "claude",
+                body: "The order now counts its delivery line; see `Count()`.",
+                now: Self.fixtureEpoch.addingTimeInterval(1800), newID: { "0000000b" })
+        }
+        await session.threads?.load()
+        review.navigator = .inbox
+        let view = FileList(
+            session: session, review: review, filterFocus: FocusState<Bool>().projectedValue
+        )
+        .frame(width: 300, height: 200, alignment: .top)
+        for (appearance, name) in Self.appearances {
+            check(
+                of: try render(view, size: CGSize(width: 300, height: 200), appearance),
+                as: .image(precision: 0.99, perceptualPrecision: 0.98),
+                named: "inbox-\(name)-\(Self.os)")
+        }
+    }
+
     @Test func fileRowsWithThreads() async throws {
         let (session, _) = try await session()
         let review = try #require(session.selected)
