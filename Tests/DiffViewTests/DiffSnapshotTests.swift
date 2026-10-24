@@ -6,8 +6,8 @@ import Testing
 
 @testable import DiffView
 
-/// SPEC §10: image snapshots of the diff view. Rendering differs between macOS releases, so each
-/// major version keeps its own references. Record with `SNAPSHOT_TESTING_RECORD=all swift test`.
+/// SPEC §10: image snapshots of the diff view, drawn at 2x in sRGB whatever the display.
+/// Rendering differs between macOS releases, so each major version keeps its own references. Record with `SNAPSHOT_TESTING_RECORD=all swift test`.
 @MainActor
 @Suite(.snapshots(record: .missing))
 struct DiffSnapshotTests {
@@ -99,7 +99,7 @@ struct DiffSnapshotTests {
         mode: DiffLayoutMode, appearance: NSAppearance.Name, highContrast: Bool, name: String
     ) {
         assertSnapshot(
-            of: view(mode, appearance, highContrast: highContrast), as: .image,
+            of: view(mode, appearance, highContrast: highContrast), as: .image2x,
             named: "\(name)-\(Self.os)")
     }
 
@@ -107,7 +107,7 @@ struct DiffSnapshotTests {
         let view = view(.unified, .aqua)
         view.moveHunk(by: 1)
         view.moveHunk(by: 1)
-        assertSnapshot(of: view, as: .image, named: "sticky-\(Self.os)")
+        assertSnapshot(of: view, as: .image2x, named: "sticky-\(Self.os)")
     }
 
     @Test func gapsBetweenHunksOfferExpansion() {
@@ -131,7 +131,7 @@ struct DiffSnapshotTests {
         view.frame = NSRect(x: 0, y: 0, width: 700, height: 300)
         view.show(content, position: .top)
         view.layoutSubtreeIfNeeded()
-        assertSnapshot(of: view, as: .image, named: "gaps-\(Self.os)")
+        assertSnapshot(of: view, as: .image2x, named: "gaps-\(Self.os)")
     }
 
     private static func png(_ size: NSSize, draw: @escaping (NSRect) -> Void) throws -> Data {
@@ -174,7 +174,7 @@ struct DiffSnapshotTests {
         let view = imageView(
             .modified, old: try png(.systemBlue, NSSize(width: 80, height: 40)),
             new: try png(.systemOrange, NSSize(width: 40, height: 80)), .aqua)
-        assertSnapshot(of: view, as: .image, named: "image-\(Self.os)")
+        assertSnapshot(of: view, as: .image2x, named: "image-\(Self.os)")
     }
 
     @Test func transparentImagesShowTheCheckerboardBehindThem() throws {
@@ -185,7 +185,7 @@ struct DiffSnapshotTests {
             path.stroke()
         }
         assertSnapshot(
-            of: imageView(.added, old: nil, new: ring, .darkAqua), as: .image,
+            of: imageView(.added, old: nil, new: ring, .darkAqua), as: .image2x,
             named: "image-transparent-dark-\(Self.os)")
     }
 
@@ -197,7 +197,7 @@ struct DiffSnapshotTests {
         view.show(
             DiffContent(review: Self.review, syntax: Self.syntax, wraps: true), position: .top)
         view.layoutSubtreeIfNeeded()
-        assertSnapshot(of: view, as: .image, named: "wrapped-\(Self.os)")
+        assertSnapshot(of: view, as: .image2x, named: "wrapped-\(Self.os)")
     }
 
     @Test func viewedCheckboxesShowEachState() {
@@ -205,13 +205,13 @@ struct DiffSnapshotTests {
             let view = view(
                 .unified, appearance, collapsed: ["Sources/Order.swift", "Legacy.txt"],
                 viewed: ["Sources/Order.swift": .viewed, "Legacy.txt": .changedSinceViewed])
-            assertSnapshot(of: view, as: .image, named: "viewed-\(name)-\(Self.os)")
+            assertSnapshot(of: view, as: .image2x, named: "viewed-\(name)-\(Self.os)")
         }
     }
 
     @Test func collapsedFileShowsOnlyItsHeader() {
         let view = view(.unified, .aqua, collapsed: ["Sources/Order.swift"])
-        assertSnapshot(of: view, as: .image, named: "collapsed-\(Self.os)")
+        assertSnapshot(of: view, as: .image2x, named: "collapsed-\(Self.os)")
     }
 }
 
@@ -222,5 +222,28 @@ extension DiffScrollView {
         let view = DiffScrollView()
         view.scrollerStyle = .overlay
         return view
+    }
+}
+
+extension Snapshotting where Value == NSView, Format == NSImage {
+    /// The view drawn at 2x whatever the main screen's scale, so references don't depend on the
+    /// display the tests run on.
+    @MainActor static var image2x: Snapshotting {
+        Snapshotting<NSImage, NSImage>.image.pullback { view in
+            let size = view.bounds.size
+            // sRGB rather than the screen's profile, so every Mac draws the same pixels.
+            guard
+                let rep = NSBitmapImageRep(
+                    bitmapDataPlanes: nil, pixelsWide: Int(size.width) * 2,
+                    pixelsHigh: Int(size.height) * 2, bitsPerSample: 8, samplesPerPixel: 4,
+                    hasAlpha: true, isPlanar: false, colorSpaceName: .calibratedRGB,
+                    bytesPerRow: 0, bitsPerPixel: 0)?.retagging(with: .sRGB)
+            else { return NSImage() }
+            rep.size = size
+            view.cacheDisplay(in: view.bounds, to: rep)
+            let image = NSImage(size: size)
+            image.addRepresentation(rep)
+            return image
+        }
     }
 }
