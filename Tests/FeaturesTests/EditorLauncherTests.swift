@@ -1,4 +1,5 @@
 import Foundation
+import TestSupport
 import Testing
 
 @testable import Features
@@ -12,8 +13,25 @@ import Testing
         }
     }
 
+    /// A full pipe once deadlocked a child that wrote more than its buffer; it must finish.
     @Test func aChattyCommandThatSucceedsIsFine() async throws {
-        try await launcher.run("head -c 200000 /dev/zero >&2")
+        await #expect(throws: Never.self) {
+            try await launcher.run("head -c 200000 /dev/zero >&2")
+        }
+    }
+
+    /// A login shell whose startup files never return gives up after the timeout and falls back
+    /// to the usual folders, by the injected clock.
+    @Test func aShellThatHangsFallsBackToTheUsualPath() async throws {
+        let shell = Scratch.path("seam-hanging-shell")
+        try Data("#!/bin/sh\nexec sleep 60\n".utf8).write(to: shell)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: shell.path)
+        let clock = ManualClock()
+        let reader = LoginShellPath(clock: clock)
+        let path = Task { await reader.value(shell: shell) }
+        await clock.sleepers()
+        clock.advance(by: LoginShellPath.timeout)
+        #expect(await path.value.hasSuffix(":/opt/homebrew/bin:/usr/local/bin"))
     }
 
     @Test func aMissingCommandSaysSoWithoutTheShellsNoise() async {

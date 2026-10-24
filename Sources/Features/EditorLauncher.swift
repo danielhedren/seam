@@ -116,16 +116,23 @@ struct ShellLauncher: CommandLauncher {
 /// get it, and many people set PATH in `.zshrc`.
 actor LoginShellPath {
     private static let marker = "__SEAM_PATH__="
+    /// A startup file that never returns mustn't hold up the editor or gh for good.
+    static let timeout = Duration.seconds(10)
     private var reading: Task<String, Never>?
+    private let clock: any Clock<Duration>
+
+    init(clock: any Clock<Duration> = ContinuousClock()) {
+        self.clock = clock
+    }
 
     func value(shell: URL) async -> String {
         if let reading { return await reading.value }
-        let reading = Task { await Self.read(shell) }
+        let reading = Task { [clock] in await Self.read(shell, clock: clock) }
         self.reading = reading
         return await reading.value
     }
 
-    private static func read(_ shell: URL) async -> String {
+    private static func read(_ shell: URL, clock: any Clock<Duration>) async -> String {
         let fallback =
             (ProcessInfo.processInfo.environment["PATH"] ?? "/usr/bin:/bin")
             + ":/opt/homebrew/bin:/usr/local/bin"
@@ -133,7 +140,7 @@ actor LoginShellPath {
         guard
             let result = try? await Subprocess.run(
                 shell, ["-l", "-i", "-c", "printf '\\n\(marker)%s\\n' \"$PATH\""],
-                timeout: .seconds(10)),
+                timeout: (timeout, clock)),
             let line = String(decoding: result.output, as: UTF8.self)
                 .split(separator: "\n").last(where: { $0.hasPrefix(marker) })
         else { return fallback }
@@ -150,7 +157,7 @@ private enum Subprocess {
 
     static func run(
         _ executable: URL, _ arguments: [String], environment: [String: String]? = nil,
-        timeout: Duration? = nil
+        timeout: (Duration, any Clock<Duration>)? = nil
     ) async throws -> Result {
         let process = Process()
         process.executableURL = executable
@@ -172,9 +179,9 @@ private enum Subprocess {
                 process.terminationHandler = nil
                 continuation.resume(throwing: error)
             }
-            if let timeout {
+            if let (timeout, clock) = timeout {
                 Task.detached {
-                    try? await Task.sleep(for: timeout)
+                    try? await clock.sleep(for: timeout)
                     if process.isRunning { process.terminate() }
                 }
             }
