@@ -16,6 +16,30 @@ import Testing
         return ReviewDiff(scope: .all, files: [ReviewFile(diff: file)])
     }
 
+    /// With nothing selected, `c` comments on the line under the sticky header; while the diff
+    /// has focus that line is marked like a selection, so the target is never invisible.
+    @Test func theLineCWouldCommentOnIsMarkedWhileTheDiffHasFocus() throws {
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 200)
+        view.show(
+            DiffContent(review: review((1...200).map { "line \($0)" })), position: .top)
+        let window = NSWindow(
+            contentRect: view.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = view
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        window.makeFirstResponder(nil)
+        #expect(canvas.targetRows.isEmpty, "not while something else has focus")
+
+        window.makeFirstResponder(canvas)
+        let first = try #require(canvas.targetRows.keys.min())
+        #expect(canvas.targetRows.count == 1)
+        view.page(by: 1)
+        #expect(try #require(canvas.targetRows.keys.min()) > first, "it follows the reading")
+
+        window.makeFirstResponder(nil)
+        #expect(canvas.targetRows.isEmpty)
+    }
+
     /// The diff pages on the keys it's given, so the command catalog decides them (SPEC §9).
     @Test func theDiffPagesOnTheKeysItsGiven() throws {
         let view = DiffScrollView()

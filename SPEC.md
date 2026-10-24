@@ -465,10 +465,12 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   with the cursor in its text box; ⌘↩ posts and Escape cancels, and posting turns it into the
   new thread's card. The card is in the diff's font on an amber frame: a title ("New thread on
   src/a.cs, line 3"), a text box four lines tall whatever is typed, without a background of its
-  own, and its keys as hints at the bottom ("⌘↩ Comment ⎋ Cancel"), which are also buttons.
-  The row is as tall as the card, measured again whenever what it shows changes. The lines a selection or a clicked
-  line would comment on, and the open draft's, have their gutter washed in the threads' amber,
-  the one colour of everything about threads: their rows, the composer and the panel. An unposted draft, text included,
+  own, and its keys as hints at the bottom ("⌘↩ Comment ⌥⌘↩ Note ⎋ Cancel"), which are also
+  buttons. The row is as tall as the card, measured again whenever what it shows changes. The
+  lines a selection or a clicked line would comment on, and the open draft's, have their gutter
+  washed in the threads' amber, the one colour of everything about threads: their rows, the
+  composer and the panel. With nothing selected and the diff focused, the line under the sticky
+  header is washed the same way: it's what `c`, `t` and `o` act on. An unposted draft, text included,
   stays while the reader looks at other worktrees and is there again on coming back.
 - **Notes:** a thread can be a note, something to know about the lines that asks no answer:
   the reader's own, posted with ⌥⌘↩ in the composer, or an agent's for the reviewer

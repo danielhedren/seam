@@ -388,6 +388,7 @@ public final class DiffScrollView: NSScrollView {
 
     /// Shows the current file's header pinned at the top, pushed up by the next file's header.
     private func updateSticky() {
+        canvas.readingRow = layout.row(at: visibleTop + headerHeight)
         let top = visibleTop
         guard let row = layout.row(at: top),
             let header = layout.headerRow(ofFile: layout.rows[row].file),

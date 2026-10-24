@@ -32,6 +32,16 @@ final class DiffCanvasView: NSView {
     /// The lines `c` would comment on, or the open draft's, by row: marked so the reader sees
     /// what a new thread goes on before writing it.
     private(set) var targetRows: [Int: ThreadAnchor.Side] = [:]
+    /// The row under the sticky header: what `c`, `t` and `o` act on with nothing selected,
+    /// marked while the diff has focus so that target isn't invisible.
+    var readingRow: Int? {
+        didSet {
+            guard readingRow != oldValue, selection == nil, hasFocus else { return }
+            updateTargetRows()
+            needsDisplay = true
+        }
+    }
+    private(set) var hasFocus = false
     var onToggleCollapse: ((String) -> Void)?
     var onFocusChange: ((Bool) -> Void)?
     var onExpand: ((String, Int, ExpandDirection) -> Void)?
@@ -78,11 +88,17 @@ final class DiffCanvasView: NSView {
     override var acceptsFirstResponder: Bool { true }
 
     override func becomeFirstResponder() -> Bool {
+        hasFocus = true
+        updateTargetRows()
+        needsDisplay = true
         onFocusChange?(true)
         return true
     }
 
     override func resignFirstResponder() -> Bool {
+        hasFocus = false
+        updateTargetRows()
+        needsDisplay = true
         onFocusChange?(false)
         return true
     }
@@ -714,6 +730,8 @@ extension DiffCanvasView {
             target = (file, draft.side, draft.lines)
         } else if let selection {
             target = commentTarget(fallback: selection.head.row)
+        } else if hasFocus, let readingRow {
+            target = commentTarget(fallback: readingRow)
         } else {
             target = nil
         }

@@ -132,6 +132,6 @@ private func texts(_ rows: [DiffRow]) -> [String] {
         canvas.keyDown(with: escape)
 
         #expect(canvas.selection == nil)
-        #expect(canvas.targetRows.isEmpty)
+        #expect(canvas.targetRows[row] == nil, "the selection's marks go")
     }
 }
