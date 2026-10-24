@@ -3,6 +3,7 @@ import DiffView
 import Foundation
 import GitKit
 import SeamCore
+import Synchronization
 import TestSupport
 import Testing
 
@@ -139,6 +140,28 @@ import Testing
         clock.advance(by: .seconds(5))
 
         await until { hidden.activity?.uncommittedFiles == 2 }
+        session.close()
+    }
+
+    /// Two counts can be in flight (the monitor and a reload); the older one finishing last
+    /// mustn't put back what it saw.
+    @Test func anOlderStatusFinishingLastDoesntOverwriteTheNewerOne() async throws {
+        let repo = try await FixtureRepo()
+        let git = HoldsNextStatus(repo.git)
+        let session = RepoSession(directory: repo.main, services: services(git))
+        await session.open()
+        await session.settled()
+        let review = try #require(session.selected)
+
+        git.arm()
+        let older = Task { await review.refreshActivity() }
+        await git.held()
+        try repo.write("new.txt", "x\n")
+        await review.refreshActivity()
+        #expect(review.activity?.uncommittedFiles == 1)
+        git.release()
+        await older.value
+        #expect(review.activity?.uncommittedFiles == 1)
         session.close()
     }
 
@@ -827,5 +850,73 @@ import Testing
         #expect(session.selected?.worktree.name == "repo")
         session.selectAdjacent(-1)
         #expect(session.selected?.worktree.name == "wt-b")
+    }
+}
+
+/// Runs the next `git status` at once but holds its answer until released, so it arrives after
+/// a newer one.
+private final class HoldsNextStatus: GitClient, Sendable {
+    private struct State {
+        var armed = false
+        var holding: CheckedContinuation<Void, Never>?
+        var watcher: CheckedContinuation<Void, Never>?
+        var released = false
+    }
+
+    private let inner: any GitClient
+    private let state = Mutex(State())
+
+    init(_ inner: any GitClient) {
+        self.inner = inner
+    }
+
+    func arm() {
+        state.withLock { $0.armed = true }
+    }
+
+    /// Returns once a status answer is being held.
+    func held() async {
+        await withCheckedContinuation { continuation in
+            let now = state.withLock { state in
+                if state.holding != nil { return true }
+                state.watcher = continuation
+                return false
+            }
+            if now { continuation.resume() }
+        }
+    }
+
+    func release() {
+        let holding = state.withLock { state in
+            state.released = true
+            defer { state.holding = nil }
+            return state.holding
+        }
+        holding?.resume()
+    }
+
+    func run(_ arguments: [String], in directory: URL, input: Data?) async throws(GitError) -> Data
+    {
+        let result = await Result { () async throws(GitError) -> Data in
+            try await inner.run(arguments, in: directory, input: input)
+        }
+        let holds =
+            arguments.first == "status"
+            && state.withLock { state in
+                defer { state.armed = false }
+                return state.armed
+            }
+        if holds {
+            await withCheckedContinuation { continuation in
+                let (watcher, released) = state.withLock { state in
+                    state.holding = continuation
+                    defer { state.watcher = nil }
+                    return (state.watcher, state.released)
+                }
+                watcher?.resume()
+                if released { continuation.resume() }
+            }
+        }
+        return try result.get()
     }
 }

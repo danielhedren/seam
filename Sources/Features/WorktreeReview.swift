@@ -54,6 +54,7 @@ final class WorktreeReview: Identifiable {
     private var overrideBase: String?
     private var activityBase: String?
     private var detectionRuns = 0
+    private var activityRuns = 0
     private var staleCheckedAt = -1
     /// Full file contents for the current diff; empty until loaded.
     private(set) var contents: [String: FileContents] = [:]
@@ -424,13 +425,18 @@ final class WorktreeReview: Identifiable {
 
     // MARK: - Loading
 
+    /// Counts can overlap like detection, so only the most recently started one is kept.
     func refreshActivity() async {
         guard !worktree.isMissing else { return }
         let base = statsBase
+        activityRuns += 1
+        let run = activityRuns
         do {
-            activity = try await WorktreeActivityService(
+            let read = try await WorktreeActivityService(
                 git: services.git, fileSystem: services.fileSystem
             ).activity(of: worktree.path, base: base)
+            guard run == activityRuns else { return }
+            activity = read
             activityBase = base
         } catch {
             logger.error("status failed for \(self.id, privacy: .public): \(error)")
