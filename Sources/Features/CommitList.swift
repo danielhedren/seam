@@ -239,8 +239,9 @@ struct BaseRow: View {
         .padding(.vertical, 4)
         // A sidebar row's content is inset 6 pt more than its selection, so the box reaches out
         // by that much to be as wide as a selected commit, with the text in line with theirs.
+        // Outlined like a pop-up button, so it isn't taken for the selected commit.
         .background(
-            RoundedRectangle(cornerRadius: 6).fill(.tint.opacity(0.12)).padding(.horizontal, -6)
+            RoundedRectangle(cornerRadius: 6).strokeBorder(.separator).padding(.horizontal, -6)
         )
         .help(commit.subject)
     }

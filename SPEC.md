@@ -297,6 +297,8 @@ first parents (a merge from main is one row):
   opened before Seam recorded this show on no row.
 - The base at the bottom, marked as the branch point ("Branched from origin/main", its SHA and
   subject). It is not selectable: every range is measured from it or from a commit above it.
+  It's outlined like a pop-up button, since it opens the base picker, rather than filled like
+  a selected commit.
 - Until the first log arrives it is a list with one quiet "Detecting base…" row, its spinner
   shown after 150 ms, so the commits arrive in place. A reload keeps the listed commits.
 - Without commits to list, it says why: a missing directory
