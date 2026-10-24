@@ -906,12 +906,14 @@ Every layer gets the cheapest test that can catch its failures. Test names descr
 | SeamCore | Unit | Swift Testing, parameterised | Ranking and tie-breaks (§5.1) as a pure function, intra-line pairing, viewed-state invalidation, scope assembly, generated-file matching |
 | Base detection | Integration, real git | Swift Testing | Fixtures F1–F14: the fixture builder (`Tests/TestSupport/FixtureRepo.swift`) creates each repo in a temp dir, with a local bare repo as `origin` so remote refs are real. The test asserts parent, base and file list. The ordinary path (F1) is tested as carefully as the edge cases |
 | DiffView | Unit | Swift Testing | Row model: prefix sums, hit testing, selection ranges, scroll anchoring across reloads |
-| DiffView | Image snapshot | swift-snapshot-testing | ~10 snapshots: unified/side-by-side × light/dark/high contrast, word highlights, wrapped rows. Recorded per macOS major version |
-| Features | Unit | Swift Testing | Models driven through intents with fakes: switching worktrees cancels the old work, reloads keep the selection, banner states |
-| Features | Window snapshot | swift-snapshot-testing | The window's panes rendered in-process from a fixture repo, light and dark: worktree rows, commit rows, file list with the diff, the welcome screen. Ages are measured from a fixed time. Sidebar rows render outside their List, because an off-screen render draws a sidebar's selection solid black. Needs no screen or automation permission |
+| DiffView | Image snapshot | swift-snapshot-testing | 15 snapshots: unified/side-by-side × light/dark/high contrast, word highlights, wrapped rows, gaps, images, viewed states. Drawn at 2x in sRGB whatever the display, compared exactly, recorded per macOS major version |
+| Features | Session, end to end | Swift Testing | The real `RepoSession` on a fixture repo, driven through `CommandCatalog` ids and the calls views make, with fakes at the edges (`FakeGitHub`, `ManualClock`, `MemoryStore`, watchers, gated git): one test per user flow of every interactive feature. Git runs through `ReadOnlyGit`, which fails a test in which Seam runs anything but a read |
+| Features | Window snapshot | swift-snapshot-testing | The window's panes rendered in-process from a fixture repo, light and dark: worktree rows, commit rows, file list with the diff, the welcome screen. Ages are measured from a fixed time. Sidebar rows render outside their List, because an off-screen render draws a sidebar's selection solid black. Needs no automation permission, but a 2x screen: without one they're skipped |
 | Features | Window layout | Swift Testing | Real `NSWindow`s that are never ordered on screen: a repo window's frame, content area and toolbar items don't change while the repo opens; a repo's window opens in its saved frame even though SwiftUI cascades it; frames save on move and resize once shown |
-| App | UI smoke, run by hand | XCUITest | 5 flows on a fixture repo passed as a launch argument: open, `⌘2` switch, `j`/`n` navigation, `v` viewed + `⌘Z`, base override, plus windows and their frames. Automation Mode isn't left enabled, so `xcodebuild test` asks for approval each run |
-| Performance | Benchmarks | XCTest `measure` with baselines | Detection on a generated repo with 400 refs, parsing and laying out a 20k-line diff. Fails on a >20% regression against the stored baseline. Baselines need `xcodebuild`, so until the Xcode project exists (M2) an opt-in Swift Testing check (`SEAM_BENCH=1`) asserts the absolute §8.7 budget |
+| CLI | Built binary | Swift Testing | The `seam` executable from the test build, run on a fixture repo with a scratch thread store: the thread commands, `--json`, exit statuses 64, 1 and 2, and GitHub threads' refusals |
+| Persistence | Today's format | Swift Testing | A `state.json` in the current shape decodes, and what the app saves is what `seam` reads |
+| App | None automated | — | Agents may not drive the UI (no Accessibility or Automation permission). Real clicks, menus and focus are checked by the user; everything below the views is covered above |
+| Performance | Budgets, opt-in | Swift Testing, `SEAM_BENCH=1` | The absolute §8.7 budgets in a release build: detection on a generated repo with 400 refs, parsing and laying out a 20k-line diff |
 | Real repo | Acceptance, opt-in | Swift Testing, gated by `SEAM_REAL_REPO` | The stacked-branch check from §5.2, configured in `local.mk` |
 
 Rules:
@@ -921,6 +923,12 @@ Rules:
 - **A bug fix starts with a failing test.** Every misdetected base becomes a new F-fixture.
 - **No sleeps:** time-dependent code (debounce, the 150 ms progress delay) takes a `Clock`, and
   tests use a manual clock.
+- **Prove it:** `make prove FILTER=<test>` shows a new test fails without the change and passes
+  with it.
+- **Nothing hangs:** every suite has a one-minute time limit, and every test helper that waits
+  gives up when cancelled, so a broken test fails with its name instead of stalling the run.
+- **Nothing is left behind:** scratch settings and folders come from `Scratch` and are removed
+  when the test process exits.
 - No coverage percentage target. The table above is the required coverage, and reviews check new
   code against it.
 - `make check` runs everything except the opt-in and UI tests: format lint, build with warnings
