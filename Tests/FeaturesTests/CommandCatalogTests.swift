@@ -75,10 +75,6 @@ import Testing
         }
     }
 
-    private func command(_ id: String) throws -> SeamCommand {
-        try #require(CommandCatalog.all.first { $0.id == id })
-    }
-
     /// The keys views handle themselves come from the catalog, the one key table.
     @Test func theDiffAndTheCardTakeTheirKeysFromTheCatalog() throws {
         #expect(

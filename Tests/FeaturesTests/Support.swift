@@ -133,11 +133,12 @@ final class GatedGit: GitClient, Sendable {
 @MainActor
 func services(
     _ git: any GitClient, clock: any Clock<Duration> = ManualClock(),
-    store: any StateStore = MemoryStore()
+    store: any StateStore = MemoryStore(), watcher: any FileWatcher = SilentWatcher(),
+    threads: ThreadStore = scratchThreadStore(), github: GitHubAccount = .none()
 ) -> SeamServices {
     SeamServices(
-        git: ReadOnlyGit(git), watcher: SilentWatcher(), clock: clock, store: store,
-        threads: scratchThreadStore(), settings: testSettings())
+        git: ReadOnlyGit(git), watcher: watcher, clock: clock, store: store, threads: threads,
+        settings: testSettings(), github: github)
 }
 
 /// Never the real store: that holds the reader's threads.
@@ -239,4 +240,152 @@ struct ReadOnlyGit: GitClient {
         }
         return try await inner.run(arguments, in: directory, input: input)
     }
+}
+
+/// Stands in for gh: answers from what the test set, records every call, and can hold calls
+/// until released.
+final class FakeGitHub: GitHubClient, Sendable {
+    private struct State {
+        var open: [PullRequest] = []
+        var byHead: [String: PullRequest] = [:]
+        var error: GitHubError?
+        var calls: [String] = []
+        var holding = false
+        /// Holds only calls whose name starts with this, when set.
+        var holdingPrefix: String?
+        var held: [CheckedContinuation<Void, Never>] = []
+        var watchers: [(count: Int, resume: @Sendable () -> Void)] = []
+        var threads: [Int: [GitHubReviewThread]] = [:]
+        var threadReads: [Int] = []
+        var threadError: GitHubError?
+    }
+
+    private let state = Mutex(State())
+
+    var calls: [String] { state.withLock { $0.calls } }
+    /// The PRs whose review threads were read, in order; kept apart from `calls`.
+    var threadReads: [Int] { state.withLock { $0.threadReads } }
+
+    func answer(threads: [GitHubReviewThread], for number: Int) {
+        state.withLock { $0.threads[number] = threads }
+    }
+
+    func failThreads(_ error: GitHubError?) {
+        state.withLock { $0.threadError = error }
+    }
+    /// Reads of the repo's open list: one per refresh that reached gh.
+    var reads: Int { calls.count { $0.hasPrefix("open ") } }
+
+    func answer(open: [PullRequest] = [], byHead: [String: PullRequest] = [:]) {
+        state.withLock {
+            $0.open = open
+            $0.byHead = byHead
+            $0.error = nil
+        }
+    }
+
+    func fail(_ error: GitHubError) {
+        state.withLock { $0.error = error }
+    }
+
+    func hold(_ prefix: String? = nil) {
+        state.withLock {
+            $0.holding = true
+            $0.holdingPrefix = prefix
+        }
+    }
+
+    func release() {
+        let held = state.withLock { state in
+            state.holding = false
+            defer { state.held = [] }
+            return state.held
+        }
+        for continuation in held { continuation.resume() }
+    }
+
+    /// Returns once gh has been called `count` times.
+    func called(_ count: Int) async {
+        await waitCancellably { resume in
+            let done = state.withLock { state in
+                if state.calls.count >= count { return true }
+                state.watchers.append((count, resume))
+                return false
+            }
+            if done { resume() }
+        }
+    }
+
+    private func call(_ name: String) async throws(GitHubError) {
+        await withCheckedContinuation { continuation in
+            let (holding, ready) = state.withLock { state in
+                state.calls.append(name)
+                let holds = state.holding && state.holdingPrefix.map(name.hasPrefix) != false
+                if holds { state.held.append(continuation) }
+                let count = state.calls.count
+                let ready = state.watchers.filter { $0.count <= count }.map(\.resume)
+                state.watchers.removeAll { $0.count <= count }
+                return (holds, ready)
+            }
+            for watcher in ready { watcher() }
+            if !holding { continuation.resume() }
+        }
+        if let error = state.withLock({ $0.error }) { throw error }
+    }
+
+    func hosts() async throws(GitHubError) -> [String] {
+        try await call("hosts")
+        return ["github.com"]
+    }
+
+    /// Without reviews and checks, like gh's list: they come from `pullRequest(_:in:)`.
+    func openPullRequests(in repo: GitHubRepo) async throws(GitHubError) -> [PullRequest] {
+        try await call("open \(repo.slug)")
+        return state.withLock { $0.open }.map { summary in
+            var summary = summary
+            summary.review = .none
+            summary.checks = .init()
+            return summary
+        }
+    }
+
+    func pullRequest(_ number: Int, in repo: GitHubRepo) async throws(GitHubError)
+        -> PullRequest
+    {
+        try await call("view \(number)")
+        let found = state.withLock { state in
+            (state.open + state.byHead.values).first { $0.number == number }
+        }
+        guard let found else { throw .failed("no pull request \(number)") }
+        return found
+    }
+
+    func latestPullRequest(from branch: String, in repo: GitHubRepo) async throws(GitHubError)
+        -> PullRequest?
+    {
+        try await call("head \(branch)")
+        return state.withLock { $0.byHead[branch] }
+    }
+
+    func reviewThreads(_ number: Int, in repo: GitHubRepo) async throws(GitHubError)
+        -> [GitHubReviewThread]
+    {
+        let (threads, error) = state.withLock { state in
+            state.threadReads.append(number)
+            return (state.threads[number] ?? [], state.threadError)
+        }
+        if let error { throw error }
+        return threads
+    }
+}
+
+@MainActor
+final class OpenedURLs {
+    var urls: [URL] = []
+}
+
+/// A catalog command by id, as menus and the palette run it.
+@MainActor
+func command(_ id: String) throws -> SeamCommand {
+    try #require(CommandCatalog.all.first { $0.id == id })
 }

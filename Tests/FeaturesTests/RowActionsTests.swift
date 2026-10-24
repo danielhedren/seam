@@ -18,10 +18,6 @@ struct RowActionsTests {
         NSPasteboard(name: NSPasteboard.Name("seam-tests-\(UUID())"))
     }
 
-    private func command(_ id: String) throws -> SeamCommand {
-        try #require(CommandCatalog.all.first { $0.id == id })
-    }
-
     @Test func aWorktreeRowOffersItsFolderPathAndBranch() async throws {
         let repo = try await FixtureRepo()
         let tree = try await repo.worktree("feature", branch: "feature", from: "origin/main")

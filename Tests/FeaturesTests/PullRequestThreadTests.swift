@@ -52,9 +52,9 @@ import Testing
         _ repo: FixtureRepo, selecting worktree: URL,
         watcher: any FileWatcher = SilentWatcher()
     ) async -> RepoSession {
-        var services = SeamServices(
-            git: repo.git, watcher: watcher, clock: clock, store: store,
-            threads: threadStore, settings: testSettings(), github: GitHubAccount(client: github))
+        var services = services(
+            repo.git, clock: clock, store: store, watcher: watcher, threads: threadStore,
+            github: GitHubAccount(client: github))
         let opened = opened
         services.openURL = { opened.urls.append($0) }
         let session = RepoSession(directory: repo.main, services: services)
@@ -67,10 +67,6 @@ import Testing
 
     private func review(_ session: RepoSession, _ worktree: URL) throws -> WorktreeReview {
         try #require(session.reviews.first { $0.id == worktree.path })
-    }
-
-    private func command(_ id: String) throws -> SeamCommand {
-        try #require(CommandCatalog.all.first { $0.id == id })
     }
 
     private func refresh(_ session: RepoSession) async {
