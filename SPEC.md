@@ -500,7 +500,7 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   closed again. The toolbar's Threads button is a toggle,
   on while the panel shows, and its badge counts the worktree's open threads (none at zero).
 - **Following edits:** a thread keeps the text of its lines. When the file changes, it moves to
-  the nearest place where those lines still appear; when they're gone it is outdated, shown in
+  the nearest place where those lines still appear (line endings don't count); when they're gone it is outdated, shown in
   the panel with its original lines, not in the diff. Moving and outdating are decided per diff
   load, never written back.
 - **Handing threads to an agent:** Review › Copy Prompt for Agent puts on the clipboard a short

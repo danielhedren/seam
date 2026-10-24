@@ -46,6 +46,14 @@ import Testing
         #expect(byID["elsewhere"] == .notShown)
     }
 
+    /// GitHub's hunk and the worktree's file may disagree on line endings; only the text counts.
+    @Test func lineEndingsDontCountWhenFindingTheLines() {
+        let crlf = ThreadAnchor(path: "a", side: .new, lines: 2...2, text: ["two"])
+        #expect(crlf.locate(in: TextLines.split("one\r\ntwo\r\n")) == 2...2)
+        let fromCRLF = ThreadAnchor(path: "a", side: .new, lines: 2...2, text: ["two\r"])
+        #expect(fromCRLF.locate(in: TextLines.split("one\ntwo\n")) == 2...2)
+    }
+
     @Test func openThreadsComeFirstThenByFileAndLine() {
         let placed = ThreadPlacer.place(
             [

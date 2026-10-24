@@ -29,12 +29,19 @@ public struct ThreadAnchor: Codable, Equatable, Sendable {
             text: file[(lines.lowerBound - 1)...(lines.upperBound - 1)].map(String.init))
     }
 
+    private static func withoutCR(_ line: some StringProtocol) -> Substring {
+        let line = Substring(line)
+        return line.hasSuffix("\r") ? line.dropLast() : line
+    }
+
     /// Where the anchored lines are in `file` now: the occurrence nearest the original place, or
     /// nil when they're gone and the thread is outdated.
     public func locate(in file: [Substring]) -> ClosedRange<Int>? {
         guard !text.isEmpty, text.count <= file.count else { return nil }
+        // Line endings don't count: a hunk from GitHub and the file may disagree on them.
+        let wanted = text.map(Self.withoutCR)
         let starts = (0...(file.count - text.count)).filter { start in
-            text.indices.allSatisfy { file[start + $0] == text[$0] }
+            wanted.indices.allSatisfy { Self.withoutCR(file[start + $0]) == wanted[$0] }
         }
         let original = lines.lowerBound - 1
         guard let start = starts.min(by: { abs($0 - original) < abs($1 - original) }) else {
