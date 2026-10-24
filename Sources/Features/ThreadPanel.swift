@@ -158,7 +158,7 @@ struct QuotedLines: View {
 
 /// A thread in the panel's overview. Picking one opens it in the diff; only a thread the diff
 /// can't show (outdated, or its file not in the diff) opens its conversation here.
-private struct ThreadCard: View {
+struct ThreadCard: View {
     let session: RepoSession
     let placed: PlacedThread
     let isSelected: Bool
@@ -166,9 +166,9 @@ private struct ThreadCard: View {
     @FocusState private var replyFocused: Bool
 
     private var thread: ReviewThread { placed.thread }
-    private var isExpanded: Bool {
-        isSelected && (!placed.isInDiff || session.openThreadIsHidden)
-    }
+    /// The picked thread always opens here, whether or not the diff can show it too, so a
+    /// click does the same thing every time.
+    private var isExpanded: Bool { isSelected }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -231,12 +231,8 @@ private struct ThreadCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(verbatim: lineLabel).monospacedDigit()
-                    if placed.placement == .outdated {
-                        Text("Outdated", bundle: .module)
-                            .padding(.horizontal, 5)
-                            .background(.quaternary, in: Capsule())
-                    } else if placed.placement == .later {
-                        Text("From a later commit", bundle: .module)
+                    if let location = Self.location(placed) {
+                        Text(verbatim: location)
                             .padding(.horizontal, 5)
                             .background(.quaternary, in: Capsule())
                     }
@@ -261,11 +257,24 @@ private struct ThreadCard: View {
             : String(localized: "Line \(range)", bundle: .module)
     }
 
+    /// Where a thread is when that isn't on its lines in the diff; nil when it is.
+    static func location(_ placed: PlacedThread) -> String? {
+        switch placed.placement {
+        case .lines: nil
+        case .outdated: String(localized: "Outdated", bundle: .module)
+        case .later: String(localized: "From a later commit", bundle: .module)
+        case .notShown:
+            placed.thread.github?.onFile == true
+                ? nil : String(localized: "Not in this diff", bundle: .module)
+        }
+    }
+
+    /// The latest word, as the diff's row shows it, so an agent's answer is visible here too.
     private var snippet: AttributedString {
-        guard let first = thread.comments.first else { return AttributedString() }
-        var author = AttributedString("\(first.author)  ")
+        guard let latest = thread.comments.last else { return AttributedString() }
+        var author = AttributedString("\(latest.author)  ")
         author.inlinePresentationIntent = .stronglyEmphasized
-        return author + CommentText.markdown(first.body)
+        return author + CommentText.markdown(latest.body)
     }
 
     @ViewBuilder private var conversation: some View {

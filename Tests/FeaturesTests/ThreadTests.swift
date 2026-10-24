@@ -77,6 +77,21 @@ import Testing
         session.close()
     }
 
+    /// A panel card says where its thread is whenever that isn't on its lines in the diff.
+    @Test func aPanelCardSaysWhereItsThreadIsWhenNotOnItsLines() throws {
+        let thread = ReviewThread(
+            id: "t", worktree: "/w",
+            anchor: ThreadAnchor(path: "a", side: .new, lines: 1...1, text: ["x"]), author: "you",
+            comments: [ThreadComment(id: "c", author: "you", body: "b", date: .now)])
+        func label(_ placement: ThreadPlacement) -> String? {
+            ThreadCard.location(PlacedThread(thread: thread, placement: placement))
+        }
+        #expect(label(.lines(1...1)) == nil)
+        #expect(label(.outdated) == "Outdated")
+        #expect(label(.later) == "From a later commit")
+        #expect(label(.notShown) == "Not in this diff")
+    }
+
     /// Glancing at another thread while writing doesn't lose what was typed: the draft steps
     /// aside while the thread is open and comes back when it closes.
     @Test func openingAThreadSetsTheDraftAsideAndClosingItBringsItBack() async throws {

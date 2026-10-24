@@ -491,10 +491,11 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   worktrees closes it. Opening a thread opens its collapsed file, and a resolved thread
   stays while it's open. Its row is as tall as the conversation at the column's width.
 - **The thread panel** (an inspector on the right, `⌥⌘0`) is the overview: the worktree's
-  threads by file, open ones first. Picking one opens it in the diff and highlights its card;
-  picking it again closes it. Only a thread the diff can't show (outdated, its file not in the
-  diff, or its lines hidden in a gap) opens its conversation in the panel, with a reply box,
-  Resolve or Reopen, and Delete, and opening one shows the panel. Review › Resolve Thread and
+  threads by file, open ones first, each showing its latest comment. Picking one always opens
+  its conversation in the panel, with a reply box, Resolve or Reopen, and Delete, and also in
+  the diff when the diff can show it; picking it again closes it. A card says where its thread
+  is when that isn't on its lines: Outdated, From a later commit, Not in this diff, or Whole
+  file. Opening a thread the diff can't show shows the panel. Review › Resolve Thread and
   Delete Thread (Undo brings it back) act on the open thread. Agent replies appear live. Its
   header has Copy Prompt for Agent and a close button. The selected thread quotes its lines;
   past 8 lines the quote shows 7 and an "N more lines" row that expands it until the thread is

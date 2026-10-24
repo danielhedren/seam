@@ -567,6 +567,9 @@
     "Not a git repository. Choose another folder." : {
 
     },
+    "Not in this diff" : {
+
+    },
     "Nothing in the diff matches “%@”." : {
 
     },
