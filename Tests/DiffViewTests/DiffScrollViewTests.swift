@@ -16,6 +16,29 @@ import Testing
         return ReviewDiff(scope: .all, files: [ReviewFile(diff: file)])
     }
 
+    /// The diff pages on the keys it's given, so the command catalog decides them (SPEC §9).
+    @Test func theDiffPagesOnTheKeysItsGiven() throws {
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 200)
+        view.show(
+            DiffContent(review: review((1...200).map { "line \($0)" })), position: .top)
+        view.keyBindings = [DiffKeyBinding("f"): .pageDown]
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        func press(_ key: String) {
+            guard
+                let event = NSEvent.keyEvent(
+                    with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+                    windowNumber: 0, context: nil, characters: key,
+                    charactersIgnoringModifiers: key, isARepeat: false, keyCode: 0)
+            else { return }
+            canvas.keyDown(with: event)
+        }
+        press(" ")
+        #expect(view.contentView.bounds.origin.y == 0, "space isn't bound any more")
+        press("f")
+        #expect(view.contentView.bounds.origin.y > 0)
+    }
+
     @Test func findReportsMatchesMovesThroughThemAndKeepsThemAcrossAReload() {
         let view = DiffScrollView()
         view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)

@@ -93,9 +93,7 @@ final class CardTextView: NSTextView {
 
     // Key equivalents reach every view in the window, so only the focused box takes ⌘↩.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        guard window?.firstResponder === self, modifiers == .command,
-            event.charactersIgnoringModifiers == "\r"
+        guard window?.firstResponder === self, CommandCatalog.matches(event, CommandCatalog.send)
         else { return super.performKeyEquivalent(with: event) }
         onSubmit?()
         return true

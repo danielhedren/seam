@@ -1,3 +1,4 @@
+import DiffView
 import SeamCore
 import SwiftUI
 
@@ -148,6 +149,27 @@ enum CommandCatalog {
     static let openRepository = KeyboardShortcut("o")
     /// Sends what's typed in the thread panel's reply box.
     static let send = KeyboardShortcut(.return, modifiers: .command)
+
+    /// The keys the diff view pages on by itself, from Go › Page Down and Page Up.
+    static var diffKeyBindings: [DiffKeyBinding: DiffKeyAction] {
+        var bindings: [DiffKeyBinding: DiffKeyAction] = [:]
+        for (id, action) in [("page-down", DiffKeyAction.pageDown), ("page-up", .pageUp)] {
+            guard case .single(let key, let modifiers) = byID[id]?.shortcut else { continue }
+            bindings[DiffKeyBinding(key.character, shift: modifiers.contains(.shift))] = action
+        }
+        return bindings
+    }
+
+    /// Whether `event` is `shortcut`, for views that handle a catalog key themselves.
+    static func matches(_ event: NSEvent, _ shortcut: KeyboardShortcut) -> Bool {
+        var flags: NSEvent.ModifierFlags = []
+        if shortcut.modifiers.contains(.command) { flags.insert(.command) }
+        if shortcut.modifiers.contains(.shift) { flags.insert(.shift) }
+        if shortcut.modifiers.contains(.option) { flags.insert(.option) }
+        if shortcut.modifiers.contains(.control) { flags.insert(.control) }
+        return event.modifierFlags.intersection(.deviceIndependentFlagsMask) == flags
+            && event.charactersIgnoringModifiers == String(shortcut.key.character)
+    }
 
     private static let byID = Dictionary(all.map { ($0.id, $0) }) { first, _ in first }
 

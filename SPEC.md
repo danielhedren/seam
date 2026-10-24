@@ -838,6 +838,8 @@ written down here.
   Sidebar / Show Sidebar, Collapse File / Expand File, Mark as Viewed / Mark as Not Viewed,
   Resolve Thread / Reopen Thread) rather than "Toggle …". A checkmark marks a mode that stays on
   (Side by Side, Wrap Lines, the scope). Go › ⌘1…⌘9 are named after the worktrees they pick.
+- The command list is the one key table: the diff view's own paging keys and a comment box's
+  ⌘↩ are taken from it, so a key changed there changes everywhere.
 - Shortcuts read the same everywhere they're shown: menu, command palette and tooltips use the
   menu bar's symbols and order (`⇧⌘G`), and a single key is a capital as the menu prints it
   ("Reload (R)").

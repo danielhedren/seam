@@ -1,3 +1,5 @@
+import AppKit
+import DiffView
 import Foundation
 import SwiftUI
 import TestSupport
@@ -75,6 +77,24 @@ import Testing
 
     private func command(_ id: String) throws -> SeamCommand {
         try #require(CommandCatalog.all.first { $0.id == id })
+    }
+
+    /// The keys views handle themselves come from the catalog, the one key table.
+    @Test func theDiffAndTheCardTakeTheirKeysFromTheCatalog() throws {
+        #expect(
+            CommandCatalog.diffKeyBindings == [
+                DiffKeyBinding(" "): .pageDown, DiffKeyBinding(" ", shift: true): .pageUp,
+            ])
+        func event(_ key: String, _ modifiers: NSEvent.ModifierFlags) throws -> NSEvent {
+            try #require(
+                NSEvent.keyEvent(
+                    with: .keyDown, location: .zero, modifierFlags: modifiers, timestamp: 0,
+                    windowNumber: 0, context: nil, characters: key,
+                    charactersIgnoringModifiers: key, isARepeat: false, keyCode: 36))
+        }
+        #expect(CommandCatalog.matches(try event("\r", .command), CommandCatalog.send))
+        #expect(!CommandCatalog.matches(try event("\r", [.command, .shift]), CommandCatalog.send))
+        #expect(!CommandCatalog.matches(try event("\r", []), CommandCatalog.send))
     }
 
     @Test func menuTitlesSayWhatTheCommandWillDo() async throws {

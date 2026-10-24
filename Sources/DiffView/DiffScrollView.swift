@@ -165,6 +165,11 @@ public final class DiffScrollView: NSScrollView {
         didSet { canvas.menuForLines = menuForLines }
     }
 
+    /// Space and ⇧Space by default; the app passes the catalog's.
+    public var keyBindings: [DiffKeyBinding: DiffKeyAction] = [
+        DiffKeyBinding(" "): .pageDown, DiffKeyBinding(" ", shift: true): .pageUp,
+    ]
+
     public var onOpenThread: ((String) -> Void)? {
         didSet { canvas.onOpenThread = onOpenThread }
     }
@@ -407,6 +412,22 @@ public final class DiffScrollView: NSScrollView {
     }
 }
 
+/// A key the diff view pages on itself, while a menu can't take it (a sheet is open, say):
+/// supplied from the command catalog, so the two can't disagree (SPEC §9).
+public struct DiffKeyBinding: Hashable, Sendable {
+    public var character: Character
+    public var shift: Bool
+
+    public init(_ character: Character, shift: Bool = false) {
+        self.character = character
+        self.shift = shift
+    }
+}
+
+public enum DiffKeyAction: Sendable {
+    case pageDown, pageUp
+}
+
 extension DiffCanvasView {
     override func keyDown(with event: NSEvent) {
         guard let scroll = enclosingScrollView as? DiffScrollView else {
@@ -414,14 +435,17 @@ extension DiffCanvasView {
             return
         }
         let shift = event.modifierFlags.contains(.shift)
+        let binding = event.charactersIgnoringModifiers?.first.map {
+            DiffKeyBinding($0, shift: shift)
+        }
         switch event.specialKey {
         case .pageDown?: scroll.page(by: 1)
         case .pageUp?: scroll.page(by: -1)
         case .downArrow?: scroll.scrollLine(by: 1)
         case .upArrow?: scroll.scrollLine(by: -1)
         default:
-            if event.charactersIgnoringModifiers == " " {
-                scroll.page(by: shift ? -1 : 1)
+            if let action = binding.flatMap({ scroll.keyBindings[$0] }) {
+                scroll.page(by: action == .pageDown ? 1 : -1)
             } else if event.keyCode == 53 {
                 cancelOperation(nil)
             } else {
