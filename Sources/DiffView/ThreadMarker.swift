@@ -13,12 +13,16 @@ public struct ThreadMarker: Equatable, Sendable {
     public var commentCount: Int
     public var isResolved: Bool
     public var source: ThreadSource
+    /// A note asks no answer, so it's drawn in grey rather than the source's colour.
+    public var isNote: Bool
 
     public init(
         id: String, side: ThreadAnchor.Side, lines: ClosedRange<Int>, latestAuthor: String,
-        latest: String, commentCount: Int, isResolved: Bool, source: ThreadSource = .seam
+        latest: String, commentCount: Int, isResolved: Bool, source: ThreadSource = .seam,
+        isNote: Bool = false
     ) {
         self.source = source
+        self.isNote = isNote
         self.id = id
         self.side = side
         self.lines = lines
@@ -79,11 +83,15 @@ public enum ThreadColor {
         }
     }
 
-    public static func accent(_ source: ThreadSource) -> NSColor {
-        source == .gitHub ? gitHubAccent : accent
+    /// A note's grey, for something to know that asks no answer.
+    public static let noteAccent = NSColor.systemGray
+    public static let noteWash = noteAccent.withAlphaComponent(washAlpha)
+
+    public static func accent(_ source: ThreadSource, note: Bool = false) -> NSColor {
+        note ? noteAccent : source == .gitHub ? gitHubAccent : accent
     }
 
-    public static func wash(_ source: ThreadSource) -> NSColor {
-        source == .gitHub ? gitHubWash : wash
+    public static func wash(_ source: ThreadSource, note: Bool = false) -> NSColor {
+        note ? noteWash : source == .gitHub ? gitHubWash : wash
     }
 }

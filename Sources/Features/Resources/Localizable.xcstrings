@@ -573,6 +573,19 @@
     "Not in this diff" : {
 
     },
+    "Note" : {
+
+    },
+    "Note on %@, line %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Note on %1$@, line %2$@"
+          }
+        }
+      }
+    },
     "Nothing in the diff matches “%@”." : {
 
     },

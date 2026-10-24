@@ -60,7 +60,7 @@ extension DiffRowBuilder {
             for marker in threads[paths[row.file]] ?? [] {
                 if let number = number(of: row, on: marker.side), marker.lines.contains(number) {
                     marked[index, default: []].insert(
-                        ThreadMark(side: marker.side, source: marker.source))
+                        ThreadMark(side: marker.side, source: marker.source, isNote: marker.isNote))
                 }
             }
         }
@@ -71,4 +71,5 @@ extension DiffRowBuilder {
 struct ThreadMark: Hashable {
     var side: ThreadAnchor.Side
     var source: ThreadSource
+    var isNote = false
 }

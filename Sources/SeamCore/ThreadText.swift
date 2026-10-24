@@ -24,7 +24,7 @@ public enum ThreadText {
         let side = anchor.side == .old ? " (old side)" : ""
         let source = thread.github.map { " on GitHub pull request #\($0.pullRequest)" } ?? ""
         var text = [
-            "#\(thread.id)  \(thread.isResolved ? "resolved" : "open")  "
+            "#\(thread.id)  \(thread.isNote ? "note" : thread.isResolved ? "resolved" : "open")  "
                 + "\(place)\(side)  opened by \(thread.author)\(source)"
                 + (showsWorktree ? "  in \(thread.worktree)" : "")
         ]

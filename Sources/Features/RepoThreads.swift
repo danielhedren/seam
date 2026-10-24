@@ -90,14 +90,16 @@ final class RepoThreads {
 
     /// Nil, with `failure` set, when the store refused it.
     @discardableResult
-    func open(worktree: String, anchor: ThreadAnchor, body: String) async -> ReviewThread? {
+    func open(worktree: String, anchor: ThreadAnchor, body: String, isNote: Bool = false) async
+        -> ReviewThread?
+    {
         let author = await reader(in: worktree).name
         let origin = await ThreadOrigin.find(
             path: anchor.path, in: URL(fileURLWithPath: worktree), git: git)
         return await change { threads throws(ThreadError) in
             try ThreadRules.open(
                 &threads, worktree: worktree, anchor: anchor, author: author, body: body,
-                now: .now, origin: origin)
+                now: .now, origin: origin, isNote: isNote)
         }
     }
 

@@ -83,7 +83,8 @@ extension WorktreeReview {
         FileThreadCounts]
     {
         var counts: [Key: FileThreadCounts] = [:]
-        for thread in allThreads {
+        // Notes ask no answer: they're no part of the open work the dots and badge count.
+        for thread in allThreads where !thread.isNote {
             guard let key = key(thread) else { continue }
             switch (thread.source == .gitHub, thread.isResolved) {
             case (false, true): counts[key, default: FileThreadCounts()].resolved += 1
@@ -104,7 +105,7 @@ extension WorktreeReview {
 
     /// The toolbar's badge: open threads, whether or not the diff shows them.
     var openThreadCount: Int {
-        allThreads.count { !$0.isResolved }
+        allThreads.count { !$0.isResolved && !$0.isNote }
     }
 
     /// What the diff draws: placed threads, without resolved ones unless they're asked for.
@@ -141,7 +142,7 @@ extension WorktreeReview {
             id: placed.id, side: placed.thread.anchor.side, lines: lines,
             latestAuthor: latest.author, latest: String(firstLine.prefix(120)),
             commentCount: placed.thread.comments.count, isResolved: placed.thread.isResolved,
-            source: placed.thread.source)
+            source: placed.thread.source, isNote: placed.thread.isNote)
     }
 
     /// The anchor `c` would comment on, with the lines' text from the file as it is.

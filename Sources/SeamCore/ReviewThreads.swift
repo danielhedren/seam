@@ -89,6 +89,11 @@ public struct ReviewThread: Codable, Equatable, Sendable, Identifiable {
     /// for the commit list's dots (SPEC §7.2.1). Threads opened before Seam kept them have none.
     public var commit: String?
     public var uncommitted: Bool?
+    /// A note for whoever reads the review, the reader's own or an agent's: no answer expected,
+    /// so it isn't open work (SPEC §7.7).
+    public var note: Bool?
+
+    public var isNote: Bool { note == true }
 
     /// The commit list row it belongs on: a commit, or nil for uncommitted changes.
     public var writtenOn: CommitSelection.End? {
@@ -132,7 +137,7 @@ public enum ThreadError: Error, Equatable, Sendable {
 public enum ThreadRules {
     public static func open(
         _ threads: inout [ReviewThread], worktree: String, anchor: ThreadAnchor, author: String,
-        body: String, now: Date, origin: ThreadOrigin? = nil,
+        body: String, now: Date, origin: ThreadOrigin? = nil, isNote: Bool = false,
         newID: () -> String = ThreadRules.newID
     ) throws(ThreadError) -> ReviewThread {
         let body = try checked(body)
@@ -144,6 +149,7 @@ public enum ThreadRules {
             updated: now)
         thread.commit = origin?.commit
         thread.uncommitted = origin?.uncommitted
+        thread.note = isNote ? true : nil
         threads.append(thread)
         return thread
     }

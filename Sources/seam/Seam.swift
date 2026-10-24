@@ -142,6 +142,7 @@ struct Threads: AsyncParsableCommand {
     @OptionGroup var options: ThreadOptions
     @OptionGroup(visibility: .hidden) var signature: Signature
     @Flag(help: "Include resolved threads.") var all = false
+    @Flag(help: "Include notes, which ask for no answer.") var notes = false
     @Flag(help: repoHelp) var repo = false
     @Option(help: sinceHelp, transform: parseTime) var since: Date?
     @Flag(help: jsonHelp) var json = false
@@ -149,7 +150,8 @@ struct Threads: AsyncParsableCommand {
     func run() async throws {
         let (repository, worktree) = try await options.worktree()
         let scope = ThreadScope(
-            worktree: repo ? nil : worktree.path, includesResolved: all, since: since)
+            worktree: repo ? nil : worktree.path, includesResolved: all, includesNotes: notes,
+            since: since)
         let (found, read) = try allThreads(repository)
         let threads = found.filter(scope.contains)
         if json {
@@ -206,7 +208,8 @@ struct Wait: AsyncParsableCommand {
         let events = FSEventsWatcher().events(for: [store.directory])
         guard
             let (changes, asOf) = try await ThreadWait.next(
-                in: ThreadScope(worktree: repo ? nil : worktree.path, since: since),
+                in: ThreadScope(
+                    worktree: repo ? nil : worktree.path, includesNotes: true, since: since),
                 read: { () throws(ThreadError) in
                     try store.threads(for: repository)
                         + store.gitHubThreads(for: repository).threads
@@ -308,7 +311,11 @@ struct Reply: AsyncParsableCommand {
 
 struct Comment: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "Open a thread on lines of a file, as a reviewer.")
+        abstract: "Open a thread on lines of a file, as a reviewer, or leave a note.",
+        discussion: """
+            With --note it's a note for whoever reviews: something to know about these lines, \
+            asking no answer. Notes aren't listed as open threads.
+            """)
 
     @OptionGroup var options: ThreadOptions
     @OptionGroup var signature: Signature
@@ -318,6 +325,7 @@ struct Comment: AsyncParsableCommand {
             valueName: "file:line[-end]"))
     var location: String
     @Flag(help: "The lines are on the old side: the base the diff starts from.") var old = false
+    @Flag(help: "A note for the reviewer, asking no answer.") var note = false
     @Argument(help: textHelp) var text: String
 
     func validate() throws {
@@ -342,9 +350,9 @@ struct Comment: AsyncParsableCommand {
         let thread = try threadStore().update(repository) { threads throws(ThreadError) in
             try ThreadRules.open(
                 &threads, worktree: worktree.path, anchor: anchor, author: author, body: text,
-                now: .now, origin: origin)
+                now: .now, origin: origin, isNote: note)
         }
-        print("Opened #\(thread.id).")
+        print(note ? "Left note #\(thread.id)." : "Opened #\(thread.id).")
     }
 
     /// Paths an agent types are usually from the worktree's root, but may be from where it is.

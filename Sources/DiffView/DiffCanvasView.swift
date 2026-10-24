@@ -249,7 +249,8 @@ final class DiffCanvasView: NSView {
             drawCardFrame(row: index, side: marker.side, palette: palette, context: context)
         case .openThread(_, let marker):
             drawCardFrame(
-                row: index, side: marker.side, source: marker.source, palette: palette,
+                row: index, side: marker.side, source: marker.source, isNote: marker.isNote,
+                palette: palette,
                 context: context)
         case .thread(_, let marker):
             drawThreadRow(marker, row: index, in: rect, palette: palette, context: context)
@@ -325,7 +326,7 @@ final class DiffCanvasView: NSView {
             band = own
             fill(other, palette.emptySide, context)
         }
-        context.setFillColor(ThreadColor.wash(marker.source).cgColor)
+        context.setFillColor(ThreadColor.wash(marker.source, note: marker.isNote).cgColor)
         context.fill(band)
         let x = geometry.textX(for: side)
         let color = marker.isResolved ? palette.gutterText : palette.text
@@ -360,7 +361,7 @@ final class DiffCanvasView: NSView {
             if mark.source == .gitHub, marks.contains(ThreadMark(side: mark.side, source: .seam)) {
                 x += 3
             }
-            context.setFillColor(ThreadColor.accent(mark.source).cgColor)
+            context.setFillColor(ThreadColor.accent(mark.source, note: mark.isNote).cgColor)
             context.fill(NSRect(x: x, y: rect.minY, width: 3, height: rect.height))
         }
     }
@@ -669,7 +670,8 @@ extension DiffCanvasView {
     /// The card a draft and an open thread sit in, amber or GitHub's blue; side by side, the
     /// other column is left empty as beside an unpaired line.
     func drawCardFrame(
-        row: Int, side: ThreadAnchor.Side, source: ThreadSource = .seam, palette: DiffPalette,
+        row: Int, side: ThreadAnchor.Side, source: ThreadSource = .seam, isNote: Bool = false,
+        palette: DiffPalette,
         context: CGContext
     ) {
         if mode == .split {
@@ -690,10 +692,10 @@ extension DiffCanvasView {
         context.setFillColor(palette.background.nsColor.cgColor)
         context.fillPath()
         context.addPath(shape)
-        context.setFillColor(ThreadColor.wash(source).cgColor)
+        context.setFillColor(ThreadColor.wash(source, note: isNote).cgColor)
         context.fillPath()
         context.addPath(shape)
-        context.setStrokeColor(ThreadColor.accent(source).cgColor)
+        context.setStrokeColor(ThreadColor.accent(source, note: isNote).cgColor)
         context.setLineWidth(1)
         context.strokePath()
     }

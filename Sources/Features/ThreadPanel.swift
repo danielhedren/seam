@@ -59,7 +59,7 @@ struct ThreadPanel: View {
     }
 
     private func header(_ placed: [PlacedThread]) -> some View {
-        let open = placed.filter { !$0.thread.isResolved }.count
+        let open = placed.filter { !$0.thread.isResolved && !$0.thread.isNote }.count
         return HStack {
             Text("Threads", bundle: .module).font(.headline)
             if !placed.isEmpty {
@@ -203,14 +203,17 @@ struct ThreadCard: View {
         .padding(8)
         .background(
             isSelected
-                ? AnyShapeStyle(Color(nsColor: ThreadColor.wash(thread.source)))
+                ? AnyShapeStyle(
+                    Color(nsColor: ThreadColor.wash(thread.source, note: thread.isNote)))
                 : AnyShapeStyle(.clear),
             in: RoundedRectangle(cornerRadius: 7)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 7).strokeBorder(
                 isSelected
-                    ? AnyShapeStyle(Color(nsColor: ThreadColor.accent(thread.source)).opacity(0.6))
+                    ? AnyShapeStyle(
+                        Color(nsColor: ThreadColor.accent(thread.source, note: thread.isNote))
+                            .opacity(0.6))
                     : AnyShapeStyle(.separator))
         )
         .opacity(thread.isResolved && !isSelected ? 0.6 : 1)
@@ -242,11 +245,17 @@ struct ThreadCard: View {
             .foregroundStyle(
                 thread.isResolved
                     ? AnyShapeStyle(.secondary)
-                    : AnyShapeStyle(Color(nsColor: ThreadColor.accent(thread.source))))
+                    : AnyShapeStyle(
+                        Color(nsColor: ThreadColor.accent(thread.source, note: thread.isNote))))
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(verbatim: showsPath ? "\(placed.path) · \(lineLabel)" : lineLabel)
                         .monospacedDigit().lineLimit(1).truncationMode(.middle)
+                    if thread.isNote {
+                        Text("Note", bundle: .module)
+                            .padding(.horizontal, 5)
+                            .background(.quaternary, in: Capsule())
+                    }
                     if let location = Self.location(placed) {
                         Text(verbatim: location)
                             .padding(.horizontal, 5)

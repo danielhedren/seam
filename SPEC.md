@@ -470,6 +470,12 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   line would comment on, and the open draft's, have their gutter washed in the threads' amber,
   the one colour of everything about threads: their rows, the composer and the panel. An unposted draft, text included,
   stays while the reader looks at other worktrees and is there again on coming back.
+- **Notes:** a thread can be a note, something to know about the lines that asks no answer:
+  the reader's own, posted with ⌥⌘↩ in the composer, or an agent's for the reviewer
+  (`seam comment --note`). A note is drawn in grey where threads are amber, says "Note" in the
+  panel and "Note on …" on its card, and isn't open work: the badge, the file and commit dots
+  and Awaiting You leave it out, `seam threads` lists it only with `--notes`, and Copy Prompt for
+  Agent tells agents notes need no answer and how to leave one.
 - **Old or new side:** a thread goes on the new side unless its lines are only removed ones,
   which exist only in the old file. Unchanged lines go on the new side whichever column of the
   side-by-side view they were picked in, so the thread follows the code as it's edited and
@@ -1000,14 +1006,15 @@ seam                    # open the repo containing $PWD, select the worktree you
 seam <path>             # same, for <path>
 seam --base <ref>       # set the base override for this worktree, then open
 
-seam threads [--all] [--repo] [--since <time>] [--json]
+seam threads [--all] [--notes] [--repo] [--since <time>] [--json]
                                        # this worktree's open threads (--all: resolved too,
                                        # --repo: every worktree, --since: changed since then)
 seam wait [--repo] [--since <time>] [--timeout <s>] [--json]
                                        # block until threads change; print them and "As of"
 seam thread <id> [--json]              # one thread with its comments
 seam reply <id> <text>                 # answer a thread; reopens a resolved one
-seam comment <file>:<line>[-<end>] [--old] <text>   # open a thread as the agent
+seam comment <file>:<line>[-<end>] [--old] [--note] <text>
+                                       # open a thread as the agent, or leave a note
 seam resolve <id> | seam reopen <id>
 seam delete <id>                       # remove a thread with its comments
 ```

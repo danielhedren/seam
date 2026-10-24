@@ -23,6 +23,7 @@ struct ThreadCardView: View {
                 submit: String(localized: "Comment", bundle: .module),
                 dismiss: String(localized: "Cancel", bundle: .module),
                 onSubmit: { Task { await session.submitDraft() } },
+                onSubmitNote: { Task { await session.submitDraft(asNote: true) } },
                 onDismiss: { session.draft = nil })
         case .thread(let id):
             if let placed = session.selected?.placedThreads.first(where: { $0.id == id }),
@@ -51,7 +52,7 @@ struct ThreadCardView: View {
     private func layout(
         title: String, thread: ReviewThread?, text: Binding<String>?, placeholder: String,
         submit: String, dismiss: String, onSubmit: @escaping () -> Void,
-        onDismiss: @escaping () -> Void
+        onSubmitNote: (() -> Void)? = nil, onDismiss: @escaping () -> Void
     ) -> some View {
         let diffFont = session.settings.font
         // A weight on a font made from an NSFont is ignored, so the bold face is asked for.
@@ -76,7 +77,8 @@ struct ThreadCardView: View {
                 // Four lines whatever is typed, so the card doesn't grow under the reader.
                 CardTextBox(
                     text: text, placeholder: placeholder, font: diffFont, lines: 4,
-                    takesFocus: thread == nil, onSubmit: onSubmit, onCancel: onDismiss)
+                    takesFocus: thread == nil, onSubmit: onSubmit, onCancel: onDismiss,
+                    onSubmitNote: onSubmitNote)
             }
             HStack(spacing: 24) {
                 Spacer()
@@ -88,6 +90,16 @@ struct ThreadCardView: View {
                     )
                 }
                 .disabled(isEmpty)
+                if let onSubmitNote {
+                    // A note asks no answer: something to know, the reader's or for an agent.
+                    Button(action: onSubmitNote) {
+                        Text(
+                            verbatim:
+                                "\(SeamCommand.label(CommandCatalog.sendNote.key, CommandCatalog.sendNote.modifiers)) \(String(localized: "Note", bundle: .module))"
+                        )
+                    }
+                    .disabled(isEmpty)
+                }
                 Button(action: onDismiss) { Text(verbatim: "⎋ \(dismiss)") }
             }
             .buttonStyle(.plain)
@@ -163,10 +175,14 @@ struct ThreadCardView: View {
                 + "\(Counted.comments(thread.comments.count))\(status)"
         }
         let place =
-            thread.anchor.side == .old
-            ? String(
-                localized: "Thread on \(thread.anchor.path), old line \(lines)", bundle: .module)
-            : String(localized: "Thread on \(thread.anchor.path), line \(lines)", bundle: .module)
+            thread.isNote
+            ? String(localized: "Note on \(thread.anchor.path), line \(lines)", bundle: .module)
+            : thread.anchor.side == .old
+                ? String(
+                    localized: "Thread on \(thread.anchor.path), old line \(lines)",
+                    bundle: .module)
+                : String(
+                    localized: "Thread on \(thread.anchor.path), line \(lines)", bundle: .module)
         return "\(place) · \(Counted.comments(thread.comments.count))\(status)"
     }
 }

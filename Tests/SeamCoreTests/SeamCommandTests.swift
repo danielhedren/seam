@@ -98,6 +98,19 @@ struct SeamCommandTests {
                 "  Outdated: these lines aren't in a.txt any more"))
     }
 
+    /// An agent points the reviewer at something without asking for an answer: a note isn't
+    /// open work, so it's listed only when asked for.
+    @Test func anAgentsNoteIsntAnOpenThread() async throws {
+        let repo = try await fixture()
+        let left = try await seam(
+            ["comment", "--note", "a.txt:1", "Kept for the old API.", "--as", "claude"],
+            in: repo.main)
+        #expect(left.output.hasPrefix("Left note #"))
+        #expect(try await seam(["threads"], in: repo.main).output == "No open threads.\n")
+        let listed = try await seam(["threads", "--notes"], in: repo.main)
+        #expect(listed.output.contains("  note  a.txt:1  opened by claude"))
+    }
+
     @Test func jsonIsTheThreadsAsStored() async throws {
         let repo = try await fixture()
         _ = try await seam(["comment", "a.txt:1", "Why one?", "--as", "claude"], in: repo.main)

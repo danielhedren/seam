@@ -13,6 +13,8 @@ struct CardTextBox: NSViewRepresentable {
     let takesFocus: Bool
     let onSubmit: () -> Void
     let onCancel: () -> Void
+    /// ⌥⌘↩ posts it as a note, where the box writes a new thread.
+    var onSubmitNote: (() -> Void)?
 
     final class Coordinator: NSObject, NSTextViewDelegate {
         var text: Binding<String>
@@ -61,6 +63,7 @@ struct CardTextBox: NSViewRepresentable {
         textView.placeholder = placeholder
         textView.onSubmit = onSubmit
         textView.onCancel = onCancel
+        textView.onSubmitNote = onSubmitNote
         textView.needsDisplay = true
     }
 
@@ -77,6 +80,7 @@ struct CardTextBox: NSViewRepresentable {
 final class CardTextView: NSTextView {
     var onSubmit: (() -> Void)?
     var onCancel: (() -> Void)?
+    var onSubmitNote: (() -> Void)?
     var placeholder = ""
     var takesFocus = false
 
@@ -93,8 +97,16 @@ final class CardTextView: NSTextView {
 
     // Key equivalents reach every view in the window, so only the focused box takes ⌘↩.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        guard window?.firstResponder === self, CommandCatalog.matches(event, CommandCatalog.send)
-        else { return super.performKeyEquivalent(with: event) }
+        guard window?.firstResponder === self else {
+            return super.performKeyEquivalent(with: event)
+        }
+        if let onSubmitNote, CommandCatalog.matches(event, CommandCatalog.sendNote) {
+            onSubmitNote()
+            return true
+        }
+        guard CommandCatalog.matches(event, CommandCatalog.send) else {
+            return super.performKeyEquivalent(with: event)
+        }
         onSubmit?()
         return true
     }

@@ -149,6 +149,8 @@ enum CommandCatalog {
     static let openRepository = KeyboardShortcut("o")
     /// Sends what's typed in the thread panel's reply box.
     static let send = KeyboardShortcut(.return, modifiers: .command)
+    /// Posts a new thread's text as a note, asking no answer.
+    static let sendNote = KeyboardShortcut(.return, modifiers: [.command, .option])
 
     /// The keys the diff view pages on by itself, from Go › Page Down and Page Up.
     static var diffKeyBindings: [DiffKeyBinding: DiffKeyAction] {

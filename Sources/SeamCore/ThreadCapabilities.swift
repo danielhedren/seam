@@ -46,7 +46,9 @@ public struct ReviewerIdentity: Equatable, Sendable {
 
     /// An open thread whose latest word is someone else's: an agent's answer, or a request.
     public func awaitsReply(_ thread: ReviewThread) -> Bool {
-        guard !thread.isResolved, let latest = thread.comments.last else { return false }
+        guard !thread.isResolved, !thread.isNote, let latest = thread.comments.last else {
+            return false
+        }
         return !wrote(latest)
     }
 }

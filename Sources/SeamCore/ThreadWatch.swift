@@ -5,19 +5,26 @@ public struct ThreadScope: Sendable {
     /// One worktree's path, or nil for every worktree of the repo.
     public var worktree: String?
     public var includesResolved: Bool
+    /// Notes aren't open work, so listings leave them out unless asked; waits see them.
+    public var includesNotes: Bool
     /// Only threads with activity at or after this time, resolved ones too, since resolving is
     /// activity. At, not after: a write racing the read behind the last "as of" comes back
     /// rather than being missed.
     public var since: Date?
 
-    public init(worktree: String?, includesResolved: Bool = false, since: Date? = nil) {
+    public init(
+        worktree: String?, includesResolved: Bool = false, includesNotes: Bool = false,
+        since: Date? = nil
+    ) {
         self.worktree = worktree
         self.includesResolved = includesResolved
+        self.includesNotes = includesNotes
         self.since = since
     }
 
     public func contains(_ thread: ReviewThread) -> Bool {
         (worktree == nil || thread.worktree == worktree)
+            && (includesNotes || !thread.isNote)
             && (includesResolved || since != nil || !thread.isResolved)
             && (since.map { thread.lastActivity >= $0 } ?? true)
     }
