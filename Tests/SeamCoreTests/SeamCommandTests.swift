@@ -107,6 +107,13 @@ struct SeamCommandTests {
         let threads = try decoder.decode([ReviewThread].self, from: Data(listed.output.utf8))
         #expect(threads.map(\.anchor.text) == [["one"]])
         #expect(threads.first?.comments.map(\.author) == ["claude"])
+        let object = try #require(
+            (try JSONSerialization.jsonObject(with: Data(listed.output.utf8)) as? [[String: Any]])?
+                .first)
+        #expect(object["source"] as? String == "seam")
+        let placement = try #require(object["placement"] as? [String: Any])
+        #expect(placement["state"] as? String == "lines")
+        #expect(placement["lines"] as? [Int] == [1, 1])
     }
 
     @Test func mistakesSayWhatWentWrongWithTheRightStatus() async throws {
@@ -153,6 +160,12 @@ struct SeamCommandTests {
         let listed = try await seam(["threads"], in: repo.main)
         #expect(listed.output.contains("#gh-7  open  a.txt:1  opened by octocat on GitHub"))
         #expect(listed.output.contains("-F body=@reply.md"))
+        let json = try await seam(["thread", "gh-7", "--json"], in: repo.main)
+        let object = try #require(
+            try JSONSerialization.jsonObject(with: Data(json.output.utf8)) as? [String: Any])
+        #expect(object["source"] as? String == "github")
+        #expect((object["replyCommand"] as? String)?.hasSuffix("-F body=@reply.md") == true)
+        #expect(object["readAt"] != nil)
         let refused = try await seam(["reply", "gh-7", "Because."], in: repo.main)
         #expect(refused.status == 1)
         #expect(refused.errors.contains("repos/o/a/pulls/12/comments/7/replies"))

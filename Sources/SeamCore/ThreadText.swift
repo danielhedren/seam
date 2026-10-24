@@ -85,3 +85,50 @@ public enum ThreadText {
         return (path, first...last)
     }
 }
+
+/// A thread as `seam --json` prints it (SPEC §13): the stored thread's own fields, plus what an
+/// agent would otherwise work out itself.
+public struct ThreadOutput: Encodable, Sendable {
+    public var thread: ReviewThread
+    /// When a pull request thread was read from GitHub.
+    public var readAt: Date?
+    public var placement: ThreadPlacement?
+
+    public init(_ thread: ReviewThread, readAt: Date? = nil, placement: ThreadPlacement? = nil) {
+        self.thread = thread
+        self.readAt = readAt
+        self.placement = placement
+    }
+
+    private enum Keys: String, CodingKey {
+        case source, replyCommand, readAt, placement
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        try thread.encode(to: encoder)
+        var container = encoder.container(keyedBy: Keys.self)
+        try container.encode(thread.source == .gitHub ? "github" : "seam", forKey: .source)
+        try container.encodeIfPresent(thread.gitHubReply, forKey: .replyCommand)
+        try container.encodeIfPresent(readAt, forKey: .readAt)
+        try container.encodeIfPresent(placement, forKey: .placement)
+    }
+}
+
+extension ThreadPlacement: Encodable {
+    private enum Keys: String, CodingKey {
+        case state, lines
+    }
+
+    /// `{"state": "lines", "lines": [30, 31]}`: where the lines are now, first and last.
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+        switch self {
+        case .lines(let lines):
+            try container.encode("lines", forKey: .state)
+            try container.encode([lines.lowerBound, lines.upperBound], forKey: .lines)
+        case .outdated: try container.encode("outdated", forKey: .state)
+        case .later: try container.encode("later", forKey: .state)
+        case .notShown: try container.encode("fileGone", forKey: .state)
+        }
+    }
+}

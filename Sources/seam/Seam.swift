@@ -140,7 +140,10 @@ struct Threads: AsyncParsableCommand {
         let (found, read) = try allThreads(repository)
         let threads = found.filter(scope.contains)
         if json {
-            try printJSON(threads)
+            try printJSON(
+                threads.map {
+                    ThreadOutput($0, readAt: read[$0.worktree], placement: placement(of: $0))
+                })
         } else if threads.isEmpty {
             print(
                 since.map { "No threads changed since \(ThreadTime.string($0))." }
@@ -177,7 +180,7 @@ struct Wait: AsyncParsableCommand {
 
     private struct Output: Encodable {
         var asOf: Date
-        var changed: [ReviewThread]
+        var changed: [ThreadOutput]
         var deleted: [String]
     }
 
@@ -203,11 +206,16 @@ struct Wait: AsyncParsableCommand {
             )
             throw ExitCode(2)
         }
+        let read = (try? store.gitHubThreads(for: repository).read) ?? [:]
         if json {
-            try printJSON(Output(asOf: asOf, changed: changes.changed, deleted: changes.deleted))
+            try printJSON(
+                Output(
+                    asOf: asOf,
+                    changed: changes.changed.map {
+                        ThreadOutput($0, readAt: read[$0.worktree], placement: placement(of: $0))
+                    }, deleted: changes.deleted))
             return
         }
-        let read = (try? store.gitHubThreads(for: repository).read) ?? [:]
         var parts = changes.changed.map {
             ThreadText.format(
                 $0, showsWorktree: repo, read: read[$0.worktree], placement: placement(of: $0))
@@ -250,7 +258,9 @@ struct ShowThread: AsyncParsableCommand {
             throw ThreadError.unknownThread(String(id))
         }
         if json {
-            try printJSON(thread)
+            try printJSON(
+                ThreadOutput(
+                    thread, readAt: read[thread.worktree], placement: placement(of: thread)))
         } else {
             print(
                 ThreadText.format(

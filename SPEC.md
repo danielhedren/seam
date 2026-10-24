@@ -1011,7 +1011,14 @@ picks the change up from the file. Text output is for agents to read: each threa
 file, lines, status, the quoted lines and the comments, with ISO 8601 times. Line numbers are
 from when a comment was written, so a line under the header says where they are now ("Now at
 a.txt:30"), that they're gone ("Outdated"), or that they're on the old side, lines the change
-removed; `--json` gives the same structurally.
+removed; `--json` gives the same structurally. Each JSON thread is the stored thread (`id`,
+`worktree`, `anchor` with `path`, `side`, `lines` as `[first, last]` and `text`, `author`,
+`isResolved`, `comments` with `id`, `author`, `body`, `date` and a GitHub comment's `githubID`,
+`updated`, `commit` and `uncommitted` when known, and `github` for a pull request's) plus
+`source` (`seam` or `github`), `placement` (`state`: `lines` with `lines` now, `outdated`, or
+`fileGone`; absent on the old side), and for a pull request's `replyCommand` and `readAt`. Times
+are ISO 8601. `wait --json` prints `{asOf, changed: [thread], deleted: [id]}`. Fields are only
+added, never renamed or removed.
 Errors print `Error: <message>` on stderr: a mistake in the arguments exits with status 64 and
 the command's usage, anything else (an unknown id, a folder outside a worktree, a line past the
 end of the file) with status 1. `seam --help` explains the thread workflow, and `--as` is
