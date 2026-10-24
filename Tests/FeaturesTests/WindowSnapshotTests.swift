@@ -17,7 +17,7 @@ import Testing
     .timeLimit(.minutes(1)),
     .snapshots(record: .missing),
     .enabled("the references are drawn on a 2x display") {
-        await MainActor.run { retinaScreen() != nil }
+        await MainActor.run { retinaScreen() != nil || previewDirectory != nil }
     })
 struct WindowSnapshotTests {
     private static let os =
@@ -64,7 +64,7 @@ struct WindowSnapshotTests {
         .padding(12)
         .frame(width: 260, alignment: .leading)
         for (appearance, name) in Self.appearances {
-            assertSnapshot(
+            check(
                 of: try render(rows, size: CGSize(width: 260, height: 150), appearance),
                 as: .image(precision: 0.99, perceptualPrecision: 0.98),
                 named: "worktrees-\(name)-\(Self.os)")
@@ -93,7 +93,7 @@ struct WindowSnapshotTests {
         .padding(12)
         .frame(width: 260, alignment: .leading)
         for (appearance, name) in Self.appearances {
-            assertSnapshot(
+            check(
                 of: try render(rows, size: CGSize(width: 260, height: 230), appearance),
                 as: .image(precision: 0.99, perceptualPrecision: 0.98),
                 named: "commits-\(name)-\(Self.os)")
@@ -112,7 +112,7 @@ struct WindowSnapshotTests {
             DiffPane(session: session, review: review)
         }
         for (appearance, name) in Self.appearances {
-            assertSnapshot(
+            check(
                 of: try render(panes, size: CGSize(width: 1000, height: 420), appearance),
                 as: .image(precision: 0.99, perceptualPrecision: 0.98),
                 named: "files-diff-\(name)-\(Self.os)")
@@ -137,7 +137,7 @@ struct WindowSnapshotTests {
             DiffPane(session: session, review: review)
         }
         for (appearance, name) in Self.appearances {
-            assertSnapshot(
+            check(
                 of: try render(panes, size: CGSize(width: 1000, height: 420), appearance),
                 as: .image(precision: 0.99, perceptualPrecision: 0.98),
                 named: "search-diff-\(name)-\(Self.os)")
@@ -152,7 +152,7 @@ struct WindowSnapshotTests {
             anchor: try #require(review.anchor(path: "src/Order.cs", side: .new, lines: 3...3)),
             body: "Why did the total change?")
         for (appearance, name) in Self.appearances {
-            assertSnapshot(
+            check(
                 of: try render(
                     DiffPane(session: session, review: review),
                     size: CGSize(width: 700, height: 420), appearance),
@@ -194,7 +194,7 @@ struct WindowSnapshotTests {
             ThreadPanel(session: session, review: review).frame(width: 340)
         }
         for (appearance, name) in Self.appearances {
-            assertSnapshot(
+            check(
                 of: try render(panes, size: CGSize(width: 1100, height: 520), appearance),
                 as: .image(precision: 0.99, perceptualPrecision: 0.98),
                 named: "threads-\(name)-\(Self.os)")
@@ -222,7 +222,7 @@ struct WindowSnapshotTests {
         )
         .frame(width: 280)
         for (appearance, name) in Self.appearances {
-            assertSnapshot(
+            check(
                 of: try render(list, size: CGSize(width: 280, height: 160), appearance),
                 as: .image(precision: 0.99, perceptualPrecision: 0.98),
                 named: "file-threads-\(name)-\(Self.os)")
@@ -274,7 +274,7 @@ struct WindowSnapshotTests {
         .padding(12)
         .frame(width: 420, alignment: .leading)
         for (appearance, name) in Self.appearances {
-            assertSnapshot(
+            check(
                 of: try render(view, size: CGSize(width: 420, height: 170), appearance),
                 as: .image(precision: 0.99, perceptualPrecision: 0.98),
                 named: "pull-requests-\(name)-\(Self.os)")
@@ -288,7 +288,7 @@ struct WindowSnapshotTests {
             FileManager.default.homeDirectoryForCurrentUser.appending(path: "Code/\($0)")
         }
         let view = WelcomeView(services: services(repo.git), recent: recent) { _ in true }
-        assertSnapshot(
+        check(
             of: try render(view, size: CGSize(width: 900, height: 500), .aqua),
             as: .image(precision: 0.99, perceptualPrecision: 0.98),
             named: "welcome-\(Self.os)")
@@ -308,7 +308,8 @@ struct WindowSnapshotTests {
             .environment(OpenRequests(defaults: try scratchDefaults()))
             .environment(\.ageReference, Self.now)
         let host = NSHostingView(rootView: root)
-        let screen = try #require(retinaScreen())
+        let screen = try #require(
+            retinaScreen() ?? (previewDirectory == nil ? nil : NSScreen.main))
         let window = NSWindow(
             contentRect: NSRect(origin: screen.frame.origin, size: size),
             styleMask: [.borderless], backing: .buffered, defer: false, screen: screen)
@@ -338,6 +339,31 @@ struct WindowSnapshotTests {
     private func scratchDefaults() throws -> UserDefaults {
         Scratch.defaults("seam-snapshots")
     }
+}
+
+/// With `SEAM_PREVIEW_DIR` set, the images are written there at the main screen's scale instead
+/// of compared: a way to look at the panes on a machine without a 2x screen.
+private let previewDirectory = ProcessInfo.processInfo.environment["SEAM_PREVIEW_DIR"]
+    .flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true) }
+
+@MainActor
+private func check(
+    of image: @autoclosure () throws -> NSImage, as strategy: Snapshotting<NSImage, NSImage>,
+    named name: String, fileID: StaticString = #fileID, file: StaticString = #filePath,
+    testName: String = #function, line: UInt = #line, column: UInt = #column
+) {
+    guard let previewDirectory else {
+        assertSnapshot(
+            of: try image(), as: strategy, named: name, fileID: fileID, file: file,
+            testName: testName, line: line, column: column)
+        return
+    }
+    guard let image = try? image(), let tiff = image.tiffRepresentation,
+        let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:])
+    else { return }
+    try? FileManager.default.createDirectory(
+        at: previewDirectory, withIntermediateDirectories: true)
+    try? png.write(to: previewDirectory.appending(path: "\(name).png"))
 }
 
 /// A window draws at its screen's scale, so the references are drawn on a 2x screen (a Mac's
