@@ -516,10 +516,16 @@
         }
       }
     },
+    "Next Commit" : {
+
+    },
     "Next File" : {
 
     },
     "Next Hunk" : {
+
+    },
+    "Next Thread" : {
 
     },
     "Next Worktree" : {
@@ -663,10 +669,16 @@
         }
       }
     },
+    "Previous Commit" : {
+
+    },
     "Previous File" : {
 
     },
     "Previous Hunk" : {
+
+    },
+    "Previous Thread" : {
 
     },
     "Previous Worktree" : {

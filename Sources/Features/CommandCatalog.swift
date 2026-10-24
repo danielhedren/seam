@@ -331,6 +331,25 @@ enum CommandCatalog {
                 id: "previous-hunk", title: localized("Previous Hunk"), menu: .go, section: 2,
                 shortcut: .single("p"), run: { $0.diff.moveHunk(by: -1) }),
             SeamCommand(
+                id: "next-thread", title: localized("Next Thread"), menu: .go, section: 2,
+                shortcut: .single("m"),
+                isEnabled: { $0.selected?.steppableThreads.isEmpty == false },
+                run: { $0.moveThread(by: 1) }),
+            SeamCommand(
+                id: "previous-thread", title: localized("Previous Thread"), menu: .go,
+                section: 2, shortcut: .single("m", .shift),
+                isEnabled: { $0.selected?.steppableThreads.isEmpty == false },
+                run: { $0.moveThread(by: -1) }),
+            SeamCommand(
+                id: "next-commit", title: localized("Next Commit"), menu: .go, section: 2,
+                shortcut: .single("l"), isEnabled: { $0.selected?.commitStep(by: 1) != nil },
+                run: { session in session.selected?.stepCommit(by: 1) }),
+            SeamCommand(
+                id: "previous-commit", title: localized("Previous Commit"), menu: .go,
+                section: 2, shortcut: .single("l", .shift),
+                isEnabled: { $0.selected?.commitStep(by: -1) != nil },
+                run: { session in session.selected?.stepCommit(by: -1) }),
+            SeamCommand(
                 id: "page-down", title: localized("Page Down"), menu: .go, section: 2,
                 shortcut: .single(.space), run: { $0.diff.page(by: 1) }),
             SeamCommand(

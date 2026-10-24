@@ -413,6 +413,8 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 |---|---|
 | `j` / `k` | next / previous file |
 | `n` / `p` | next / previous hunk (across files) |
+| `m` / `⇧M` | next / previous thread, in file order, opening it (resolved ones only while shown) |
+| `l` / `⇧L` | next / previous commit: one commit at a time, from the oldest forward in time |
 | `space` / `⇧space` | page down / up |
 | `v` | toggle viewed, then jump to the next unviewed file |
 | `s` | side-by-side / unified |

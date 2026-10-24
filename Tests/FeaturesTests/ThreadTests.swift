@@ -77,6 +77,35 @@ import Testing
         session.close()
     }
 
+    /// Go › Next and Previous Thread step through the threads in file order, wrapping, opening
+    /// each; resolved ones only while they're shown.
+    @Test func nextAndPreviousThreadStepThroughThemInFileOrder() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\ntwo\nthree\n")
+        let (session, review, _) = await session(repo)
+        let reviewed = try #require(review)
+        var ids: [String] = []
+        for line in [3, 1, 2] {
+            let anchor = try #require(
+                reviewed.anchor(path: "a.txt", side: .new, lines: line...line))
+            session.draft = ThreadDraft(worktree: reviewed.id, anchor: anchor)
+            await session.post("Line \(line)?")
+            ids.append(try #require(session.selectedThreadID))
+        }
+        session.closeThread()
+        await session.setResolved(true, thread: ids[2])
+
+        try command("next-thread").run(session)
+        #expect(session.selectedThreadID == ids[1], "line 1 first")
+        try command("next-thread").run(session)
+        #expect(session.selectedThreadID == ids[0], "line 2, resolved, is skipped")
+        try command("next-thread").run(session)
+        #expect(session.selectedThreadID == ids[1], "wraps")
+        try command("previous-thread").run(session)
+        #expect(session.selectedThreadID == ids[0])
+        session.close()
+    }
+
     /// ⌥⌘↩ in the composer posts a note: something to know about the lines that asks no answer,
     /// so it's no open work for anyone and isn't handed to the agent.
     @Test func optionCommandReturnPostsANoteThatIsntOpenWork() async throws {

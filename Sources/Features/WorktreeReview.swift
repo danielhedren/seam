@@ -211,6 +211,29 @@ final class WorktreeReview: Identifiable {
         reloadDiff()
     }
 
+    /// The one commit Go › Next Commit (later in time) or Previous Commit would show, reading a
+    /// branch commit by commit; from no single commit, Next starts at the oldest. Nil at an end.
+    func commitStep(by delta: Int) -> CommitSelection? {
+        guard let commits = commitLog?.commits, !commits.isEmpty else { return nil }
+        // Listed newest first, so later in time is up the list.
+        let index: Int
+        if let selection = commitSelection, selection.newest == selection.oldest,
+            case .commit(let id) = selection.newest,
+            let current = commits.firstIndex(where: { $0.id == id })
+        {
+            index = current - delta
+        } else {
+            index = delta > 0 ? commits.count - 1 : 0
+        }
+        guard commits.indices.contains(index) else { return nil }
+        let end = CommitSelection.End.commit(commits[index].id)
+        return CommitSelection(newest: end, oldest: end)
+    }
+
+    func stepCommit(by delta: Int) {
+        if let step = commitStep(by: delta) { selectCommits(step) }
+    }
+
     func isShowing(_ scope: ReviewScope) -> Bool {
         commitSelection == nil && self.scope == scope
     }

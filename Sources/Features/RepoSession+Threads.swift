@@ -152,6 +152,17 @@ extension RepoSession {
         undoManager?.setActionName(name)
     }
 
+    /// Go › Next or Previous Thread: opens the one after the open thread, wrapping, and shows it.
+    func moveThread(by delta: Int) {
+        guard let threads = selected?.steppableThreads, !threads.isEmpty else { return }
+        let current = threads.firstIndex { $0.id == selectedThreadID }
+        let next =
+            current.map { ($0 + delta + threads.count) % threads.count }
+            ?? (delta > 0 ? 0 : threads.count - 1)
+        openThread(threads[next].id)
+        showInDiff(threads[next])
+    }
+
     func showInDiff(_ placed: PlacedThread) {
         guard case .lines(let lines) = placed.placement else { return }
         diff.scroll(

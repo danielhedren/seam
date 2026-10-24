@@ -791,6 +791,32 @@ import Testing
         #expect(reopened.selected?.scope == .uncommitted)
     }
 
+    /// Reading a branch commit by commit: Next Commit starts at the oldest and goes forward in
+    /// time, one commit at a time, and stops at the newest.
+    @Test func nextAndPreviousCommitReadTheBranchOneCommitAtATime() async throws {
+        let repo = try await FixtureRepo()
+        let tree = try await repo.worktree("a", branch: "a", from: "origin/main")
+        try await repo.commit("first.txt", "1\n", "first", in: tree)
+        try await repo.commit("second.txt", "2\n", "second", in: tree)
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        session.select(tree.path)
+        let review = try #require(session.selected)
+        await review.loaded()
+
+        try command("next-commit").run(session)
+        await review.loaded()
+        #expect(review.diff?.files.map(\.diff.path) == ["first.txt"])
+        try command("next-commit").run(session)
+        await review.loaded()
+        #expect(review.diff?.files.map(\.diff.path) == ["second.txt"])
+        #expect(try !command("next-commit").isEnabled(session), "the newest is the end")
+        try command("previous-commit").run(session)
+        await review.loaded()
+        #expect(review.diff?.files.map(\.diff.path) == ["first.txt"])
+        session.close()
+    }
+
     @Test func pickingTheLatestCommitDiffsOnlyThatCommit() async throws {
         let repo = try await FixtureRepo()
         let tree = try await repo.worktree("a", branch: "a", from: "origin/main")

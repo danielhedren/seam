@@ -96,6 +96,19 @@ extension WorktreeReview {
         return counts
     }
 
+    /// The threads Go › Next and Previous Thread step through, in file order: open ones, and
+    /// resolved ones too while they're shown.
+    var steppableThreads: [PlacedThread] {
+        let showsResolved = services.settings.showsResolvedThreads
+        return placedThreads.filter { showsResolved || !$0.thread.isResolved }
+            .sorted { lhs, rhs in
+                if lhs.path != rhs.path {
+                    return ReviewDiffBuilder.precedesInTree(lhs.path, rhs.path)
+                }
+                return lhs.thread.anchor.lines.lowerBound < rhs.thread.anchor.lines.lowerBound
+            }
+    }
+
     /// Seam's open threads whose latest word isn't the reader's: an agent's answer or question,
     /// waiting on them. A pull request's threads are answered on GitHub, so they aren't here.
     var awaitingReply: [PlacedThread] {
