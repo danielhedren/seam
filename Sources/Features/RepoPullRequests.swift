@@ -64,7 +64,8 @@ final class RepoPullRequests {
     private let branches: @MainActor () -> [String]
     private var pending = false
     private var isRefreshing = false
-    private var idleWaiters: [CheckedContinuation<Void, Never>] = []
+    private var idleWaiters: [Int: CheckedContinuation<Void, Never>] = [:]
+    private var nextWaiter = 0
     private var pump: Task<Void, Never>?
     private var spacer: Task<Void, Never>?
     private var poller: Task<Void, Never>?
@@ -140,21 +141,34 @@ final class RepoPullRequests {
     /// Waits until `isIdle`; tests use it instead of sleeping.
     func idle() async {
         guard !isIdle else { return }
-        await withCheckedContinuation { idleWaiters.append($0) }
+        nextWaiter += 1
+        let id = nextWaiter
+        // A cancelled waiter returns, so a test that never sees idle fails at its time limit.
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                if Task.isCancelled {
+                    continuation.resume()
+                } else {
+                    idleWaiters[id] = continuation
+                }
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in self?.idleWaiters.removeValue(forKey: id)?.resume() }
+        }
     }
 
     private func wakeIdleWaiters() {
         guard isIdle else { return }
-        let waiters = idleWaiters
-        idleWaiters = []
+        let waiters = idleWaiters.values
+        idleWaiters = [:]
         for waiter in waiters { waiter.resume() }
     }
 
     func stop() {
         isStopped = true
         for task in [pump, spacer, poller, fresh] { task?.cancel() }
-        let waiters = idleWaiters
-        idleWaiters = []
+        let waiters = idleWaiters.values
+        idleWaiters = [:]
         for waiter in waiters { waiter.resume() }
     }
 

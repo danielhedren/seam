@@ -3,7 +3,7 @@ import Testing
 
 @testable import GitKit
 
-@Suite struct StatusParserTests {
+@Suite(.timeLimit(.minutes(1))) struct StatusParserTests {
     private func fixture(_ name: String) throws -> Status {
         let url = try #require(
             Bundle.module.url(forResource: name, withExtension: "v2z", subdirectory: "Fixtures"))

@@ -7,6 +7,7 @@ import Testing
 
 /// What the commit list says while it has no commits to show (SPEC §7.2.1).
 @MainActor
+@Suite(.timeLimit(.minutes(1)))
 struct CommitListTests {
     @Test func aLoadedWorktreeListsItsCommits() async throws {
         let repo = try await FixtureRepo()

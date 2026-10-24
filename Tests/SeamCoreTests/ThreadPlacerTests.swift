@@ -5,7 +5,7 @@ import Testing
 @testable import SeamCore
 
 /// SPEC §7.7, §7.9: where a thread is now, as the app and `seam` both work it out.
-@Suite struct ThreadPlacerTests {
+@Suite(.timeLimit(.minutes(1))) struct ThreadPlacerTests {
     private func thread(
         _ id: String, _ path: String = "a.txt", side: ThreadAnchor.Side = .new,
         lines: ClosedRange<Int> = 2...2, text: [String] = ["two"], resolved: Bool = false
@@ -70,7 +70,7 @@ import Testing
     }
 }
 
-@Suite struct ReviewerIdentityTests {
+@Suite(.timeLimit(.minutes(1))) struct ReviewerIdentityTests {
     private func thread(_ authors: [String], resolved: Bool = false) -> ReviewThread {
         ReviewThread(
             id: "t", worktree: "/w",

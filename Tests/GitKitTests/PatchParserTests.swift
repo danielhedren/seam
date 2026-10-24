@@ -3,7 +3,7 @@ import Testing
 
 @testable import GitKit
 
-@Suite struct PatchParserTests {
+@Suite(.timeLimit(.minutes(1))) struct PatchParserTests {
     let files: [String: FileDiff]
 
     init() throws {
@@ -125,7 +125,7 @@ import Testing
     }
 }
 
-@Suite struct CQuoteTests {
+@Suite(.timeLimit(.minutes(1))) struct CQuoteTests {
     @Test(arguments: [
         (#""plain""#, "plain"),
         (#""quote\"d""#, "quote\"d"),
@@ -143,7 +143,7 @@ import Testing
     }
 }
 
-@Suite struct WorktreeListParserTests {
+@Suite(.timeLimit(.minutes(1))) struct WorktreeListParserTests {
     @Test func parsesMainLockedPrunableAndDetachedEntries() {
         let fields = [
             "worktree /repo", "HEAD aaa", "branch refs/heads/main", "",

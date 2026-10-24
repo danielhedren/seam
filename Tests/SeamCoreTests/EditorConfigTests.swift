@@ -2,7 +2,7 @@ import Testing
 
 @testable import SeamCore
 
-@Suite struct EditorConfigTests {
+@Suite(.timeLimit(.minutes(1))) struct EditorConfigTests {
     private let config = EditorConfig(
         """
         root = true

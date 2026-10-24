@@ -5,7 +5,7 @@ import Testing
 @testable import SeamCore
 
 /// SPEC §5.2 fixtures F1–F12, each built with real git.
-@Suite struct BaseDetectionFixtureTests {
+@Suite(.timeLimit(.minutes(1))) struct BaseDetectionFixtureTests {
     private func detect(_ repo: FixtureRepo, _ worktree: URL) async throws -> BaseDetection {
         try await BaseDetector(git: repo.git).detect(in: worktree)
     }

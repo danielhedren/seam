@@ -5,7 +5,7 @@ import Testing
 
 @testable import SeamCore
 
-@Suite struct FileContentsTests {
+@Suite(.timeLimit(.minutes(1))) struct FileContentsTests {
     @Test func committedScopeReadsBothSidesFromBlobs() async throws {
         let repo = try await FixtureRepo()
         let base = try await repo.sha("HEAD")

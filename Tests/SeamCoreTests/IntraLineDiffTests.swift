@@ -2,7 +2,7 @@ import Testing
 
 @testable import SeamCore
 
-@Suite struct IntraLineDiffTests {
+@Suite(.timeLimit(.minutes(1))) struct IntraLineDiffTests {
     private func marked(_ line: String, _ ranges: [Range<Int>]) -> [String] {
         let characters = Array(line)
         return ranges.map { String(characters[$0]) }

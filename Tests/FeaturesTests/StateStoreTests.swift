@@ -5,7 +5,7 @@ import Testing
 
 @testable import Features
 
-@Suite struct StateStoreTests {
+@Suite(.timeLimit(.minutes(1))) struct StateStoreTests {
     @Test func recentReposAreNewestFirstUniqueAndCapped() async throws {
         let directory = try TemporaryDirectory()
         let store = JSONStateStore(root: directory.resolved)

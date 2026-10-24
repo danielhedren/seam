@@ -4,7 +4,7 @@ import Testing
 
 @testable import Features
 
-@Suite struct FileTreeTests {
+@Suite(.timeLimit(.minutes(1))) struct FileTreeTests {
     private let paths = [
         "src/Orders.Service/Delivery/A.cs", "src/Orders.Service/Delivery/B.cs",
         "src/Orders.Service/C.cs",
@@ -75,7 +75,7 @@ import Testing
     }
 }
 
-@Suite struct FuzzyMatchTests {
+@Suite(.timeLimit(.minutes(1))) struct FuzzyMatchTests {
     @Test func subsequencesMatchAndBetterMatchesScoreHigher() throws {
         let exact = try #require(FuzzyMatch.score("1894", in: "ticket-1894-remove-preview"))
         let scattered = try #require(FuzzyMatch.score("1894", in: "ticket-1872-preview-9-4"))
@@ -85,7 +85,7 @@ import Testing
     }
 }
 
-@MainActor @Suite struct FileListRowsTests {
+@MainActor @Suite(.timeLimit(.minutes(1))) struct FileListRowsTests {
     @Test func theRowsAreBuiltOnceAndFollowTheListOptionsAndTheDiff() async throws {
         let repo = try await FixtureRepo()
         try repo.write("src/a.txt", "a\n")

@@ -71,7 +71,7 @@ private final class FakeWatcher: FileWatcher, Sendable {
     }
 }
 
-@Suite struct ChangeClassifierTests {
+@Suite(.timeLimit(.minutes(1))) struct ChangeClassifierTests {
     private let repository = Repository(
         commonDirectory: URL(fileURLWithPath: "/r/.git", isDirectory: true),
         anchor: URL(fileURLWithPath: "/r", isDirectory: true))

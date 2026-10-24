@@ -4,6 +4,7 @@ import Testing
 @testable import Features
 
 @MainActor
+@Suite(.timeLimit(.minutes(1)))
 struct BannerTests {
     @Test func aFailedEditorLaunchCanBeDismissedButADiffProblemCannot() async throws {
         let repo = try await FixtureRepo()

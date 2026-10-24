@@ -8,7 +8,8 @@ import Testing
 
 /// SPEC §8.7 rendering budgets on a synthetic 20k-line diff. Run with `make test-all`.
 @MainActor
-@Suite(.enabled(if: ProcessInfo.processInfo.environment["SEAM_BENCH"] != nil))
+@Suite(
+    .timeLimit(.minutes(1)), .enabled(if: ProcessInfo.processInfo.environment["SEAM_BENCH"] != nil))
 struct RenderingBudgetTests {
     /// 50 files of 400 changed lines each: alternating blocks of context, removals and additions.
     static func syntheticPatch() -> Data {

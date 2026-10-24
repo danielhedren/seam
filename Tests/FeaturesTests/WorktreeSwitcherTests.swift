@@ -6,6 +6,7 @@ import Testing
 @testable import Features
 
 @MainActor
+@Suite(.timeLimit(.minutes(1)))
 struct WorktreeSwitcherTests {
     @Test func matchesWorktreeAndBranchNamesBestFirst() async throws {
         let repo = try await FixtureRepo()

@@ -31,7 +31,7 @@ private func texts(_ rows: [DiffRow]) -> [String] {
     }
 }
 
-@MainActor @Suite struct DraftRowTests {
+@MainActor @Suite(.timeLimit(.minutes(1))) struct DraftRowTests {
     private let draft = DraftMarker(path: "a.txt", side: .new, lines: 2...3)
 
     @Test func theComposerFollowsItsLastLineBelowThatLinesThreads() {

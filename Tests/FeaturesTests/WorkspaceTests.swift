@@ -5,7 +5,7 @@ import Testing
 @testable import Features
 
 @MainActor
-@Suite struct WorkspaceTests {
+@Suite(.timeLimit(.minutes(1))) struct WorkspaceTests {
     /// A throwaway domain: the real one holds the user's workspace.
     private func scratchDefaults() throws -> UserDefaults {
         Scratch.defaults("seam-workspace")
@@ -36,7 +36,7 @@ import Testing
     }
 }
 
-@Suite struct LaunchArgumentTests {
+@Suite(.timeLimit(.minutes(1))) struct LaunchArgumentTests {
     @Test(
         arguments: [
             (["Seam", "/repo"], "/repo"),

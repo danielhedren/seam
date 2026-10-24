@@ -5,7 +5,7 @@ import Testing
 
 @testable import DiffView
 
-@MainActor @Suite struct DiffScrollViewTests {
+@MainActor @Suite(.timeLimit(.minutes(1))) struct DiffScrollViewTests {
     private func review(_ words: [String]) -> ReviewDiff {
         var hunk = Hunk(oldStart: 1, oldCount: 0, newStart: 1, newCount: words.count, section: "")
         hunk.lines = words.enumerated().map { offset, word in

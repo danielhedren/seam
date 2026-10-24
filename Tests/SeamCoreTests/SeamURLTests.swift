@@ -2,7 +2,7 @@ import Foundation
 import SeamCore
 import Testing
 
-@Suite struct SeamURLTests {
+@Suite(.timeLimit(.minutes(1))) struct SeamURLTests {
     @Test func urlsRoundTripPathsAndBases() throws {
         // What the seam command builds, the app must read back, whatever the path holds.
         let request = SeamURL(path: "/Users/me/my repo/a&b=c#d+ü", base: "origin/feat/ü x")

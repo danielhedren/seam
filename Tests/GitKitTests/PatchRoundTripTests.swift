@@ -5,7 +5,7 @@ import Testing
 @testable import GitKit
 
 /// Property: applying the parsed hunks of `git diff old new` to `old` reproduces `new`.
-@Suite struct PatchRoundTripTests {
+@Suite(.timeLimit(.minutes(1))) struct PatchRoundTripTests {
     static let cases = 500
 
     @Test func parsedHunksReproduceTheNewFile() async throws {

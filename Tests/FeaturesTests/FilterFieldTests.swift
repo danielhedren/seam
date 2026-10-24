@@ -5,7 +5,7 @@ import Testing
 @testable import Features
 
 /// The file filter's keyboard behaviour, in a window that is never shown.
-@MainActor @Suite struct FilterFieldTests {
+@MainActor @Suite(.timeLimit(.minutes(1))) struct FilterFieldTests {
     @Observable final class Probe {
         var text = "delivery"
         var focused = false

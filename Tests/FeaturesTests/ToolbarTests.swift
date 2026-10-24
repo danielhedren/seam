@@ -7,7 +7,7 @@ import Testing
 @testable import Features
 
 /// The review toolbar as AppKit builds it, in a window that is never shown.
-@MainActor @Suite struct ToolbarTests {
+@MainActor @Suite(.timeLimit(.minutes(1))) struct ToolbarTests {
     @Test func theThreadsButtonBadgesTheOpenThreadsAndNoneAtZero() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\n")

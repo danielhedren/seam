@@ -5,7 +5,7 @@ import Testing
 
 @testable import SeamCore
 
-@Suite struct CommitLogTests {
+@Suite(.timeLimit(.minutes(1))) struct CommitLogTests {
     @Test func listsTheBranchsCommitsNewestFirstAboveItsBase() async throws {
         let repo = try await FixtureRepo()
         let base = try await repo.sha("HEAD")

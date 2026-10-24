@@ -4,7 +4,7 @@ import Testing
 
 @testable import Highlighting
 
-@Suite struct SyntaxHighlighterTests {
+@Suite(.timeLimit(.minutes(1))) struct SyntaxHighlighterTests {
     /// One snippet per grammar, with a word on its first line and the token it must get.
     static let samples: [(SyntaxLanguage, String, String, SyntaxToken)] = [
         (.csharp, "public class Order { }\n", "public", .keyword),

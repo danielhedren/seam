@@ -9,7 +9,7 @@ import Testing
 /// SPEC §10: image snapshots of the diff view, drawn at 2x in sRGB whatever the display.
 /// Rendering differs between macOS releases, so each major version keeps its own references. Record with `SNAPSHOT_TESTING_RECORD=all swift test`.
 @MainActor
-@Suite(.snapshots(record: .missing))
+@Suite(.timeLimit(.minutes(1)), .snapshots(record: .missing))
 struct DiffSnapshotTests {
     private static let os = "macOS\(ProcessInfo.processInfo.operatingSystemVersion.majorVersion)"
 

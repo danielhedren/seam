@@ -5,7 +5,7 @@ import Testing
 
 @testable import SeamCore
 
-@Suite struct ViewedMarksTests {
+@Suite(.timeLimit(.minutes(1))) struct ViewedMarksTests {
     private func file(_ path: String, new: String?, old: String? = "aaa", deleted: Bool = false)
         -> ReviewFile
     {

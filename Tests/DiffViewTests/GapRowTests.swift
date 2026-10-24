@@ -6,7 +6,7 @@ import Testing
 @testable import DiffView
 
 /// A 100-line file whose line 50 was replaced by two lines, so new numbers are old + 1 below it.
-@Suite struct GapRowTests {
+@Suite(.timeLimit(.minutes(1))) struct GapRowTests {
     private let path = "big.txt"
 
     private var content: DiffContent {
@@ -132,7 +132,7 @@ import Testing
     }
 }
 
-@Suite struct LineSplittingTests {
+@Suite(.timeLimit(.minutes(1))) struct LineSplittingTests {
     @Test func crlfFilesSplitIntoTheirLinesKeepingTheCarriageReturn() {
         #expect(TextLines.split("a\r\nb\r\n") == ["a\r", "b\r"])
         #expect(TextLines.split("a\nb") == ["a", "b"])

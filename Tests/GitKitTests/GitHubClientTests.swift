@@ -4,7 +4,7 @@ import Testing
 
 @testable import GitKit
 
-@Suite struct GitHubRepoTests {
+@Suite(.timeLimit(.minutes(1))) struct GitHubRepoTests {
     @Test(arguments: [
         ("https://github.com/owner/app.git", "github.com/owner/app"),
         ("https://github.com/owner/app", "github.com/owner/app"),
@@ -27,7 +27,7 @@ import Testing
     }
 }
 
-@Suite struct PullRequestDecodingTests {
+@Suite(.timeLimit(.minutes(1))) struct PullRequestDecodingTests {
     private func decode(_ json: String) throws -> [PullRequest] {
         try GHPullRequest.decode(Data(json.utf8))
     }

@@ -9,7 +9,7 @@ import Testing
 
 @testable import Features
 
-@MainActor @Suite struct ThreadTests {
+@MainActor @Suite(.timeLimit(.minutes(1))) struct ThreadTests {
     private func session(_ repo: FixtureRepo, watcher: any FileWatcher = SilentWatcher()) async
         -> (RepoSession, WorktreeReview?, ThreadStore)
     {

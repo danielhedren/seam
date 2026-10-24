@@ -3,7 +3,7 @@ import Testing
 
 @testable import Features
 
-@Suite struct ShellLauncherTests {
+@Suite(.timeLimit(.minutes(1))) struct ShellLauncherTests {
     private let launcher = ShellLauncher(shell: URL(fileURLWithPath: "/bin/sh"))
 
     @Test func aFailingCommandReportsWhatItPrinted() async {
@@ -51,7 +51,7 @@ import Testing
     }
 }
 
-@Suite struct EditorCommandTests {
+@Suite(.timeLimit(.minutes(1))) struct EditorCommandTests {
     @Test func theDefaultIsTheFirstInstalledPreset() {
         #expect(
             EditorCommand.installedDefault {

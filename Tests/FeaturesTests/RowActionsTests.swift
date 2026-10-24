@@ -8,6 +8,7 @@ import Testing
 
 /// The worktree and commit rows' context menus and their menu-bar twins (SPEC §7.2, §7.2.1).
 @MainActor
+@Suite(.timeLimit(.minutes(1)))
 struct RowActionsTests {
     private func titles(_ groups: [[FileActions.Action]]) -> [[String]] {
         groups.map { $0.map(\.title) }

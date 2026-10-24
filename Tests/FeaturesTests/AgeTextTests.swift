@@ -4,6 +4,7 @@ import Testing
 @testable import Features
 
 @MainActor
+@Suite(.timeLimit(.minutes(1)))
 struct AgeTextTests {
     private let now = Date(timeIntervalSince1970: 1_767_225_600)
 

@@ -2,7 +2,7 @@ import Testing
 
 @testable import Features
 
-@MainActor @Suite struct QuotedLinesTests {
+@MainActor @Suite(.timeLimit(.minutes(1))) struct QuotedLinesTests {
     @Test func aQuoteOfEightLinesShowsWhole() {
         #expect(QuotedLines.visible(1, showsAll: false) == (1, 0))
         #expect(QuotedLines.visible(8, showsAll: false) == (8, 0))

@@ -10,7 +10,7 @@ private let environment = ProcessInfo.processInfo.environment
 /// SPEC §5.2 real-repo check: a pinned commit of a stacked branch, its expected parent, base
 /// and committed-scope `files additions deletions`. `make test-all` passes them from local.mk,
 /// which stays out of git; the suite skips without them.
-@Suite(.enabled(if: !(environment["SEAM_REAL_REPO"] ?? "").isEmpty))
+@Suite(.timeLimit(.minutes(1)), .enabled(if: !(environment["SEAM_REAL_REPO"] ?? "").isEmpty))
 struct RealRepoTests {
     @Test func aStackedBranchIsReviewedAgainstItsParent() async throws {
         func value(_ name: String) throws -> String {
@@ -41,7 +41,7 @@ struct RealRepoTests {
 }
 
 /// SPEC §8.7 detection budget on a generated repo with 400 refs.
-@Suite(.enabled(if: environment["SEAM_BENCH"] != nil))
+@Suite(.timeLimit(.minutes(1)), .enabled(if: environment["SEAM_BENCH"] != nil))
 struct DetectionBenchmarkTests {
     @Test func detectionWithManyRefsStaysWithinBudget() async throws {
         let repo = try await FixtureRepo()

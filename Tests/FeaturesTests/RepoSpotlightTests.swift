@@ -17,7 +17,7 @@ private final class RecordingIndex: RepoIndex {
     }
 }
 
-@MainActor @Suite struct RepoSpotlightTests {
+@MainActor @Suite(.timeLimit(.minutes(1))) struct RepoSpotlightTests {
     @Test func openingARepoPutsTheRecentReposInSpotlight() async throws {
         let repo = try await FixtureRepo()
         let index = RecordingIndex()

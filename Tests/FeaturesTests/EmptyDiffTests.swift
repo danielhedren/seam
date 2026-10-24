@@ -5,6 +5,7 @@ import Testing
 @testable import Features
 
 @MainActor
+@Suite(.timeLimit(.minutes(1)))
 struct EmptyDiffTests {
     @Test func aFilterThatLeavesNoFileSaysSoAndOffersToClearIt() async throws {
         let repo = try await FixtureRepo()

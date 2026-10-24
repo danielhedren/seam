@@ -18,7 +18,7 @@ private func thread(
         updated: updated)
 }
 
-@Suite struct ThreadScopeTests {
+@Suite(.timeLimit(.minutes(1))) struct ThreadScopeTests {
     @Test func aScopeIsOneWorktreeOrTheRepoAndSinceIncludesResolvedActivity() {
         let threads = [
             thread("1"), thread("2", in: "/b"), thread("3", resolved: true),
@@ -71,7 +71,7 @@ private final class Store: Sendable {
     let threads = Mutex([thread("1")])
 }
 
-@Suite struct ThreadWaitTests {
+@Suite(.timeLimit(.minutes(1))) struct ThreadWaitTests {
     private let store = Store()
 
     private func read() -> @Sendable () throws(ThreadError) -> [ReviewThread] {

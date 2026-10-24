@@ -32,7 +32,7 @@ private func gitHubThread(
         })
 }
 
-@Suite struct GitHubThreadTests {
+@Suite(.timeLimit(.minutes(1))) struct GitHubThreadTests {
     @Test func aHunksLinesAreReadOnTheSideTheCommentIsOn() {
         #expect(GitHubThreads.lines(11...12, side: .new, in: hunk) == ["let b = 3", "let c = 4"])
         #expect(GitHubThreads.lines(11...11, side: .old, in: hunk) == ["let b = 2"])

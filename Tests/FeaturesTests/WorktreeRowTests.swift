@@ -8,6 +8,7 @@ import Testing
 
 /// A worktree row (SPEC §7.2), measured from off-screen renders.
 @MainActor
+@Suite(.timeLimit(.minutes(1)))
 struct WorktreeRowTests {
     @Test func rowWithNothingToCountHasNoEmptyLine() async throws {
         let repo = try await FixtureRepo()

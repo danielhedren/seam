@@ -5,7 +5,7 @@ import Testing
 
 @testable import Features
 
-@Suite struct CommandLineToolTests {
+@Suite(.timeLimit(.minutes(1))) struct CommandLineToolTests {
     /// Any file stands in for the command; install only links to it.
     private static let script = URL(fileURLWithPath: #filePath)
 

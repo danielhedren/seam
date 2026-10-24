@@ -33,7 +33,7 @@ private let namedMain = [
 
 private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, characterWidth: 7)
 
-@Suite struct DiffRowBuilderTests {
+@Suite(.timeLimit(.minutes(1))) struct DiffRowBuilderTests {
     @Test func unifiedModeListsEveryLineUnderItsHunkHeader() {
         let rows = DiffRowBuilder.rows(for: sampleReview(), mode: .unified)
         #expect(rows.count == 1 + 1 + 7 + 1 + 1)
@@ -116,7 +116,7 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
     }
 }
 
-@Suite struct DiffLayoutTests {
+@Suite(.timeLimit(.minutes(1))) struct DiffLayoutTests {
     private let layout = DiffLayout(
         rows: DiffRowBuilder.rows(
             for: sampleReview(), mode: .unified,
@@ -149,7 +149,7 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
     }
 }
 
-@Suite struct ScrollAnchorTests {
+@Suite(.timeLimit(.minutes(1))) struct ScrollAnchorTests {
     private let paths = ["a.txt", "b.txt"]
 
     private func layout(_ review: ReviewDiff, _ mode: DiffLayoutMode = .unified) -> DiffLayout {
@@ -215,7 +215,7 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
     }
 }
 
-@Suite struct SelectionTests {
+@Suite(.timeLimit(.minutes(1))) struct SelectionTests {
     @Test func unifiedSelectionCopiesPartialFirstAndLastLines() {
         let layout = DiffLayout(
             rows: DiffRowBuilder.rows(for: sampleReview(), mode: .unified), metrics: metrics)
@@ -256,7 +256,7 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
     }
 }
 
-@Suite struct DiffPaletteTests {
+@Suite(.timeLimit(.minutes(1))) struct DiffPaletteTests {
     @Test(arguments: DiffPalette.all.map(\.name))
     func textMeetsWCAGAAOnEveryBackground(name: String) throws {
         let palette = try #require(DiffPalette.all.first { $0.name == name }?.palette)
@@ -331,7 +331,7 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
     }
 }
 
-@Suite struct SyntaxRowTests {
+@Suite(.timeLimit(.minutes(1))) struct SyntaxRowTests {
     @Test func aHunkHeaderNamesTheDefinitionsAroundItsFirstChange() {
         let scopes = [
             SyntaxScope(lines: 0...9, name: "Handler"), SyntaxScope(lines: 1...2, name: "Setup"),
@@ -378,7 +378,7 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
     }
 }
 
-@Suite struct WrapTests {
+@Suite(.timeLimit(.minutes(1))) struct WrapTests {
     private func row(_ text: String) -> DiffRow {
         .line(file: 0, UnifiedLine(old: 1, new: 1, kind: .context, text: text))
     }
@@ -414,7 +414,7 @@ private let metrics = DiffLayout.Metrics(lineHeight: 10, fileHeaderHeight: 20, c
     }
 }
 
-@Suite struct DiffSearchTests {
+@Suite(.timeLimit(.minutes(1))) struct DiffSearchTests {
     @Test func matchesIgnoreCaseAndFindEveryOccurrenceInReadingOrder() {
         let layout = DiffLayout(
             rows: DiffRowBuilder.rows(for: sampleReview(), mode: .split), metrics: metrics)

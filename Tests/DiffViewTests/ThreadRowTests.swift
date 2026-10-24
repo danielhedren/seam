@@ -39,7 +39,7 @@ private func texts(_ rows: [DiffRow]) -> [String] {
     }
 }
 
-@Suite struct ThreadRowTests {
+@Suite(.timeLimit(.minutes(1))) struct ThreadRowTests {
     @Test(arguments: [DiffLayoutMode.unified, .split])
     func aThreadRowFollowsTheLastLineOfItsRange(mode: DiffLayoutMode) {
         let threads = ["a.txt": [marker("new", .new, 2...3), marker("old", .old, 2...2)]]
@@ -158,7 +158,7 @@ private func texts(_ rows: [DiffRow]) -> [String] {
     }
 }
 
-@MainActor @Suite struct ThreadRowDrawingTests {
+@MainActor @Suite(.timeLimit(.minutes(1))) struct ThreadRowDrawingTests {
     /// Side by side, a thread's row is washed only in its own column, the other left empty as
     /// beside an unpaired line, so a long summary can't read as belonging to both sides.
     @Test(arguments: [ThreadAnchor.Side.new, .old])

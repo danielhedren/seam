@@ -8,7 +8,7 @@ import Testing
 
 @testable import Features
 
-@MainActor @Suite struct SearchTests {
+@MainActor @Suite(.timeLimit(.minutes(1))) struct SearchTests {
     private func session(_ repo: FixtureRepo, clock: ManualClock = ManualClock()) async throws
         -> (RepoSession, WorktreeReview)
     {

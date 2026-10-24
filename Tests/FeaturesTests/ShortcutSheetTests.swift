@@ -4,6 +4,7 @@ import Testing
 
 /// Help › Keyboard Shortcuts (SPEC §9), generated from the catalog.
 @MainActor
+@Suite(.timeLimit(.minutes(1)))
 struct ShortcutSheetTests {
     @Test func listsEveryShortcutOnceByMenuInMenuBarOrder() {
         let groups = ShortcutSheet.groups

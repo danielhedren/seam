@@ -14,6 +14,7 @@ import Testing
 /// render shows as solid black. Record with `SNAPSHOT_TESTING_RECORD=all swift test`.
 @MainActor
 @Suite(
+    .timeLimit(.minutes(1)),
     .snapshots(record: .missing),
     .enabled("the references are drawn on a 2x display") {
         await MainActor.run { retinaScreen() != nil }

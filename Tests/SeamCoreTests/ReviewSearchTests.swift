@@ -4,7 +4,7 @@ import Testing
 
 @testable import SeamCore
 
-@Suite struct ReviewSearchTests {
+@Suite(.timeLimit(.minutes(1))) struct ReviewSearchTests {
     private func file(_ path: String, _ lines: [DiffLine]) -> ReviewFile {
         var diff = FileDiff(oldPath: path, newPath: path, status: .modified)
         var hunk = Hunk(oldStart: 1, oldCount: 0, newStart: 1, newCount: 0, section: "")

@@ -5,7 +5,7 @@ import Testing
 
 @testable import DiffView
 
-@MainActor @Suite struct TextLineTests {
+@MainActor @Suite(.timeLimit(.minutes(1))) struct TextLineTests {
     /// Drawing a coloured run sets the context's fill, so a plain run after it that took the
     /// context's colour came out in the span's colour.
     @Test func textAfterASpanKeepsThePlainColour() throws {

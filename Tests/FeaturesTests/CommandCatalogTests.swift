@@ -5,7 +5,7 @@ import Testing
 
 @testable import Features
 
-@MainActor @Suite struct CommandCatalogTests {
+@MainActor @Suite(.timeLimit(.minutes(1))) struct CommandCatalogTests {
     private func key(_ shortcut: SeamCommand.Shortcut) -> String? {
         switch shortcut {
         case .command(let key, let modifiers), .single(let key, let modifiers):

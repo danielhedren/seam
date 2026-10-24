@@ -5,7 +5,7 @@ import Testing
 
 @testable import SeamCore
 
-@Suite struct CandidateRankingTests {
+@Suite(.timeLimit(.minutes(1))) struct CandidateRankingTests {
     private func candidate(
         _ ref: String, count: Int, configure: (inout ParentCandidate) -> Void = { _ in }
     )
@@ -46,7 +46,7 @@ import Testing
     }
 }
 
-@Suite struct GlobTests {
+@Suite(.timeLimit(.minutes(1))) struct GlobTests {
     @Test(arguments: [
         ("origin/renovate/**", "origin/renovate/npm/x", true),
         ("origin/renovate/**", "origin/renovate-x", false),
@@ -62,7 +62,7 @@ import Testing
     }
 }
 
-@Suite struct ReviewDiffTests {
+@Suite(.timeLimit(.minutes(1))) struct ReviewDiffTests {
     @Test func scopesSplitCommittedFromUncommittedWork() async throws {
         let repo = try await FixtureRepo()
         let base = try await repo.sha("HEAD")
@@ -119,7 +119,7 @@ import Testing
     }
 }
 
-@Suite struct RepositoryServiceTests {
+@Suite(.timeLimit(.minutes(1))) struct RepositoryServiceTests {
     @Test func listsWorktreesWithBranchesAndOpensFromAnyOfThem() async throws {
         let repo = try await FixtureRepo()
         let feature = try await repo.worktree("feature", branch: "feature", from: "origin/main")
@@ -136,7 +136,7 @@ import Testing
     }
 }
 
-@Suite struct WorktreeActivityTests {
+@Suite(.timeLimit(.minutes(1))) struct WorktreeActivityTests {
     @Test func countsStagedUnstagedAndUntrackedFiles() async throws {
         let repo = try await FixtureRepo()
         try repo.write("README.md", "edited\n")
@@ -196,7 +196,7 @@ import Testing
     }
 }
 
-@Suite struct GeneratedFileTests {
+@Suite(.timeLimit(.minutes(1))) struct GeneratedFileTests {
     @Test func attributesAndGlobsMarkGeneratedFilesWhichSortLast() async throws {
         let repo = try await FixtureRepo()
         let base = try await repo.sha("HEAD")
@@ -221,7 +221,7 @@ import Testing
     }
 }
 
-@Suite struct DiffStatTests {
+@Suite(.timeLimit(.minutes(1))) struct DiffStatTests {
     @Test(arguments: [
         (
             " 19 files changed, 454 insertions(+), 948 deletions(-)\n",
@@ -236,7 +236,7 @@ import Testing
     }
 }
 
-@Suite struct TreeOrderTests {
+@Suite(.timeLimit(.minutes(1))) struct TreeOrderTests {
     @Test func foldersComeBeforeFilesAtEachLevelThenNames() {
         let paths = ["notes.md", "src/b.cs", "src/a/z.cs", "README.md", "src/c.cs", "app.json"]
         #expect(

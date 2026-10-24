@@ -9,7 +9,7 @@ import Testing
 /// SPEC §7.1: a window keeps its frame, titlebar and toolbar while its repo opens, and a repo's
 /// window comes back in its own frame. Windows here are real but never ordered on screen.
 @MainActor
-@Suite struct WindowLayoutTests {
+@Suite(.timeLimit(.minutes(1))) struct WindowLayoutTests {
     /// What moves the content when it changes: the frame, the titlebar's height and the toolbar.
     private struct Chrome: Equatable {
         var frame: NSRect

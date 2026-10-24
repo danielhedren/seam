@@ -16,7 +16,7 @@ private func ids() -> () -> String {
     }
 }
 
-@Suite struct ThreadRulesTests {
+@Suite(.timeLimit(.minutes(1))) struct ThreadRulesTests {
     @Test func aReplyAddsToTheThreadAndReopensIt() throws {
         var threads: [ReviewThread] = []
         let newID = ids()
@@ -97,7 +97,7 @@ private func ids() -> () -> String {
     }
 }
 
-@Suite struct ThreadAnchorTests {
+@Suite(.timeLimit(.minutes(1))) struct ThreadAnchorTests {
     @Test func linesThatMovedAreFoundNearestTheirOldPlace() {
         #expect(anchor.locate(in: ["a", "b", "c", "d"]) == 2...3)
         #expect(anchor.locate(in: ["new", "new", "a", "b", "c"]) == 4...5)
@@ -116,7 +116,7 @@ private func ids() -> () -> String {
     }
 }
 
-@Suite struct ThreadStoreTests {
+@Suite(.timeLimit(.minutes(1))) struct ThreadStoreTests {
     private let repository = Repository(
         commonDirectory: URL(fileURLWithPath: "/r/app/.git"), anchor: URL(fileURLWithPath: "/r/app")
     )
@@ -210,7 +210,7 @@ private func ids() -> () -> String {
     }
 }
 
-@Suite struct ThreadTextTests {
+@Suite(.timeLimit(.minutes(1))) struct ThreadTextTests {
     @Test func aThreadReadsAsItsLocationLinesAndComments() throws {
         var threads: [ReviewThread] = []
         let thread = try ThreadRules.open(

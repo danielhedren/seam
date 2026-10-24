@@ -5,7 +5,7 @@ import Testing
 
 @testable import SeamCore
 
-@Suite struct StaleParentTests {
+@Suite(.timeLimit(.minutes(1))) struct StaleParentTests {
     private func check(_ repo: FixtureRepo, _ worktree: URL) async throws -> StaleParent? {
         let detection = try await BaseDetector(git: repo.git).detect(in: worktree)
         return try await StaleParent.check(detection, in: worktree, git: repo.git)

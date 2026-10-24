@@ -4,7 +4,7 @@ import Testing
 @testable import DiffView
 
 @MainActor
-@Suite struct ImagePreviewTests {
+@Suite(.timeLimit(.minutes(1))) struct ImagePreviewTests {
     @Test func captionsGiveABitmapsPixelsNotItsPoints() throws {
         let rep = try #require(
             NSBitmapImageRep(

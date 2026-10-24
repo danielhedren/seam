@@ -5,7 +5,7 @@ import Testing
 
 @testable import SeamCore
 
-@Suite struct PullRequestTargetTests {
+@Suite(.timeLimit(.minutes(1))) struct PullRequestTargetTests {
     private static let github: Set<String> = ["github.com"]
 
     private func pullRequest(
