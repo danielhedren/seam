@@ -61,7 +61,15 @@ spec disagree, stop and ask; do not pick one silently.
 - Swift Testing (`@Test`, `#expect`, `#require`) for everything except performance baselines and
   UI tests (XCTest). Name tests after behaviour.
 - A test that passes before and after the change it is meant to prove is not evidence. Check that
-  new tests fail without the change.
+  new tests fail without the change: `make prove FILTER=<test name>` takes the uncommitted change
+  under `Sources/` away, expects the tests to fail, and puts it back.
+- Test at the lowest layer that can fail the way the bug does: a pure function first, else a
+  `RepoSession` test on a `FixtureRepo`, driven through `CommandCatalog` ids or the `session`
+  calls the views make. Every interactive feature gets one such test per user flow.
+- Wait on conditions (`settled()`, `loaded()`, `until {}`, `clock.sleepers()`), never fixed
+  pauses. Every suite has a `.timeLimit`, and a helper that waits must give up when cancelled.
+- Assert values (`== ["a.txt"]`), not presence (`!= nil`). Scratch settings and folders come
+  from `Scratch` so nothing is left behind; session tests run git through `ReadOnlyGit`.
 
 ## Code style
 

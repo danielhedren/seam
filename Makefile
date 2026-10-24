@@ -1,4 +1,4 @@
-.PHONY: setup check format lint build test test-github test-all app release run install uninstall dist strings
+.PHONY: setup check format lint build test prove test-github test-all app release run install uninstall dist strings
 
 setup:
 	git config core.hooksPath .githooks
@@ -69,6 +69,10 @@ REAL_ENV = SEAM_REAL_REPO="$(REAL_REPO)" SEAM_REAL_COMMIT="$(REAL_COMMIT)" \
 	SEAM_REAL_BASE="$(REAL_BASE)" SEAM_REAL_STAT="$(REAL_STAT)"
 
 # Reads the real repo's pull requests with the user's own gh (SPEC §7.8): network and a login.
+# The tests matching FILTER fail without the uncommitted change under Sources/ and pass with it.
+prove:
+	Scripts/prove-test.sh '$(FILTER)'
+
 test-github:
 	$(REAL_ENV) SEAM_REAL_GITHUB=1 swift test --filter RealGitHub
 
