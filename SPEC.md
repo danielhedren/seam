@@ -675,7 +675,8 @@ SeamApp (app target: entry point only)
       ├ Highlighting  tree-sitter wrapper, highlight cache
       └ SeamCore      domain: Repo, Worktree, BaseDetector, ReviewDiff, IntraLineDiff, ViewedState
           └ GitKit    process runner, git commands, porcelain/-z/patch parsers
-seam (CLI executable) ─ depends only on the URL scheme contract
+seam (CLI executable) ─ SeamCore, GitKit: the URL scheme, the thread store, and the app's
+                        state file and settings, whose types live in SeamCore
 seam-debug (M1)       ─ SeamCore
 ```
 

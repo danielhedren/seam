@@ -34,10 +34,9 @@ public enum AppChoices {
     public static func baseOverride(
         branch: String, of repository: Repository, in root: URL = stateRoot
     ) -> String? {
-        struct State: Decodable { var baseOverrides: [String: String]? }
         guard let data = try? Data(contentsOf: stateFile(for: repository, in: root)) else {
             return nil
         }
-        return (try? JSONDecoder().decode(State.self, from: data))?.baseOverrides?[branch]
+        return (try? JSONDecoder().decode(RepoState.self, from: data))?.baseOverrides[branch]
     }
 }

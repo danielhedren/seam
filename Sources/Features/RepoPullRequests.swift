@@ -4,15 +4,6 @@ import Observation
 import SeamCore
 import os
 
-/// What Seam keeps of a repo's pull requests between launches (SPEC §11).
-public struct SavedPullRequests: Codable, Equatable, Sendable {
-    /// By local branch.
-    public var byBranch: [String: PullRequest] = [:]
-    public var baseRefs: [String: String] = [:]
-    public var unpushed: [String: Int] = [:]
-    public var read: Date?
-}
-
 /// A repo's pull requests, read through gh and kept current (SPEC §7.8). Owned by
 /// `RepoSession`; rows read their branch's.
 @MainActor

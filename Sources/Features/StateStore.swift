@@ -6,34 +6,6 @@ import Highlighting
 import SeamCore
 import os
 
-/// What Seam remembers per repo (SPEC §11).
-public struct RepoState: Codable, Equatable, Sendable {
-    public struct WorktreeState: Codable, Equatable, Sendable {
-        public var scope: String?
-        public var wraps: Bool?
-        public var whitespace: String?
-        public var viewed: ViewedMarks?
-        /// Parents whose "looks merged" banner the reader dismissed.
-        public var dismissedStaleParents: [String]?
-        /// Pull request bases whose suggestion the reader dismissed, by full ref.
-        public var dismissedPullRequestBases: [String]?
-        /// Where the reader was, restored when the worktree is shown again.
-        public var anchor: ScrollAnchor?
-        public var currentFile: String?
-    }
-
-    /// Base override per branch: the chosen parent ref (SPEC §5.3).
-    public var baseOverrides: [String: String] = [:]
-    /// Keyed by worktree path.
-    public var worktrees: [String: WorktreeState] = [:]
-    /// The worktree the window last showed, selected again on reopen.
-    public var selectedWorktree: String?
-    /// The last pull requests read, shown at once on reopen (SPEC §7.8).
-    public var pullRequests: SavedPullRequests?
-
-    public init() {}
-}
-
 public protocol StateStore: Sendable {
     func load(_ repository: Repository) async -> RepoState
     func save(_ state: RepoState, for repository: Repository) async

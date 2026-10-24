@@ -1,5 +1,6 @@
 import Foundation
 import GitKit
+import SeamCore
 
 /// Row positions as prefix sums of row heights (SPEC §8.5). Pure, so hit testing, navigation and
 /// scroll anchoring are unit tested without a window.
@@ -143,23 +144,6 @@ struct DiffLayout: Equatable, Sendable {
         case .thread(_, let marker): marker.text.count
         case .fileHeader, .image, .hunkHeader, .draft, .openThread: 0
         }
-    }
-}
-
-/// Where the reader is, in terms that survive a reload: a file and a line in it.
-public struct ScrollAnchor: Codable, Equatable, Sendable {
-    public var path: String
-    /// New-side line number at the top of the view, or the old side for a deleted line.
-    public var line: Int?
-    public var isOldSide = false
-    /// How far the top of the view sits below the top of the anchored row.
-    public var offset: Double
-
-    public init(path: String, line: Int?, isOldSide: Bool = false, offset: Double) {
-        self.path = path
-        self.line = line
-        self.isOldSide = isOldSide
-        self.offset = offset
     }
 }
 
