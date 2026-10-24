@@ -28,6 +28,8 @@ final class RepoSession {
     /// The repo's review threads, once it's open (SPEC §7.7).
     private(set) var threads: RepoThreads?
     private(set) var pullRequestThreads: PullRequestThreads?
+    private var rowRefresh: Task<Void, Never>?
+    private var rowRefreshPending = false
     /// The repo's pull requests, once it's open (SPEC §7.8).
     private(set) var pullRequests: RepoPullRequests?
     var showsThreadPanel = false
@@ -476,10 +478,14 @@ final class RepoSession {
             } catch {
                 logger.error("worktree list failed: \(error)")
             }
-            await refreshRows(skippingSelected: false)
-            selected?.reloadDiff()
+            // The diff being read first: its parent may have moved, so it's detected again.
+            if let selected {
+                await selected.refreshDetection()
+                selected.reloadDiff()
+            }
             // A push moves a remote ref, so it's also the cue that a PR may have changed.
             pullRequests?.request(.refs)
+            refreshRowsAfterRefs()
             if reviews.map(\.id) != before {
                 // Restarting from here would cancel this very task mid-apply.
                 Task { [weak self] in self?.restartMonitor() }
@@ -495,6 +501,23 @@ final class RepoSession {
             } else {
                 refreshHiddenActivity(review)
             }
+        }
+    }
+
+    /// Every row's detection and counts after a ref change, off the path that reloads the shown
+    /// diff. A change during a pass asks for one more instead of cancelling it, which would
+    /// leave rows showing a cancelled git call as a problem.
+    private func refreshRowsAfterRefs() {
+        if rowRefresh != nil {
+            rowRefreshPending = true
+            return
+        }
+        rowRefresh = Task { [weak self] in
+            repeat {
+                self?.rowRefreshPending = false
+                await self?.refreshRows(skippingSelected: true)
+            } while self?.rowRefreshPending == true && self?.isClosed == false
+            self?.rowRefresh = nil
         }
     }
 
@@ -537,6 +560,7 @@ final class RepoSession {
         pullRequestThreads?.stop()
         pullRequests?.stop()
         rowsTask?.cancel()
+        rowRefresh?.cancel()
         for task in deferredActivity.values { task.cancel() }
         selected?.cancelLoading()
     }
@@ -585,6 +609,7 @@ final class RepoSession {
         await reloadTask?.value
         await selected?.loaded()
         await rowsTask?.value
+        await rowRefresh?.value
         await pullRequests?.idle()
         await saveTask?.value
     }

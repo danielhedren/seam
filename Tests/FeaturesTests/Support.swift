@@ -83,18 +83,23 @@ final class GatedGit: GitClient, Sendable {
         state.withLock { $0.open = false }
     }
 
+    /// A cancelled hold lets go, so a test that never releases fails at its time limit.
     private func hold() async {
         let id = state.withLock { state in
             state.nextID += 1
             return state.nextID
         }
-        await withCheckedContinuation { continuation in
-            let open = state.withLock { state in
-                state.held += 1
-                if !state.open { state.waiters[id] = continuation }
-                return state.open
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                let open = state.withLock { state in
+                    state.held += 1
+                    if !state.open, !Task.isCancelled { state.waiters[id] = continuation }
+                    return state.open || Task.isCancelled
+                }
+                if open { continuation.resume() }
             }
-            if open { continuation.resume() }
+        } onCancel: {
+            state.withLock { $0.waiters.removeValue(forKey: id) }?.resume()
         }
     }
 

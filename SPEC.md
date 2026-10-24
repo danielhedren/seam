@@ -787,7 +787,9 @@ This is where the project's performance risk lies.
   within it is delivered as one change. Unlike a trailing debounce, continuous writes can't
   postpone a reload indefinitely. Paths git ignores (`git check-ignore`) are dropped before they
   can open a window. A working-tree change refreshes that worktree's diff and counts, and
-  a ref change re-runs base detection for every worktree in the repo.
+  a ref change re-runs base detection for every worktree in the repo: the shown worktree's first,
+  then its diff reloads, and the other rows follow in one pass. Changes arriving during a pass
+  run one more pass after it rather than interrupting it.
 - Hidden worktrees refresh only their row counts (cheap: `git status --porcelain=v2 -z` plus the
   cached unique-commit count). Only the selected worktree's full diff is recomputed.
 - A reload keeps the scroll position anchored to the same file and line wherever possible.

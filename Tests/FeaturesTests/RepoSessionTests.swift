@@ -165,6 +165,31 @@ import Testing
         session.close()
     }
 
+    /// After a fetch, the diff being read reloads first; the other rows' counts follow and
+    /// don't hold it up.
+    @Test func aRefChangeReloadsTheShownDiffBeforeEveryRowIsCounted() async throws {
+        let repo = try await FixtureRepo()
+        let other = try await repo.worktree("other", branch: "other", from: "origin/main")
+        let feature = try await repo.worktree("feature", branch: "feature", from: "origin/main")
+        let git = GatedGit(repo.git, holding: other, command: "status")
+        git.release()
+        let session = RepoSession(directory: feature, services: services(git))
+        await session.open()
+        await session.settled()
+        let review = try #require(session.selected)
+        #expect(review.diff?.files.isEmpty == true)
+
+        git.close()
+        try await repo.commit("f.txt", "f\n", "Add f", in: feature)
+        await session.apply(RepoChange(refs: true))
+        await review.loaded()
+        #expect(review.diff?.files.map(\.diff.path) == ["f.txt"])
+        #expect(git.heldCount > 0, "the other row's count is still waiting")
+        git.release()
+        await session.settled()
+        session.close()
+    }
+
     @Test func aRefChangeRedetectsTheParent() async throws {
         let repo = try await FixtureRepo()
         let b = try await repo.worktree("b", branch: "b", from: "origin/main")
