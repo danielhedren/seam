@@ -43,7 +43,7 @@ import Testing
         #expect(session.reviews.first { $0.id == other.path }?.activity == nil)
         git.release()
         await session.rowsLoaded()
-        #expect(session.reviews.first { $0.id == other.path }?.activity != nil)
+        #expect(session.reviews.first { $0.id == other.path }?.activity?.uncommittedFiles == 0)
     }
 
     @Test func aFolderOutsideGitExplainsWhatToDo() async throws {
@@ -342,12 +342,29 @@ import Testing
         #expect(session.selected?.problem == .overrideGone("--all"))
     }
 
-    @Test func closingWhileOpeningLeavesNothingWatching() async throws {
+    /// Closed before its task gets to run: on the main actor `open()` can't start first.
+    @Test func closingBeforeOpenRunsLeavesNothingWatching() async throws {
         let repo = try await FixtureRepo()
         let session = RepoSession(directory: repo.main, services: services(repo.git))
 
         let opening = Task { await session.open() }
         session.close()
+        await opening.value
+
+        #expect(!session.isWatching)
+        #expect(session.state == .opening)
+    }
+
+    /// Closed while the worktrees are being listed, half way through opening.
+    @Test func closingWhileOpeningLeavesNothingWatching() async throws {
+        let repo = try await FixtureRepo()
+        let git = GatedGit(repo.git, holding: repo.main, command: "worktree")
+        let session = RepoSession(directory: repo.main, services: services(git))
+
+        let opening = Task { await session.open() }
+        while git.heldCount == 0 { await Task.yield() }
+        session.close()
+        git.release()
         await opening.value
 
         #expect(!session.isWatching)
