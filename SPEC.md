@@ -259,7 +259,7 @@ keeps the position.
 Each row shows:
 - The worktree directory name in bold, and the branch name if it differs.
 - The commits unique to the branch (from §5) and the files changed against its base ("5 commits ·
-  19 files"), `✎N` uncommitted files, and the line totals (`+454 −948`) on the right. Totals
+  19 files"), `✎N` uncommitted files (its tooltip says so), and the line totals (`+454 −948`) on the right. Totals
   include uncommitted changes and untracked text files, and are measured from the same base as
   the diff.
 - Time since the last change in that worktree: the newest of the HEAD commit time, the changed
@@ -376,7 +376,8 @@ of its header. Each worktree keeps its own view, query and options while the app
   changes every worktree, and it is remembered.
 - A sticky file header per file: a collapse chevron, status, path, `+/−` counts (left out when
   both are 0), and the viewed checkbox with its label at the right edge, so it sits in the same
-  place on every file. The chevron and checkbox are drawn at the text's height. A path too long
+  place on every file. The checkbox's tooltip says that `v` also moves to the next unviewed
+  file, which a click doesn't. The chevron and checkbox are drawn at the text's height. A path too long
   for the pane is shortened in the middle, so the counts and checkbox stay in view.
 - Syntax highlighting (§8.4).
 - **Word-level highlights within changed lines:** pair removed and added lines inside a hunk by

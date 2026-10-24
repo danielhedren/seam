@@ -34,6 +34,19 @@ enum FileActions {
         ])
     }
 
+    /// The header checkbox's tooltip: unlike `v`, a click stays on the file, so it says so.
+    static func viewedHelp(_ status: ViewedMarks.Status) -> String {
+        guard status != .viewed else {
+            return String(localized: "Mark as Not Viewed", bundle: .module)
+        }
+        let mark = String(localized: "Mark as Viewed", bundle: .module)
+        let key = CommandCatalog.shortcutLabel(of: "viewed")
+        guard !key.isEmpty else { return mark }
+        return String(
+            localized: "\(mark) (\(key) marks it and goes to the next unviewed file)",
+            bundle: .module)
+    }
+
     static func actions(for path: String, in session: RepoSession) -> [[Action]] {
         let viewed = session.selected?.viewedStatus(path) == .viewed
         let collapsed = session.selected?.collapsed.contains(path) == true

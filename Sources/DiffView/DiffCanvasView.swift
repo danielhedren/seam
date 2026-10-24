@@ -47,6 +47,7 @@ final class DiffCanvasView: NSView {
     var onFocusChange: ((Bool) -> Void)?
     var onExpand: ((String, Int, ExpandDirection) -> Void)?
     var onToggleViewed: ((String) -> Void)?
+    var viewedHelp: ((ViewedMarks.Status) -> String)?
     var onOpenThread: ((String) -> Void)?
     var onCloseCard: (() -> Void)?
     private(set) var threads: [String: [ThreadMarker]] = [:]

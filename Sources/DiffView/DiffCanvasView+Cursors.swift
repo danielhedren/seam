@@ -49,5 +49,42 @@ extension DiffCanvasView {
         for region in cursorRegions(in: visibleRect) {
             addCursorRect(region.rect, cursor: region.kind == .text ? .iBeam : .pointingHand)
         }
+        // Kept with the cursor rects, which are redone for the visible rows on every scroll.
+        removeAllToolTips()
+        guard viewedHelp != nil else { return }
+        for index in layout.rows(in: visibleRect.minY, visibleRect.maxY) {
+            guard case .fileHeader(let file) = layout.rows[index] else { continue }
+            addToolTip(viewedFrame(ofFile: file, row: index), owner: self, userData: nil)
+        }
+    }
+
+    func viewedFrame(ofFile file: Int, row: Int) -> NSRect {
+        let path = review.files[file].diff.path
+        return DiffHeaderDrawing.layout(
+            review.files[file], viewed: viewed[path] ?? .unviewed,
+            sinceViewed: sinceViewed.contains(path), in: chromeRect(ofRow: row), font: font,
+            palette: .light
+        ).viewedFrame
+    }
+
+    /// The checkbox's tooltip at `point`, if it's on one.
+    func viewedToolTip(at point: NSPoint) -> String? {
+        guard let viewedHelp else { return nil }
+        for index in layout.rows(in: point.y, point.y) {
+            guard case .fileHeader(let file) = layout.rows[index],
+                viewedFrame(ofFile: file, row: index).contains(point)
+            else { continue }
+            return viewedHelp(viewed[review.files[file].diff.path] ?? .unviewed)
+        }
+        return nil
+    }
+}
+
+extension DiffCanvasView: NSViewToolTipOwner {
+    nonisolated func view(
+        _ view: NSView, stringForToolTip tag: NSView.ToolTipTag, point: NSPoint,
+        userData data: UnsafeMutableRawPointer?
+    ) -> String {
+        MainActor.assumeIsolated { viewedToolTip(at: point) ?? "" }
     }
 }

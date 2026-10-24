@@ -91,4 +91,9 @@ struct WorktreeRowTests {
         }
         return nil
     }
+
+    @Test func theUncommittedMarkSaysWhatItCounts() {
+        #expect(Counted.uncommittedFiles(1) == "1 uncommitted file")
+        #expect(Counted.uncommittedFiles(2) == "2 uncommitted files")
+    }
 }

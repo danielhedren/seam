@@ -194,7 +194,11 @@ enum DiffHeaderDrawing {
 @MainActor
 final class DiffStickyHeaderView: NSView {
     var file: ReviewFile? {
-        didSet { if file != oldValue { needsDisplay = true } }
+        didSet {
+            guard file != oldValue else { return }
+            needsDisplay = true
+            window?.invalidateCursorRects(for: self)
+        }
     }
     var collapsed = false {
         didSet { if collapsed != oldValue { needsDisplay = true } }
@@ -205,6 +209,7 @@ final class DiffStickyHeaderView: NSView {
     var sinceViewed = false {
         didSet { if sinceViewed != oldValue { needsDisplay = true } }
     }
+    var viewedHelp: ((ViewedMarks.Status) -> String)?
     var font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular) {
         didSet { if font != oldValue { needsDisplay = true } }
     }
@@ -222,6 +227,12 @@ final class DiffStickyHeaderView: NSView {
     /// A click anywhere collapses the file, or toggles the viewed mark.
     override func resetCursorRects() {
         addCursorRect(bounds, cursor: .pointingHand)
+        removeAllToolTips()
+        guard let file, viewedHelp != nil else { return }
+        let layout = DiffHeaderDrawing.layout(
+            file, viewed: viewed, sinceViewed: sinceViewed, in: bounds, font: font,
+            palette: palette)
+        addToolTip(layout.viewedFrame, owner: self, userData: nil)
     }
 
     private var palette: DiffPalette {
@@ -242,5 +253,14 @@ final class DiffStickyHeaderView: NSView {
             file, viewed: viewed, sinceViewed: sinceViewed, in: bounds, font: font,
             palette: palette)
         onClick?(layout.viewedFrame.contains(point))
+    }
+}
+
+extension DiffStickyHeaderView: NSViewToolTipOwner {
+    nonisolated func view(
+        _ view: NSView, stringForToolTip tag: NSView.ToolTipTag, point: NSPoint,
+        userData data: UnsafeMutableRawPointer?
+    ) -> String {
+        MainActor.assumeIsolated { viewedHelp?(viewed) ?? "" }
     }
 }

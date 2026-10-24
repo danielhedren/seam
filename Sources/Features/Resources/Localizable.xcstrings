@@ -7,6 +7,16 @@
     " · resolved" : {
 
     },
+    "%@ (%@ marks it and goes to the next unviewed file)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$@ marks it and goes to the next unviewed file)"
+          }
+        }
+      }
+    },
     "%@ already exists and isn't Seam's. Remove it and try again." : {
 
     },
@@ -81,6 +91,9 @@
     "%lld running" : {
 
     },
+    "%lld uncommitted files" : {
+
+    },
     "%lld/%lld viewed" : {
       "localizations" : {
         "en" : {
@@ -107,6 +120,9 @@
 
     },
     "1 open thread" : {
+
+    },
+    "1 uncommitted file" : {
 
     },
     "Actual Size" : {

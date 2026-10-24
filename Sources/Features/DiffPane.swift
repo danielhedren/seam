@@ -38,6 +38,7 @@ struct DiffRepresentable: NSViewRepresentable {
         view.onFocusChange = { [session] focused in session.diffHasFocus = focused }
         view.onCurrentFileChange = { [session] path in session.noteReading(path) }
         view.onToggleViewed = { [session] path in session.toggleViewed(path, advance: false) }
+        view.viewedHelp = FileActions.viewedHelp
         view.menuForFile = { [session] path in FileActions.menu(for: path, in: session) }
         view.onSearchResult = { [session] current, total in
             session.find.result = (current, total)

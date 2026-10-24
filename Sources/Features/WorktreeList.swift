@@ -52,7 +52,10 @@ struct WorktreeRow: View {
             if hasDetails {
                 HStack(spacing: 6) {
                     if !summary.isEmpty { Text(summary).lineLimit(1) }
-                    if uncommittedFiles > 0 { Text(verbatim: "✎\(uncommittedFiles)") }
+                    if uncommittedFiles > 0 {
+                        Text(verbatim: "✎\(uncommittedFiles)")
+                            .help(Counted.uncommittedFiles(uncommittedFiles))
+                    }
                     ForEach(markers, id: \.self) { marker in
                         Text(marker).foregroundStyle(tint(.orange))
                     }

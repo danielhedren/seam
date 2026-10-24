@@ -32,4 +32,10 @@ enum Counted {
             ? String(localized: "1 file", bundle: .module)
             : String(localized: "\(count) files", bundle: .module)
     }
+
+    static func uncommittedFiles(_ count: Int) -> String {
+        count == 1
+            ? String(localized: "1 uncommitted file", bundle: .module)
+            : String(localized: "\(count) uncommitted files", bundle: .module)
+    }
 }

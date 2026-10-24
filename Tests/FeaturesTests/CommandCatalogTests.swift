@@ -146,4 +146,11 @@ import Testing
         #expect(SeamCommand.label(.tab, .shift) == "⇧⇥")
         #expect(SeamCommand.label("g", [.command, .shift]) == "⇧⌘G")
     }
+
+    @Test func theViewedCheckboxSaysHowItDiffersFromItsKey() {
+        #expect(
+            FileActions.viewedHelp(.unviewed)
+                == "Mark as Viewed (V marks it and goes to the next unviewed file)")
+        #expect(FileActions.viewedHelp(.viewed) == "Mark as Not Viewed")
+    }
 }

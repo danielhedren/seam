@@ -46,6 +46,13 @@ public final class DiffScrollView: NSScrollView {
     public var onToggleViewed: ((String) -> Void)? {
         didSet { canvas.onToggleViewed = onToggleViewed }
     }
+    /// The viewed checkbox's tooltip for a file in that state.
+    public var viewedHelp: ((ViewedMarks.Status) -> String)? {
+        didSet {
+            canvas.viewedHelp = viewedHelp
+            sticky.viewedHelp = viewedHelp
+        }
+    }
     /// The file at the top of the view, for the file list to follow.
     public var onCurrentFileChange: ((String?) -> Void)?
 

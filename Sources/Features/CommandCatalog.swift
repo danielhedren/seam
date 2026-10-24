@@ -177,6 +177,11 @@ enum CommandCatalog {
 
     /// A tooltip ending in the command's shortcut, read from the catalog so the two can't
     /// drift: "Reload (r)".
+    /// A command's key as menus show it; empty when it has none.
+    static func shortcutLabel(of id: String) -> String {
+        byID[id]?.shortcutLabel ?? ""
+    }
+
     static func help(_ text: String, command id: String) -> String {
         guard let label = byID[id]?.shortcutLabel, !label.isEmpty else { return text }
         return "\(text) (\(label))"

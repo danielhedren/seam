@@ -188,6 +188,22 @@ import Testing
         #expect(closed == 1)
     }
 
+    /// A click on the checkbox stays on the file, unlike `v`, so its tooltip says so.
+    @Test func theViewedCheckboxHasItsOwnTooltip() throws {
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        view.viewedHelp = { "help for \($0)" }
+        view.show(
+            DiffContent(review: review(["alpha"]), viewed: ["a.txt": .viewed]), position: .top)
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        let header = try #require(canvas.layout.rows.firstIndex { $0.isFileHeader })
+        let frame = canvas.viewedFrame(ofFile: 0, row: header)
+
+        #expect(
+            canvas.viewedToolTip(at: NSPoint(x: frame.midX, y: frame.midY)) == "help for viewed")
+        #expect(canvas.viewedToolTip(at: NSPoint(x: 40, y: frame.midY)) == nil)
+    }
+
     @Test func theSelectionIsTheTextOnScreen() throws {
         let view = DiffScrollView()
         view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
