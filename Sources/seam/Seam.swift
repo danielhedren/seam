@@ -20,6 +20,14 @@ struct Seam: AsyncParsableCommand {
 
             A typical round: `seam threads`, make the changes, then \
             `seam reply <id> "Done: ..." --as <name>` for each thread.
+
+            Reading the output: line numbers are from when a comment was written; a line under \
+            the header says where they are now, that they're gone (outdated), or that they're \
+            on the old side, lines your change removed. Ids starting gh- are a GitHub pull \
+            request's threads: seam can't change them, and each shows the gh command that \
+            answers it. Times are ISO 8601; pass wait's "As of" to the next --since. Exit \
+            status 64 means the arguments were wrong, 1 that the command failed, 2 that wait \
+            timed out.
             """,
         subcommands: [Open.self],
         groupedSubcommands: [
@@ -96,7 +104,12 @@ struct ThreadOptions: ParsableArguments {
         do {
             return try await RepositoryService(git: CLIGitClient()).open(folder)
         } catch {
-            throw Failure("\(folder.path) is not in a git worktree")
+            // Only git's own answer means "not a worktree"; anything else keeps its cause.
+            if case .nonZeroExit(_, _, let stderr) = error, stderr.contains("not a git repository")
+            {
+                throw Failure("\(folder.path) is not in a git worktree")
+            }
+            throw Failure("can't read the worktree at \(folder.path): \(error)")
         }
     }
 }
@@ -220,7 +233,10 @@ struct Wait: AsyncParsableCommand {
             ThreadText.format(
                 $0, showsWorktree: repo, read: read[$0.worktree], placement: placement(of: $0))
         }
-        parts += changes.deleted.map { "#\($0) deleted" }
+        parts += changes.deleted.map { id in
+            id.hasPrefix(ReviewThread.gitHubPrefix)
+                ? "#\(id) is gone from the pull request" : "#\(id) deleted"
+        }
         parts.append("As of \(ThreadTime.string(asOf))")
         print(parts.joined(separator: "\n\n"))
     }
@@ -374,7 +390,9 @@ struct Comment: AsyncParsableCommand {
             let base = try await ReviewBase.resolve(
                 detection: detection, override: override, in: worktree, git: git)
         else {
-            throw Failure("the base picked in Seam, \(override ?? ""), no longer resolves")
+            throw Failure(
+                override.map { "the base picked in Seam, \($0), no longer resolves" }
+                    ?? "the base Seam detected for this worktree no longer resolves")
         }
         return base.commit
     }

@@ -126,6 +126,10 @@ struct SeamCommandTests {
         #expect(unknown.status == 1)
         #expect(unknown.errors.contains("Error: no thread #deadbeef in this repository"))
 
+        let outside = try await seam(["threads"], in: FileManager.default.temporaryDirectory)
+        #expect(outside.status == 1)
+        #expect(outside.errors.contains("is not in a git worktree"))
+
         let past = try await seam(["comment", "a.txt:9", "Where?"], in: repo.main)
         #expect(past.status == 1)
         #expect(past.errors.contains("has 2 lines on the new side"))
