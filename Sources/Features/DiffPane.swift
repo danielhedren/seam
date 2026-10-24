@@ -44,7 +44,11 @@ struct DiffRepresentable: NSViewRepresentable {
         }
         view.onOpenThread = { [session] id in session.openThread(id) }
         view.onCloseCard = { [session] in
-            if session.draft != nil { session.draft = nil } else { session.closeThread() }
+            if session.selectedThreadID != nil {
+                session.closeThread()
+            } else {
+                session.draft = nil
+            }
         }
         // Reported from inside a SwiftUI update, so the change waits for the next turn.
         view.onOpenThreadHidden = { [session] hidden in

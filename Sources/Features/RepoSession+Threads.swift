@@ -22,9 +22,10 @@ extension RepoSession {
         selectedThreadID = nil
     }
 
-    /// Where the diff opens the composer: the draft, when it's on the worktree shown.
+    /// Where the diff opens the composer: the draft, when it's on the worktree shown and no
+    /// thread is open over it.
     func draftMarker(for review: WorktreeReview) -> DraftMarker? {
-        guard let draft, draft.worktree == review.id else { return nil }
+        guard let draft, draft.worktree == review.id, selectedThreadID == nil else { return nil }
         return DraftMarker(
             path: draft.anchor.path, side: draft.anchor.side, lines: draft.anchor.lines)
     }
@@ -88,8 +89,8 @@ extension RepoSession {
     func openThread(_ id: String) {
         guard let review = selected, let placed = review.placedThreads.first(where: { $0.id == id })
         else { return }
+        // The draft steps aside, text and all, until the thread closes.
         selectedThreadID = id
-        draft = nil
         let path = placed.path
         if placed.isInDiff, review.collapsed.contains(path) { review.toggleCollapsed(path) }
         if !placed.isInDiff { showsThreadPanel = true }

@@ -77,6 +77,30 @@ import Testing
         session.close()
     }
 
+    /// Glancing at another thread while writing doesn't lose what was typed: the draft steps
+    /// aside while the thread is open and comes back when it closes.
+    @Test func openingAThreadSetsTheDraftAsideAndClosingItBringsItBack() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\ntwo\n")
+        let (session, review, _) = await session(repo)
+        let reviewed = try #require(review)
+        let first = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1))
+        session.draft = ThreadDraft(worktree: reviewed.id, anchor: first)
+        await session.post("An earlier thread.")
+        let thread = try #require(session.selectedThreadID)
+        session.closeThread()
+
+        let second = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 2...2))
+        session.draft = ThreadDraft(worktree: reviewed.id, anchor: second, body: "Half writ")
+        session.openThread(thread)
+        #expect(session.draftMarker(for: reviewed) == nil, "one card at a time")
+        #expect(session.openThreadMarker(for: reviewed)?.id == thread)
+        session.closeThread()
+        #expect(session.draftMarker(for: reviewed)?.lines == 2...2)
+        #expect(session.draft?.body == "Half writ")
+        session.close()
+    }
+
     /// The open thread belongs to its worktree: after switching, Review › Resolve and Delete
     /// can't act on a thread that's no longer shown.
     @Test func switchingWorktreesClosesTheOpenThread() async throws {

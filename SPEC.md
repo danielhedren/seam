@@ -486,8 +486,9 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   both, so they can't look different): a title with its lines, comment count and status,
   Resolve or Reopen and Delete beside it, every comment (author in bold, age, Markdown body),
   the reply box, and "⌘↩ Reply ⎋ Close". Escape in the card, `t` again, or Escape in
-  the diff with nothing selected closes it back to its row. One thread is open at a time, and
-  opening one drops a draft; switching worktrees closes it. Opening a thread opens its collapsed file, and a resolved thread
+  the diff with nothing selected closes it back to its row. One thread is open at a time. Opening
+  one while writing sets the draft aside, text and all, until the thread closes; switching
+  worktrees closes it. Opening a thread opens its collapsed file, and a resolved thread
   stays while it's open. Its row is as tall as the conversation at the column's width.
 - **The thread panel** (an inspector on the right, `⌥⌘0`) is the overview: the worktree's
   threads by file, open ones first. Picking one opens it in the diff and highlights its card;
