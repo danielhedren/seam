@@ -594,45 +594,7 @@ import Testing
     }
 }
 
-/// One short turn of the run loop, for AppKit and SwiftUI layout; a sync function, since an
-/// async one can't run the loop itself.
-@MainActor
-private func runLoopOnce() {
-    RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.01))
-}
-
-/// The real diff pane in a window that's never shown, for driving the thread card end to end.
-@MainActor
-private struct CardWindow {
-    let window: NSWindow
-
-    init(session: RepoSession, review: WorktreeReview) {
-        window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 700), styleMask: [.titled],
-            backing: .buffered, defer: false)
-        window.contentView = NSHostingView(rootView: DiffPane(session: session, review: review))
-    }
-
-    /// Settles until `condition` holds, for a bounded time; false if it never did.
-    func wait(_ condition: () -> Bool) async -> Bool {
-        for _ in 0..<50 {
-            if condition() {
-                await settle()
-                return true
-            }
-            await settle()
-        }
-        return condition()
-    }
-
-    /// Lets SwiftUI, AppKit and the card's main-actor tasks all catch up.
-    func settle() async {
-        for _ in 0..<30 {
-            runLoopOnce()
-            await Task.yield()
-        }
-    }
-
+extension CardWindow {
     var host: ThreadCardHost? { Self.find(ThreadCardHost.self, in: window.contentView) }
 
     func textField(in view: NSView) -> NSView? {
@@ -656,7 +618,7 @@ private struct CardWindow {
         if !window.performKeyEquivalent(with: event) { window.sendEvent(event) }
     }
 
-    private static func find<T: NSView>(_ type: T.Type, in view: NSView?) -> T? {
+    static func find<T: NSView>(_ type: T.Type, in view: NSView?) -> T? {
         guard let view else { return nil }
         return (view as? T) ?? view.subviews.lazy.compactMap { find(type, in: $0) }.first
     }

@@ -4,6 +4,7 @@ import SeamCore
 import TestSupport
 import Testing
 
+@testable import DiffView
 @testable import Features
 
 /// Review › Show Changes Since Viewed (SPEC §7.4), through the catalog command and the session.
@@ -59,6 +60,24 @@ struct SinceViewedSessionTests {
         await until { review.sinceViewed.isEmpty }
         #expect(changes(review)?.count == 20)
         #expect(review.content?.sinceViewed == [])
+    }
+
+    /// The diff itself redraws with the change since viewed, not only the review's content.
+    @Test func theDiffOnScreenShowsTheChangeSinceViewed() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", numbered(1...20))
+        let (session, review) = try await viewedThenChanged(repo, store: MemoryStore())
+        let pane = CardWindow(session: session, review: review)
+        func drawn() -> [String]? {
+            CardWindow.find(DiffCanvasView.self, in: pane.window.contentView)?.review.files
+                .first?.diff.hunks.flatMap(\.lines).filter { $0.kind != .context }.map(\.text)
+        }
+        #expect(await pane.wait { drawn()?.count == 20 })
+
+        await session.toggleSinceViewed("a.txt")
+        #expect(await pane.wait { drawn() == ["10", "ten"] })
+        await session.toggleSinceViewed("a.txt")
+        #expect(await pane.wait { drawn()?.count == 20 })
     }
 
     @Test func markingItViewedAgainShowsTheFullDiff() async throws {

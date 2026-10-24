@@ -3,6 +3,7 @@ import DiffView
 import Foundation
 import GitKit
 import SeamCore
+import SwiftUI
 import Synchronization
 import TestSupport
 import Testing
@@ -393,4 +394,44 @@ final class OpenedURLs {
 @MainActor
 func command(_ id: String) throws -> SeamCommand {
     try #require(CommandCatalog.all.first { $0.id == id })
+}
+
+/// One short turn of the run loop, for AppKit and SwiftUI layout; a sync function, since an
+/// async one can't run the loop itself.
+@MainActor
+func runLoopOnce() {
+    RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.01))
+}
+
+/// The real diff pane in a window that's never shown, for driving it end to end.
+@MainActor
+struct CardWindow {
+    let window: NSWindow
+
+    init(session: RepoSession, review: WorktreeReview) {
+        window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 700), styleMask: [.titled],
+            backing: .buffered, defer: false)
+        window.contentView = NSHostingView(rootView: DiffPane(session: session, review: review))
+    }
+
+    /// Settles until `condition` holds, for a bounded time; false if it never did.
+    func wait(_ condition: () -> Bool) async -> Bool {
+        for _ in 0..<50 {
+            if condition() {
+                await settle()
+                return true
+            }
+            await settle()
+        }
+        return condition()
+    }
+
+    /// Lets SwiftUI, AppKit and the card's main-actor tasks all catch up.
+    func settle() async {
+        for _ in 0..<30 {
+            runLoopOnce()
+            await Task.yield()
+        }
+    }
 }

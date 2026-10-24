@@ -15,6 +15,7 @@ struct DiffRepresentable: NSViewRepresentable {
             var range: Int
             var narrowing: Narrowing
             var threads: [String: [ThreadMarker]]
+            var sinceViewed: [String: String]
             var mode: DiffLayoutMode
             var collapsed: Set<String>
             var contentsVersion: Int
@@ -71,6 +72,7 @@ struct DiffRepresentable: NSViewRepresentable {
         let shown = Coordinator.Shown(
             id: review.id, version: review.diffVersion, range: review.shownRangeVersion,
             narrowing: review.narrowing, threads: review.threadMarkers,
+            sinceViewed: review.sinceViewed,
             mode: review.mode,
             collapsed: review.collapsed, contentsVersion: review.contentsVersion,
             syntaxVersion: review.syntaxVersion, wraps: review.wraps, viewed: review.viewed,
