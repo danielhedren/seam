@@ -46,6 +46,18 @@ import Testing
         #expect(byID["elsewhere"] == .notShown)
     }
 
+    /// GitHub keeps a comment's path as it was; after a rename the thread follows the file to
+    /// its new path.
+    @Test func aThreadOnARenamedFileIsPlacedOnItsNewPath() {
+        let context = ThreadPlacer.Context(
+            paths: ["new.txt"],
+            text: { path, _ in path == "new.txt" ? TextLines.split("one\ntwo\n") : nil },
+            renamed: ["old.txt": "new.txt"])
+        let placed = ThreadPlacer.place([thread("t", "old.txt")], in: context)
+        #expect(placed.first?.placement == .lines(2...2))
+        #expect(placed.first?.path == "new.txt")
+    }
+
     /// GitHub's hunk and the worktree's file may disagree on line endings; only the text counts.
     @Test func lineEndingsDontCountWhenFindingTheLines() {
         let crlf = ThreadAnchor(path: "a", side: .new, lines: 2...2, text: ["two"])

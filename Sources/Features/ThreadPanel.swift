@@ -86,7 +86,7 @@ struct ThreadPanel: View {
         var order: [String] = []
         var byPath: [String: [PlacedThread]] = [:]
         for item in placed {
-            let path = item.thread.anchor.path
+            let path = item.path
             if byPath[path] == nil { order.append(path) }
             byPath[path, default: []].append(item)
         }

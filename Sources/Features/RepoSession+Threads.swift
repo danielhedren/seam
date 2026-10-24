@@ -90,7 +90,7 @@ extension RepoSession {
         else { return }
         selectedThreadID = id
         draft = nil
-        let path = placed.thread.anchor.path
+        let path = placed.path
         if placed.isInDiff, review.collapsed.contains(path) { review.toggleCollapsed(path) }
         if !placed.isInDiff { showsThreadPanel = true }
     }
@@ -117,7 +117,7 @@ extension RepoSession {
     func openThreadAtCursor() {
         guard let review = selected, let location = diff.readingLocation else { return }
         let here = review.placedThreads.first { placed in
-            guard placed.thread.anchor.path == location.path,
+            guard placed.path == location.path,
                 case .lines(let lines) = placed.placement
             else { return false }
             return lines.contains(location.line)
@@ -154,7 +154,7 @@ extension RepoSession {
     func showInDiff(_ placed: PlacedThread) {
         guard case .lines(let lines) = placed.placement else { return }
         diff.scroll(
-            toLine: lines.lowerBound, inFile: placed.thread.anchor.path,
+            toLine: lines.lowerBound, inFile: placed.path,
             side: placed.thread.anchor.side)
     }
 

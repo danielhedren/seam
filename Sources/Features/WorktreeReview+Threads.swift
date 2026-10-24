@@ -47,7 +47,11 @@ extension WorktreeReview {
                 lines[key] = split
                 return split
             },
-            commits: commitLog?.commits.map(\.id) ?? [], newestShown: newest)
+            commits: commitLog?.commits.map(\.id) ?? [], newestShown: newest,
+            renamed: Dictionary(
+                (diff?.files ?? []).compactMap { file in
+                    file.diff.oldPath.flatMap { $0 == file.diff.path ? nil : ($0, file.diff.path) }
+                }, uniquingKeysWith: { first, _ in first }))
         let placed = ThreadPlacer.place(allThreads, in: context)
         placementCache.key = key
         placementCache.placed = placed
@@ -65,7 +69,9 @@ extension WorktreeReview {
 
     /// The file list's markers: each file's open and resolved threads, outdated ones included.
     var threadCountsByPath: [String: FileThreadCounts] {
-        threadCounts { $0.anchor.path }
+        let paths = Dictionary(
+            placedThreads.map { ($0.id, $0.path) }, uniquingKeysWith: { first, _ in first })
+        return threadCounts { paths[$0.id] ?? $0.anchor.path }
     }
 
     /// The commit list's markers: each row's threads, by the commit they were written on.
@@ -104,7 +110,7 @@ extension WorktreeReview {
         var markers: [String: [ThreadMarker]] = [:]
         for placed in placedThreads where showsResolved || !placed.thread.isResolved {
             guard let marker = Self.marker(placed) else { continue }
-            markers[placed.thread.anchor.path, default: []].append(marker)
+            markers[placed.path, default: []].append(marker)
         }
         placementCache.markersKey = key
         placementCache.markers = markers

@@ -14,10 +14,13 @@ public enum ThreadPlacement: Equatable, Sendable {
 public struct PlacedThread: Equatable, Identifiable, Sendable {
     public var thread: ReviewThread
     public var placement: ThreadPlacement
+    /// The file it's on in this diff: its anchor's, or where a rename took that.
+    public var path: String
 
-    public init(thread: ReviewThread, placement: ThreadPlacement) {
+    public init(thread: ReviewThread, placement: ThreadPlacement, path: String? = nil) {
         self.thread = thread
         self.placement = placement
+        self.path = path ?? thread.anchor.path
     }
 
     public var id: String { thread.id }
@@ -38,36 +41,52 @@ public enum ThreadPlacer {
         /// nil when a scope is shown.
         public var commits: [String]
         public var newestShown: String?
+        /// Renamed files' new paths by their old: a pull request's comment keeps the old one.
+        public var renamed: [String: String]
 
         public init(
             paths: Set<String>,
             text: @escaping (_ path: String, _ side: ThreadAnchor.Side) -> [Substring]?,
-            commits: [String] = [], newestShown: String? = nil
+            commits: [String] = [], newestShown: String? = nil, renamed: [String: String] = [:]
         ) {
             self.paths = paths
             self.text = text
             self.commits = commits
             self.newestShown = newestShown
+            self.renamed = renamed
         }
     }
 
     /// Every thread with where it is now, open ones first, then by file and line.
     public static func place(_ threads: [ReviewThread], in context: Context) -> [PlacedThread] {
-        threads.map { PlacedThread(thread: $0, placement: placement(of: $0, in: context)) }
-            .sorted { lhs, rhs in
-                if lhs.thread.isResolved != rhs.thread.isResolved { return !lhs.thread.isResolved }
-                if lhs.thread.anchor.path != rhs.thread.anchor.path {
-                    return ReviewDiffBuilder.precedesInTree(
-                        lhs.thread.anchor.path, rhs.thread.anchor.path)
-                }
-                return lhs.thread.anchor.lines.lowerBound < rhs.thread.anchor.lines.lowerBound
+        threads.map { thread in
+            let path = path(of: thread, in: context)
+            return PlacedThread(
+                thread: thread, placement: placement(of: thread, at: path, in: context), path: path)
+        }
+        .sorted { lhs, rhs in
+            if lhs.thread.isResolved != rhs.thread.isResolved { return !lhs.thread.isResolved }
+            if lhs.path != rhs.path {
+                return ReviewDiffBuilder.precedesInTree(lhs.path, rhs.path)
             }
+            return lhs.thread.anchor.lines.lowerBound < rhs.thread.anchor.lines.lowerBound
+        }
     }
 
-    static func placement(of thread: ReviewThread, in context: Context) -> ThreadPlacement {
+    private static func path(of thread: ReviewThread, in context: Context) -> String {
+        let path = thread.anchor.path
+        guard !context.paths.contains(path), let renamed = context.renamed[path] else {
+            return path
+        }
+        return renamed
+    }
+
+    static func placement(of thread: ReviewThread, at path: String, in context: Context)
+        -> ThreadPlacement
+    {
         let anchor = thread.anchor
-        guard context.paths.contains(anchor.path), thread.github?.onFile != true,
-            let text = context.text(anchor.path, anchor.side)
+        guard context.paths.contains(path), thread.github?.onFile != true,
+            let text = context.text(path, anchor.side)
         else { return .notShown }
         if let lines = anchor.locate(in: text) { return .lines(lines) }
         // A pull request comment whose hunk didn't show its lines was never placeable.
