@@ -162,7 +162,7 @@ extension RepoSession {
     /// naming the reader's signature and one for the agent (SPEC §7.7).
     func copyAgentPrompt(to pasteboard: NSPasteboard = .general) async {
         guard let review = selected else { return }
-        let reader = await threads?.reader(in: review.id) ?? ReviewThread.reader
+        let reader = await threads?.reader(in: review.id).name ?? ReviewThread.reader
         let agent = review.worktree.branch ?? review.worktree.path.lastPathComponent
         pasteboard.clearContents()
         pasteboard.setString(Self.agentPrompt(reader: reader, agent: agent), forType: .string)

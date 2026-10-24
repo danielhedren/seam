@@ -23,7 +23,7 @@ final class RepoThreads {
     private let store: ThreadStore
     private let git: any GitClient
     /// The reader's git email per worktree, which signs what they write.
-    private var readers: [String: String] = [:]
+    private var readers: [String: ReviewerIdentity] = [:]
     private var watchTask: Task<Void, Never>?
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
 
@@ -35,12 +35,12 @@ final class RepoThreads {
 
     /// The worktree's `user.email`, so a comment says who wrote it wherever it's read; "you"
     /// when git has none.
-    func reader(in worktree: String) async -> String {
+    func reader(in worktree: String) async -> ReviewerIdentity {
         if let known = readers[worktree] { return known }
         let email = try? await git.string(
             ["config", "--get", "user.email"], in: URL(fileURLWithPath: worktree))
         let name = email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let reader = name.isEmpty ? ReviewThread.reader : name
+        let reader = ReviewerIdentity(name: name.isEmpty ? ReviewThread.reader : name)
         readers[worktree] = reader
         return reader
     }
@@ -131,7 +131,7 @@ final class RepoThreads {
     /// Nil, with `failure` set, when the store refused it.
     @discardableResult
     func open(worktree: String, anchor: ThreadAnchor, body: String) async -> ReviewThread? {
-        let author = await reader(in: worktree)
+        let author = await reader(in: worktree).name
         let origin = await ThreadOrigin.find(
             path: anchor.path, in: URL(fileURLWithPath: worktree), git: git)
         return await change { threads throws(ThreadError) in
@@ -145,7 +145,7 @@ final class RepoThreads {
     func reply(to id: String, body: String) async -> Bool {
         var reader = ReviewThread.reader
         if let worktree = threads.first(where: { $0.id == id })?.worktree {
-            reader = await self.reader(in: worktree)
+            reader = await self.reader(in: worktree).name
         }
         let author = reader
         return await change { threads throws(ThreadError) in

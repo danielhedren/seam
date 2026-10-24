@@ -69,3 +69,26 @@ import Testing
         #expect(byID["blind"] == .notShown)
     }
 }
+
+@Suite struct ReviewerIdentityTests {
+    private func thread(_ authors: [String], resolved: Bool = false) -> ReviewThread {
+        ReviewThread(
+            id: "t", worktree: "/w",
+            anchor: ThreadAnchor(path: "a", side: .new, lines: 1...1, text: ["x"]),
+            author: authors.first ?? "", isResolved: resolved,
+            comments: authors.enumerated().map { index, author in
+                ThreadComment(id: "\(index)", author: author, body: "b", date: .now)
+            })
+    }
+
+    /// The reader's turn comes when someone else spoke last on an open thread; their own older
+    /// comments, signed "you", still count as theirs.
+    @Test func anOpenThreadAwaitsTheReaderWhenSomeoneElseSpokeLast() {
+        let me = ReviewerIdentity(name: "reader@example.com")
+        #expect(me.awaitsReply(thread(["reader@example.com", "claude"])))
+        #expect(me.awaitsReply(thread(["octocat"])))
+        #expect(!me.awaitsReply(thread(["claude", "reader@example.com"])))
+        #expect(!me.awaitsReply(thread(["claude", "you"])))
+        #expect(!me.awaitsReply(thread(["reader@example.com", "claude"], resolved: true)))
+    }
+}
