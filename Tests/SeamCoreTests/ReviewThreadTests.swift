@@ -225,12 +225,37 @@ private func ids() -> () -> String {
                 #00000001  open  src/a.cs:2-3  opened by you
                     2 │ b
                     3 │ c
-                  you · 2026-01-01 00:00
+                  you · 2026-01-01T00:00:00Z
                     Why two?
                     It was one.
-                  claude · 2026-01-01 00:10
+                  claude · 2026-01-01T00:10:00Z
                     Fixed.
                 """)
+    }
+
+    /// Line numbers are from when the comment was written; the agent is told where they are
+    /// now, or that they're gone, and what the old side means.
+    @Test func whereAThreadIsNowIsSaidUnderItsHeader() throws {
+        var threads: [ReviewThread] = []
+        _ = try ThreadRules.open(
+            &threads, worktree: "/w", anchor: anchor, author: "you", body: "Why?", now: start,
+            newID: ids())
+        func second(_ placement: ThreadPlacement?) -> String? {
+            ThreadText.format(threads[0], placement: placement, timeZone: .gmt)
+                .split(separator: "\n").dropFirst().first.map(String.init)
+        }
+        #expect(second(.lines(9...10)) == "  Now at src/a.cs:9-10: the lines moved since.")
+        #expect(second(.lines(2...3)) == "    2 │ b", "still where it was: nothing to say")
+        #expect(
+            second(.outdated)
+                == "  Outdated: these lines aren't in src/a.cs any more, so it may be addressed.")
+        #expect(second(.notShown) == "  src/a.cs isn't in this worktree any more.")
+
+        var old = threads[0]
+        old.anchor.side = .old
+        #expect(
+            ThreadText.format(old, timeZone: .gmt).split(separator: "\n").dropFirst().first
+                == "  Old side: lines from the base that the change removed.")
     }
 
     @Test(arguments: [

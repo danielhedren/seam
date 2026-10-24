@@ -83,6 +83,21 @@ struct SeamCommandTests {
         #expect(all.output.contains("  codex · ") && all.output.contains("    Because."))
     }
 
+    /// The comment's line numbers are from when it was written; seam says where the lines are
+    /// now, or that they're gone.
+    @Test func threadsSayWhereTheirLinesAreNow() async throws {
+        let repo = try await fixture()
+        _ = try await seam(["comment", "a.txt:2", "Why two?"], in: repo.main)
+        try repo.write("a.txt", "zero\none\ntwo\n")
+        #expect(
+            try await seam(["threads"], in: repo.main).output.contains(
+                "  Now at a.txt:3: the lines moved since."))
+        try repo.write("a.txt", "one\n")
+        #expect(
+            try await seam(["threads"], in: repo.main).output.contains(
+                "  Outdated: these lines aren't in a.txt any more"))
+    }
+
     @Test func jsonIsTheThreadsAsStored() async throws {
         let repo = try await fixture()
         _ = try await seam(["comment", "a.txt:1", "Why one?", "--as", "claude"], in: repo.main)

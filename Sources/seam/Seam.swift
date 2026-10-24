@@ -148,7 +148,9 @@ struct Threads: AsyncParsableCommand {
         } else {
             print(
                 threads.map {
-                    ThreadText.format($0, showsWorktree: repo, read: read[$0.worktree])
+                    ThreadText.format(
+                        $0, showsWorktree: repo, read: read[$0.worktree],
+                        placement: placement(of: $0))
                 }
                 .joined(separator: "\n\n"))
         }
@@ -207,7 +209,8 @@ struct Wait: AsyncParsableCommand {
         }
         let read = (try? store.gitHubThreads(for: repository).read) ?? [:]
         var parts = changes.changed.map {
-            ThreadText.format($0, showsWorktree: repo, read: read[$0.worktree])
+            ThreadText.format(
+                $0, showsWorktree: repo, read: read[$0.worktree], placement: placement(of: $0))
         }
         parts += changes.deleted.map { "#\($0) deleted" }
         parts.append("As of \(ThreadTime.string(asOf))")
@@ -249,7 +252,9 @@ struct ShowThread: AsyncParsableCommand {
         if json {
             try printJSON(thread)
         } else {
-            print(ThreadText.format(thread, read: read[thread.worktree]))
+            print(
+                ThreadText.format(
+                    thread, read: read[thread.worktree], placement: placement(of: thread)))
         }
     }
 }
@@ -412,6 +417,18 @@ private func setResolved(_ resolved: Bool, _ id: String, _ options: ThreadOption
         try ThreadRules.setResolved(resolved, &threads, id: id, now: .now)
     }
     print(resolved ? "Resolved #\(id)." : "Reopened #\(id).")
+}
+
+/// Where a thread's new-side lines are in its worktree's files now, by the app's own rules
+/// (SPEC §7.7); nil for the old side, which `ThreadText` explains instead.
+private func placement(of thread: ReviewThread) -> ThreadPlacement? {
+    guard thread.anchor.side == .new else { return nil }
+    let path = thread.anchor.path
+    let file = URL(fileURLWithPath: thread.worktree).appending(path: path)
+    guard let data = FileManager.default.contents(atPath: file.path) else { return .notShown }
+    let lines = TextLines.split(String(decoding: data, as: UTF8.self))
+    let context = ThreadPlacer.Context(paths: [path], text: { _, _ in lines })
+    return ThreadPlacer.place([thread], in: context).first?.placement
 }
 
 /// Seam's threads and the pull request threads the app read last, with when each worktree's

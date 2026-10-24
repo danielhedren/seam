@@ -3,14 +3,15 @@ import Foundation
 /// `seam threads` output, written for an agent to read (SPEC §13).
 public enum ThreadText {
     /// `showsWorktree` names the thread's worktree, for listings that span the repo. `read` is
-    /// when a pull request thread was read from GitHub.
+    /// when a pull request thread was read from GitHub, and `placement` where its lines are in
+    /// the worktree now. Times are ISO 8601, as `--since` takes them.
     public static func format(
         _ thread: ReviewThread, showsWorktree: Bool = false, read: Date? = nil,
-        timeZone: TimeZone = .current
+        placement: ThreadPlacement? = nil, timeZone: TimeZone = .current
     ) -> String {
         let anchor = thread.anchor
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssXXXXX"
         formatter.timeZone = timeZone
         formatter.locale = Locale(identifier: "en_US_POSIX")
         let lines =
@@ -27,6 +28,7 @@ public enum ThreadText {
                 + "\(place)\(side)  opened by \(thread.author)\(source)"
                 + (showsWorktree ? "  in \(thread.worktree)" : "")
         ]
+        if let note = note(anchor, placement) { text.append(note) }
         if let github = thread.github, let reply = thread.gitHubReply {
             let when = read.map { " at \(formatter.string(from: $0))" } ?? ""
             text += [
@@ -49,6 +51,25 @@ public enum ThreadText {
                 .map { "    " + $0 }
         }
         return text.joined(separator: "\n")
+    }
+
+    /// What the line numbers mean now: the comment's are from when it was written.
+    private static func note(_ anchor: ThreadAnchor, _ placement: ThreadPlacement?) -> String? {
+        if anchor.side == .old {
+            return "  Old side: lines from the base that the change removed."
+        }
+        switch placement {
+        case .lines(let now) where now != anchor.lines:
+            let lines =
+                now.count == 1 ? "\(now.lowerBound)" : "\(now.lowerBound)-\(now.upperBound)"
+            return "  Now at \(anchor.path):\(lines): the lines moved since."
+        case .outdated:
+            return
+                "  Outdated: these lines aren't in \(anchor.path) any more, so it may be addressed."
+        case .notShown:
+            return "  \(anchor.path) isn't in this worktree any more."
+        case .lines, .later, nil: return nil
+        }
     }
 
     /// `src/a.cs:12` or `src/a.cs:12-14`; nil when it isn't one of those.

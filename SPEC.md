@@ -1008,7 +1008,10 @@ seam delete <id>                       # remove a thread with its comments
 Thread commands act on the worktree containing `$PWD` (or `-C <path>`) and sign as
 `--as <name>`, else `$SEAM_AGENT`, else `agent`. They work without the app running; a running app
 picks the change up from the file. Text output is for agents to read: each thread with its id,
-file, lines, status, the quoted lines and the comments; `--json` gives the same structurally.
+file, lines, status, the quoted lines and the comments, with ISO 8601 times. Line numbers are
+from when a comment was written, so a line under the header says where they are now ("Now at
+a.txt:30"), that they're gone ("Outdated"), or that they're on the old side, lines the change
+removed; `--json` gives the same structurally.
 Errors print `Error: <message>` on stderr: a mistake in the arguments exits with status 64 and
 the command's usage, anything else (an unknown id, a folder outside a worktree, a line past the
 end of the file) with status 1. `seam --help` explains the thread workflow, and `--as` is
