@@ -32,8 +32,8 @@ enum DiffHeaderDrawing {
     /// Controls are drawn at the text's height so they line up with it; the viewed checkbox
     /// sits at the right edge, in the same place on every file.
     static func layout(
-        _ file: ReviewFile, viewed: ViewedMarks.Status, in rect: NSRect, font: NSFont,
-        palette: DiffPalette
+        _ file: ReviewFile, viewed: ViewedMarks.Status, sinceViewed: Bool = false, in rect: NSRect,
+        font: NSFont, palette: DiffPalette
     ) -> Layout {
         let bold = NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask)
         let control = controlSize(font)
@@ -44,12 +44,20 @@ enum DiffHeaderDrawing {
         var pieces: [(line: CTLine, color: RGB, x: Double)] = []
         func width(_ line: CTLine) -> Double { CTLineGetTypographicBounds(line, nil, nil, nil) }
         // Binary files and pure renames have no lines to count.
-        let counts =
+        var counts =
             file.diff.additions + file.diff.deletions > 0
             ? [
                 (TextLine.make("+\(file.diff.additions)", font: font), palette.addedMarker),
                 (TextLine.make("−\(file.diff.deletions)", font: font), palette.removedMarker),
             ] : []
+        // Says the counts and lines are the change since viewed, not the change on the branch.
+        if sinceViewed {
+            counts.append(
+                (
+                    TextLine.make(String(localized: "since viewed", bundle: .module), font: font),
+                    palette.gutterText
+                ))
+        }
         let label =
             viewed == .changedSinceViewed
             ? String(localized: "Changed since viewed", bundle: .module)
@@ -92,8 +100,9 @@ enum DiffHeaderDrawing {
     }
 
     static func draw(
-        _ file: ReviewFile, collapsed: Bool, viewed: ViewedMarks.Status, in rect: NSRect,
-        font: NSFont, palette: DiffPalette, context: CGContext, topBorder: Bool = true
+        _ file: ReviewFile, collapsed: Bool, viewed: ViewedMarks.Status, sinceViewed: Bool = false,
+        in rect: NSRect, font: NSFont, palette: DiffPalette, context: CGContext,
+        topBorder: Bool = true
     ) {
         context.setFillColor(palette.headerBackground.nsColor.cgColor)
         context.fill(rect)
@@ -103,7 +112,8 @@ enum DiffHeaderDrawing {
         if topBorder {
             context.fill(NSRect(x: rect.minX, y: rect.minY, width: rect.width, height: 1))
         }
-        let layout = layout(file, viewed: viewed, in: rect, font: font, palette: palette)
+        let layout = layout(
+            file, viewed: viewed, sinceViewed: sinceViewed, in: rect, font: font, palette: palette)
         drawDisclosure(in: layout.disclosure, collapsed: collapsed, palette: palette, context)
         drawCheckbox(in: layout.checkbox, viewed, palette: palette, context)
         context.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
@@ -192,6 +202,9 @@ final class DiffStickyHeaderView: NSView {
     var viewed = ViewedMarks.Status.unviewed {
         didSet { if viewed != oldValue { needsDisplay = true } }
     }
+    var sinceViewed = false {
+        didSet { if sinceViewed != oldValue { needsDisplay = true } }
+    }
     var font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular) {
         didSet { if font != oldValue { needsDisplay = true } }
     }
@@ -218,15 +231,16 @@ final class DiffStickyHeaderView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         guard let file, let context = NSGraphicsContext.current?.cgContext else { return }
         DiffHeaderDrawing.draw(
-            file, collapsed: collapsed, viewed: viewed, in: bounds, font: font, palette: palette,
-            context: context)
+            file, collapsed: collapsed, viewed: viewed, sinceViewed: sinceViewed, in: bounds,
+            font: font, palette: palette, context: context)
     }
 
     override func mouseDown(with event: NSEvent) {
         guard let file else { return }
         let point = convert(event.locationInWindow, from: nil)
         let layout = DiffHeaderDrawing.layout(
-            file, viewed: viewed, in: bounds, font: font, palette: palette)
+            file, viewed: viewed, sinceViewed: sinceViewed, in: bounds, font: font,
+            palette: palette)
         onClick?(layout.viewedFrame.contains(point))
     }
 }

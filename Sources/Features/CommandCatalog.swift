@@ -405,6 +405,22 @@ enum CommandCatalog {
             },
             run: { $0.toggleViewed() }),
         SeamCommand(
+            id: "since-viewed", title: localized("Show Changes Since Viewed"), menu: .review,
+            section: 2, shortcut: .single("v", .shift),
+            isEnabled: { session in
+                guard let review = session.selected, let path = review.currentFile else {
+                    return false
+                }
+                return review.sinceViewed[path] != nil || review.sinceViewedID(path) != nil
+            },
+            currentTitle: { session in
+                guard let review = session.selected, let path = review.currentFile,
+                    review.sinceViewed[path] != nil
+                else { return nil }
+                return localized("Show Full Diff")
+            },
+            run: { session in Task { await session.toggleSinceViewed() } }),
+        SeamCommand(
             id: "editor", title: localized("Open in Editor"), menu: .review, section: 2,
             shortcut: .single("o"), run: { $0.openInEditor() }),
         SeamCommand(

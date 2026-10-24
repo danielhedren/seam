@@ -292,9 +292,9 @@ struct ProblemBanner: View {
                 }
             case .gitFailed:
                 Button(String(localized: "Retry", bundle: .module)) { session.reload() }
-            case .editorFailed:
+            case .editorFailed, .seenGone:
                 Button(String(localized: "Dismiss", bundle: .module)) {
-                    session.selected?.dismissEditorFailure()
+                    session.selected?.dismissNotice()
                 }
             case .missingDirectory:
                 EmptyView()
@@ -314,6 +314,11 @@ struct ProblemBanner: View {
         case .gitFailed(let detail): detail
         case .editorFailed(let detail):
             String(localized: "Couldn't open the editor: \(detail)", bundle: .module)
+        case .seenGone(let path):
+            String(
+                localized:
+                    "Seam no longer has the version of \(path) you marked viewed, so it can only show the full diff.",
+                bundle: .module)
         }
     }
 }

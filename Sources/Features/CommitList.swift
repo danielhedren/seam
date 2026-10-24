@@ -107,7 +107,7 @@ struct CommitList: View {
         case .missingDirectory: .missingDirectory
         case .overrideGone(let ref): .baseGone(ref)
         case .gitFailed: .failed
-        case .editorFailed, nil:
+        case .editorFailed, .seenGone, nil:
             review.commitLog == nil && review.isLoading
                 ? .detecting(showsProgress: review.showsProgress) : nil
         }

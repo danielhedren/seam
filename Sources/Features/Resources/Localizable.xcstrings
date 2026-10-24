@@ -779,6 +779,9 @@
     "Seam couldn't save its state: %@" : {
 
     },
+    "Seam no longer has the version of %@ you marked viewed, so it can only show the full diff." : {
+
+    },
     "Seam reads each worktree's pull request with your gh login and never changes anything on GitHub." : {
 
     },
@@ -807,6 +810,12 @@
 
     },
     "Show All Changes" : {
+
+    },
+    "Show Changes Since Viewed" : {
+
+    },
+    "Show Full Diff" : {
 
     },
     "Show Only This Commit" : {

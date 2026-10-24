@@ -45,6 +45,16 @@ import Testing
         #expect(ViewedMarks.contentID(of: deleted) == "deleted:abc")
     }
 
+    /// What the reader saw is kept only when it is the content the mark records.
+    @Test func theTextSeenIsKeptOnlyWhenItIsTheMarkedContent() {
+        let id = ReviewDiffBuilder.blobID(Data("one\n".utf8))
+        var marks = ViewedMarks()
+        #expect(marks.seen(file("a.txt", new: id), text: "one\n") == nil)
+        marks.toggle(file("a.txt", new: id))
+        #expect(marks.seen(file("a.txt", new: id), text: "one\n") == id)
+        #expect(marks.seen(file("a.txt", new: id), text: "one\r\n") == nil)
+    }
+
     @Test func aFileWithoutContentIDCannotBeMarked() {
         var marks = ViewedMarks()
         let marked = marks.toggle(file("x", new: nil))

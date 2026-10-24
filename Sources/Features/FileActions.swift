@@ -37,6 +37,30 @@ enum FileActions {
     static func actions(for path: String, in session: RepoSession) -> [[Action]] {
         let viewed = session.selected?.viewedStatus(path) == .viewed
         let collapsed = session.selected?.collapsed.contains(path) == true
+        var file = [
+            Action(
+                title: viewed
+                    ? String(localized: "Mark as Not Viewed", bundle: .module)
+                    : String(localized: "Mark as Viewed", bundle: .module)
+            ) { session.toggleViewed(path, advance: false) }
+        ]
+        if session.selected?.sinceViewed[path] != nil {
+            file.append(
+                Action(title: String(localized: "Show Full Diff", bundle: .module)) {
+                    Task { await session.toggleSinceViewed(path) }
+                })
+        } else if session.selected?.sinceViewedID(path) != nil {
+            file.append(
+                Action(title: String(localized: "Show Changes Since Viewed", bundle: .module)) {
+                    Task { await session.toggleSinceViewed(path) }
+                })
+        }
+        file.append(
+            Action(
+                title: collapsed
+                    ? String(localized: "Expand File", bundle: .module)
+                    : String(localized: "Collapse File", bundle: .module)
+            ) { session.toggleCollapsed(path) })
         return [
             [
                 Action(title: String(localized: "Open in Editor", bundle: .module)) {
@@ -54,18 +78,7 @@ enum FileActions {
                     session.copyPath(path, relative: true)
                 },
             ],
-            [
-                Action(
-                    title: viewed
-                        ? String(localized: "Mark as Not Viewed", bundle: .module)
-                        : String(localized: "Mark as Viewed", bundle: .module)
-                ) { session.toggleViewed(path, advance: false) },
-                Action(
-                    title: collapsed
-                        ? String(localized: "Expand File", bundle: .module)
-                        : String(localized: "Collapse File", bundle: .module)
-                ) { session.toggleCollapsed(path) },
-            ],
+            file,
         ]
     }
 

@@ -37,6 +37,25 @@ import Testing
         #expect(await store.load(repository) == state)
     }
 
+    /// What the reader saw is kept while a mark needs it, and dropped the next time the
+    /// state is read without one.
+    @Test func seenTextsAreKeptForTheirMarksAndPrunedOnLoad() async throws {
+        let directory = try TemporaryDirectory()
+        let store = JSONStateStore(root: directory.resolved)
+        let repository = Repository(
+            commonDirectory: URL(fileURLWithPath: "/r/.git"), anchor: URL(fileURLWithPath: "/r"))
+        var state = RepoState()
+        state.worktrees["/r"] = .init(viewed: ViewedMarks(marks: ["a": "111"]))
+        await store.save(state, for: repository)
+        await store.keepSeen("one\n", id: "111", for: repository)
+        await store.keepSeen("two\n", id: "222", for: repository)
+
+        _ = await store.load(repository)
+
+        #expect(await store.seen("111", for: repository) == "one\n")
+        #expect(await store.seen("222", for: repository) == nil)
+    }
+
     /// A state file in today's format, as a build of Seam wrote it: a change to the shape shows
     /// here instead of silently resetting the reader's viewed marks and bases.
     @Test func aStateFileInTodaysFormatReads() throws {

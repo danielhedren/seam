@@ -1,3 +1,5 @@
+import Foundation
+
 /// Which files the reader has marked viewed, per worktree (SPEC §11). A mark stores the new
 /// side's content id when it was made, so a later change shows the file as changed since viewed,
 /// and a rebase that keeps a file's content keeps its mark.
@@ -23,6 +25,15 @@ public struct ViewedMarks: Codable, Equatable, Sendable {
             return "deleted:" + old
         }
         return nil
+    }
+
+    /// The id to keep `text` under as what the reader saw, if it's the content the mark records:
+    /// line-ending filters, say, make the text on disk differ from the blob.
+    public func seen(_ file: ReviewFile, text: String) -> String? {
+        guard let marked = marks[file.diff.path], marked == Self.contentID(of: file),
+            marked == ReviewDiffBuilder.blobID(Data(text.utf8))
+        else { return nil }
+        return marked
     }
 
     public func status(of file: ReviewFile) -> Status {

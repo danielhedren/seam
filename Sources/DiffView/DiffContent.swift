@@ -28,6 +28,8 @@ public struct DiffContent: Equatable, Sendable {
     public var draft: DraftMarker?
     /// The thread open in the diff, by id: its row shows the whole conversation.
     public var openThread: String?
+    /// Files shown as their change since viewed, labelled so in their headers (SPEC §7.4).
+    public var sinceViewed: Set<String>
 
     public init(
         review: ReviewDiff, mode: DiffLayoutMode = .unified, collapsed: Set<String> = [],
@@ -35,8 +37,9 @@ public struct DiffContent: Equatable, Sendable {
         syntax: [String: FileSyntax] = [:], wraps: Bool = false,
         viewed: [String: ViewedMarks.Status] = [:], tabWidth: Int = 4,
         tabWidths: [String: Int] = [:], threads: [String: [ThreadMarker]] = [:],
-        draft: DraftMarker? = nil, openThread: String? = nil
+        draft: DraftMarker? = nil, openThread: String? = nil, sinceViewed: Set<String> = []
     ) {
+        self.sinceViewed = sinceViewed
         self.threads = threads
         self.openThread = openThread
         self.draft = draft

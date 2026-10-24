@@ -14,6 +14,7 @@ final class DiffCanvasView: NSView {
     private(set) var collapsed: Set<String> = []
     private(set) var wraps = false
     private(set) var viewed: [String: ViewedMarks.Status] = [:]
+    private(set) var sinceViewed: Set<String> = []
     private var shown: DiffContent?
     /// Find matches by row; `isCurrent` marks the one the find bar points at.
     var findMatches: [Int: [(side: DiffSide, range: Range<Int>, isCurrent: Bool)]] = [:] {
@@ -121,6 +122,7 @@ final class DiffCanvasView: NSView {
         collapsed = content.collapsed
         wraps = content.wraps
         viewed = content.viewed
+        sinceViewed = content.sinceViewed
         threads = content.threads
         defer { shown = content }
         selection = nil
@@ -245,7 +247,8 @@ final class DiffCanvasView: NSView {
             let path = review.files[file].diff.path
             DiffHeaderDrawing.draw(
                 review.files[file], collapsed: collapsed.contains(path),
-                viewed: viewed[path] ?? .unviewed, in: chromeRect(ofRow: index), font: font,
+                viewed: viewed[path] ?? .unviewed, sinceViewed: sinceViewed.contains(path),
+                in: chromeRect(ofRow: index), font: font,
                 palette: palette, context: context,
                 topBorder: index == 0 || !layout.rows[index - 1].isFileHeader)
         case .hunkHeader(_, _, .hidden): break

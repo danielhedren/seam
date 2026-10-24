@@ -66,6 +66,7 @@ final class RepoSession {
     private var repoState = RepoState()
     private var monitorTask: Task<Void, Never>?
     private var saveTask: Task<Void, Never>?
+    private var keepingSeen: Task<Void, Never>?
     private var isClosed = false
     private var rowsTask: Task<Void, Never>?
     private var reloadTask: Task<Void, Never>?
@@ -312,6 +313,7 @@ final class RepoSession {
             let previous = review.toggleViewed(path)
         else { return }
         persist()
+        keepSeen(review, path)
         registerViewedUndo(review, path, previous)
         if advance, review.viewedStatus(path) == .viewed,
             let next = review.nextUnviewed(after: path), next != path
@@ -319,6 +321,41 @@ final class RepoSession {
             review.currentFile = next
             diff.scroll(toFile: next)
         }
+    }
+
+    /// Keeps what the reader saw, for Show Changes Since Viewed; in order, so a show waits for it.
+    private func keepSeen(_ review: WorktreeReview, _ path: String) {
+        guard let repository, let (id, text) = review.seenText(path) else { return }
+        let (previous, store) = (keepingSeen, services.store)
+        keepingSeen = Task {
+            await previous?.value
+            await store.keepSeen(text, id: id, for: repository)
+        }
+    }
+
+    /// Review › Show Changes Since Viewed, or Show Full Diff when it's shown (SPEC §7.4). A
+    /// version the store doesn't have may still be a git object, if it was committed.
+    func toggleSinceViewed(_ path: String? = nil) async {
+        guard let review = selected, let path = path ?? review.currentFile else { return }
+        if review.sinceViewed[path] != nil {
+            review.showFullDiff(path)
+            return
+        }
+        guard let repository, let id = review.sinceViewedID(path) else { return }
+        await keepingSeen?.value
+        var seen = await services.store.seen(id, for: repository)
+        if seen == nil,
+            let blob = try? await services.git.run(
+                ["cat-file", "blob", id], in: review.worktree.path)
+        {
+            seen = String(decoding: blob, as: UTF8.self)
+        }
+        guard review.sinceViewedID(path) == id else { return }
+        guard let seen else {
+            review.report(.seenGone(path))
+            return
+        }
+        review.showSinceViewed(path, seen: seen)
     }
 
     private func registerViewedUndo(_ review: WorktreeReview, _ path: String, _ mark: String?) {
@@ -644,5 +681,6 @@ final class RepoSession {
         await rowRefresh?.value
         await pullRequests?.idle()
         while let save = saveTask { await save.value }
+        await keepingSeen?.value
     }
 }

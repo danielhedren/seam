@@ -160,6 +160,8 @@ extension WorktreeReview {
 
     /// The anchor `c` would comment on, with the lines' text from the file as it is.
     func anchor(path: String, side: ThreadAnchor.Side, lines: ClosedRange<Int>) -> ThreadAnchor? {
+        // Old lines of a file shown since viewed are the reader's earlier copy, not the base.
+        guard side == .new || sinceViewed[path] == nil else { return nil }
         let text = side == .new ? contents[path]?.new : contents[path]?.old
         return text.flatMap {
             ThreadAnchor(path: path, side: side, lines: lines, in: TextLines.split($0))

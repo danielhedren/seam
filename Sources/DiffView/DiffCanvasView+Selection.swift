@@ -27,7 +27,8 @@ extension DiffCanvasView {
             let path = review.files[file].diff.path
             let header = DiffHeaderDrawing.layout(
                 review.files[file], viewed: viewed[path] ?? .unviewed,
-                in: chromeRect(ofRow: position.row), font: font, palette: .light)
+                sinceViewed: sinceViewed.contains(path), in: chromeRect(ofRow: position.row),
+                font: font, palette: .light)
             if header.viewedFrame.contains(point) {
                 onToggleViewed?(path)
             } else {

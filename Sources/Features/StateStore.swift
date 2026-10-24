@@ -14,6 +14,10 @@ public protocol StateStore: Sendable {
     /// Nil when it saved, else why not.
     @discardableResult
     func save(_ state: RepoState, for repository: Repository) async -> String?
+    /// Keeps the text a file had when it was marked viewed, by its content id, so a later change
+    /// can be shown as the change since then (SPEC §11).
+    func keepSeen(_ text: String, id: String, for repository: Repository) async
+    func seen(_ id: String, for repository: Repository) async -> String?
     func recentRepositories() async -> [URL]
     func noteOpened(_ directory: URL) async
     func clearRecent() async
@@ -36,7 +40,9 @@ actor JSONStateStore: StateStore {
         loadProblems[url.path] = nil
         guard let data = try? Data(contentsOf: url) else { return RepoState() }
         do {
-            return try JSONDecoder().decode(RepoState.self, from: data)
+            let state = try JSONDecoder().decode(RepoState.self, from: data)
+            pruneSeen(keeping: state, for: repository)
+            return state
         } catch {
             logger.error("unreadable \(url.path, privacy: .public): \(error)")
             let kept = url.deletingLastPathComponent().appending(path: "state.json.unreadable")
@@ -57,6 +63,38 @@ actor JSONStateStore: StateStore {
     @discardableResult
     func save(_ state: RepoState, for repository: Repository) -> String? {
         write(state, to: file(for: repository))
+    }
+
+    func keepSeen(_ text: String, id: String, for repository: Repository) {
+        let url = seenDirectory(for: repository).appending(path: id)
+        guard !FileManager.default.fileExists(atPath: url.path) else { return }
+        do {
+            try FileManager.default.createDirectory(
+                at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data(text.utf8).write(to: url, options: .atomic)
+        } catch {
+            logger.error("could not write \(url.path, privacy: .public): \(error)")
+        }
+    }
+
+    func seen(_ id: String, for repository: Repository) -> String? {
+        (try? Data(contentsOf: seenDirectory(for: repository).appending(path: id)))
+            .map { String(decoding: $0, as: UTF8.self) }
+    }
+
+    /// Only on load: a save can race a mark that was just kept, and nothing else drops marks.
+    private func pruneSeen(keeping state: RepoState, for repository: Repository) {
+        let directory = seenDirectory(for: repository)
+        let marked = Set(
+            state.worktrees.values.flatMap { $0.viewed.map { Array($0.marks.values) } ?? [] })
+        let kept = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        for name in kept where !marked.contains(name) {
+            try? FileManager.default.removeItem(at: directory.appending(path: name))
+        }
+    }
+
+    private func seenDirectory(for repository: Repository) -> URL {
+        file(for: repository).deletingLastPathComponent().appending(path: "viewed")
     }
 
     func recentRepositories() -> [URL] {

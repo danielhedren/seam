@@ -31,6 +31,11 @@ actor MemoryStore: StateStore {
         states[repository.commonDirectory.path] = state
     }
 
+    var seenTexts: [String: String] = [:]
+    func keepSeen(_ text: String, id: String, for repository: Repository) { seenTexts[id] = text }
+    func seen(_ id: String, for repository: Repository) -> String? { seenTexts[id] }
+    func forgetSeen() { seenTexts = [:] }
+
     func recentRepositories() -> [URL] { opened }
     func noteOpened(_ directory: URL) { opened.append(directory) }
     func clearRecent() { opened = [] }

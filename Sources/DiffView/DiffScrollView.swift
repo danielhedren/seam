@@ -409,6 +409,7 @@ public final class DiffScrollView: NSScrollView {
         sticky.file = reviewFile
         sticky.collapsed = canvas.collapsed.contains(reviewFile.diff.path)
         sticky.viewed = canvas.viewed[reviewFile.diff.path] ?? .unviewed
+        sticky.sinceViewed = canvas.sinceViewed.contains(reviewFile.diff.path)
         sticky.isHidden = false
     }
 }

@@ -384,6 +384,13 @@ of its header. Each worktree keeps its own view, query and options while the app
 - Marking a file viewed collapses it (a setting, on by default); unmarking, undoing or a later
   change to the file opens it again. Review › Hide Whitespace Changes (`-w`) toggles per
   worktree, starting from the whitespace setting.
+- **Changes since viewed:** a file changed since it was marked viewed can show just that change.
+  Review › Show Changes Since Viewed (`⇧V`), also in the file's context menu, diffs the text the
+  reader saw against the text now, and the header says "since viewed" after the counts; Show Full
+  Diff goes back, as does marking the file viewed again. The old side is the reader's copy, so it
+  takes no comments, shows no old-side threads and isn't highlighted. The copy is kept when the
+  file is marked (§11); one Seam doesn't have is read from git if it was ever staged or
+  committed, and otherwise a notice says it's gone.
 - **Expanding context:** each gap between hunks has controls for "↑ 20 lines", "↓ 20 lines" and
   "all". These use the full file contents from the base and the working tree.
 - Line numbers for both sides. Hunk names, gap controls and notices line up with the code: in
@@ -420,6 +427,7 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 | `l` / `⇧L` | next / previous commit: one commit at a time, from the oldest forward in time |
 | `space` / `⇧space` | page down / up |
 | `v` | toggle viewed, then jump to the next unviewed file |
+| `⇧V` | show only what changed since the file was viewed, or the full diff again |
 | `s` | side-by-side / unified |
 | `w` | wrap |
 | `1` `2` `3` | scope |
@@ -972,6 +980,8 @@ Rules:
   - **Viewed state:** keyed by (worktree path, file path), storing the blob id of the new side
     when it was marked viewed. If the file's content changes later, the viewed mark is cleared
     and the file is marked "changed since viewed".
+  - `viewed/<blob id>`: the text of each text file when it was marked viewed, for Show Changes
+    Since Viewed (§7.4). Copies no mark refers to are removed when the state is next read.
 - Settings live in `UserDefaults`.
 
 `state.json` is written as soon as anything in it changes, moving to another file included,

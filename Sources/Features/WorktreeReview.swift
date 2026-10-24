@@ -15,6 +15,8 @@ final class WorktreeReview: Identifiable {
         case overrideGone(String)
         case gitFailed(String)
         case editorFailed(String)
+        /// The version of this file the reader marked viewed is no longer to be had.
+        case seenGone(String)
     }
 
     let id: String
@@ -42,6 +44,10 @@ final class WorktreeReview: Identifiable {
     }
     /// Files marked viewed, by path (SPEC §11).
     private(set) var viewed = ViewedMarks()
+    /// Files shown as their change since viewed, by path: the text the reader saw (SPEC §7.4).
+    private(set) var sinceViewed: [String: String] = [:]
+    /// Worked out when the files or the choice change, not on every redraw.
+    private var sinceViewedDiffs: [String: FileDiff] = [:]
     /// What the git checks found (SPEC §5.4); `staleParent` adds the pull request's word.
     private var checkedStaleParent: StaleParent?
     /// The worktree's root `.editorconfig`, for per-file tab widths (SPEC §12).
@@ -314,12 +320,60 @@ final class WorktreeReview: Identifiable {
         let previous = viewed.marks[path]
         viewed.toggle(file)
         collapseIfViewed(path)
+        refreshSinceViewed()
         return .some(previous)
     }
 
     func restoreViewed(_ mark: String?, for path: String) {
         viewed.setMark(mark, for: path)
         collapseIfViewed(path)
+        refreshSinceViewed()
+    }
+
+    /// The file's text as the reader saw it and the id to keep it by, right after marking it.
+    func seenText(_ path: String) -> (id: String, text: String)? {
+        guard let file = file(path), let text = contents[path]?.new,
+            let id = viewed.seen(file, text: text)
+        else { return nil }
+        return (id, text)
+    }
+
+    /// The mark's content id, when the file has changed since and its text now is loaded.
+    func sinceViewedID(_ path: String) -> String? {
+        guard viewedStatus(path) == .changedSinceViewed, contents[path]?.new != nil,
+            let id = viewed.marks[path], !id.hasPrefix("deleted:")
+        else { return nil }
+        return id
+    }
+
+    func showSinceViewed(_ path: String, seen text: String) {
+        sinceViewed[path] = text
+        expansions[path] = nil
+        refreshSinceViewed()
+    }
+
+    func showFullDiff(_ path: String) {
+        sinceViewed[path] = nil
+        expansions[path] = nil
+        refreshSinceViewed()
+    }
+
+    /// A file viewed again, or no longer changed, goes back to its full diff.
+    private func refreshSinceViewed() {
+        var diffs: [String: FileDiff] = [:]
+        for (path, seen) in sinceViewed {
+            guard let file = file(path), viewed.status(of: file) == .changedSinceViewed,
+                let now = contents[path]?.new
+            else {
+                sinceViewed[path] = nil
+                expansions[path] = nil
+                continue
+            }
+            diffs[path] =
+                sinceViewedDiffs[path].flatMap { $0.newBlob == file.diff.newBlob ? $0 : nil }
+                ?? SinceViewed.diff(file.diff, from: seen, to: now)
+        }
+        sinceViewedDiffs = diffs
     }
 
     private func collapseIfViewed(_ path: String) {
@@ -440,7 +494,28 @@ final class WorktreeReview: Identifiable {
                     uniquingKeysWith: { first, _ in first }),
                 tabWidth: services.settings.tabWidth, tabWidths: tabWidths,
                 threads: threadMarkers)
+        }.map(showingSinceViewed)
+    }
+
+    /// The old side of a file shown since viewed is the text the reader saw, so the base's
+    /// highlights and old-side threads don't belong on it.
+    private func showingSinceViewed(_ content: DiffContent) -> DiffContent {
+        guard !sinceViewedDiffs.isEmpty else { return content }
+        var content = content
+        content.review.files = content.review.files.map { file in
+            guard let diff = sinceViewedDiffs[file.diff.path] else { return file }
+            var file = file
+            file.diff = diff
+            return file
         }
+        for (path, seen) in sinceViewed where sinceViewedDiffs[path] != nil {
+            content.contents[path]?.old = seen
+            content.syntax[path]?.old = nil
+            content.syntax[path]?.oldScopes = []
+            content.threads[path]?.removeAll { $0.side == .old }
+        }
+        content.sinceViewed = Set(sinceViewedDiffs.keys)
+        return content
     }
 
     private func highlight(_ diff: ReviewDiff, _ contents: [String: FileContents]) {
@@ -604,9 +679,12 @@ final class WorktreeReview: Identifiable {
         self.problem = problem
     }
 
-    /// Only a failed editor launch: the others describe the diff and clear when it loads again.
-    func dismissEditorFailure() {
-        if case .editorFailed = problem { problem = nil }
+    /// Only the notices: the others describe the diff and clear when it loads again.
+    func dismissNotice() {
+        switch problem {
+        case .editorFailed, .seenGone: problem = nil
+        default: break
+        }
     }
 
     func cancelLoading() {
@@ -673,6 +751,7 @@ final class WorktreeReview: Identifiable {
             syntax = syntax.filter { previous[$0.key] == loaded[$0.key] }
             contents = loaded
             contentsVersion += 1
+            refreshSinceViewed()
             highlight(result, loaded)
         } catch {
             guard generation == loadGeneration, error != .cancelled else { return }

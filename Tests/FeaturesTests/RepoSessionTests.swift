@@ -1081,6 +1081,8 @@ private actor HoldingStore: StateStore {
         return await inner.save(state, for: repository)
     }
 
+    func keepSeen(_ text: String, id: String, for repository: Repository) async {}
+    func seen(_ id: String, for repository: Repository) async -> String? { nil }
     func recentRepositories() async -> [URL] { [] }
     func noteOpened(_ directory: URL) async {}
     func clearRecent() async {}
@@ -1091,6 +1093,8 @@ private actor FailingStore: StateStore {
     func loadProblem(for repository: Repository) -> String? { nil }
     @discardableResult
     func save(_ state: RepoState, for repository: Repository) -> String? { "disk full" }
+    func keepSeen(_ text: String, id: String, for repository: Repository) {}
+    func seen(_ id: String, for repository: Repository) -> String? { nil }
     func recentRepositories() -> [URL] { [] }
     func noteOpened(_ directory: URL) {}
     func clearRecent() {}

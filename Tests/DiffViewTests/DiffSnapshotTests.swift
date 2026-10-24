@@ -71,7 +71,8 @@ struct DiffSnapshotTests {
 
     private func view(
         _ mode: DiffLayoutMode, _ appearance: NSAppearance.Name, highContrast: Bool = false,
-        collapsed: Set<String> = [], viewed: [String: ViewedMarks.Status] = [:]
+        collapsed: Set<String> = [], viewed: [String: ViewedMarks.Status] = [:],
+        sinceViewed: Set<String> = []
     ) -> DiffScrollView {
         let view = DiffScrollView.forSnapshot()
         view.appearance = NSAppearance(named: appearance)
@@ -80,7 +81,7 @@ struct DiffSnapshotTests {
         view.show(
             DiffContent(
                 review: Self.review, mode: mode, collapsed: collapsed, syntax: Self.syntax,
-                viewed: viewed),
+                viewed: viewed, sinceViewed: sinceViewed),
             position: .top)
         view.layoutSubtreeIfNeeded()
         return view
@@ -207,6 +208,14 @@ struct DiffSnapshotTests {
                 viewed: ["Sources/Order.swift": .viewed, "Legacy.txt": .changedSinceViewed])
             assertSnapshot(of: view, as: .image2x, named: "viewed-\(name)-\(Self.os)")
         }
+    }
+
+    @Test func aFileShownSinceViewedSaysSoInItsHeader() {
+        let view = view(
+            .unified, .aqua, collapsed: ["Legacy.txt"],
+            viewed: ["Sources/Order.swift": .changedSinceViewed, "Legacy.txt": .viewed],
+            sinceViewed: ["Sources/Order.swift"])
+        assertSnapshot(of: view, as: .image2x, named: "since-viewed-\(Self.os)")
     }
 
     @Test func collapsedFileShowsOnlyItsHeader() {

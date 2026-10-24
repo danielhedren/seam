@@ -15,11 +15,11 @@ struct BannerTests {
         let review = try #require(session.selected)
 
         review.report(.editorFailed("zed: command not found"))
-        review.dismissEditorFailure()
+        review.dismissNotice()
         #expect(review.problem == nil)
 
         review.report(.gitFailed("fatal: bad revision"))
-        review.dismissEditorFailure()
+        review.dismissNotice()
         #expect(review.problem == .gitFailed("fatal: bad revision"))
     }
 }
