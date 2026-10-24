@@ -211,6 +211,48 @@ final class WorktreeReview: Identifiable {
         reloadDiff()
     }
 
+    /// What the diff leaves out, said where the reader is: nil while it shows every change.
+    var rangeSummary: String? {
+        var parts: [String] = []
+        if let selection = commitSelection, let commits = commitLog?.commits {
+            if selection.newest == selection.oldest, case .commit(let id) = selection.newest,
+                let index = commits.firstIndex(where: { $0.id == id })
+            {
+                let number = commits.count - index
+                parts.append(
+                    String(
+                        localized:
+                            "Commit \(number) of \(commits.count) · \(commits[index].subject)",
+                        bundle: .module))
+            } else if let ends = commitLog?.ends,
+                let newest = ends.firstIndex(of: selection.newest),
+                let oldest = ends.firstIndex(of: selection.oldest), newest <= oldest
+            {
+                let range = ends[newest...oldest]
+                let picked = range.count { if case .commit = $0 { true } else { false } }
+                parts.append(
+                    range.contains(.workingTree)
+                        ? String(
+                            localized: "\(picked) commits and uncommitted changes", bundle: .module)
+                        : String(localized: "\(picked) commits", bundle: .module))
+            }
+        } else if scope == .committed {
+            parts.append(String(localized: "Committed changes only", bundle: .module))
+        } else if scope == .uncommitted {
+            parts.append(String(localized: "Uncommitted changes only", bundle: .module))
+        }
+        if effectiveWhitespace != .show {
+            parts.append(String(localized: "Whitespace changes hidden", bundle: .module))
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    /// The range bar's Show All: every change, whitespace included.
+    func showEverything() {
+        if effectiveWhitespace != .show { toggleWhitespace() }
+        setScope(.all)
+    }
+
     /// The one commit Go › Next Commit (later in time) or Previous Commit would show, reading a
     /// branch commit by commit; from no single commit, Next starts at the oldest. Nil at an end.
     func commitStep(by delta: Int) -> CommitSelection? {

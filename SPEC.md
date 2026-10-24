@@ -322,6 +322,9 @@ selection acts on its newest commit, and so do Review › Copy Commit ID and Cop
   how many are open.
 - The header shows totals and the viewed count ("7/19 viewed"), with a checkmark once every file
   is viewed. With no changed files it shows only the count.
+- Under the header, while the diff leaves anything out, a line says what: "Commit 2 of 5 ·
+  subject", "3 commits", "Uncommitted changes only", "Whitespace changes hidden", with Show All
+  to see every change again. It's there with the sidebar hidden too.
 - A search field above the list (`⌘F` while the file list has focus), with a magnifier, a
   "Filter" placeholder and a clear button; Escape clears it, and in an empty field returns focus
   to the list. It matches on path: space-separated terms,

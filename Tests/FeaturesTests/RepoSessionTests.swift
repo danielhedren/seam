@@ -814,6 +814,14 @@ import Testing
         try command("previous-commit").run(session)
         await review.loaded()
         #expect(review.diff?.files.map(\.diff.path) == ["first.txt"])
+        // Said where the reader is, the sidebar shown or not.
+        #expect(review.rangeSummary == "Commit 1 of 2 · first")
+        session.toggleWhitespace()
+        await review.loaded()
+        #expect(review.rangeSummary == "Commit 1 of 2 · first · Whitespace changes hidden")
+        review.showEverything()
+        await review.loaded()
+        #expect(review.rangeSummary == nil)
         session.close()
     }
 

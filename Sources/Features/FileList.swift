@@ -60,6 +60,20 @@ struct FileList: View {
             .padding(.horizontal, 10)
             .frame(height: PaneHeader.height(session) - 1)
             Divider()
+            if let summary = review.rangeSummary {
+                // What the diff leaves out, here as well as in the sidebar, which may be hidden.
+                HStack(spacing: 6) {
+                    Text(verbatim: summary).lineLimit(1).truncationMode(.tail).help(summary)
+                    Spacer(minLength: 4)
+                    Button(String(localized: "Show All", bundle: .module)) {
+                        review.showEverything()
+                    }
+                    .buttonStyle(.link)
+                }
+                .font(.caption).foregroundStyle(.secondary)
+                .padding(.horizontal, 10).padding(.vertical, 4)
+                Divider()
+            }
             switch review.navigator {
             case .files: files
             case .search:
