@@ -132,7 +132,7 @@ func services(
     store: any StateStore = MemoryStore()
 ) -> SeamServices {
     SeamServices(
-        git: git, watcher: SilentWatcher(), clock: clock, store: store,
+        git: ReadOnlyGit(git), watcher: SilentWatcher(), clock: clock, store: store,
         threads: scratchThreadStore(), settings: testSettings())
 }
 
@@ -201,4 +201,38 @@ func showDiff(_ session: RepoSession) throws -> DiffScrollView {
     session.diff.view = view
     view.show(try #require(session.selected?.content), position: .top)
     return view
+}
+
+/// Seam never writes to the repository, the index or `.git` (AGENTS.md): every git command the
+/// session runs must be one of these reads, or the test fails naming it.
+struct ReadOnlyGit: GitClient {
+    let inner: any GitClient
+
+    init(_ inner: any GitClient) {
+        self.inner = inner
+    }
+
+    private static let reads: Set<String> = [
+        "cat-file", "check-attr", "check-ignore", "diff", "for-each-ref", "log", "ls-files",
+        "ls-remote", "merge-base", "reflog", "rev-list", "rev-parse", "show", "status",
+    ]
+
+    static func isRead(_ arguments: [String]) -> Bool {
+        guard let verb = arguments.first else { return false }
+        switch verb {
+        case "config": return arguments.contains("--get") || arguments.contains("--get-regexp")
+        case "worktree": return arguments.dropFirst().first == "list"
+        case "remote": return arguments.count == 1 || arguments.dropFirst().first == "get-url"
+        case "symbolic-ref": return arguments.contains("-q") || arguments.contains("--quiet")
+        default: return reads.contains(verb)
+        }
+    }
+
+    func run(_ arguments: [String], in directory: URL, input: Data?) async throws(GitError) -> Data
+    {
+        if !Self.isRead(arguments) {
+            Issue.record("Seam ran git \(arguments.joined(separator: " ")), which isn't a read")
+        }
+        return try await inner.run(arguments, in: directory, input: input)
+    }
 }

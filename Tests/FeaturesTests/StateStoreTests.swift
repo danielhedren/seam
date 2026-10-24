@@ -87,3 +87,19 @@ import Testing
                 == nil)
     }
 }
+
+/// The guard every session test runs git through (Support.swift): reads pass, writes don't.
+@Suite(.timeLimit(.minutes(1)))
+struct ReadOnlyGitTests {
+    @Test(arguments: [
+        (["status", "--porcelain=v2"], true), (["config", "--get", "user.email"], true),
+        (["worktree", "list", "--porcelain"], true), (["remote"], true),
+        (["symbolic-ref", "-q", "HEAD"], true), (["commit", "-m", "x"], false),
+        (["config", "user.email", "x"], false), (["worktree", "add", "x"], false),
+        (["remote", "add", "o", "u"], false), (["symbolic-ref", "HEAD", "refs/heads/x"], false),
+        (["update-ref", "refs/heads/x", "HEAD"], false), (["fetch"], false),
+    ])
+    func onlyReadsPass(arguments: [String], isRead: Bool) {
+        #expect(ReadOnlyGit.isRead(arguments) == isRead)
+    }
+}
