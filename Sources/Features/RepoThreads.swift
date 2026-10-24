@@ -5,8 +5,8 @@ import SeamCore
 import os
 
 /// A repo's review threads (SPEC §7.7), from the store the `seam` command shares, reloaded
-/// whenever another process changes it so agents' replies appear live. Store I/O runs off the
-/// main actor: a change waits on the store's lock.
+/// whenever another process changes it so agents' replies appear live. Store I/O runs in order
+/// off the main actor, and a read that finishes after a newer one is dropped.
 @MainActor
 @Observable
 final class RepoThreads {
@@ -20,8 +20,11 @@ final class RepoThreads {
     private(set) var failure: String?
 
     private let repository: Repository
-    private let store: ThreadStore
+    private let store: ThreadStoreAccess
     private let git: any GitClient
+    /// Reads and writes in the order they began; `applied` is the newest one shown.
+    private var issued = 0
+    private var applied = 0
     /// The reader's git email per worktree, which signs what they write.
     private var readers: [String: ReviewerIdentity] = [:]
     private var watchTask: Task<Void, Never>?
@@ -29,7 +32,7 @@ final class RepoThreads {
 
     init(repository: Repository, store: ThreadStore, git: any GitClient) {
         self.repository = repository
-        self.store = store
+        self.store = ThreadStoreAccess(store)
         self.git = git
     }
 
@@ -46,20 +49,17 @@ final class RepoThreads {
     }
 
     func start(watching watcher: any FileWatcher) async {
-        try? FileManager.default.createDirectory(
-            at: store.directory, withIntermediateDirectories: true)
-        let file = store.file(for: repository).lastPathComponent
-        let events = watcher.events(for: [store.directory])
+        let directory = store.store.directory
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let file = store.store.file(for: repository).lastPathComponent
+        let events = watcher.events(for: [directory])
         watchTask = Task { [weak self] in
             for await paths in events where paths.contains(where: { $0.hasSuffix(file) }) {
                 await self?.load()
             }
         }
         await load()
-        let (store, repository) = (store, repository)
-        if let saved = await Task.detached(operation: {
-            try? store.gitHubThreads(for: repository).threads
-        }).value, saved != gitHub {
+        if let saved = try? await store.gitHubThreads(for: repository).threads, saved != gitHub {
             gitHub = saved
             version += 1
         }
@@ -71,11 +71,16 @@ final class RepoThreads {
     }
 
     func load() async {
-        let (store, repository) = (store, repository)
-        let result = await Task.detached {
-            Result { () throws(ThreadError) in try store.threads(for: repository) }
-        }.value
-        apply(result.map { _ in () }, threads: try? result.get())
+        let ticket = nextTicket()
+        let result = await Result { () async throws(ThreadError) in
+            try await store.threads(for: repository)
+        }
+        apply(result.map { _ in () }, threads: try? result.get(), ticket: ticket)
+    }
+
+    private func nextTicket() -> Int {
+        issued += 1
+        return issued
     }
 
     func dismissFailure() {
@@ -89,12 +94,9 @@ final class RepoThreads {
 
     /// Forgets the pull request threads of worktrees not in `worktrees`, in the file too.
     func keepGitHub(only worktrees: Set<String>) async {
-        let (store, repository) = (store, repository)
-        let result = await Task.detached {
-            Result { () throws(ThreadError) in
-                try store.pruneGitHubThreads(keeping: worktrees, for: repository)
-            }
-        }.value
+        let result = await Result { () async throws(ThreadError) in
+            try await store.pruneGitHubThreads(keeping: worktrees, for: repository)
+        }
         switch result {
         case .success(let kept):
             if kept != gitHub {
@@ -110,12 +112,10 @@ final class RepoThreads {
     func saveGitHub(_ read: [ReviewThread], worktree: String) async {
         let current = gitHub.filter { $0.worktree == worktree }
         guard !(read.isEmpty && current.isEmpty) else { return }
-        let (store, repository) = (store, repository)
-        let result = await Task.detached {
-            Result { () throws(ThreadError) in
-                try store.saveGitHubThreads(read, worktree: worktree, read: .now, for: repository)
-            }
-        }.value
+        let result = await Result { () async throws(ThreadError) in
+            try await store.saveGitHubThreads(
+                read, worktree: worktree, read: .now, for: repository)
+        }
         switch result {
         case .success(let stored):
             let updated = gitHub.filter { $0.worktree != worktree } + stored
@@ -171,21 +171,21 @@ final class RepoThreads {
     private func change<Value: Sendable>(
         _ body: @escaping @Sendable (inout [ReviewThread]) throws(ThreadError) -> Value
     ) async -> Value? {
-        let (store, repository) = (store, repository)
-        let result = await Task.detached {
-            Result { () throws(ThreadError) -> (Value, [ReviewThread]) in
-                try store.update(repository) { threads throws(ThreadError) in
-                    (try body(&threads), threads)
-                }
-            }
-        }.value
-        apply(result.map { _ in () }, threads: try? result.get().1)
+        let ticket = nextTicket()
+        let result = await Result { () async throws(ThreadError) in
+            try await store.update(repository, body)
+        }
+        apply(result.map { _ in () }, threads: try? result.get().1, ticket: ticket)
         return try? result.get().0
     }
 
-    private func apply(_ outcome: Result<Void, ThreadError>, threads: [ReviewThread]?) {
+    private func apply(
+        _ outcome: Result<Void, ThreadError>, threads: [ReviewThread]?, ticket: Int
+    ) {
         switch outcome {
         case .success:
+            guard ticket > applied else { return }
+            applied = ticket
             if let threads, threads != self.threads {
                 self.threads = threads
                 version += 1
