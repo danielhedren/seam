@@ -29,6 +29,8 @@ final class RepoSession {
     private(set) var threads: RepoThreads?
     private(set) var pullRequestThreads: PullRequestThreads?
     private var rowRefresh: Task<Void, Never>?
+    /// A save asked for while one is being written; it runs once that one is done.
+    private var saveIsWaiting = false
     private var rowRefreshPending = false
     /// The repo's pull requests, once it's open (SPEC §7.8).
     private(set) var pullRequests: RepoPullRequests?
@@ -439,15 +441,26 @@ final class RepoSession {
         persist()
     }
 
+    /// Writes the state at once, since nothing runs on ⌘Q. Saves asked for while one is being
+    /// written become one more write after it, with the state as it is then.
     func persist() {
         guard let repository else { return }
-        for review in reviews {
-            repoState.worktrees[review.id] = review.persistentState
+        guard saveTask == nil else {
+            saveIsWaiting = true
+            return
         }
-        let (snapshot, previous, store) = (repoState, saveTask, services.store)
-        saveTask = Task {
-            await previous?.value
+        // Worktrees that are gone take their state with them.
+        repoState.worktrees = Dictionary(
+            uniqueKeysWithValues: reviews.map { ($0.id, $0.persistentState) })
+        let (snapshot, store) = (repoState, services.store)
+        saveTask = Task { [weak self] in
             await store.save(snapshot, for: repository)
+            guard let self else { return }
+            saveTask = nil
+            if saveIsWaiting {
+                saveIsWaiting = false
+                persist()
+            }
         }
     }
 
@@ -611,6 +624,6 @@ final class RepoSession {
         await rowsTask?.value
         await rowRefresh?.value
         await pullRequests?.idle()
-        await saveTask?.value
+        while let save = saveTask { await save.value }
     }
 }

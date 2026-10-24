@@ -190,6 +190,33 @@ import Testing
         session.close()
     }
 
+    /// Scrolling through files writes at once (nothing runs on ⌘Q), but saves asked for while
+    /// one is being written become one more write, not one each; gone worktrees aren't kept.
+    @Test func savesWhileOneIsWrittenBecomeOneMoreAndForgetGoneWorktrees() async throws {
+        let repo = try await FixtureRepo()
+        let store = HoldingStore()
+        let repository = try await RepositoryService(git: repo.git).open(repo.main).0
+        var stale = RepoState()
+        stale.worktrees["/gone"] = .init(scope: "all")
+        await store.seed(stale, for: repository)
+        let session = RepoSession(directory: repo.main, services: services(repo.git, store: store))
+        await session.open()
+        await session.settled()
+        let before = await store.saves
+
+        await store.hold()
+        session.noteReading("a.txt")
+        await store.held()
+        for path in ["b.txt", "c.txt", "d.txt"] { session.noteReading(path) }
+        await store.release()
+        await session.settled()
+        #expect(await store.saves == before + 2)
+        let saved = await store.load(repository)
+        #expect(saved.worktrees[repo.main.path]?.currentFile == "d.txt")
+        #expect(saved.worktrees["/gone"] == nil)
+        session.close()
+    }
+
     @Test func aRefChangeRedetectsTheParent() async throws {
         let repo = try await FixtureRepo()
         let b = try await repo.worktree("b", branch: "b", from: "origin/main")
@@ -944,4 +971,48 @@ private final class HoldsNextStatus: GitClient, Sendable {
         }
         return try result.get()
     }
+}
+
+/// A state store whose next save waits until released, to ask for more while one is written.
+private actor HoldingStore: StateStore {
+    private let inner = MemoryStore()
+    private(set) var saves = 0
+    private var holding = false
+    private var waiting: CheckedContinuation<Void, Never>?
+    private var watcher: CheckedContinuation<Void, Never>?
+
+    func seed(_ state: RepoState, for repository: Repository) async {
+        await inner.seed(state, for: repository)
+    }
+
+    func hold() { holding = true }
+
+    func held() async {
+        if waiting != nil { return }
+        await withCheckedContinuation { watcher = $0 }
+    }
+
+    func release() {
+        holding = false
+        waiting?.resume()
+        waiting = nil
+    }
+
+    func load(_ repository: Repository) async -> RepoState { await inner.load(repository) }
+
+    func save(_ state: RepoState, for repository: Repository) async {
+        if holding {
+            await withCheckedContinuation { continuation in
+                waiting = continuation
+                watcher?.resume()
+                watcher = nil
+            }
+        }
+        saves += 1
+        await inner.save(state, for: repository)
+    }
+
+    func recentRepositories() async -> [URL] { [] }
+    func noteOpened(_ directory: URL) async {}
+    func clearRecent() async {}
 }

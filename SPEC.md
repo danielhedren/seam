@@ -943,6 +943,10 @@ Rules:
     and the file is marked "changed since viewed".
 - Settings live in `UserDefaults`.
 
+`state.json` is written as soon as anything in it changes, moving to another file included,
+since nothing runs on ⌘Q; changes made while a write is under way go out in one more write after
+it. A worktree no longer listed drops out of the file.
+
 Seam writes nothing inside the repository or `.git`.
 
 ## 12. Settings

@@ -12,12 +12,18 @@ import Testing
 actor MemoryStore: StateStore {
     var states: [String: RepoState] = [:]
     var opened: [URL] = []
+    private(set) var saves = 0
 
     func load(_ repository: Repository) -> RepoState {
         states[repository.commonDirectory.path] ?? RepoState()
     }
 
     func save(_ state: RepoState, for repository: Repository) {
+        states[repository.commonDirectory.path] = state
+        saves += 1
+    }
+
+    func seed(_ state: RepoState, for repository: Repository) {
         states[repository.commonDirectory.path] = state
     }
 
