@@ -178,7 +178,6 @@ struct ThreadCard: View {
     /// Outside its file's group, the card names the file.
     var showsPath = false
     @State private var reply = ""
-    @FocusState private var replyFocused: Bool
 
     private var thread: ReviewThread { placed.thread }
     /// The picked thread always opens here, whether or not the diff can show it too, so a
@@ -187,17 +186,20 @@ struct ThreadCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Button {
-                if isSelected {
-                    session.closeThread()
-                } else {
-                    session.openThread(thread.id)
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Button {
+                    if isSelected {
+                        session.closeThread()
+                    } else {
+                        session.openThread(thread.id)
+                    }
+                } label: {
+                    summary.contentShape(Rectangle())
                 }
-            } label: {
-                summary.contentShape(Rectangle())
+                .buttonStyle(.plain)
+                .contextMenu { menu }
+                if isExpanded { ThreadActions(session: session, thread: thread).font(.caption) }
             }
-            .buttonStyle(.plain)
-            .contextMenu { menu }
             if isExpanded { conversation }
         }
         .padding(8)
@@ -302,56 +304,18 @@ struct ThreadCard: View {
         return author + CommentText.markdown(latest.body)
     }
 
-    @ViewBuilder private var conversation: some View {
-        if !thread.anchor.text.isEmpty { QuotedLines(anchor: thread.anchor) }
-        ThreadComments(thread: thread).padding(.vertical, 2)
-        if !thread.capabilities.contains(.reply) {
-            HStack {
-                Spacer()
-                Button(String(localized: "Open on GitHub", bundle: .module)) {
-                    session.openOnGitHub(thread)
-                }
-            }
-            .controlSize(.small)
-        } else {
-            replyControls
-        }
-    }
-
-    @ViewBuilder private var replyControls: some View {
-        TextField(
-            String(localized: "Reply", bundle: .module), text: $reply, axis: .vertical
-        )
-        .lineLimit(2...8)
-        .textFieldStyle(.roundedBorder)
-        .focused($replyFocused)
-        HStack(spacing: 8) {
-            Button(
-                thread.isResolved
-                    ? String(localized: "Reopen", bundle: .module)
-                    : String(localized: "Resolve", bundle: .module)
-            ) {
-                Task { await session.setResolved(!thread.isResolved, thread: thread.id) }
-            }
-            // Away from Reply, and quiet: Undo brings a deleted thread back.
-            Button(role: .destructive) {
-                Task { await session.deleteThread(thread.id) }
-            } label: {
-                Label(String(localized: "Delete", bundle: .module), systemImage: "trash")
-            }
-            .labelStyle(.iconOnly)
-            .buttonStyle(.borderless)
-            .help(String(localized: "Delete this thread (Undo brings it back)", bundle: .module))
-            Spacer()
-            Button(String(localized: "Reply", bundle: .module)) { send() }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(CommandCatalog.send)
-                .disabled(reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .help(
-                    CommandCatalog.help(
-                        String(localized: "Reply", bundle: .module), shortcut: CommandCatalog.send))
-        }
-        .controlSize(.small)
+    private var conversation: some View {
+        let canReply = thread.capabilities.contains(.reply)
+        return ThreadCardLayout(
+            session: session, font: .systemFont(ofSize: NSFont.systemFontSize), thread: thread,
+            showsQuote: true, text: canReply ? $reply : nil,
+            placeholder: String(localized: "Write a reply…", bundle: .module),
+            submit: canReply
+                ? String(localized: "Reply", bundle: .module)
+                : String(localized: "Open on GitHub", bundle: .module),
+            dismiss: String(localized: "Close", bundle: .module),
+            onSubmit: canReply ? send : { session.openOnGitHub(thread) },
+            onDismiss: { session.closeThread() })
     }
 
     private func send() {

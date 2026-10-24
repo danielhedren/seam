@@ -516,8 +516,10 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   lists Seam's open threads whose latest comment isn't the reader's (an agent's answer or
   question), naming each one's file; a pull request's threads are answered on GitHub and aren't
   in it. Picking one always opens
-  its conversation in the panel, with a reply box, Resolve or Reopen, and Delete, and also in
-  the diff when the diff can show it; picking it again closes it. A card says where its thread
+  its conversation in the panel, and also in the diff when the diff can show it; picking it
+  again closes it. The panel lays it out as the diff's card does, in the system font: Resolve
+  or Reopen and Delete at the top right, the quoted lines, every comment, the reply box and
+  "⌘↩ Reply ⎋ Close". A card says where its thread
   is when that isn't on its lines: Outdated, From a later commit, Not in this diff, or Whole
   file. Opening a thread the diff can't show shows the panel. Review › Resolve Thread and
   Delete Thread (Undo brings it back) act on the open thread. Agent replies appear live. Its

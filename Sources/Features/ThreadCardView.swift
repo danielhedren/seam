@@ -4,9 +4,8 @@ import SeamCore
 import SwiftUI
 
 /// The diff's one card (SPEC §7.7), for writing a new thread and for reading and answering one:
-/// the same view either way, so the two can't look different. In the diff's font, on the amber
-/// frame the canvas draws: a title, the thread's actions and comments if it has any, a text box
-/// without a background of its own, and the keys as hints at the bottom, which are also buttons.
+/// the same layout either way, and as the panel's, so they can't look different. In the diff's
+/// font, on the amber frame the canvas draws.
 struct ThreadCardView: View {
     let session: RepoSession
     let card: DiffCard
@@ -54,85 +53,13 @@ struct ThreadCardView: View {
         submit: String, dismiss: String, onSubmit: @escaping () -> Void,
         onSubmitNote: (() -> Void)? = nil, onDismiss: @escaping () -> Void
     ) -> some View {
-        let diffFont = session.settings.font
-        // A weight on a font made from an NSFont is ignored, so the bold face is asked for.
-        let bold = Font(NSFontManager.shared.convert(diffFont, toHaveTrait: .boldFontMask))
-        let isEmpty =
-            text?.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? false
-        return VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 16) {
-                HStack(spacing: 6) {
-                    if thread?.source == .gitHub {
-                        Octicon.mark.image.resizable().frame(width: 13, height: 13)
-                            .foregroundStyle(Color(nsColor: ThreadColor.gitHubAccent))
-                    }
-                    Text(verbatim: title).foregroundStyle(.secondary)
-                        .lineLimit(1).truncationMode(.middle)
-                }
-                Spacer(minLength: 4)
-                if let thread, thread.capabilities.contains(.resolve) { actions(thread) }
-            }
-            if let thread { ThreadComments(thread: thread, font: Font(diffFont), authorFont: bold) }
-            if let text {
-                // Four lines whatever is typed, so the card doesn't grow under the reader.
-                CardTextBox(
-                    text: text, placeholder: placeholder, font: diffFont, lines: 4,
-                    takesFocus: thread == nil, onSubmit: onSubmit, onCancel: onDismiss,
-                    onSubmitNote: onSubmitNote)
-            }
-            HStack(spacing: 24) {
-                Spacer()
-                Button(action: onSubmit) {
-                    Text(
-                        verbatim: text == nil
-                            ? submit
-                            : "\(SeamCommand.label(CommandCatalog.send.key, CommandCatalog.send.modifiers)) \(submit)"
-                    )
-                }
-                .disabled(isEmpty)
-                if let onSubmitNote {
-                    // A note asks no answer: something to know, the reader's or for an agent.
-                    Button(action: onSubmitNote) {
-                        Text(
-                            verbatim:
-                                "\(SeamCommand.label(CommandCatalog.sendNote.key, CommandCatalog.sendNote.modifiers)) \(String(localized: "Note", bundle: .module))"
-                        )
-                    }
-                    .disabled(isEmpty)
-                }
-                Button(action: onDismiss) { Text(verbatim: "⎋ \(dismiss)") }
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
-            .pointerStyle(.link)
-        }
-        .font(Font(diffFont))
+        ThreadCardLayout(
+            session: session, font: session.settings.font, title: title, thread: thread,
+            text: text, placeholder: placeholder, submit: submit, dismiss: dismiss,
+            takesFocus: thread == nil, onSubmit: onSubmit, onSubmitNote: onSubmitNote,
+            onDismiss: onDismiss
+        )
         .padding(.horizontal, 7)
-        .onExitCommand(perform: onDismiss)
-    }
-
-    private func actions(_ thread: ReviewThread) -> some View {
-        let resolve =
-            thread.isResolved
-            ? String(localized: "Reopen", bundle: .module)
-            : String(localized: "Resolve", bundle: .module)
-        return HStack(spacing: 16) {
-            Button(resolve) {
-                Task { await session.setResolved(!thread.isResolved, thread: thread.id) }
-            }
-            .help(CommandCatalog.help(resolve, command: "resolve-thread"))
-            // Quiet: Undo brings a deleted thread back.
-            Button(role: .destructive) {
-                Task { await session.deleteThread(thread.id) }
-            } label: {
-                Label(String(localized: "Delete", bundle: .module), systemImage: "trash")
-            }
-            .labelStyle(.iconOnly)
-            .help(String(localized: "Delete this thread (Undo brings it back)", bundle: .module))
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(.secondary)
-        .pointerStyle(.link)
     }
 
     private func send(to id: String) {
@@ -184,6 +111,121 @@ struct ThreadCardView: View {
                 : String(
                     localized: "Thread on \(thread.anchor.path), line \(lines)", bundle: .module)
         return "\(place) · \(Counted.comments(thread.comments.count))\(status)"
+    }
+}
+
+/// A thread laid out the one way, in the diff's card and in the panel (SPEC §7.7): a title with
+/// the thread's actions at the right, its comments, a text box without a background of its own,
+/// and the keys as hints at the bottom, which are also buttons. Only the font differs.
+struct ThreadCardLayout: View {
+    let session: RepoSession
+    let font: NSFont
+    /// Nil in the panel, where the thread's summary row above says it and has the actions.
+    var title: String?
+    let thread: ReviewThread?
+    /// The panel quotes the lines; the diff's card sits under them.
+    var showsQuote = false
+    let text: Binding<String>?
+    let placeholder: String
+    let submit: String
+    let dismiss: String
+    var takesFocus = false
+    let onSubmit: () -> Void
+    var onSubmitNote: (() -> Void)?
+    let onDismiss: () -> Void
+
+    var body: some View {
+        // A weight on a font made from an NSFont is ignored, so the bold face is asked for.
+        let bold = Font(NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask))
+        let isEmpty =
+            text?.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? false
+        VStack(alignment: .leading, spacing: 10) {
+            if let title {
+                HStack(spacing: 16) {
+                    HStack(spacing: 6) {
+                        if thread?.source == .gitHub {
+                            Octicon.mark.image.resizable().frame(width: 13, height: 13)
+                                .foregroundStyle(Color(nsColor: ThreadColor.gitHubAccent))
+                        }
+                        Text(verbatim: title).foregroundStyle(.secondary)
+                            .lineLimit(1).truncationMode(.middle)
+                    }
+                    Spacer(minLength: 4)
+                    if let thread { ThreadActions(session: session, thread: thread) }
+                }
+            }
+            if showsQuote, let thread, !thread.anchor.text.isEmpty {
+                QuotedLines(anchor: thread.anchor)
+            }
+            if let thread { ThreadComments(thread: thread, font: Font(font), authorFont: bold) }
+            if let text {
+                // Four lines whatever is typed, so the card doesn't grow under the reader.
+                CardTextBox(
+                    text: text, placeholder: placeholder, font: font, lines: 4,
+                    takesFocus: takesFocus, onSubmit: onSubmit, onCancel: onDismiss,
+                    onSubmitNote: onSubmitNote)
+            }
+            HStack(spacing: 24) {
+                Spacer()
+                Button(action: onSubmit) {
+                    Text(
+                        verbatim: text == nil
+                            ? submit
+                            : "\(SeamCommand.label(CommandCatalog.send.key, CommandCatalog.send.modifiers)) \(submit)"
+                    )
+                }
+                .disabled(isEmpty)
+                if let onSubmitNote {
+                    // A note asks no answer: something to know, the reader's or for an agent.
+                    Button(action: onSubmitNote) {
+                        Text(
+                            verbatim:
+                                "\(SeamCommand.label(CommandCatalog.sendNote.key, CommandCatalog.sendNote.modifiers)) \(String(localized: "Note", bundle: .module))"
+                        )
+                    }
+                    .disabled(isEmpty)
+                }
+                Button(action: onDismiss) { Text(verbatim: "⎋ \(dismiss)") }
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .pointerStyle(.link)
+        }
+        .font(Font(font))
+        .onExitCommand(perform: onDismiss)
+    }
+}
+
+/// Resolve and Delete, at the top right of a thread wherever it's laid out.
+struct ThreadActions: View {
+    let session: RepoSession
+    let thread: ReviewThread
+
+    var body: some View {
+        if thread.capabilities.contains(.resolve) {
+            let resolve =
+                thread.isResolved
+                ? String(localized: "Reopen", bundle: .module)
+                : String(localized: "Resolve", bundle: .module)
+            HStack(spacing: 16) {
+                Button(resolve) {
+                    Task { await session.setResolved(!thread.isResolved, thread: thread.id) }
+                }
+                .help(CommandCatalog.help(resolve, command: "resolve-thread"))
+                // Quiet: Undo brings a deleted thread back.
+                Button(role: .destructive) {
+                    Task { await session.deleteThread(thread.id) }
+                } label: {
+                    Label(String(localized: "Delete", bundle: .module), systemImage: "trash")
+                }
+                .labelStyle(.iconOnly)
+                .help(
+                    String(localized: "Delete this thread (Undo brings it back)", bundle: .module))
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .pointerStyle(.link)
+        }
     }
 }
 
