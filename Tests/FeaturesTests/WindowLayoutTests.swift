@@ -167,5 +167,5 @@ import Testing
 /// Lets SwiftUI and AppKit finish the layout and toolbar updates they schedule.
 @MainActor
 private func settleLayout() {
-    for _ in 0..<20 { RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.02)) }
+    runLoop(for: 0.4)
 }

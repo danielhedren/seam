@@ -433,5 +433,5 @@ private func retinaScreen() -> NSScreen? {
 /// function because `RunLoop.run` isn't available from async code.
 @MainActor
 private func settle() {
-    for _ in 0..<20 { RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.02)) }
+    runLoop(for: 0.4)
 }

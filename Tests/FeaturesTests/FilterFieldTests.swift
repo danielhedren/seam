@@ -59,5 +59,5 @@ import Testing
 
 @MainActor
 private func settle() {
-    for _ in 0..<10 { RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.02)) }
+    runLoop(for: 0.2)
 }

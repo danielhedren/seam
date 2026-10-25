@@ -399,8 +399,15 @@ func command(_ id: String) throws -> SeamCommand {
 /// One short turn of the run loop, for AppKit and SwiftUI layout; a sync function, since an
 /// async one can't run the loop itself.
 @MainActor
+/// Runs the main run loop in short slices: on battery the system lets a 10 ms run loop
+/// timer fire 100 ms late in an AppKit process, which slowed window tests past their limits.
 func runLoopOnce() {
-    RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.01))
+    runLoop(for: 0.01)
+}
+
+func runLoop(for seconds: TimeInterval) {
+    let end = Date(timeIntervalSinceNow: seconds)
+    while Date() < end { _ = CFRunLoopRunInMode(.defaultMode, 0.0001, false) }
 }
 
 /// The real diff pane in a window that's never shown, for driving it end to end.

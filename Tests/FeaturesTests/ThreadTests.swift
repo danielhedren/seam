@@ -609,7 +609,8 @@ extension CardWindow {
     /// The card is exactly as tall as its contents need, so nothing hangs out of it.
     func fits() throws -> Bool {
         let card = try #require(host)
-        return card.frame.height == card.height(forWidth: card.frame.width)
+        // Rows are whole points; on a 2x screen the card can want half a point less.
+        return card.frame.height == card.height(forWidth: card.frame.width).rounded(.up)
     }
 
     func press(_ key: String, _ modifiers: NSEvent.ModifierFlags) {

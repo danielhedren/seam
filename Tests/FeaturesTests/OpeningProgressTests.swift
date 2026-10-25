@@ -29,13 +29,8 @@ struct OpeningProgressTests {
     private func drain() async {
         for _ in 0..<10 {
             await Task.yield()
-            pumpRunLoop()
+            runLoopOnce()
         }
-    }
-
-    /// Synchronous because `RunLoop.run` isn't available from async code.
-    private func pumpRunLoop() {
-        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.01))
     }
 
     /// Whether every pixel has the same colour, i.e. nothing is drawn.
