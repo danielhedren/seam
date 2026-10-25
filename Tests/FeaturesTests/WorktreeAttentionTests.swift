@@ -108,6 +108,10 @@ struct InboxTests {
         #expect(session.selected?.placedThreads.first?.isInDiff == true)
     }
 
+    @Test func aPullRequestNumberHasNoThousandsSeparator() {
+        #expect(InboxList.checksFailed(2530) == "#2530 checks failed")
+    }
+
     @Test func answeringTakesItOutOfTheInbox() async throws {
         // The fixture is kept: releasing it deletes its folder, and the store's file name with it.
         let (session, repo, feature, id) = try await asked()

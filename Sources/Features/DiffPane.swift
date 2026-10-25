@@ -400,7 +400,7 @@ struct StaleParentBanner: View {
         Banner(systemImage: "arrow.triangle.merge", tint: .accentColor) {
             if case .pullRequestMerged(let number) = stale.reason {
                 Text(
-                    "Parent \(stale.parent)'s pull request #\(number) merged. Diff against \(stale.suggestion.name) instead?",
+                    "Parent \(stale.parent)'s pull request #\(String(number)) merged. Diff against \(stale.suggestion.name) instead?",
                     bundle: .module)
             } else {
                 Text(
@@ -427,7 +427,7 @@ struct PullRequestBaseBanner: View {
     var body: some View {
         Banner(systemImage: "arrow.triangle.pull", tint: .accentColor) {
             Text(
-                "Pull request #\(number) merges into \(base). Diff against \(base) instead?",
+                "Pull request #\(String(number)) merges into \(base). Diff against \(base) instead?",
                 bundle: .module)
         } actions: {
             Button(String(localized: "Keep Detected Base", bundle: .module)) {

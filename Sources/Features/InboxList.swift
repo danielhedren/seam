@@ -48,6 +48,11 @@ struct InboxList: View {
         }
     }
 
+    /// The number is interpolated as text: an `Int` is formatted with the locale's grouping.
+    static func checksFailed(_ number: Int) -> String {
+        String(localized: "#\(String(number)) checks failed", bundle: .module)
+    }
+
     /// Newest first, so the worktree with the latest word leads.
     static func groups(_ items: [InboxItem]) -> [(worktree: String, items: [InboxItem])] {
         var order: [String] = []
@@ -93,7 +98,7 @@ private struct InboxRow: View {
             .padding(.vertical, 2)
         case .failedChecks(let pullRequest):
             HStack(spacing: 6) {
-                Text(String(localized: "#\(pullRequest.number) checks failed", bundle: .module))
+                Text(InboxList.checksFailed(pullRequest.number))
                 Spacer(minLength: 4)
                 Button(String(localized: "Open Failed Check", bundle: .module)) {
                     guard let review = session.reviews.first(where: { $0.id == item.worktree })

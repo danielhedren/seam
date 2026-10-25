@@ -7,7 +7,7 @@
     " · resolved" : {
 
     },
-    "#%lld checks failed" : {
+    "#%@ checks failed" : {
 
     },
     "%@ (%@ marks it and goes to the next unviewed file)" : {
@@ -725,12 +725,12 @@
         }
       }
     },
-    "Parent %@'s pull request #%lld merged. Diff against %@ instead?" : {
+    "Parent %@'s pull request #%@ merged. Diff against %@ instead?" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Parent %1$@'s pull request #%2$lld merged. Diff against %3$@ instead?"
+            "value" : "Parent %1$@'s pull request #%2$@ merged. Diff against %3$@ instead?"
           }
         }
       }
@@ -753,12 +753,12 @@
     "Previous match" : {
 
     },
-    "Pull request #%lld merges into %@. Diff against %@ instead?" : {
+    "Pull request #%@ merges into %@. Diff against %@ instead?" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Pull request #%1$lld merges into %2$@. Diff against %3$@ instead?"
+            "value" : "Pull request #%1$@ merges into %2$@. Diff against %3$@ instead?"
           }
         }
       }
