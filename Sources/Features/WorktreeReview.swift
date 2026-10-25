@@ -155,6 +155,12 @@ final class WorktreeReview: Identifiable {
         [activity?.lastChange, lastEvent].compactMap(\.self).max()
     }
 
+    /// Changes against the base, uncommitted files or an open pull request: work to review.
+    var hasWork: Bool {
+        (activity?.changes?.files ?? 0) > 0 || (activity?.uncommittedFiles ?? 0) > 0
+            || pullRequest?.state == .open
+    }
+
     /// What the row's totals are measured from: the same base the diff uses.
     private var statsBase: String? {
         baseOverride == nil ? detection?.base : overrideBase

@@ -53,7 +53,8 @@ struct WorktreeAttentionTests {
         try repo.write("q.txt", "qq\n", in: quiet)
         await session.apply(RepoChange(worktrees: [quiet.path]))
         await session.settled()
-        #expect(names(session) == ["wt-answered", repo.main.lastPathComponent, "wt-quiet"])
+        // A worktree with work outranks the main worktree with none.
+        #expect(names(session) == ["wt-answered", "wt-quiet", repo.main.lastPathComponent])
 
         try #require(CommandCatalog.all.first { $0.id == "sort-recent" }).run(session)
         #expect(names(session).first == repo.main.lastPathComponent)

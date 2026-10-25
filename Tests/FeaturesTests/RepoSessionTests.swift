@@ -21,7 +21,7 @@ import Testing
         await session.settled()
 
         #expect(session.state == .open)
-        #expect(session.sortedReviews.map(\.worktree.name) == ["repo", "wt-feature"])
+        #expect(session.sortedReviews.map(\.worktree.name) == ["wt-feature", "repo"])
         let review = try #require(session.selected)
         #expect(review.id == feature.path)
         #expect(review.parentName == "origin/main")

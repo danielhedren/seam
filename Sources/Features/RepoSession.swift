@@ -130,9 +130,8 @@ final class RepoSession {
             ? common.deletingLastPathComponent().lastPathComponent : common.lastPathComponent
     }
 
-    /// Main worktree pinned first, then by recent change or name (SPEC §7.2).
-    /// The main worktree first, except that sorting by attention puts every worktree needing
-    /// the reader above it (SPEC §7.2).
+    /// The main worktree pinned first, then by recent change or name; or by attention: those
+    /// needing the reader, then those with work, then idle ones, main first among them (SPEC §7.2).
     var sortedReviews: [WorktreeReview] {
         let visible = reviews.filter { !(hidesMissing && $0.worktree.isMissing) }
         func ordered(_ reviews: [WorktreeReview]) -> [WorktreeReview] {
@@ -151,8 +150,10 @@ final class RepoSession {
                 }
         }
         guard sort == .attention else { return ordered(visible) }
-        return ordered(visible.filter(\.attention.needsReader))
-            + ordered(visible.filter { !$0.attention.needsReader })
+        let needing = visible.filter(\.attention.needsReader)
+        let rest = visible.filter { !$0.attention.needsReader }
+        return ordered(needing) + ordered(rest.filter(\.hasWork))
+            + ordered(rest.filter { !$0.hasWork })
     }
 
     // MARK: - Opening

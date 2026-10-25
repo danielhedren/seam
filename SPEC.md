@@ -274,8 +274,9 @@ Each row shows:
   take the row's text colour: the accent fill leaves those colours unreadable.
 
 Sorting: Needs You First (default) lists the worktrees with something awaiting the reader at the
-top, then the rest, each most recently changed first; or by recent change, or by name. Apart from
-those needing the reader, the main worktree is pinned to the top. `⌘[`/`⌘]` follow the order. Worktrees whose directory is missing are listed dimmed, and can be hidden.
+top, then those with work (changes against the base, uncommitted files or an open pull request),
+then idle ones, each group with the main worktree first and the rest most recently changed first.
+By recent change, or by name, the main worktree is pinned to the top. `⌘[`/`⌘]` follow the order. Worktrees whose directory is missing are listed dimmed, and can be hidden.
 
 A row's context menu has Open in Editor (the worktree's folder, §7.6), Reveal in Finder, Copy
 Path and Copy Branch Name (when it has a branch), Open Pull Request in Browser and Copy Pull
