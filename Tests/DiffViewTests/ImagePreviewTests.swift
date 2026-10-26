@@ -1,6 +1,7 @@
 import AppKit
 import Testing
 
+@testable import DiffModel
 @testable import DiffView
 
 @MainActor

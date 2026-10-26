@@ -2,7 +2,7 @@ import SeamCore
 
 extension DiffRowBuilder {
     /// The number a row shows on one side of the file, for placing threads.
-    static func number(of row: DiffRow, on side: ThreadAnchor.Side) -> Int? {
+    package static func number(of row: DiffRow, on side: ThreadAnchor.Side) -> Int? {
         switch (row, side) {
         case (.line(_, let line), .new): line.new
         case (.line(_, let line), .old): line.old
@@ -51,7 +51,7 @@ extension DiffRowBuilder {
 
     /// The rows inside a thread's range, with the side the range is on and whose threads they
     /// are, for the gutter mark.
-    static func threadedRows(
+    package static func threadedRows(
         _ rows: [DiffRow], paths: [String], threads: [String: [ThreadMarker]],
         resolved: [String: [ThreadMarker]] = [:]
     ) -> [Int: Set<ThreadMark>] {
@@ -74,10 +74,20 @@ extension DiffRowBuilder {
     }
 }
 
-struct ThreadMark: Hashable {
-    var side: ThreadAnchor.Side
-    var source: ThreadSource
-    var isNote = false
+package struct ThreadMark: Hashable {
+    package var side: ThreadAnchor.Side
+    package var source: ThreadSource
+    package var isNote = false
     /// A hidden resolved thread's, drawn hollow.
-    var isResolved = false
+    package var isResolved = false
+
+    package init(
+        side: ThreadAnchor.Side, source: ThreadSource, isNote: Bool = false,
+        isResolved: Bool = false
+    ) {
+        self.side = side
+        self.source = source
+        self.isNote = isNote
+        self.isResolved = isResolved
+    }
 }

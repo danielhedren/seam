@@ -1,4 +1,5 @@
 import AppKit
+import DiffModel
 
 /// Pointer shapes: an I-beam over selectable text, a pointing hand over what a click acts on
 /// (file headers, gap controls, thread rows), as in a web diff or Xcode's comparison view.

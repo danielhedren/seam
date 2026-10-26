@@ -1,4 +1,5 @@
 import AppKit
+import DiffModel
 import SeamCore
 
 /// An sRGB colour as plain numbers, so contrast is checked by a unit test (SPEC §9).

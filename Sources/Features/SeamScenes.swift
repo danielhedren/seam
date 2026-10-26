@@ -1,4 +1,5 @@
 import AppKit
+import DiffModel
 import DiffView
 import Observation
 import SeamCore

@@ -1,0 +1,78 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    " · resolved" : {
+
+    },
+    "%@ on GitHub: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ on GitHub: %2$@"
+          }
+        }
+      }
+    },
+    "%lld comments" : {
+
+    },
+    "1 comment" : {
+
+    },
+    "Binary file" : {
+
+    },
+    "Binary file, %@" : {
+
+    },
+    "Binary file, %@ deleted" : {
+
+    },
+    "Binary file, %@ → %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Binary file, %1$@ → %2$@"
+          }
+        }
+      }
+    },
+    "Copied without changes" : {
+
+    },
+    "Empty file" : {
+
+    },
+    "Empty file deleted" : {
+
+    },
+    "Large file not loaded" : {
+
+    },
+    "Mode changed from %@ to %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mode changed from %1$@ to %2$@"
+          }
+        }
+      }
+    },
+    "No content changes" : {
+
+    },
+    "Renamed without changes" : {
+
+    },
+    "Show 1 more line" : {
+
+    },
+    "Show all %lld lines" : {
+
+    }
+  },
+  "version" : "1.0"
+}

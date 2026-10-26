@@ -3,6 +3,7 @@ import GitKit
 import SeamCore
 import Testing
 
+@testable import DiffModel
 @testable import DiffView
 
 /// A 100-line file whose line 50 was replaced by two lines, so new numbers are old + 1 below it.

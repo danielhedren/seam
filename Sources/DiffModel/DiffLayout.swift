@@ -4,28 +4,34 @@ import SeamCore
 
 /// Row positions as prefix sums of row heights (SPEC §8.5). Pure, so hit testing, navigation and
 /// scroll anchoring are unit tested without a window.
-struct DiffLayout: Equatable, Sendable {
-    struct Metrics: Equatable, Sendable {
-        var lineHeight: Double
-        var fileHeaderHeight: Double
-        var characterWidth: Double
+package struct DiffLayout: Equatable, Sendable {
+    package struct Metrics: Equatable, Sendable {
+        package var lineHeight: Double
+        package var fileHeaderHeight: Double
+        package var characterWidth: Double
         var imageHeight = 240.0
 
+        package init(lineHeight: Double, fileHeaderHeight: Double, characterWidth: Double) {
+            self.lineHeight = lineHeight
+            self.fileHeaderHeight = fileHeaderHeight
+            self.characterWidth = characterWidth
+        }
     }
 
-    let rows: [DiffRow]
-    let metrics: Metrics
+    package let rows: [DiffRow]
+    package let metrics: Metrics
     /// `offsets[i]` is the top of row `i`; the last element is the total height.
     private let offsets: [Double]
     /// The longest text in characters, for the document width.
     let maxColumns: Int
     /// Characters per visual line when wrapping; nil when lines don't wrap.
-    let wrapColumns: Int?
+    package let wrapColumns: Int?
 
     /// The card's row (a draft or the open thread) is as tall as its view says.
-    let cardHeight: Double
+    package let cardHeight: Double
 
-    init(rows: [DiffRow], metrics: Metrics, wrapColumns: Int? = nil, cardHeight: Double = 0) {
+    package init(rows: [DiffRow], metrics: Metrics, wrapColumns: Int? = nil, cardHeight: Double = 0)
+    {
         self.rows = rows
         self.metrics = metrics
         self.wrapColumns = wrapColumns
@@ -61,7 +67,7 @@ struct DiffLayout: Equatable, Sendable {
         maxColumns = columns
     }
 
-    var totalHeight: Double { offsets.last ?? 0 }
+    package var totalHeight: Double { offsets.last ?? 0 }
 
     /// Monospaced text wraps at a fixed column, so a row's height follows from its length.
     static func visualLines(_ count: Int, _ wrapColumns: Int?) -> Int {
@@ -70,7 +76,7 @@ struct DiffLayout: Equatable, Sendable {
     }
 
     /// `range` cut at each wrap point: the visual line of each piece and its columns within it.
-    static func segments(_ range: Range<Int>, wrapColumns: Int?) -> [(
+    package static func segments(_ range: Range<Int>, wrapColumns: Int?) -> [(
         line: Int, columns: Range<Int>
     )] {
         guard let wrapColumns, wrapColumns > 0 else { return [(0, range)] }
@@ -89,12 +95,12 @@ struct DiffLayout: Equatable, Sendable {
         rows.reduce(0) { max($0, columns($1)) }
     }
 
-    func top(of row: Int) -> Double { offsets[min(max(row, 0), rows.count)] }
+    package func top(of row: Int) -> Double { offsets[min(max(row, 0), rows.count)] }
 
-    func height(of row: Int) -> Double { top(of: row + 1) - top(of: row) }
+    package func height(of row: Int) -> Double { top(of: row + 1) - top(of: row) }
 
     /// The row containing `y`, clamped to the rows that exist; nil when there are none.
-    func row(at y: Double) -> Int? {
+    package func row(at y: Double) -> Int? {
         guard !rows.isEmpty else { return nil }
         var low = 0
         var high = rows.count - 1
@@ -105,12 +111,12 @@ struct DiffLayout: Equatable, Sendable {
         return low
     }
 
-    func rows(in minY: Double, _ maxY: Double) -> Range<Int> {
+    package func rows(in minY: Double, _ maxY: Double) -> Range<Int> {
         guard let first = row(at: minY), let last = row(at: maxY) else { return 0..<0 }
         return first..<(last + 1)
     }
 
-    func headerRow(ofFile file: Int) -> Int? {
+    package func headerRow(ofFile file: Int) -> Int? {
         var low = 0
         var high = rows.count
         while low < high {
@@ -123,11 +129,11 @@ struct DiffLayout: Equatable, Sendable {
     /// The first hunk (or file, when `files` is true) that starts below `y`. By position, not
     /// row order: a hidden hunk header has no height and shares its first line's top, so from
     /// that line the header would count as the previous stop and `p` would stay put.
-    func nextStop(below y: Double, files: Bool) -> Int? {
+    package func nextStop(below y: Double, files: Bool) -> Int? {
         rows.indices.first { isStop($0, files: files) && top(of: $0) > y }
     }
 
-    func previousStop(above y: Double, files: Bool) -> Int? {
+    package func previousStop(above y: Double, files: Bool) -> Int? {
         rows.indices.last { isStop($0, files: files) && top(of: $0) < y }
     }
 
@@ -135,7 +141,7 @@ struct DiffLayout: Equatable, Sendable {
         files ? rows[index].isFileHeader : rows[index].isHunkHeader
     }
 
-    static func columns(_ row: DiffRow) -> Int {
+    package static func columns(_ row: DiffRow) -> Int {
         switch row {
         case .line(_, let line): line.text.count
         case .split(_, let left, let right): max(left?.text.count ?? 0, right?.text.count ?? 0)
@@ -148,7 +154,7 @@ struct DiffLayout: Equatable, Sendable {
 }
 
 extension DiffLayout {
-    func anchor(atY y: Double, paths: [String]) -> ScrollAnchor? {
+    package func anchor(atY y: Double, paths: [String]) -> ScrollAnchor? {
         guard let index = row(at: y), rows[index].file < paths.count else { return nil }
         let row = rows[index]
         let (line, isOld) = Self.lineNumber(row)
@@ -158,7 +164,7 @@ extension DiffLayout {
 
     /// The y offset that shows `anchor` where it was: the same line if it still exists, else the
     /// nearest following line in the same file, else the file's header.
-    func y(for anchor: ScrollAnchor, paths: [String]) -> Double? {
+    package func y(for anchor: ScrollAnchor, paths: [String]) -> Double? {
         guard let file = paths.firstIndex(of: anchor.path), let header = headerRow(ofFile: file)
         else {
             return nil
@@ -176,7 +182,7 @@ extension DiffLayout {
     }
 
     /// The row showing `line` of the file: on the old side for a removed line, else the new.
-    func row(forLine line: Int, inFile file: Int, isOld: Bool) -> Int? {
+    package func row(forLine line: Int, inFile file: Int, isOld: Bool) -> Int? {
         guard let header = headerRow(ofFile: file) else { return nil }
         for index in header..<rows.count {
             guard rows[index].file == file else { break }
@@ -196,7 +202,7 @@ extension DiffLayout {
     /// The first new-side line at or after `row` in the same file, for opening the file as it is
     /// now: a header reads as the hunk below it, a removed line as the next line that exists.
     /// Line 1 when the file has none (a deleted file).
-    func location(atOrAfter row: Int) -> (file: Int, line: Int)? {
+    package func location(atOrAfter row: Int) -> (file: Int, line: Int)? {
         guard rows.indices.contains(row) else { return nil }
         let file = rows[row].file
         for index in row..<rows.count {
@@ -208,7 +214,7 @@ extension DiffLayout {
     }
 
     /// The first row from `row` on, within its file, that shows a line; else `row` itself.
-    func numberedRow(atOrAfter row: Int) -> Int {
+    package func numberedRow(atOrAfter row: Int) -> Int {
         guard rows.indices.contains(row) else { return row }
         for index in row..<rows.count {
             guard rows[index].file == rows[row].file else { break }
@@ -229,33 +235,38 @@ extension DiffLayout {
 }
 
 /// A text position: a row, and a character offset within one side's text.
-struct TextPosition: Comparable, Sendable {
-    var row: Int
-    var column: Int
+package struct TextPosition: Comparable, Sendable {
+    package var row: Int
+    package var column: Int
 
-    static func < (lhs: TextPosition, rhs: TextPosition) -> Bool {
+    package init(row: Int, column: Int) {
+        self.row = row
+        self.column = column
+    }
+
+    package static func < (lhs: TextPosition, rhs: TextPosition) -> Bool {
         (lhs.row, lhs.column) < (rhs.row, rhs.column)
     }
 }
 
 /// A selection stays within one side in split mode (SPEC §7.4).
-struct DiffSelection: Equatable, Sendable {
-    var side: DiffSide
-    var anchor: TextPosition
-    var head: TextPosition
+package struct DiffSelection: Equatable, Sendable {
+    package var side: DiffSide
+    package var anchor: TextPosition
+    package var head: TextPosition
 
-    init(side: DiffSide, anchor: TextPosition, head: TextPosition) {
+    package init(side: DiffSide, anchor: TextPosition, head: TextPosition) {
         self.side = side
         self.anchor = anchor
         self.head = head
     }
 
-    var start: TextPosition { min(anchor, head) }
-    var end: TextPosition { max(anchor, head) }
-    var isEmpty: Bool { anchor == head }
+    package var start: TextPosition { min(anchor, head) }
+    package var end: TextPosition { max(anchor, head) }
+    package var isEmpty: Bool { anchor == head }
 
     /// The selected columns of `row`, or nil when the row is outside the selection.
-    func columns(inRow row: Int, length: Int) -> Range<Int>? {
+    package func columns(inRow row: Int, length: Int) -> Range<Int>? {
         guard row >= start.row, row <= end.row else { return nil }
         let from = row == start.row ? min(start.column, length) : 0
         let to = row == end.row ? min(end.column, length) : length
@@ -265,7 +276,7 @@ struct DiffSelection: Equatable, Sendable {
 
 extension DiffLayout {
     /// The text a side shows in `row`, if it shows any.
-    func text(of row: Int, side: DiffSide) -> String? {
+    package func text(of row: Int, side: DiffSide) -> String? {
         switch (rows[row], side) {
         case (.line(_, let line), .unified): line.text
         case (.split(_, let left, _), .left): left?.text
@@ -276,7 +287,7 @@ extension DiffLayout {
 
     /// The columns a double click at `position` selects: the run of letters, digits and
     /// underscores around it, else the one character there.
-    func word(at position: TextPosition, side: DiffSide) -> Range<Int> {
+    package func word(at position: TextPosition, side: DiffSide) -> Range<Int> {
         let characters = Array(text(of: position.row, side: side) ?? "")
         func isWord(_ index: Int) -> Bool {
             characters.indices.contains(index)
@@ -293,7 +304,7 @@ extension DiffLayout {
 
     /// Copy text: selected lines of the selection's side, joined with newlines. Rows where that
     /// side has no line (headers, the empty half of an unpaired line) are skipped.
-    func text(of selection: DiffSelection) -> String {
+    package func text(of selection: DiffSelection) -> String {
         guard !selection.isEmpty, selection.end.row < rows.count else { return "" }
         var lines: [Substring] = []
         for row in selection.start.row...selection.end.row {

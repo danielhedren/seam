@@ -1,3 +1,4 @@
+import DiffModel
 import DiffView
 import GitKit
 import SeamCore

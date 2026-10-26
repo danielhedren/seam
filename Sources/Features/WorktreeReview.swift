@@ -1,3 +1,4 @@
+import DiffModel
 import DiffView
 import Foundation
 import GitKit

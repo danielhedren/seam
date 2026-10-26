@@ -1,21 +1,21 @@
 import Foundation
 
 /// Column positions for the current rows, mode and width.
-struct Geometry {
-    var visibleWidth = 0.0
-    var padding = 8.0
-    var numberWidth = 0.0
+package struct Geometry {
+    package var visibleWidth = 0.0
+    package var padding = 8.0
+    package var numberWidth = 0.0
     var unifiedTextX = 0.0
     var splitTextOffset = 0.0
-    var columnWidth = 0.0
-    var documentWidth = 0.0
+    package var columnWidth = 0.0
+    package var documentWidth = 0.0
     var isSplit = false
     /// Characters per visual line when wrapping; nil when lines don't wrap.
-    var wrapColumns: Int?
+    package var wrapColumns: Int?
 
-    init() {}
+    package init() {}
 
-    init(
+    package init(
         rows: [DiffRow], metrics: DiffLayout.Metrics, mode: DiffLayoutMode, visibleWidth: Double,
         wraps: Bool
     ) {
@@ -48,7 +48,7 @@ struct Geometry {
     }
 
     /// Where a side's text starts.
-    func textX(for side: DiffSide) -> Double {
+    package func textX(for side: DiffSide) -> Double {
         switch side {
         case .unified: unifiedTextX
         case .left: splitTextOffset
@@ -58,7 +58,7 @@ struct Geometry {
 
     /// Where full-width rows (hunk titles, gaps, notices) put their text: in line with the code,
     /// which in split mode is the left column's.
-    var chromeTextX: Double { isSplit ? splitTextOffset : unifiedTextX }
+    package var chromeTextX: Double { isSplit ? splitTextOffset : unifiedTextX }
 
     /// At least 20 columns, so a narrow window still wraps into readable lines.
     private static func columns(_ width: Double, _ character: Double) -> Int {

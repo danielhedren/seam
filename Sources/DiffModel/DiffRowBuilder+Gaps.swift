@@ -65,8 +65,9 @@ extension DiffRowBuilder {
     }
 
     /// The gap row's text and the character ranges of its controls.
-    static func gapLabel(_ gap: GapRow) -> (text: String, controls: [(Range<Int>, ExpandDirection)])
-    {
+    package static func gapLabel(_ gap: GapRow) -> (
+        text: String, controls: [(Range<Int>, ExpandDirection)]
+    ) {
         var text = ""
         var controls: [(Range<Int>, ExpandDirection)] = []
         func add(_ label: String, _ direction: ExpandDirection) {

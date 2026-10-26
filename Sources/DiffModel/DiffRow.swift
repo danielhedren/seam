@@ -2,31 +2,31 @@ import GitKit
 import SeamCore
 
 /// One side of a displayed line: what a gutter number and a text column show.
-struct SideLine: Equatable, Sendable {
-    var kind: DiffLine.Kind
-    var number: Int
+package struct SideLine: Equatable, Sendable {
+    package var kind: DiffLine.Kind
+    package var number: Int
     /// Tabs already expanded, so column arithmetic is plain character counting.
-    var text: String
-    var noNewlineAtEnd = false
+    package var text: String
+    package var noNewlineAtEnd = false
     /// Word changes and syntax runs below are character ranges into `text`.
-    var highlights: [Range<Int>] = []
-    var syntax: [SyntaxSpan] = []
+    package var highlights: [Range<Int>] = []
+    package var syntax: [SyntaxSpan] = []
 }
 
 /// A unified-mode line, numbered on whichever sides it exists.
-struct UnifiedLine: Equatable, Sendable {
-    var old: Int?
-    var new: Int?
-    var kind: DiffLine.Kind
-    var text: String
-    var noNewline = false
-    var highlights: [Range<Int>] = []
-    var syntax: [SyntaxSpan] = []
+package struct UnifiedLine: Equatable, Sendable {
+    package var old: Int?
+    package var new: Int?
+    package var kind: DiffLine.Kind
+    package var text: String
+    package var noNewline = false
+    package var highlights: [Range<Int>] = []
+    package var syntax: [SyntaxSpan] = []
 }
 
 /// The hidden part of a gap, with the controls that apply to it.
-struct GapRow: Equatable, Sendable {
-    var gap: Int
+package struct GapRow: Equatable, Sendable {
+    package var gap: Int
     var hidden: Int
     var canExpandDown: Bool
     var canExpandUp: Bool
@@ -34,13 +34,13 @@ struct GapRow: Equatable, Sendable {
 
 /// A hunk header always keeps its row, so hunk navigation stops there, but it shows only when it
 /// has a name or nothing else marks a jump in line numbers (SPEC §7.4).
-enum HunkHeaderStyle: Equatable, Sendable {
+package enum HunkHeaderStyle: Equatable, Sendable {
     case titled(String)
     case separator
     case hidden
 }
 
-enum DiffRow: Equatable, Sendable {
+package enum DiffRow: Equatable, Sendable {
     case fileHeader(file: Int)
     case hunkHeader(file: Int, hunk: Int, HunkHeaderStyle)
     case line(file: Int, UnifiedLine)
@@ -58,7 +58,7 @@ enum DiffRow: Equatable, Sendable {
     /// The composer for a new thread, after its last line and that line's threads.
     case draft(file: Int, DraftMarker)
 
-    var file: Int {
+    package var file: Int {
         switch self {
         case .fileHeader(let file), .hunkHeader(let file, _, _), .line(let file, _),
             .split(let file, _, _), .notice(let file, _), .gap(let file, _), .image(let file),
@@ -74,7 +74,7 @@ enum DiffRow: Equatable, Sendable {
         }
     }
 
-    var isFileHeader: Bool {
+    package var isFileHeader: Bool {
         if case .fileHeader = self { true } else { false }
     }
 
@@ -83,7 +83,7 @@ enum DiffRow: Equatable, Sendable {
     }
 }
 
-enum DiffSide: Hashable, Sendable {
+package enum DiffSide: Hashable, Sendable {
     case unified
     case left
     case right

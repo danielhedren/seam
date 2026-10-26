@@ -4,6 +4,7 @@ import GitKit
 import SeamCore
 import Testing
 
+@testable import DiffModel
 @testable import DiffView
 
 /// SPEC §8.7 rendering budgets on a synthetic 20k-line diff. Run with `make test-all`.

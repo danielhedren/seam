@@ -1,6 +1,6 @@
 /// Display columns for raw line text: tabs advance to the next stop, a CR shows as one visible
 /// marker. Everything that maps raw offsets to columns goes through here.
-enum TabStops {
+package enum TabStops {
     static func expand(_ text: String, width: Int) -> String {
         guard text.contains("\t") || text.hasSuffix("\r") else { return text }
         var result = ""
@@ -24,7 +24,7 @@ enum TabStops {
     }
 
     /// The display column of each raw character, plus one past the end.
-    static func columns(_ raw: String, width: Int) -> [Int] {
+    package static func columns(_ raw: String, width: Int) -> [Int] {
         var columns: [Int] = []
         var column = 0
         for character in raw {

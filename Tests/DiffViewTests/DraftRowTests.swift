@@ -3,6 +3,7 @@ import GitKit
 import SeamCore
 import Testing
 
+@testable import DiffModel
 @testable import DiffView
 
 /// a.txt: line 2 replaced by two lines, so new 2-3 are added and old 2 is removed.

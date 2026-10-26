@@ -63,10 +63,14 @@ let package = Package(
             resources: [.copy("Queries"), .copy("QueryAdditions")], swiftSettings: strict),
         .target(name: "SeamCore", dependencies: ["GitKit", crypto], swiftSettings: strict),
         .target(
-            name: "DiffView", dependencies: ["SeamCore", "GitKit"],
+            name: "DiffModel", dependencies: ["SeamCore", "GitKit"],
             resources: [.process("Resources")], swiftSettings: strict),
         .target(
-            name: "Features", dependencies: ["DiffView", "Highlighting", "SeamCore", "GitKit"],
+            name: "DiffView", dependencies: ["DiffModel", "SeamCore", "GitKit"],
+            resources: [.process("Resources")], swiftSettings: strict),
+        .target(
+            name: "Features",
+            dependencies: ["DiffView", "DiffModel", "Highlighting", "SeamCore", "GitKit"],
             resources: [.process("Resources")], swiftSettings: strict),
         .executableTarget(
             name: "seam-debug", dependencies: ["SeamCore", "GitKit"], swiftSettings: strict),
@@ -86,16 +90,19 @@ let package = Package(
             swiftSettings: strict
         ),
         .testTarget(
+            name: "DiffModelTests", dependencies: ["DiffModel", "SeamCore", "GitKit"],
+            swiftSettings: strict),
+        .testTarget(
             name: "DiffViewTests",
             dependencies: [
-                "DiffView", "SeamCore", "GitKit",
+                "DiffView", "DiffModel", "SeamCore", "GitKit",
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ],
             exclude: ["__Snapshots__"], swiftSettings: strict),
         .testTarget(
             name: "FeaturesTests",
             dependencies: [
-                "Features", "DiffView", "SeamCore", "GitKit", "TestSupport",
+                "Features", "DiffView", "DiffModel", "SeamCore", "GitKit", "TestSupport",
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ],
             exclude: ["__Snapshots__"], swiftSettings: strict),
@@ -113,7 +120,7 @@ let package = Package(
     let portable = Set(
         [
             "GitKit", "TestSupport", "GitKitTests", "SeamCore", "SeamCoreTests", "Highlighting",
-            "HighlightingTests", "seam", "seam-debug",
+            "HighlightingTests", "DiffModel", "DiffModelTests", "seam", "seam-debug",
         ] + grammars.map(\.target))
     package.targets.removeAll { !portable.contains($0.name) }
     package.products.removeAll { !portable.contains($0.name) }

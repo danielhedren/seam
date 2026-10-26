@@ -4,6 +4,7 @@ import SeamCore
 import TestSupport
 import Testing
 
+@testable import DiffModel
 @testable import DiffView
 @testable import Features
 

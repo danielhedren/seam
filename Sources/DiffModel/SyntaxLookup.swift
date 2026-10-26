@@ -1,12 +1,16 @@
 import SeamCore
 
 /// A file's syntax spans by line number, moved onto display columns where tabs were expanded.
-struct SyntaxLookup {
-    var syntax: FileSyntax?
+package struct SyntaxLookup {
+    package var syntax: FileSyntax?
     var tabWidth: Int
 
-    func old(_ number: Int?, raw: String) -> [SyntaxSpan] { spans(syntax?.old, number, raw) }
-    func new(_ number: Int?, raw: String) -> [SyntaxSpan] { spans(syntax?.new, number, raw) }
+    package func old(_ number: Int?, raw: String) -> [SyntaxSpan] {
+        spans(syntax?.old, number, raw)
+    }
+    package func new(_ number: Int?, raw: String) -> [SyntaxSpan] {
+        spans(syntax?.new, number, raw)
+    }
 
     private func spans(_ lines: [[SyntaxSpan]]?, _ number: Int?, _ raw: String) -> [SyntaxSpan] {
         guard let lines, let number, lines.indices.contains(number - 1) else { return [] }

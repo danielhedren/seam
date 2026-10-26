@@ -1,3 +1,4 @@
+import DiffModel
 import DiffView
 
 /// The header row every pane beside the diff shares, so the file list's, the diff's and the

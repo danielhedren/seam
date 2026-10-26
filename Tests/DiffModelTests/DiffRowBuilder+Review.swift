@@ -1,6 +1,6 @@
 import SeamCore
 
-@testable import DiffView
+@testable import DiffModel
 
 extension DiffRowBuilder {
     /// The rows for `review` with the rest of `DiffContent` at its defaults.

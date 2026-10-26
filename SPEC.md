@@ -705,7 +705,8 @@ GitHub.
   is used only where SwiftUI can't meet the §8.7 budgets.
 - Minimum macOS 26, Apple silicon only. The modules below the UI and the `seam` command also
   build and pass their tests on Linux (ADR 0007): `make linux-check` runs the targets
-  `Package.swift` lists as portable in Docker. The app is macOS only.
+  `Package.swift` lists as portable in Docker. The app is macOS only. Linux has no String
+  Catalogs, so there a string is its English key (`GitKit/Localization.swift`).
 - Rejected: Rust + Tauri, and Electron. Both give up native text rendering, menus, accessibility
   and FSEvents integration, which are the reason for a native app.
 - **Formatting and linting:** `swift format` (ships with the toolchain), with a checked-in
@@ -741,7 +742,8 @@ nearly all of the logic testable without git or a window.
 ```
 SeamApp (app target: entry point only)
   └ Features      @Observable models, SwiftUI views per pane, scenes and menus
-      ├ DiffView      AppKit diff view, row model, Core Text drawing
+      ├ DiffView      AppKit diff view, Core Text drawing
+      │ └ DiffModel   diff rows, layout, selection and search; no AppKit (ADR 0007)
       ├ Highlighting  tree-sitter wrapper, highlight cache
       └ SeamCore      domain: Repo, Worktree, BaseDetector, ReviewDiff, IntraLineDiff, ViewedState
           └ GitKit    process runner, git commands, porcelain/-z/patch parsers

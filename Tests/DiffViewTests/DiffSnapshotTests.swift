@@ -4,6 +4,7 @@ import SeamCore
 import SnapshotTesting
 import Testing
 
+@testable import DiffModel
 @testable import DiffView
 
 /// SPEC §10: image snapshots of the diff view, drawn at 2x in sRGB whatever the display.

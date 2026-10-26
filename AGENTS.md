@@ -27,8 +27,9 @@ spec disagree, stop and ask; do not pick one silently.
 ## Architecture (SPEC §8.2)
 
 - Module dependencies point downward only:
-  `SeamApp → Features → DiffView / Highlighting → SeamCore → GitKit`. Never import upward or
-  sideways. `seam-debug` and the `seam` command may use `SeamCore` and `GitKit`, nothing above them.
+  `SeamApp → Features → DiffView / Highlighting → (DiffModel) → SeamCore → GitKit`. Never import
+  upward or sideways. `DiffModel` holds the diff's rows and layout without AppKit; what `DiffView`
+  needs from it is `package`, not `public`. `seam-debug` and the `seam` command may use `SeamCore` and `GitKit`, nothing above them.
 - **Functional core, imperative shell.** Parsing, detection ranking, diff assembly, layout and
   viewed-state logic are pure functions over value types. I/O (processes, files, FSEvents,
   persistence) lives at the edges behind protocols.
