@@ -1,4 +1,5 @@
 import Foundation
+import GitKit
 
 #if canImport(AppKit)
     import AppKit
@@ -164,37 +165,26 @@ private enum Subprocess {
         var errors: Data
     }
 
+    /// Through GitKit's runner, which launches safely on Linux too; a timeout cancels the run,
+    /// which terminates the process.
     static func run(
         _ executable: URL, _ arguments: [String], environment: [String: String]? = nil,
         timeout: (Duration, any Clock<Duration>)? = nil
     ) async throws -> Result {
-        let process = Process()
-        process.executableURL = executable
-        process.arguments = arguments
-        if let environment { process.environment = environment }
-        let output = Pipe()
-        let errors = Pipe()
-        process.standardOutput = output
-        process.standardError = errors
-        process.standardInput = FileHandle.nullDevice
-        // Read while it runs: a full pipe would block a chatty child.
-        let outputData = Task.detached { output.fileHandleForReading.readDataToEndOfFile() }
-        let errorData = Task.detached { errors.fileHandleForReading.readDataToEndOfFile() }
-        let status: Int32 = try await withCheckedThrowingContinuation { continuation in
-            process.terminationHandler = { continuation.resume(returning: $0.terminationStatus) }
-            do {
-                try process.run()
-            } catch {
-                process.terminationHandler = nil
-                continuation.resume(throwing: error)
-            }
-            if let (timeout, clock) = timeout {
-                Task.detached {
-                    try? await clock.sleep(for: timeout)
-                    if process.isRunning { process.terminate() }
-                }
+        let work = Task {
+            try await ProcessRunner.run(
+                executable: executable, arguments: arguments,
+                directory: URL(fileURLWithPath: FileManager.default.currentDirectoryPath),
+                environment: environment ?? ProcessInfo.processInfo.environment, input: nil)
+        }
+        let watchdog = timeout.map { timeout, clock in
+            Task {
+                try await clock.sleep(for: timeout)
+                work.cancel()
             }
         }
-        return Result(status: status, output: await outputData.value, errors: await errorData.value)
+        defer { watchdog?.cancel() }
+        let result = try await work.value
+        return Result(status: result.status, output: result.stdout, errors: result.stderr)
     }
 }
