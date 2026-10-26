@@ -47,7 +47,8 @@ That repo has 20 worktrees, several outside the repo directory (`~/Code/.worktre
 - Writing to hosted PRs: Seam reads GitHub pull requests (M6) and never changes them. Azure
   DevOps.
 - Non-git VCS. Submodule contents (a submodule shows as one changed pointer).
-- Distribution, App Store, sandboxing, auto-update. Personal tool, built locally.
+- App Store, sandboxing, notarization, auto-update. Releases are ad-hoc signed zips with a
+  Homebrew cask (§13.1).
 
 ## 4. Terms
 
@@ -1123,9 +1124,18 @@ the thread commands at another store, for trying them out.
   item's: it replaces only a symlink to some `Seam.app`'s script and leaves anything else alone.
   It prints the installed path and version. `make uninstall` removes `~/Applications/Seam.app`
   and the link, if the link points at it.
-- `make dist` writes `.build/dist/Seam-<version>-<build>.zip` (`ditto -c -k --keepParent`) to
-  copy to another Mac. The app is ad-hoc signed and not notarized, so on another Mac Gatekeeper
-  blocks the first launch: right-click › Open, or `xattr -d com.apple.quarantine Seam.app`.
+- The app carries `Notices.txt` in its resources: Seam's MIT licence and the licences of the code
+  it ships (SwiftTreeSitter, tree-sitter, swift-argument-parser, the Octicons and the grammars).
+- `make dist` makes a release: after `make check` and a Release build, it refuses uncommitted
+  changes, an app not built from HEAD, or an existing tag. It writes
+  `.build/dist/Seam-<version>.zip` (`ditto -c -k --keepParent`), with the version from
+  `MARKETING_VERSION`, tags HEAD `v<version>`, and sets the version and SHA-256 in
+  `Casks/seam.rb`. It prints the commands that publish it (pushing the tag, `gh release create`,
+  committing the cask) and runs none of them.
+- The repository is its own Homebrew tap: `brew tap <owner>/seam <repo URL>`, then
+  `brew install --cask seam`. The cask installs `Seam.app` and links `seam` into Homebrew's
+  `bin`. The app is ad-hoc signed and not notarized, so Gatekeeper blocks the first launch until
+  it's allowed in System Settings › Privacy & Security › Open Anyway.
 
 ## 14. Milestones
 

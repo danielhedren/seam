@@ -48,14 +48,9 @@ install: release
 uninstall:
 	Scripts/install.sh uninstall
 
-# Ad-hoc signed and not notarized (SPEC §13).
-dist: release
-	@mkdir -p .build/dist
-	@plist=$(RELEASE_APP)/Contents/Info.plist; \
-	version=$$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' $$plist); \
-	build=$$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' $$plist); \
-	zip=.build/dist/Seam-$$version-$$build.zip; \
-	rm -f $$zip && ditto -c -k --keepParent $(RELEASE_APP) $$zip && echo "Wrote $$zip"
+# A tagged release zip and the cask pointing at it; ad-hoc signed, not notarized (SPEC §13.1).
+dist: check release
+	Scripts/dist.sh $(RELEASE_APP)
 
 strings:
 	Scripts/sync-strings.sh

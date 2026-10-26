@@ -6,6 +6,19 @@ for the rules every contributor and agent follows.
 
 Status: milestone M5 (review threads, `SPEC.md` §14).
 
+## Installing
+
+Seam needs macOS 26 or later on Apple silicon.
+
+```sh
+brew tap danielhedren/seam https://github.com/danielhedren/seam
+brew install --cask seam
+```
+
+The app isn't notarized, so macOS blocks its first launch: allow it in System Settings › Privacy
+& Security › Open Anyway. Or build it yourself with `make install` (below), which needs no
+approval.
+
 ## Using Seam
 
 Open a repository with File › Open Repository… (⌘O), by dropping its folder on a window, or by
@@ -41,9 +54,13 @@ make test-all     # plus the app build, the real-repo check and performance budg
 make app          # build the Debug app (make release: the Release app)
 make run          # build the Release app and open it (REPO=<path> opens another repo)
 make install      # install into ~/Applications and link ~/.local/bin/seam (make uninstall)
-make dist         # a zip of the app for another Mac (not notarized: right-click › Open)
+make dist         # tag a release, zip the app and update Casks/seam.rb (publishing is manual)
 make strings      # update the String Catalogs from the app build
 swift run seam-debug [path] [--scope all|committed|uncommitted] [--commit <rev>] [--worktrees]
 ```
 
 Requires Xcode 27 (Swift 6.4) on macOS 26 or later.
+
+## License
+
+MIT, see `LICENSE`. The app's `Notices.txt` lists the licences of the code it ships.
