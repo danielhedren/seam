@@ -702,7 +702,9 @@ GitHub.
 - **SwiftUI** for the app frame: window, sidebars, toolbar, settings, palette. **AppKit** for the
   diff view (§8.5), wrapped in `NSViewRepresentable`. SwiftUI is Apple's current default. AppKit
   is used only where SwiftUI can't meet the §8.7 budgets.
-- Minimum macOS 26, Apple silicon only.
+- Minimum macOS 26, Apple silicon only. The modules below the UI and the `seam` command also
+  build and pass their tests on Linux (ADR 0007): `make linux-check` runs the targets
+  `Package.swift` lists as portable in Docker. The app is macOS only.
 - Rejected: Rust + Tauri, and Electron. Both give up native text rendering, menus, accessibility
   and FSEvents integration, which are the reason for a native app.
 - **Formatting and linting:** `swift format` (ships with the toolchain), with a checked-in

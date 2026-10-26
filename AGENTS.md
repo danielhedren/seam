@@ -15,7 +15,8 @@ spec disagree, stop and ask; do not pick one silently.
 ## Toolchain
 
 - Swift 6.4, Swift 6 language mode, complete strict concurrency, warnings are errors. Minimum
-  macOS 26, Apple silicon.
+  macOS 26, Apple silicon. The targets `Package.swift` lists as portable also build on Linux:
+  run `make linux-check` (Docker) before committing a change to them (ADR 0007).
 - `make check` must pass before every commit: format lint, build, `swift test`. Run `make setup`
   once per clone to install the pre-commit hook. Never bypass it with `--no-verify`.
 - `make format` rewrites files with `swift format`. Don't hand-format against it.

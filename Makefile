@@ -1,4 +1,4 @@
-.PHONY: setup check format lint build test prove test-github test-all app release run install uninstall dist strings
+.PHONY: setup check format lint build test linux-check prove test-github test-all app release run install uninstall dist strings
 
 setup:
 	git config core.hooksPath .githooks
@@ -19,6 +19,10 @@ build:
 test:
 	Scripts/build.sh swift build --build-tests
 	swift test --skip-build
+
+# The targets that also build on Linux (ADR 0007), in Docker. Not part of check: it needs Docker.
+linux-check:
+	Scripts/linux-check.sh
 
 # The thin Xcode app target (SPEC §8.1); everything else builds with SwiftPM. The build number
 # is the commit count, so builds from different commits are distinguishable.

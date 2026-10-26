@@ -102,3 +102,10 @@ let package = Package(
     ],
     swiftLanguageModes: [.v6]
 )
+
+#if os(Linux)
+    /// The targets that build and pass on Linux so far (ADR 0007); `make linux-check` runs them.
+    let portable: Set<String> = ["GitKit", "TestSupport", "GitKitTests"]
+    package.targets.removeAll { !portable.contains($0.name) }
+    package.products.removeAll { !portable.contains($0.name) }
+#endif
