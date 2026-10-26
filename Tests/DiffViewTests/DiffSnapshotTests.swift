@@ -137,7 +137,8 @@ struct DiffSnapshotTests {
     }
 
     private static func png(_ size: NSSize, draw: @escaping (NSRect) -> Void) throws -> Data {
-        // A bitmap of its own, sRGB at one pixel per point: an NSImage's would follow the screen.
+        // A bitmap of its own, sRGB at one pixel per point: an NSImage's would follow the screen,
+        // as system colours do, so the fills are fixed sRGB values too.
         let rep = try #require(
             NSBitmapImageRep(
                 bitmapDataPlanes: nil, pixelsWide: Int(size.width), pixelsHigh: Int(size.height),
@@ -181,14 +182,18 @@ struct DiffSnapshotTests {
             }
         }
         let view = imageView(
-            .modified, old: try png(.systemBlue, NSSize(width: 80, height: 40)),
-            new: try png(.systemOrange, NSSize(width: 40, height: 80)), .aqua)
+            .modified,
+            old: try png(
+                NSColor(srgbRed: 0, green: 0.48, blue: 1, alpha: 1), NSSize(width: 80, height: 40)),
+            new: try png(
+                NSColor(srgbRed: 1, green: 0.58, blue: 0, alpha: 1), NSSize(width: 40, height: 80)),
+            .aqua)
         assertSnapshot(of: view, as: .image2x, named: "image-\(Self.os)")
     }
 
     @Test func transparentImagesShowTheCheckerboardBehindThem() throws {
         let ring = try Self.png(NSSize(width: 120, height: 90)) { rect in
-            NSColor.systemPink.setStroke()
+            NSColor(srgbRed: 1, green: 0.18, blue: 0.33, alpha: 1).setStroke()
             let path = NSBezierPath(ovalIn: rect.insetBy(dx: 10, dy: 10))
             path.lineWidth = 12
             path.stroke()
