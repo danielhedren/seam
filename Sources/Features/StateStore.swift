@@ -186,7 +186,7 @@ public struct SeamServices: Sendable {
     @MainActor
     public static func live() -> SeamServices {
         SeamServices(
-            git: CLIGitClient(), watcher: FSEventsWatcher(), clock: ContinuousClock(),
+            git: CLIGitClient(), watcher: SystemFileWatcher(), clock: ContinuousClock(),
             store: JSONStateStore(), threads: ThreadStore(), settings: AppSettings(),
             spotlight: SpotlightRepoIndex(), github: .live())
     }

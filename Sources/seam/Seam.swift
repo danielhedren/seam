@@ -205,7 +205,7 @@ struct Wait: AsyncParsableCommand {
         try FileManager.default.createDirectory(
             at: store.directory, withIntermediateDirectories: true)
         // Watching starts before the first read, so a write in between still wakes the wait.
-        let events = FSEventsWatcher().events(for: [store.directory])
+        let events = SystemFileWatcher().events(for: [store.directory])
         guard
             let (changes, asOf) = try await ThreadWait.next(
                 in: ThreadScope(

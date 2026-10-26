@@ -182,16 +182,36 @@ private final class FakeWatcher: FileWatcher, Sendable {
     }
 }
 
-@Suite(.timeLimit(.minutes(1))) struct FSEventsWatcherTests {
+@Suite(.timeLimit(.minutes(1))) struct FileWatcherTests {
     @Test func reportsAWrittenFile() async throws {
         let directory = try TemporaryDirectory()
         let root = directory.resolved
         let file = root.appending(path: "written.txt")
-        let events = FSEventsWatcher().events(for: [root])
+        let events = SystemFileWatcher().events(for: [root])
 
         try Data("x".utf8).write(to: file)
 
         for await batch in events where batch.contains(file.path) { return }
+        Issue.record("the stream ended without reporting \(file.path)")
+    }
+
+    /// inotify watches single folders, so one made after watching starts must be added.
+    @Test func reportsAFileInAFolderMadeAfterWatchingStarted() async throws {
+        let directory = try TemporaryDirectory()
+        let root = directory.resolved
+        let folder = root.appending(path: "new/deeper")
+        let file = folder.appending(path: "written.txt")
+        let events = SystemFileWatcher().events(for: [root])
+
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        var wrote = false
+        for await batch in events {
+            if !wrote, batch.contains(where: { $0.hasPrefix(root.appending(path: "new").path) }) {
+                try Data("x".utf8).write(to: file)
+                wrote = true
+            }
+            if batch.contains(file.path) { return }
+        }
         Issue.record("the stream ended without reporting \(file.path)")
     }
 }

@@ -756,7 +756,7 @@ seam-debug (M1)       ─ SeamCore
   - Rejected: TCA. It adds a large dependency and longer compile times, which a single-developer
     app with one main screen doesn't benefit from.
 - **Concurrency:** structured concurrency throughout. Long-lived work runs in actors:
-  - `RepoMonitor`: FSEvents, debouncing.
+  - `RepoMonitor`: the `FileWatcher` (FSEvents on macOS, inotify on Linux), debouncing.
   - `ReviewService`: diff computation.
   - `BlobStore`: the `cat-file --batch` process.
 
@@ -850,8 +850,8 @@ This is where the project's performance risk lies.
 
 ### 8.6 Live updates
 
-- FSEvents watches each worktree directory, honouring `.gitignore` (events under ignored paths are
-  dropped), and the repo's common git dir (`refs/`, `packed-refs`, `HEAD`, `worktrees/*/HEAD`,
+- FSEvents (inotify on Linux) watches each worktree directory, honouring `.gitignore` (events under
+  ignored paths are dropped), and the repo's common git dir (`refs/`, `packed-refs`, `HEAD`, `worktrees/*/HEAD`,
   `index`).
 - Events are coalesced: the first relevant event opens a 300 ms window, and everything arriving
   within it is delivered as one change. Unlike a trailing debounce, continuous writes can't
