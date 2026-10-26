@@ -508,8 +508,10 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   buttons. The row is as tall as the card, measured again whenever what it shows changes. The
   lines a selection or a clicked line would comment on, and the open draft's, have their gutter
   washed in the threads' amber, the one colour of everything about threads: their rows, the
-  composer and the panel. With nothing selected and the diff focused, the line under the sticky
-  header is washed the same way: it's what `c`, `t` and `o` act on. An unposted draft, text included,
+  composer and the panel. With nothing selected and the diff focused, the marked line is washed
+  the same way: it's what `c`, `t` and `o` act on. It starts on the first line, stays put while
+  the reader scrolls, and moves to where a jump lands (a file, hunk, thread or find match). An
+  unposted draft, text included,
   stays while the reader looks at other worktrees and is there again on coming back.
 - **Notes:** a thread can be a note, something to know about the lines that asks no answer:
   the reader's own, posted with ⌥⌘↩ in the composer, or an agent's for the reviewer

@@ -77,6 +77,9 @@ public final class DiffScrollView: NSScrollView {
     /// can't reach the top, so until the reader scrolls away the jumped-to file stays current.
     private var jumpedTop: Double?
     private var visibleLeft = 0.0
+    /// The line `c`, `t` and `o` act on with nothing selected (SPEC §7.7). Scrolling leaves it
+    /// where it is; jumps move it to where they land.
+    private var mark: ScrollAnchor?
 
     public init() {
         super.init(frame: .zero)
@@ -142,6 +145,7 @@ public final class DiffScrollView: NSScrollView {
         case .anchor(let anchor): restore(anchor)
         case .file(let path): scroll(toFile: path)
         }
+        if position != .keep || markRow == nil { markReading() } else { setMark(mark) }
         if let draft = content.draft, draft != previousDraft { reveal(canvas.draftRow) }
         if let open = content.openThread, open != previousThread { reveal(canvas.openThreadRow) }
         onOpenThreadHidden?(content.openThread != nil && canvas.openThreadRow == nil)
@@ -183,8 +187,7 @@ public final class DiffScrollView: NSScrollView {
 
     /// Where `c` puts a new thread (SPEC §7.7): the selected lines, else the one being read.
     public var commentTarget: (path: String, side: ThreadAnchor.Side, lines: ClosedRange<Int>)? {
-        let y = canvas.selection.map { layout.top(of: $0.head.row) } ?? visibleTop + headerHeight
-        guard let target = canvas.commentTarget(fallback: layout.row(at: y)),
+        guard let target = canvas.commentTarget(fallback: canvas.selection?.head.row ?? markRow),
             target.file < canvas.paths.count
         else { return nil }
         return (canvas.paths[target.file], target.side, target.lines)
@@ -194,13 +197,27 @@ public final class DiffScrollView: NSScrollView {
     public var selectedText: String? { canvas.selectedText }
 
     /// The file and line the reader is on, for "open in editor": the selection's line if there
-    /// is one, else the line under the sticky header.
+    /// is one, else the marked line.
     public var readingLocation: (path: String, line: Int)? {
-        let y = canvas.selection.map { layout.top(of: $0.head.row) } ?? visibleTop + headerHeight
-        guard let row = layout.row(at: y), let location = layout.location(atOrAfter: row) else {
-            return nil
-        }
+        guard let row = canvas.selection?.head.row ?? markRow,
+            let location = layout.location(atOrAfter: row)
+        else { return nil }
         return (canvas.paths[location.file], location.line)
+    }
+
+    private var markRow: Int? {
+        mark.flatMap { layout.y(for: $0, paths: canvas.paths) }.flatMap { layout.row(at: $0) }
+    }
+
+    private func setMark(_ anchor: ScrollAnchor?) {
+        mark = anchor
+        canvas.readingRow = markRow
+    }
+
+    /// Marks the first line below the sticky header, where a jump puts what it jumped to.
+    private func markReading() {
+        let row = layout.row(at: visibleTop + headerHeight).map(layout.numberedRow(atOrAfter:))
+        setMark(row.flatMap { layout.anchor(atY: layout.top(of: $0), paths: canvas.paths) })
     }
 
     var currentFilePath: String? {
@@ -228,6 +245,7 @@ public final class DiffScrollView: NSScrollView {
         else { return }
         scroll(toY: layout.top(of: row))
         jumpedTop = visibleTop
+        markReading()
         reportedFile = path
         onCurrentFileChange?(path)
     }
@@ -238,6 +256,7 @@ public final class DiffScrollView: NSScrollView {
         guard let y = layout.y(for: anchor, paths: canvas.paths) else { return }
         scroll(toY: max(y - layout.metrics.lineHeight * 4 - headerHeight, 0))
         jumpedTop = visibleTop
+        setMark(anchor)
     }
 
     /// Next or previous file header, relative to the file under the sticky header.
@@ -246,7 +265,10 @@ public final class DiffScrollView: NSScrollView {
             delta > 0
             ? layout.nextStop(below: visibleTop + 1, files: true)
             : layout.previousStop(above: visibleTop - 1, files: true)
-        if let target { scroll(toY: layout.top(of: target)) }
+        if let target {
+            scroll(toY: layout.top(of: target))
+            markReading()
+        }
     }
 
     /// Next or previous hunk across files, placed just below the sticky header.
@@ -256,7 +278,10 @@ public final class DiffScrollView: NSScrollView {
             delta > 0
             ? layout.nextStop(below: reading + 1, files: false)
             : layout.previousStop(above: reading - 1, files: false)
-        if let target { scroll(toY: layout.top(of: target) - headerHeight) }
+        if let target {
+            scroll(toY: layout.top(of: target) - headerHeight)
+            markReading()
+        }
     }
 
     public func page(by delta: Int) {
@@ -350,6 +375,7 @@ public final class DiffScrollView: NSScrollView {
             if !visible.contains(top) {
                 scroll(toY: top - headerHeight - contentSize.height / 3)
             }
+            setMark(layout.anchor(atY: top, paths: canvas.paths))
         }
         onSearchResult?(currentMatch.map { $0 + 1 }, matches.count)
     }
@@ -395,7 +421,6 @@ public final class DiffScrollView: NSScrollView {
 
     /// Shows the current file's header pinned at the top, pushed up by the next file's header.
     private func updateSticky() {
-        canvas.readingRow = layout.row(at: visibleTop + headerHeight)
         let top = visibleTop
         guard let row = layout.row(at: top),
             let header = layout.headerRow(ofFile: layout.rows[row].file),

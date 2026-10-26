@@ -33,8 +33,8 @@ final class DiffCanvasView: NSView {
     /// The lines `c` would comment on, or the open draft's, by row: marked so the reader sees
     /// what a new thread goes on before writing it.
     private(set) var targetRows: [Int: ThreadAnchor.Side] = [:]
-    /// The row under the sticky header: what `c`, `t` and `o` act on with nothing selected,
-    /// marked while the diff has focus so that target isn't invisible.
+    /// What `c`, `t` and `o` act on with nothing selected, marked while the diff has focus so
+    /// that target isn't invisible.
     var readingRow: Int? {
         didSet {
             guard readingRow != oldValue, selection == nil, hasFocus else { return }

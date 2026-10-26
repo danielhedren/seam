@@ -16,8 +16,8 @@ import Testing
         return ReviewDiff(scope: .all, files: [ReviewFile(diff: file)])
     }
 
-    /// With nothing selected, `c` comments on the line under the sticky header; while the diff
-    /// has focus that line is marked like a selection, so the target is never invisible.
+    /// With nothing selected, `c` comments on the marked line; while the diff has focus that
+    /// line is washed like a selection, so the target is never invisible.
     @Test func theLineCWouldCommentOnIsMarkedWhileTheDiffHasFocus() throws {
         let view = DiffScrollView()
         view.frame = NSRect(x: 0, y: 0, width: 600, height: 200)
@@ -33,8 +33,13 @@ import Testing
         window.makeFirstResponder(canvas)
         let first = try #require(canvas.targetRows.keys.min())
         #expect(canvas.targetRows.count == 1)
+        #expect(view.commentTarget?.lines == 1...1)
         view.page(by: 1)
-        #expect(try #require(canvas.targetRows.keys.min()) > first, "it follows the reading")
+        #expect(canvas.targetRows.keys.min() == first, "scrolling leaves it")
+        #expect(view.commentTarget?.lines == 1...1)
+        view.scroll(toLine: 120, inFile: "a.txt", oldSide: false)
+        #expect(try #require(canvas.targetRows.keys.min()) > first, "a jump moves it")
+        #expect(view.commentTarget?.lines == 120...120)
 
         window.makeFirstResponder(nil)
         #expect(canvas.targetRows.isEmpty)

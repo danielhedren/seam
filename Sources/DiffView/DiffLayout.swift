@@ -207,6 +207,16 @@ extension DiffLayout {
         return (file, 1)
     }
 
+    /// The first row from `row` on, within its file, that shows a line; else `row` itself.
+    func numberedRow(atOrAfter row: Int) -> Int {
+        guard rows.indices.contains(row) else { return row }
+        for index in row..<rows.count {
+            guard rows[index].file == rows[row].file else { break }
+            if Self.lineNumber(rows[index]).0 != nil { return index }
+        }
+        return row
+    }
+
     private static func lineNumber(_ row: DiffRow) -> (Int?, Bool) {
         switch row {
         case .line(_, let line):
