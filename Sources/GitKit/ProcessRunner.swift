@@ -13,6 +13,11 @@ private final class ProcessHandle: @unchecked Sendable {
 }
 
 enum ProcessRunner {
+    #if !canImport(Darwin)
+        /// Linux has no per-pipe flag, so SIGPIPE is ignored for the whole process, once.
+        static let ignoreSIGPIPE: Void = { _ = signal(SIGPIPE, SIG_IGN) }()
+    #endif
+
     static func run(
         executable: URL,
         arguments: [String],
@@ -55,7 +60,11 @@ enum ProcessRunner {
                 let writer = stdin.fileHandleForWriting
                 // git may exit, or be terminated, before reading everything. A write to the closed
                 // pipe would raise SIGPIPE and kill the app; this makes it fail with EPIPE.
-                _ = fcntl(writer.fileDescriptor, F_SETNOSIGPIPE, 1)
+                #if canImport(Darwin)
+                    _ = fcntl(writer.fileDescriptor, F_SETNOSIGPIPE, 1)
+                #else
+                    ProcessRunner.ignoreSIGPIPE
+                #endif
                 try? writer.write(contentsOf: input)
                 try? writer.close()
             }.value
