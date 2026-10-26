@@ -1,8 +1,21 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "#%@ checks failed" : {
+
+    },
     "%@ already exists and isn't Seam's. Remove it and try again." : {
 
+    },
+    "%@ in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ in %2$@"
+          }
+        }
+      }
     },
     "%@ isn't installed or isn't on your PATH. Choose your editor in Settings." : {
 
@@ -92,6 +105,9 @@
     "Changes requested" : {
 
     },
+    "Changes show here as soon as files in this worktree are edited." : {
+
+    },
     "Checks: %@" : {
 
     },
@@ -119,6 +135,9 @@
           }
         }
       }
+    },
+    "Commits on this branch show here once there are some." : {
+
     },
     "Committed Changes" : {
 
@@ -189,6 +208,12 @@
     "Find…" : {
 
     },
+    "First %@ matches" : {
+
+    },
+    "From a later commit" : {
+
+    },
     "Generated" : {
 
     },
@@ -211,6 +236,9 @@
 
     },
     "In the file list" : {
+
+    },
+    "Invalid regular expression" : {
 
     },
     "Jump to Thread's Commit" : {
@@ -258,7 +286,34 @@
     "Next Worktree" : {
 
     },
+    "No changed file's path matches “%@”." : {
+
+    },
+    "No changes against %@" : {
+
+    },
+    "No changes in the selected commits" : {
+
+    },
+    "No commits since %@" : {
+
+    },
+    "No matching files" : {
+
+    },
+    "No results" : {
+
+    },
+    "No uncommitted changes" : {
+
+    },
     "Not a git repository. Choose another folder." : {
+
+    },
+    "Not in this diff" : {
+
+    },
+    "Nothing in the diff matches “%@”." : {
 
     },
     "Open Failed Check in Browser" : {
@@ -277,6 +332,9 @@
 
     },
     "Open in Editor" : {
+
+    },
+    "Outdated" : {
 
     },
     "Outside the file list" : {
@@ -378,6 +436,9 @@
     "The pull request also has a failed check; `gh pr checks` shows it. Fix it once every thread is answered.\n\n" : {
 
     },
+    "The working tree matches the branch's latest commit." : {
+
+    },
     "These threads were saved by a newer version of Seam. Update Seam to change them." : {
 
     },
@@ -385,6 +446,9 @@
 
     },
     "Thread #%@ no longer exists." : {
+
+    },
+    "Together they leave every file as it was." : {
 
     },
     "Uncommitted Changes" : {
@@ -432,6 +496,12 @@
           }
         }
       }
+    },
+    "the base" : {
+
+    },
+    "“%@” doesn't compile." : {
+
     }
   },
   "version" : "1.0"

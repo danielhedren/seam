@@ -262,7 +262,7 @@ struct ThreadCard: View {
                             .padding(.horizontal, 5)
                             .background(.quaternary, in: Capsule())
                     }
-                    if let location = Self.location(placed) {
+                    if let location = placed.location {
                         Text(verbatim: location)
                             .padding(.horizontal, 5)
                             .background(.quaternary, in: Capsule())
@@ -286,18 +286,6 @@ struct ThreadCard: View {
         return thread.anchor.side == .old
             ? String(localized: "Old line \(range)", bundle: .module)
             : String(localized: "Line \(range)", bundle: .module)
-    }
-
-    /// Where a thread is when that isn't on its lines in the diff; nil when it is.
-    static func location(_ placed: PlacedThread) -> String? {
-        switch placed.placement {
-        case .lines: nil
-        case .outdated: String(localized: "Outdated", bundle: .module)
-        case .later: String(localized: "From a later commit", bundle: .module)
-        case .notShown:
-            placed.thread.github?.onFile == true
-                ? nil : String(localized: "Not in this diff", bundle: .module)
-        }
     }
 
     /// The latest word, as the diff's row shows it, so an agent's answer is visible here too.

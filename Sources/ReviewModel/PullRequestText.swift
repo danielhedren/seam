@@ -18,6 +18,11 @@ package enum PullRequestText {
         }
     }
 
+    /// The number is interpolated as text: an `Int` is formatted with the locale's grouping.
+    package static func checksFailed(_ number: Int) -> String {
+        String(localized: "#\(String(number)) checks failed", bundle: .module)
+    }
+
     /// "Checks: 3 passed, 1 failed, 2 running"; nil without checks.
     package static func checks(_ checks: PullRequest.Checks) -> String? {
         guard checks.total > 0 else { return nil }

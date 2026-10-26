@@ -1,4 +1,3 @@
-import AppKit
 import Foundation
 import GitKit
 import ReviewTestSupport
@@ -7,7 +6,6 @@ import Synchronization
 import TestSupport
 import Testing
 
-@testable import Features
 @testable import ReviewModel
 
 @MainActor @Suite(.timeLimit(.minutes(1))) struct PullRequestTests {
@@ -15,18 +13,6 @@ import Testing
     let clock = ManualClock()
     let store = MemoryStore()
     let opened = RecordingPlatform()
-
-    private static func pullRequest(
-        _ number: Int, head: String = "feature", state: PullRequest.State = .open,
-        draft: Bool = false, review: PullRequest.Review = .none,
-        checks: PullRequest.Checks = .init(), base: String = "main", headCommit: String = "abc"
-    ) -> PullRequest {
-        PullRequest(
-            number: number, title: "Count the lines",
-            url: "https://github.com/owner/app/pull/\(number)", state: state, isDraft: draft,
-            head: head, headOwner: "owner", headCommit: headCommit, base: base, review: review,
-            checks: checks, updated: Date(timeIntervalSince1970: 0))
-    }
 
     /// The main worktree and a `feature` worktree with one commit, its origin on GitHub.
     private func fixture() async throws -> (FixtureRepo, URL) {
@@ -71,7 +57,7 @@ import Testing
 
     @Test func aWorktreesPullRequestShowsOnItsRowOnceTheRepoOpens() async throws {
         let (repo, feature) = try await fixture()
-        github.answer(open: [Self.pullRequest(12)])
+        github.answer(open: [fakePullRequest(12)])
 
         let session = await open(repo, selecting: feature)
 
@@ -91,7 +77,7 @@ import Testing
 
     @Test func theLastPullRequestsReadShowAtOnceWhenTheRepoOpensAgain() async throws {
         let (repo, feature) = try await fixture()
-        github.answer(open: [Self.pullRequest(12, review: .approved)])
+        github.answer(open: [fakePullRequest(12, review: .approved)])
         let first = await open(repo, selecting: feature)
         first.close()
 
@@ -103,7 +89,7 @@ import Testing
         await github.called(3)
 
         #expect(try review(session, feature).pullRequest?.marker == .approved, "before gh answers")
-        github.answer(open: [Self.pullRequest(12, state: .merged)])
+        github.answer(open: [fakePullRequest(12, state: .merged)])
         github.release()
         await session.settled()
         #expect(try review(session, feature).pullRequest?.marker == .merged)
@@ -114,7 +100,7 @@ import Testing
     @Test func openPullRequestsShowFromTheListWhileTheirChecksAreStillComing() async throws {
         let (repo, feature) = try await fixture()
         let failed = PullRequest.Checks(failed: 1)
-        github.answer(open: [Self.pullRequest(12, checks: failed)])
+        github.answer(open: [fakePullRequest(12, checks: failed)])
         github.hold("view")
         let services = services(
             repo.git, clock: clock, store: store, github: GitHubAccount(client: github))
@@ -135,7 +121,7 @@ import Testing
 
     @Test func checksLastReadStayWhileTheyreReadAgain() async throws {
         let (repo, feature) = try await fixture()
-        github.answer(open: [Self.pullRequest(12, checks: .init(failed: 1))])
+        github.answer(open: [fakePullRequest(12, checks: .init(failed: 1))])
         let session = await open(repo, selecting: feature)
         let row = try review(session, feature)
         #expect(row.pullRequest?.ciFailed == true)
@@ -145,7 +131,7 @@ import Testing
         await github.called(4)
         await until { session.pullRequests?.saved.read != nil && github.reads == 2 }
         #expect(row.pullRequest?.ciFailed == true, "no flicker while the checks are read")
-        github.answer(open: [Self.pullRequest(12)])
+        github.answer(open: [fakePullRequest(12)])
         github.release()
         await session.settled()
         #expect(row.pullRequest?.ciFailed == false)
@@ -154,9 +140,9 @@ import Testing
 
     @Test func aPushReadsThemAgainAtMostEvery15Seconds() async throws {
         let (repo, feature) = try await fixture()
-        github.answer(open: [Self.pullRequest(12)])
+        github.answer(open: [fakePullRequest(12)])
         let session = await open(repo, selecting: feature)
-        github.answer(open: [Self.pullRequest(12, review: .approved)])
+        github.answer(open: [fakePullRequest(12, review: .approved)])
 
         await session.apply(RepoChange(refs: true))
         await session.apply(RepoChange(refs: true))
@@ -170,9 +156,9 @@ import Testing
 
     @Test func reloadReadsThemAgainAtOnce() async throws {
         let (repo, feature) = try await fixture()
-        github.answer(open: [Self.pullRequest(12)])
+        github.answer(open: [fakePullRequest(12)])
         let session = await open(repo, selecting: feature)
-        github.answer(open: [Self.pullRequest(12, draft: true)])
+        github.answer(open: [fakePullRequest(12, draft: true)])
 
         session.reload()
         await session.settled()
@@ -185,12 +171,12 @@ import Testing
     @Test func theyAreReadEveryTwoMinutesAndEvery30SecondsWhileChecksRun() async throws {
         let (repo, feature) = try await fixture()
         let running = PullRequest.Checks(passed: 1, pending: 2)
-        github.answer(open: [Self.pullRequest(12, checks: running)])
+        github.answer(open: [fakePullRequest(12, checks: running)])
         let session = await open(repo, selecting: feature)
         #expect(session.pullRequests?.nextPoll == .seconds(30))
 
         let failed = PullRequest.Checks(passed: 1, failed: 2, failedURL: "https://ci/run/1")
-        github.answer(open: [Self.pullRequest(12, checks: failed)])
+        github.answer(open: [fakePullRequest(12, checks: failed)])
         try await advance(session, by: .seconds(30), once: 3, toRefresh: 2)
         #expect(try review(session, feature).pullRequest?.ciFailed == true)
         #expect(session.pullRequests?.nextPoll == .seconds(120))
@@ -206,7 +192,7 @@ import Testing
 
     @Test func pollingWaitsWhileTheAppIsInTheBackgroundAndCatchesUpOnReturn() async throws {
         let (repo, feature) = try await fixture()
-        github.answer(open: [Self.pullRequest(12)])
+        github.answer(open: [fakePullRequest(12)])
         let session = await open(repo, selecting: feature)
 
         session.noteActivation(false)
@@ -240,7 +226,7 @@ import Testing
         try await advance(session, by: .seconds(120), once: 2, toRefresh: 3)
         #expect(session.pullRequests?.nextPoll == .seconds(240))
 
-        github.answer(open: [Self.pullRequest(12)])
+        github.answer(open: [fakePullRequest(12)])
         try await advance(session, by: .seconds(240), once: 2, toRefresh: 4)
         #expect(try review(session, feature).pullRequest?.number == 12)
         #expect(session.pullRequests?.nextPoll == .seconds(120))
@@ -259,7 +245,7 @@ import Testing
         await session.settled()
         #expect(clock.sleeperCount == 0)
 
-        github.answer(open: [Self.pullRequest(12)])
+        github.answer(open: [fakePullRequest(12)])
         session.services.github.checkAgain()
         await until { session.services.github.retries == 1 }
         await session.refreshPullRequests()
@@ -273,7 +259,7 @@ import Testing
     /// asked, the reason shows, the PRs read before stay, and the next read asks again.
     @Test func aHostGhCantBeAskedAboutIsntTakenForNotGitHub() async throws {
         let (repo, feature) = try await fixture()
-        github.answer(open: [Self.pullRequest(12)])
+        github.answer(open: [fakePullRequest(12)])
         let first = await open(repo, selecting: feature)
         first.close()
 
@@ -303,7 +289,7 @@ import Testing
 
     @Test func turningPullRequestsOffHidesThemAndStopsReading() async throws {
         let (repo, feature) = try await fixture()
-        github.answer(open: [Self.pullRequest(12)])
+        github.answer(open: [fakePullRequest(12)])
         let session = await open(repo, selecting: feature)
 
         session.settings.showsPullRequests = false
@@ -326,7 +312,7 @@ import Testing
 
     @Test func aBranchWithNoOpenPullRequestShowsItsLatestAndIsntAskedAboutAgainSoon() async throws {
         let (repo, feature) = try await fixture()
-        github.answer(byHead: ["feature": Self.pullRequest(9, state: .merged)])
+        github.answer(byHead: ["feature": fakePullRequest(9, state: .merged)])
         let session = await open(repo, selecting: feature)
 
         #expect(try review(session, feature).pullRequest?.marker == .merged)
@@ -349,7 +335,7 @@ import Testing
         let (repo, feature) = try await fixture()
         let pushed = try await repo.sha("origin/main")
         github.answer(open: [
-            Self.pullRequest(
+            fakePullRequest(
                 12, review: .changesRequested, checks: .init(passed: 3, failed: 1),
                 headCommit: pushed)
         ])
@@ -372,7 +358,7 @@ import Testing
         let (repo, feature) = try await fixture()
         let pushed = try await repo.sha("origin/main")
         github.answer(open: [
-            Self.pullRequest(12, checks: .init(passed: 3, failed: 1), headCommit: pushed)
+            fakePullRequest(12, checks: .init(passed: 3, failed: 1), headCommit: pushed)
         ])
         let session = await open(repo, selecting: feature)
         let row = try review(session, feature)
@@ -397,28 +383,10 @@ import Testing
         session.close()
     }
 
-    /// GitHub's octicons, bundled: every marker shows a different set of shapes.
-    @MainActor @Test func everyMarkerDrawsItsOwnGitHubIcons() throws {
-        for icon in Octicon.allCases {
-            let image = try #require(icon.nsImage, "\(icon)")
-            #expect(image.isValid && image.isTemplate)
-        }
-        let markers = [
-            Self.pullRequest(1, draft: true), Self.pullRequest(2),
-            Self.pullRequest(3, review: .commented), Self.pullRequest(4, review: .changesRequested),
-            Self.pullRequest(5, review: .approved), Self.pullRequest(6, state: .merged),
-            Self.pullRequest(7, state: .closed),
-        ]
-        let shapes = markers.map {
-            [PullRequestBadge.stateIcon($0.marker), PullRequestBadge.reviewIcon($0)?.icon]
-        }
-        #expect(Set(shapes).count == markers.count)
-    }
-
     @Test func aPullRequestIntoAnotherBranchOffersItsBaseAndUseDiffsAgainstIt() async throws {
         let (repo, feature) = try await fixture()
         try await repo.run("update-ref", "refs/remotes/origin/release", "origin/main")
-        github.answer(open: [Self.pullRequest(12, base: "release")])
+        github.answer(open: [fakePullRequest(12, base: "release")])
         let session = await open(repo, selecting: feature)
         let row = try review(session, feature)
 
@@ -438,7 +406,7 @@ import Testing
     @Test func keepingTheDetectedBaseDismissesTheSuggestionForGood() async throws {
         let (repo, feature) = try await fixture()
         try await repo.run("update-ref", "refs/remotes/origin/release", "origin/main")
-        github.answer(open: [Self.pullRequest(12, base: "release")])
+        github.answer(open: [fakePullRequest(12, base: "release")])
         let first = await open(repo, selecting: feature)
         #expect(try review(first, feature).pullRequestBase != nil)
 
@@ -455,7 +423,7 @@ import Testing
 
     @Test func aSuggestedBaseNamingTheParentsBranchIsNoSuggestion() async throws {
         let (repo, feature) = try await fixture()
-        github.answer(open: [Self.pullRequest(12, base: "main")])
+        github.answer(open: [fakePullRequest(12, base: "main")])
         let session = await open(repo, selecting: feature)
         #expect(try review(session, feature).pullRequestBase == nil)
         session.close()
@@ -467,7 +435,7 @@ import Testing
         try await repo.commit("b.txt", "b\n", "b1", in: b)
         let c = try await repo.worktree("c", branch: "c", from: "b")
         try await repo.commit("c.txt", "c\n", "c1", in: c)
-        github.answer(byHead: ["b": Self.pullRequest(7, head: "b", state: .merged)])
+        github.answer(byHead: ["b": fakePullRequest(7, head: "b", state: .merged)])
         let session = await open(repo, selecting: c)
 
         let row = try review(session, c)
@@ -485,7 +453,7 @@ import Testing
     @Test func theMenuOpensAndCopiesThePullRequestAndItsFailedCheck() async throws {
         let (repo, feature) = try await fixture()
         let failed = PullRequest.Checks(failed: 1, failedURL: "https://ci/run/1")
-        github.answer(open: [Self.pullRequest(12, checks: failed)])
+        github.answer(open: [fakePullRequest(12, checks: failed)])
         let session = await open(repo, selecting: feature)
 
         for id in ["pull-request-open", "pull-request-copy", "pull-request-check"] {
@@ -498,10 +466,6 @@ import Testing
                 == ["https://github.com/owner/app/pull/12", "https://ci/run/1"])
         session.copyPullRequestURL(of: try review(session, feature))
         #expect(session.platform?.copied.last == "https://github.com/owner/app/pull/12")
-
-        let actions = RowActions.actions(for: try review(session, feature), in: session)
-        #expect(
-            actions.last?.map(\.title) == ["Open Pull Request in Browser", "Copy Pull Request URL"])
 
         session.select(repo.main.path)
         await session.settled()

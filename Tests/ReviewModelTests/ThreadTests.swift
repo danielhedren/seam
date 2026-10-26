@@ -1,36 +1,18 @@
-import AppKit
 import DiffModel
-import DiffView
 import Foundation
 import GitKit
 import ReviewTestSupport
 import SeamCore
-import SwiftUI
 import TestSupport
 import Testing
 
-@testable import Features
 @testable import ReviewModel
 
 @MainActor @Suite(.timeLimit(.minutes(1))) struct ThreadTests {
-    private func session(_ repo: FixtureRepo, watcher: any FileWatcher = SilentWatcher()) async
-        -> (RepoSession, WorktreeReview?, ThreadStore)
-    {
-        let store = scratchThreadStore()
-        let session = RepoSession(
-            directory: repo.main,
-            services: SeamServices(
-                git: repo.git, watcher: watcher, clock: ManualClock(), store: MemoryStore(),
-                threads: store, settings: testSettings(), platform: RecordingPlatform()))
-        await session.open()
-        await session.settled()
-        return (session, session.selected, store)
-    }
-
     @Test func aCommentSitsOnItsLinesAndFollowsThemThroughEdits() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\nthree\n")
-        let (session, review, _) = await session(repo)
+        let (session, review, _) = await threadSession(repo)
         let reviewed = try #require(review)
         let anchor = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 2...2))
         #expect(anchor.text == ["two"])
@@ -85,7 +67,7 @@ import Testing
     @Test func nextAndPreviousThreadStepThroughThemInFileOrder() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\nthree\n")
-        let (session, review, _) = await session(repo)
+        let (session, review, _) = await threadSession(repo)
         let reviewed = try #require(review)
         var ids: [String] = []
         for line in [3, 1, 2] {
@@ -109,37 +91,13 @@ import Testing
         session.close()
     }
 
-    /// ⌥⌘↩ in the composer posts a note: something to know about the lines that asks no answer,
-    /// so it's no open work for anyone and isn't handed to the agent.
-    @Test func optionCommandReturnPostsANoteThatIsntOpenWork() async throws {
-        let repo = try await FixtureRepo()
-        try repo.write("a.txt", "one\ntwo\n")
-        let (session, review, store) = await session(repo)
-        let reviewed = try #require(review)
-        let card = CardWindow(session: session, review: reviewed)
-        await card.settle()
-        session.comment()
-        await card.settle()
-        let field = try #require(card.window.firstResponder as? NSTextView)
-        field.insertText("Kept for the old API.", replacementRange: field.selectedRange())
-
-        card.press("\r", [.command, .option])
-        #expect(await card.wait { session.selectedThreadID != nil })
-        let repository = try #require(session.repository)
-        #expect(try store.threads(for: repository).map(\.isNote) == [true])
-        #expect(reviewed.openThreadCount == 0)
-        #expect(reviewed.awaitingReply.isEmpty)
-        #expect(reviewed.threadMarkers["a.txt"]?.first?.isNote == true)
-        session.close()
-    }
-
     /// After handing threads to an agent, its answers and questions are what the reader looks
     /// at next: those threads are awaiting them until they answer.
     @Test func anAgentsAnswerOrQuestionAwaitsTheReader() async throws {
         let repo = try await FixtureRepo()
         try await repo.run("config", "user.email", "reader@example.com")
         try repo.write("a.txt", "one\ntwo\n")
-        let (session, review, store) = await session(repo)
+        let (session, review, store) = await threadSession(repo)
         let reviewed = try #require(review)
         let repository = try #require(session.repository)
         let anchor = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1))
@@ -170,7 +128,7 @@ import Testing
             anchor: ThreadAnchor(path: "a", side: .new, lines: 1...1, text: ["x"]), author: "you",
             comments: [ThreadComment(id: "c", author: "you", body: "b", date: .now)])
         func label(_ placement: ThreadPlacement) -> String? {
-            ThreadCard.location(PlacedThread(thread: thread, placement: placement))
+            PlacedThread(thread: thread, placement: placement).location
         }
         #expect(label(.lines(1...1)) == nil)
         #expect(label(.outdated) == "Outdated")
@@ -183,7 +141,7 @@ import Testing
     @Test func openingAThreadSetsTheDraftAsideAndClosingItBringsItBack() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\n")
-        let (session, review, _) = await session(repo)
+        let (session, review, _) = await threadSession(repo)
         let reviewed = try #require(review)
         let first = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1))
         session.draft = ThreadDraft(worktree: reviewed.id, anchor: first)
@@ -208,7 +166,7 @@ import Testing
         let repo = try await FixtureRepo()
         let tree = try await repo.worktree("a", branch: "a", from: "origin/main")
         try repo.write("a.txt", "one\n")
-        let (session, review, _) = await session(repo)
+        let (session, review, _) = await threadSession(repo)
         let reviewed = try #require(review)
         let anchor = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1))
         session.draft = ThreadDraft(worktree: reviewed.id, anchor: anchor)
@@ -228,7 +186,7 @@ import Testing
         let repo = try await FixtureRepo()
         try await repo.run("config", "user.email", "reader@example.com")
         try repo.write("a.txt", "one\n")
-        let (session, review, _) = await session(repo)
+        let (session, review, _) = await threadSession(repo)
         let reviewed = try #require(review)
         let anchor = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1))
 
@@ -249,7 +207,7 @@ import Testing
         let tree = try await repo.worktree("a", branch: "a", from: "origin/main")
         try await repo.commit("a.txt", "one\n", "Add a", in: tree)
         try repo.write("b.txt", "two\n", in: tree)
-        let (session, _, _) = await session(repo)
+        let (session, _, _) = await threadSession(repo)
         session.select(tree.path)
         let reviewed = try #require(session.selected)
         await reviewed.loaded()
@@ -270,33 +228,10 @@ import Testing
         session.close()
     }
 
-    @Test func cOpensTheComposerInTheDiffAndCommandReturnPostsIt() async throws {
-        let repo = try await FixtureRepo()
-        try repo.write("a.txt", "one\ntwo\n")
-        let (session, review, _) = await session(repo)
-        let reviewed = try #require(review)
-        try showDiff(session)
-
-        session.comment()
-
-        let draft = try #require(session.draft)
-        #expect(!session.showsThreadPanel)
-        #expect(
-            session.draftMarker(for: reviewed)
-                == DraftMarker(path: "a.txt", side: .new, lines: draft.anchor.lines))
-        await session.submitDraft()
-        #expect(session.draft != nil, "an empty draft isn't posted")
-        session.draft?.body = "Why two?"
-        await session.submitDraft()
-        #expect(session.draft == nil)
-        #expect(session.draftMarker(for: reviewed) == nil)
-        #expect(reviewed.placedThreads.map(\.thread.comments.first?.body) == ["Why two?"])
-    }
-
     @Test func openingAThreadShowsItInTheDiffAndAnOutdatedOneInThePanel() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\n")
-        let (session, review, _) = await session(repo)
+        let (session, review, _) = await threadSession(repo)
         let reviewed = try #require(review)
         session.draft = ThreadDraft(
             worktree: reviewed.id,
@@ -325,162 +260,44 @@ import Testing
         #expect(session.openThreadMarker(for: reviewed) == nil)
     }
 
-    /// Resolving an agent's answer from Awaiting You moves it to its file's group, where it must
-    /// show as resolved: the panel then looks as one freshly opened on the same threads does.
-    @Test func resolvingAThreadAwaitingYouShowsItResolvedInThePanel() async throws {
-        let repo = try await FixtureRepo()
-        try repo.write("a.txt", "one\ntwo\n")
-        let (session, review, store) = await session(repo)
-        let reviewed = try #require(review)
-        session.draft = ThreadDraft(
-            worktree: reviewed.id,
-            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
-        await session.post("Why one?")
-        let id = try #require(session.selectedThreadID)
-        try store.update(try #require(session.repository)) { threads throws(ThreadError) in
-            try ThreadRules.reply(&threads, to: id, author: "claude", body: "Because.", now: .now)
+    // Linux has no UndoManager, so undo does nothing there (SessionUndo).
+    #if canImport(Darwin)
+        @Test func deletingAThreadRemovesItAndUndoAndRedoFollow() async throws {
+            let repo = try await FixtureRepo()
+            try repo.write("a.txt", "one\ntwo\n")
+            let (session, review, store) = await threadSession(repo)
+            let reviewed = try #require(review)
+            let repository = try #require(session.repository)
+            let undo = UndoManager()
+            undo.groupsByEvent = false
+            session.undoManager = undo
+            session.draft = ThreadDraft(
+                worktree: reviewed.id,
+                anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
+            await session.post("Why one?")
+            let id = try #require(session.selectedThreadID)
+
+            undo.beginUndoGrouping()
+            await session.deleteThread(id)
+            undo.endUndoGrouping()
+            #expect(reviewed.placedThreads.isEmpty)
+            #expect(session.selectedThreadID == nil)
+            #expect(try store.threads(for: repository).isEmpty)
+            #expect(undo.undoActionName == "Delete Thread")
+
+            undo.undo()
+            await session.restoringThreads?.value
+            #expect(reviewed.placedThreads.map(\.id) == [id])
+            #expect(session.selectedThreadID == id)
+            #expect(undo.canRedo)
         }
-        await session.threads?.load()
-        #expect(reviewed.awaitingReply.map(\.id) == [id])
-
-        let panel = PanelWindow(session: session, review: reviewed)
-        await panel.settle()
-        await session.setResolved(true, thread: id)
-        await panel.settle()
-        #expect(reviewed.awaitingReply.isEmpty)
-
-        let fresh = PanelWindow(session: session, review: reviewed)
-        await fresh.settle()
-        #expect(try panel.png() == fresh.png())
-    }
-
-    /// Marking the file viewed collapses it, which folds its open thread away with it: the panel
-    /// is for threads the diff can't show, not ones the reader just put away.
-    @Test func markingAFileViewedClosesItsOpenThreadWithoutShowingThePanel() async throws {
-        let repo = try await FixtureRepo()
-        try repo.write("a.txt", "one\ntwo\n")
-        let (session, review, _) = await session(repo)
-        let reviewed = try #require(review)
-        let card = CardWindow(session: session, review: reviewed)
-        await card.settle()
-        session.draft = ThreadDraft(
-            worktree: reviewed.id,
-            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
-        await session.post("Why one?")
-        #expect(await card.wait { card.host != nil }, "the thread is open in the diff")
-
-        session.toggleViewed("a.txt", advance: false)
-        await card.settle()
-        #expect(reviewed.collapsed == ["a.txt"])
-        #expect(session.selectedThreadID == nil)
-        #expect(!session.showsThreadPanel)
-    }
-
-    /// The diff pane the app shows, in a window that's never on screen, driven by keys as the
-    /// reader would: `c`, typing, ⌘↩ to post, typing a reply, ⌘↩ again, Escape. After each step
-    /// the card must fit its row, or its hints and buttons hang below it out of reach.
-    @Test(.timeLimit(.minutes(1)), arguments: [DiffLayoutMode.unified, .split])
-    func writingAThreadAndReplyingHappenInOneCardThatAlwaysFitsItsRow(_ mode: DiffLayoutMode)
-        async throws
-    {
-        let repo = try await FixtureRepo()
-        try repo.write("a.txt", "one\ntwo\n")
-        let (session, review, store) = await session(repo)
-        let reviewed = try #require(review)
-        session.settings.layoutMode = mode
-        let card = CardWindow(session: session, review: reviewed)
-        await card.settle()
-
-        session.comment()
-        await card.settle()
-        let draft = try #require(card.host)
-        #expect(try card.fits())
-        let field = try #require(card.window.firstResponder as? NSTextView, "the cursor is in it")
-        #expect(field.isDescendant(of: draft))
-        field.insertText("Why one?", replacementRange: field.selectedRange())
-        #expect(session.draft?.body == "Why one?")
-
-        card.press("\r", .command)
-        #expect(await card.wait { session.selectedThreadID != nil }, "⌘↩ posts it")
-        let repository = try #require(session.repository)
-        #expect(try store.threads(for: repository).map(\.comments.count) == [1])
-        let thread = try #require(card.host, "posting opens the new thread in the same place")
-        #expect(thread !== draft)
-        #expect(try card.fits())
-        let posted = thread.frame.height
-
-        let replyBox = try #require(card.textField(in: thread) as NSView?)
-        card.window.makeFirstResponder(replyBox)
-        let reply = try #require(card.window.firstResponder as? NSTextView)
-        reply.insertText("Because.\nTwo lines, too.", replacementRange: reply.selectedRange())
-        card.press("\r", .command)
-        #expect(
-            await card.wait { reviewed.placedThreads.first?.thread.comments.count == 2 },
-            "⌘↩ sends the reply")
-        #expect(try card.fits())
-        #expect(try #require(card.host).frame.height > posted, "the reply made it taller")
-        #expect(reply.string.isEmpty, "the box empties once it's sent")
-
-        card.press("\u{1b}", [])
-        await card.settle()
-        #expect(session.selectedThreadID == nil)
-        #expect(card.host == nil)
-    }
-
-    @Test func tOpensTheThreadOnTheLineAndClosesItAgain() async throws {
-        let repo = try await FixtureRepo()
-        try repo.write("a.txt", "one\n")
-        let (session, review, _) = await session(repo)
-        let reviewed = try #require(review)
-        session.draft = ThreadDraft(
-            worktree: reviewed.id,
-            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
-        await session.post("Why?")
-        let id = try #require(session.selectedThreadID)
-        session.closeThread()
-        _ = try showDiff(session)
-
-        session.openThreadAtCursor()
-        #expect(session.selectedThreadID == id)
-        session.openThreadAtCursor()
-        #expect(session.selectedThreadID == nil)
-    }
-
-    @Test func deletingAThreadRemovesItAndUndoAndRedoFollow() async throws {
-        let repo = try await FixtureRepo()
-        try repo.write("a.txt", "one\ntwo\n")
-        let (session, review, store) = await session(repo)
-        let reviewed = try #require(review)
-        let repository = try #require(session.repository)
-        let undo = UndoManager()
-        undo.groupsByEvent = false
-        session.undoManager = undo
-        session.draft = ThreadDraft(
-            worktree: reviewed.id,
-            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
-        await session.post("Why one?")
-        let id = try #require(session.selectedThreadID)
-
-        undo.beginUndoGrouping()
-        await session.deleteThread(id)
-        undo.endUndoGrouping()
-        #expect(reviewed.placedThreads.isEmpty)
-        #expect(session.selectedThreadID == nil)
-        #expect(try store.threads(for: repository).isEmpty)
-        #expect(undo.undoActionName == "Delete Thread")
-
-        undo.undo()
-        await session.restoringThreads?.value
-        #expect(reviewed.placedThreads.map(\.id) == [id])
-        #expect(session.selectedThreadID == id)
-        #expect(undo.canRedo)
-    }
+    #endif
 
     @Test func anUnpostedDraftAndItsTextSurviveSwitchingWorktrees() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\n")
         let other = try await repo.worktree("other", branch: "other", from: "origin/main")
-        let (session, review, _) = await session(repo)
+        let (session, review, _) = await threadSession(repo)
         let reviewed = try #require(review)
         session.draft = ThreadDraft(
             worktree: reviewed.id,
@@ -498,7 +315,7 @@ import Testing
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\n")
         let watcher = ManualWatcher()
-        let (session, review, store) = await session(repo, watcher: watcher)
+        let (session, review, store) = await threadSession(repo, watcher: watcher)
         let reviewed = try #require(review)
         let repository = try #require(session.repository)
         session.draft = ThreadDraft(
@@ -521,7 +338,7 @@ import Testing
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\n")
         try repo.write("b.txt", "three\n")
-        let (session, review, _) = await session(repo)
+        let (session, review, _) = await threadSession(repo)
         let reviewed = try #require(review)
         #expect(reviewed.threadCountsByPath.isEmpty)
 
@@ -548,7 +365,7 @@ import Testing
     @Test func theReaderResolvesAnyThreadAndResolvedOnesLeaveTheDiff() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\n")
-        let (session, review, store) = await session(repo)
+        let (session, review, store) = await threadSession(repo)
         let reviewed = try #require(review)
         let repository = try #require(session.repository)
         let anchor = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1))
@@ -581,7 +398,7 @@ import Testing
     @Test func reloadingUnchangedThreadsKeepsPlacementsCached() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\n")
-        let (session, review, _) = await session(repo)
+        let (session, review, _) = await threadSession(repo)
         let reviewed = try #require(review)
         let threads = try #require(session.threads)
         session.draft = ThreadDraft(
@@ -603,7 +420,7 @@ import Testing
         let repo = try await FixtureRepo()
         try await repo.run("config", "user.email", "reader@example.com")
         let tree = try await repo.worktree("fix-total", branch: "fix-total", from: "origin/main")
-        let (session, _, _) = await session(repo)
+        let (session, _, _) = await threadSession(repo)
         session.select(tree.path)
         await session.copyAgentPrompt()
         let prompt = try #require(session.platform?.copied.last)
@@ -625,7 +442,7 @@ import Testing
     @Test func theAgentPromptCountsTheThreadsAndFailedChecks() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\n")
-        let (session, review, _) = await session(repo)
+        let (session, review, _) = await threadSession(repo)
         let reviewed = try #require(review)
         session.draft = ThreadDraft(
             worktree: reviewed.id,
@@ -663,36 +480,5 @@ import Testing
         #expect(
             unbundled.contains(
                 "Run `seam threads` in this worktree to read them. Sign what you write"))
-    }
-}
-
-extension CardWindow {
-    var host: ThreadCardHost? { Self.find(ThreadCardHost.self, in: window.contentView) }
-
-    func textField(in view: NSView) -> NSView? {
-        Self.find(NSTextView.self, in: view) ?? Self.find(NSTextField.self, in: view)
-    }
-
-    /// The card is exactly as tall as its contents need, so nothing hangs out of it.
-    func fits() throws -> Bool {
-        let card = try #require(host)
-        // Rows are whole points; on a 2x screen the card can want half a point less.
-        return card.frame.height == card.height(forWidth: card.frame.width).rounded(.up)
-    }
-
-    func press(_ key: String, _ modifiers: NSEvent.ModifierFlags) {
-        guard
-            let event = NSEvent.keyEvent(
-                with: .keyDown, location: .zero, modifierFlags: modifiers, timestamp: 0,
-                windowNumber: window.windowNumber, context: nil, characters: key,
-                charactersIgnoringModifiers: key, isARepeat: false,
-                keyCode: key == "\r" ? 36 : 53)
-        else { return }
-        if !window.performKeyEquivalent(with: event) { window.sendEvent(event) }
-    }
-
-    static func find<T: NSView>(_ type: T.Type, in view: NSView?) -> T? {
-        guard let view else { return nil }
-        return (view as? T) ?? view.subviews.lazy.compactMap { find(type, in: $0) }.first
     }
 }

@@ -5,7 +5,6 @@ import SeamCore
 import TestSupport
 import Testing
 
-@testable import Features
 @testable import ReviewModel
 
 /// Worktree rows say what awaits the reader, and Needs You First lists those worktrees at the
@@ -111,7 +110,7 @@ struct InboxTests {
     }
 
     @Test func aPullRequestNumberHasNoThousandsSeparator() {
-        #expect(InboxList.checksFailed(2530) == "#2530 checks failed")
+        #expect(PullRequestText.checksFailed(2530) == "#2530 checks failed")
     }
 
     @Test func answeringTakesItOutOfTheInbox() async throws {

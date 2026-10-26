@@ -46,21 +46,8 @@ struct SearchSummary: View {
 
     var body: some View {
         if let result = review.searchResult {
-            Text(verbatim: Self.text(result)).foregroundStyle(.secondary).lineLimit(1)
+            Text(verbatim: result.summary).foregroundStyle(.secondary).lineLimit(1)
         }
-    }
-
-    /// A path counts once, however often the query is in it.
-    static func text(_ result: ReviewSearch.Result) -> String {
-        guard !result.files.isEmpty else { return String(localized: "No results", bundle: .module) }
-        if result.isTruncated {
-            return String(
-                localized: "First \(ReviewSearch.limit.formatted()) matches", bundle: .module)
-        }
-        let matches = result.matchCount + result.files.count { !$0.pathRanges.isEmpty }
-        return String(
-            localized: "\(Counted.matches(matches)) in \(Counted.files(result.files.count))",
-            bundle: .module)
     }
 }
 

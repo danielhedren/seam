@@ -4,7 +4,6 @@ import SeamCore
 import TestSupport
 import Testing
 
-@testable import Features
 @testable import ReviewModel
 
 /// What the commit list says while it has no commits to show (SPEC §7.2.1).
@@ -21,7 +20,7 @@ struct CommitListTests {
         await session.settled()
         let review = try #require(session.selected)
         #expect(review.commitLog?.commits.map(\.subject) == ["Add a"])
-        #expect(CommitList.status(of: review) == nil)
+        #expect(CommitListStatus.of(review) == nil)
     }
 
     @Test func aColdOpenSaysItIsDetectingTheBaseAndSpinsOnlyAfter150Milliseconds() async throws {
@@ -33,14 +32,14 @@ struct CommitListTests {
         let review = try #require(session.selected)
 
         await clock.sleepers()
-        #expect(CommitList.status(of: review) == .detecting(showsProgress: false))
+        #expect(CommitListStatus.of(review) == .detecting(showsProgress: false))
         clock.advance(by: .milliseconds(150))
         while !review.showsProgress { await Task.yield() }
-        #expect(CommitList.status(of: review) == .detecting(showsProgress: true))
+        #expect(CommitListStatus.of(review) == .detecting(showsProgress: true))
         git.release()
         await review.loaded()
         #expect(review.commitLog != nil)
-        #expect(CommitList.status(of: review) == nil)
+        #expect(CommitListStatus.of(review) == nil)
     }
 
     @Test func aReloadKeepsTheListedCommitsWithoutSayingSo() async throws {
@@ -55,7 +54,7 @@ struct CommitListTests {
         clock.advance(by: .milliseconds(150))
         // The diff is held, so the load is still running once the commits are in.
         await until { review.commitLog != nil && review.showsProgress }
-        #expect(CommitList.status(of: review) == nil)
+        #expect(CommitListStatus.of(review) == nil)
         git.release()
         await review.loaded()
     }
@@ -70,7 +69,7 @@ struct CommitListTests {
         await session.settled()
         let review = try #require(session.selected)
         #expect(review.commitLog == nil)
-        #expect(CommitList.status(of: review) == .missingDirectory)
+        #expect(CommitListStatus.of(review) == .missingDirectory)
     }
 
     @Test func aBaseThatNoLongerExistsIsNamed() async throws {
@@ -83,7 +82,7 @@ struct CommitListTests {
         await session.settled()
         let review = try #require(session.selected)
         #expect(review.commitLog == nil)
-        #expect(CommitList.status(of: review) == .baseGone("deleted"))
+        #expect(CommitListStatus.of(review) == .baseGone("deleted"))
     }
 
     @Test func commitsFromABaseThatWentAwayAreNotListed() async throws {
@@ -98,6 +97,6 @@ struct CommitListTests {
         await session.settled()
         let review = try #require(session.selected)
         #expect(review.commitLog != nil)
-        #expect(CommitList.status(of: review)?.keepsLog == false)
+        #expect(CommitListStatus.of(review)?.keepsLog == false)
     }
 }

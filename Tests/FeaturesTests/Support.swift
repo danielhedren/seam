@@ -98,3 +98,34 @@ struct PanelWindow {
         return rep.representation(using: .png, properties: [:])
     }
 }
+
+extension CardWindow {
+    var host: ThreadCardHost? { Self.find(ThreadCardHost.self, in: window.contentView) }
+
+    func textField(in view: NSView) -> NSView? {
+        Self.find(NSTextView.self, in: view) ?? Self.find(NSTextField.self, in: view)
+    }
+
+    /// The card is exactly as tall as its contents need, so nothing hangs out of it.
+    func fits() throws -> Bool {
+        let card = try #require(host)
+        // Rows are whole points; on a 2x screen the card can want half a point less.
+        return card.frame.height == card.height(forWidth: card.frame.width).rounded(.up)
+    }
+
+    func press(_ key: String, _ modifiers: NSEvent.ModifierFlags) {
+        guard
+            let event = NSEvent.keyEvent(
+                with: .keyDown, location: .zero, modifierFlags: modifiers, timestamp: 0,
+                windowNumber: window.windowNumber, context: nil, characters: key,
+                charactersIgnoringModifiers: key, isARepeat: false,
+                keyCode: key == "\r" ? 36 : 53)
+        else { return }
+        if !window.performKeyEquivalent(with: event) { window.sendEvent(event) }
+    }
+
+    static func find<T: NSView>(_ type: T.Type, in view: NSView?) -> T? {
+        guard let view else { return nil }
+        return (view as? T) ?? view.subviews.lazy.compactMap { find(type, in: $0) }.first
+    }
+}

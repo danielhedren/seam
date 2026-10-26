@@ -7,25 +7,12 @@
     " · resolved" : {
 
     },
-    "#%@ checks failed" : {
-
-    },
     "%@ (%@ marks it and goes to the next unviewed file)" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ (%2$@ marks it and goes to the next unviewed file)"
-          }
-        }
-      }
-    },
-    "%@ in %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ in %2$@"
           }
         }
       }
@@ -98,9 +85,6 @@
     "Cancel" : {
 
     },
-    "Changes show here as soon as files in this worktree are edited." : {
-
-    },
     "Check Again" : {
 
     },
@@ -151,9 +135,6 @@
       }
     },
     "Commits" : {
-
-    },
-    "Commits on this branch show here once there are some." : {
 
     },
     "Compare with" : {
@@ -255,13 +236,7 @@
     "Finds text in the changed lines and file paths." : {
 
     },
-    "First %@ matches" : {
-
-    },
     "Font" : {
-
-    },
-    "From a later commit" : {
 
     },
     "Generated files" : {
@@ -388,15 +363,6 @@
     "No changed file's path matches “%@”." : {
 
     },
-    "No changes against %@" : {
-
-    },
-    "No changes in the selected commits" : {
-
-    },
-    "No commits since %@" : {
-
-    },
     "No matches" : {
 
     },
@@ -415,16 +381,10 @@
     "No threads" : {
 
     },
-    "No uncommitted changes" : {
-
-    },
     "No worktree or branch matches “%@”" : {
 
     },
     "No worktree selected" : {
-
-    },
-    "Not in this diff" : {
 
     },
     "Note" : {
@@ -477,9 +437,6 @@
 
     },
     "Other ref" : {
-
-    },
-    "Outdated" : {
 
     },
     "Parent %@ looks merged. Diff against %@ instead?" : {
@@ -641,9 +598,6 @@
     "The chosen base %@ no longer exists." : {
 
     },
-    "The working tree matches the branch's latest commit." : {
-
-    },
     "The worktree's directory is missing" : {
 
     },
@@ -671,9 +625,6 @@
       }
     },
     "Threads" : {
-
-    },
-    "Together they leave every file as it was." : {
 
     },
     "Uncommitted changes" : {
@@ -746,9 +697,6 @@
 
     },
     "stale parent" : {
-
-    },
-    "the base" : {
 
     },
     "“%@” doesn't compile." : {

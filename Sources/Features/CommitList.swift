@@ -9,8 +9,7 @@ struct CommitList: View {
     let review: WorktreeReview
 
     var body: some View {
-        // A log loaded before the directory or the chosen base went is no longer true.
-        if let log = review.commitLog, Self.status(of: review)?.keepsLog ?? true {
+        if let log = review.commitLog, CommitListStatus.of(review)?.keepsLog ?? true {
             let threads = review.threadCountsByCommit
             List(selection: selection(log)) {
                 Section {
@@ -46,7 +45,7 @@ struct CommitList: View {
             .contextMenu(forSelectionType: CommitSelection.End.self) { picked in
                 ActionMenu(groups: RowActions.actions(for: picked, of: review, in: session))
             }
-        } else if case .detecting(let showsProgress) = Self.status(of: review) {
+        } else if case .detecting(let showsProgress) = CommitListStatus.of(review) {
             // A list like the loaded one, so the commits arrive in place rather than moving it.
             List {
                 Section {
@@ -64,7 +63,7 @@ struct CommitList: View {
 
     /// Says why there are no commits; the diff's banner carries the details and fixes.
     @ViewBuilder private var placeholder: some View {
-        switch Self.status(of: review) {
+        switch CommitListStatus.of(review) {
         case nil, .detecting:
             Color.clear
         case .missingDirectory:
@@ -87,31 +86,6 @@ struct CommitList: View {
 
     private func message(_ text: String) -> some View {
         Text(text).font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
-    }
-
-    enum Status: Equatable {
-        case detecting(showsProgress: Bool)
-        case missingDirectory, failed
-        case baseGone(String)
-
-        var keepsLog: Bool {
-            switch self {
-            case .detecting, .failed: true
-            case .missingDirectory, .baseGone: false
-            }
-        }
-    }
-
-    /// What the list says while it has no commits; nil once they're listed.
-    static func status(of review: WorktreeReview) -> Status? {
-        switch review.problem {
-        case .missingDirectory: .missingDirectory
-        case .overrideGone(let ref): .baseGone(ref)
-        case .gitFailed: .failed
-        case .editorFailed, .seenGone, nil:
-            review.commitLog == nil && review.isLoading
-                ? .detecting(showsProgress: review.showsProgress) : nil
-        }
     }
 
     private var uncommittedFiles: Int { review.activity?.uncommittedFiles ?? 0 }

@@ -430,3 +430,32 @@ package func until(_ condition: @escaping @MainActor () -> Bool) async {
 package func command(_ id: String) throws -> SeamCommand {
     try #require(CommandCatalog.all.first { $0.id == id })
 }
+
+/// A session on `repo` whose threads are kept in a scratch store, returned with it.
+@MainActor
+package func threadSession(_ repo: FixtureRepo, watcher: any FileWatcher = SilentWatcher()) async
+    -> (RepoSession, WorktreeReview?, ThreadStore)
+{
+    let store = scratchThreadStore()
+    let session = RepoSession(
+        directory: repo.main,
+        services: SeamServices(
+            git: repo.git, watcher: watcher, clock: ManualClock(), store: MemoryStore(),
+            threads: store, settings: testSettings(), platform: RecordingPlatform()))
+    await session.open()
+    await session.settled()
+    return (session, session.selected, store)
+}
+
+/// An open pull request from `feature` into `main`, unless told otherwise.
+package func fakePullRequest(
+    _ number: Int, head: String = "feature", state: PullRequest.State = .open,
+    draft: Bool = false, review: PullRequest.Review = .none,
+    checks: PullRequest.Checks = .init(), base: String = "main", headCommit: String = "abc"
+) -> PullRequest {
+    PullRequest(
+        number: number, title: "Count the lines",
+        url: "https://github.com/owner/app/pull/\(number)", state: state, isDraft: draft,
+        head: head, headOwner: "owner", headCommit: headCommit, base: base, review: review,
+        checks: checks, updated: Date(timeIntervalSince1970: 0))
+}

@@ -1,6 +1,4 @@
-import AppKit
 import DiffModel
-import DiffView
 import Foundation
 import GitKit
 import ReviewTestSupport
@@ -9,7 +7,6 @@ import Synchronization
 import TestSupport
 import Testing
 
-@testable import Features
 @testable import ReviewModel
 
 @MainActor @Suite(.timeLimit(.minutes(1))) struct RepoSessionTests {
@@ -483,23 +480,31 @@ import Testing
         for name in ["a.txt", "b.txt", "c.txt"] { try repo.write(name, "\(name)\n") }
         let store = MemoryStore()
         let session = RepoSession(directory: repo.main, services: services(repo.git, store: store))
-        let undo = UndoManager()
-        undo.groupsByEvent = false
-        session.undoManager = undo
+        #if canImport(Darwin)
+            let undo = UndoManager()
+            undo.groupsByEvent = false
+            session.undoManager = undo
+        #endif
         await session.open()
         await session.settled()
         let review = try #require(session.selected)
         review.currentFile = "a.txt"
 
-        undo.beginUndoGrouping()
-        session.toggleViewed()
-        undo.endUndoGrouping()
+        #if canImport(Darwin)
+            undo.beginUndoGrouping()
+            session.toggleViewed()
+            undo.endUndoGrouping()
+        #else
+            session.toggleViewed()
+        #endif
         #expect(review.viewedStatus("a.txt") == .viewed)
         #expect(review.currentFile == "b.txt")
-        undo.undo()
-        #expect(review.viewedStatus("a.txt") == .unviewed)
-        undo.redo()
-        #expect(review.viewedStatus("a.txt") == .viewed)
+        #if canImport(Darwin)
+            undo.undo()
+            #expect(review.viewedStatus("a.txt") == .unviewed)
+            undo.redo()
+            #expect(review.viewedStatus("a.txt") == .viewed)
+        #endif
         await session.settled()
 
         let reopened = RepoSession(directory: repo.main, services: services(repo.git, store: store))
@@ -523,43 +528,6 @@ import Testing
 
         #expect(session.selected?.viewedStatus("a.txt") == .changedSinceViewed)
         #expect(session.selected?.nextUnviewed(after: nil) == "a.txt")
-    }
-
-    @Test func openInEditorPassesTheWorktreePathAndReadingLine() async throws {
-        let repo = try await FixtureRepo()
-        try repo.write("dir with space/it's.txt", "one\ntwo\n")
-        let launcher = FakeLauncher()
-        var services = services(repo.git)
-        services.launcher = launcher
-        let session = RepoSession(directory: repo.main, services: services)
-        await session.open()
-        await session.settled()
-        try showDiff(session)
-
-        session.openInEditor(EditorCommand(template: "ed +{line} {path}"))
-
-        let path = repo.main.appending(path: "dir with space/it's.txt").path
-        #expect(await launcher.next() == "ed +1 " + EditorCommand.quoted(path))
-    }
-
-    @Test func aFailingEditorShowsItsMessageAsABanner() async throws {
-        let repo = try await FixtureRepo()
-        try repo.write("a.txt", "one\n")
-        let launcher = FakeLauncher()
-        await launcher.fail(with: "zed: command not found")
-        var services = services(repo.git)
-        services.launcher = launcher
-        let session = RepoSession(directory: repo.main, services: services)
-        await session.open()
-        await session.settled()
-        try showDiff(session)
-
-        session.openInEditor()
-        _ = await launcher.next()
-        let review = try #require(session.selected)
-        await until { review.problem != nil }
-
-        #expect(review.problem == .editorFailed("zed: command not found"))
     }
 
     @Test func aPrunedParentMakesTheReviewOfferMain() async throws {
@@ -614,47 +582,30 @@ import Testing
         #expect(reopened.selected?.savedAnchor == ScrollAnchor(path: "b.txt", line: 1, offset: 4))
     }
 
-    @Test func fileActionsCopyPathsAndFollowTheFilesState() async throws {
-        let repo = try await FixtureRepo()
-        try repo.write("dir/a.txt", "a\n")
-        let session = RepoSession(directory: repo.main, services: services(repo.git))
-        await session.open()
-        await session.settled()
-
-        session.copyPath("dir/a.txt", relative: true)
-        #expect(session.platform?.copied.last == "dir/a.txt")
-        session.copyPath("dir/a.txt", relative: false)
-        #expect(session.platform?.copied.last == repo.main.appending(path: "dir/a.txt").path)
-
-        let titles = {
-            FileActions.actions(for: "dir/a.txt", in: session).flatMap { $0.map(\.title) }
-        }
-        #expect(titles().contains("Mark as Viewed"))
-        session.toggleViewed("dir/a.txt", advance: false)
-        #expect(titles().contains("Mark as Not Viewed"))
-        #expect(titles().contains("Expand File"))
-        session.toggleCollapsed("dir/a.txt")
-        #expect(titles().contains("Collapse File"))
-    }
-
     @Test func viewedFilesFoldAwayAndOpenAgainWhenTheyChange() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\n")
         let session = RepoSession(directory: repo.main, services: services(repo.git))
-        let undo = UndoManager()
-        undo.groupsByEvent = false
-        session.undoManager = undo
+        #if canImport(Darwin)
+            let undo = UndoManager()
+            undo.groupsByEvent = false
+            session.undoManager = undo
+        #endif
         await session.open()
         await session.settled()
         let review = try #require(session.selected)
 
-        undo.beginUndoGrouping()
-        session.toggleViewed("a.txt", advance: false)
-        undo.endUndoGrouping()
-        #expect(review.collapsed.contains("a.txt"))
-        undo.undo()
-        #expect(!review.collapsed.contains("a.txt"))
-        undo.redo()
+        #if canImport(Darwin)
+            undo.beginUndoGrouping()
+            session.toggleViewed("a.txt", advance: false)
+            undo.endUndoGrouping()
+            #expect(review.collapsed.contains("a.txt"))
+            undo.undo()
+            #expect(!review.collapsed.contains("a.txt"))
+            undo.redo()
+        #else
+            session.toggleViewed("a.txt", advance: false)
+        #endif
 
         try repo.write("a.txt", "two\n")
         await session.apply(RepoChange(worktrees: [repo.main.path]))
@@ -918,20 +869,6 @@ import Testing
 
         review.fileFilter = ""
         #expect(shown() == ["src/a.cs", "tests/a_test.cs"])
-    }
-
-    @Test func aQuerySetBeforeTheFindBarExistsStillSearches() async throws {
-        let repo = try await FixtureRepo()
-        try repo.write("a.txt", "alpha\nbeta\nalpha\n")
-        let session = RepoSession(directory: repo.main, services: services(repo.git))
-        await session.open()
-        await session.settled()
-        var totals: [Int] = []
-        try showDiff(session).onSearchResult = { _, total in totals.append(total) }
-
-        session.find.query = "alpha"
-
-        #expect(totals.last == 2)
     }
 
     @Test(
