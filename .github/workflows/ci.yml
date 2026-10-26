@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos:
+    # macOS 27, the major the snapshot references were recorded on (SPEC §10).
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+      - uses: actions/cache@v4
+        with:
+          path: .build
+          # The tree-sitter grammars are the slow part of a cold build.
+          key: macos-build-${{ hashFiles('Package.resolved', 'Package.swift', 'Vendor/**') }}
+          restore-keys: macos-build-
+      - name: make check
+        run: make check
+      - name: make app
+        run: make app
+
+  linux:
+    # The portable targets (ADR 0007); the same image make linux-check uses.
+    runs-on: ubuntu-24.04
+    container: swift:6.4-noble
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: .build
+          key: linux-build-${{ hashFiles('Package.resolved', 'Package.swift', 'Vendor/**') }}
+          restore-keys: linux-build-
+      - name: Build
+        run: swift build --build-tests
+      - name: Test
+        run: swift test --skip-build
