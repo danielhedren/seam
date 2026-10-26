@@ -9,6 +9,7 @@ Seam needs macOS 26 or later on Apple silicon.
 
 ```sh
 brew tap danielhedren/seam https://github.com/danielhedren/seam
+brew trust --cask danielhedren/seam/seam
 brew install --cask seam
 ```
 
