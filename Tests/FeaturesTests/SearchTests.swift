@@ -2,6 +2,7 @@ import AppKit
 import DiffModel
 import DiffView
 import Foundation
+import ReviewTestSupport
 import SeamCore
 import SwiftUI
 import TestSupport

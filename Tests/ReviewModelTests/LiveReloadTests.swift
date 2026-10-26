@@ -1,26 +1,11 @@
 import Foundation
 import Observation
+import ReviewTestSupport
 import SeamCore
 import TestSupport
 import Testing
 
-@testable import Features
 @testable import ReviewModel
-
-/// Returns once `condition` holds, re-checking whenever an observed property changes, or once the
-/// test's time limit cancels it.
-@MainActor
-func until(_ condition: @escaping @MainActor () -> Bool) async {
-    while !condition(), !Task.isCancelled {
-        await waitCancellably { resume in
-            withObservationTracking {
-                _ = condition()
-            } onChange: {
-                resume()
-            }
-        }
-    }
-}
 
 @MainActor @Suite(.timeLimit(.minutes(1))) struct LiveReloadTests {
     /// SPEC §14 M2: an edit in the worktree reaches the diff within 1 s, through real FSEvents.

@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import GitKit
+import ReviewTestSupport
 import SeamCore
 import Synchronization
 import TestSupport

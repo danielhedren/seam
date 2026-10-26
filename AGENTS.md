@@ -72,6 +72,9 @@ spec disagree, stop and ask; do not pick one silently.
   calls the views make. Every interactive feature gets one such test per user flow.
 - Wait on conditions (`settled()`, `loaded()`, `until {}`, `clock.sleepers()`), never fixed
   pauses. Every suite has a `.timeLimit`, and a helper that waits must give up when cancelled.
+- Session helpers (stores, fake git and gh, `services()`, `until {}`) live in
+  `Tests/ReviewTestSupport`; window helpers stay in `FeaturesTests/Support.swift`. A session test
+  that needs no window or catalog belongs in `ReviewModelTests`, which also runs on Linux.
 - Assert values (`== ["a.txt"]`), not presence (`!= nil`). Scratch settings and folders come
   from `Scratch` so nothing is left behind; session tests run git through `ReadOnlyGit`.
 

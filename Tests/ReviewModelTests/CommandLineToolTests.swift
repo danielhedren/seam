@@ -1,9 +1,9 @@
 import Foundation
+import ReviewTestSupport
 import SeamCore
 import TestSupport
 import Testing
 
-@testable import Features
 @testable import ReviewModel
 
 @Suite(.timeLimit(.minutes(1))) struct CommandLineToolTests {

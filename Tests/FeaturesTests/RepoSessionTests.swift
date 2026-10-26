@@ -3,6 +3,7 @@ import DiffModel
 import DiffView
 import Foundation
 import GitKit
+import ReviewTestSupport
 import SeamCore
 import Synchronization
 import TestSupport

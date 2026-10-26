@@ -1,5 +1,6 @@
 import AppKit
 import GitKit
+import ReviewTestSupport
 import SeamCore
 import SnapshotTesting
 import SwiftUI
