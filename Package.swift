@@ -110,7 +110,11 @@ let package = Package(
 
 #if os(Linux)
     /// The targets that build and pass on Linux so far (ADR 0007); `make linux-check` runs them.
-    let portable: Set<String> = ["GitKit", "TestSupport", "GitKitTests"]
+    let portable = Set(
+        [
+            "GitKit", "TestSupport", "GitKitTests", "SeamCore", "SeamCoreTests", "Highlighting",
+            "HighlightingTests", "seam", "seam-debug",
+        ] + grammars.map(\.target))
     package.targets.removeAll { !portable.contains($0.name) }
     package.products.removeAll { !portable.contains($0.name) }
 #endif

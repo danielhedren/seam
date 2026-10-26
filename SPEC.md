@@ -1063,6 +1063,7 @@ The app bundle includes a `seam` command, installed via a menu item that symlink
 seam                    # open the repo containing $PWD, select the worktree you're in
 seam <path>             # same, for <path>
 seam --base <ref>       # set the base override for this worktree, then open
+                        # (on Linux, where there's no app, these say so and exit 1)
 
 seam threads [--all] [--notes] [--repo] [--since <time>] [--json]
                                        # this worktree's open threads (--all: resolved too,

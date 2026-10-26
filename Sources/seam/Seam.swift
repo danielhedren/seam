@@ -1,4 +1,3 @@
-import AppKit
 import ArgumentParser
 import Foundation
 import GitKit
@@ -63,14 +62,18 @@ struct Open: AsyncParsableCommand {
         guard let url = SeamURL(path: String(cString: real), base: base).url else {
             throw Failure("can't build a seam:// URL for \(folder.path)")
         }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-        process.arguments =
-            Self.app.map { ["-a", $0.path, url.absoluteString] }
-            ?? ["-b", "com.danielhedren.seam", url.absoluteString]
-        try process.run()
-        process.waitUntilExit()
-        if process.terminationStatus != 0 { throw ExitCode(process.terminationStatus) }
+        #if os(macOS)
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            process.arguments =
+                Self.app.map { ["-a", $0.path, url.absoluteString] }
+                ?? ["-b", "com.danielhedren.seam", url.absoluteString]
+            try process.run()
+            process.waitUntilExit()
+            if process.terminationStatus != 0 { throw ExitCode(process.terminationStatus) }
+        #else
+            throw Failure("Seam has no app on this platform; open \(url.absoluteString) on a Mac")
+        #endif
     }
 
     /// The app this command was copied into: a build-directory copy and an installed one can

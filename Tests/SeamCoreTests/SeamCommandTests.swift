@@ -1,8 +1,8 @@
 import Foundation
-import GitKit
 import TestSupport
 import Testing
 
+@testable import GitKit
 @testable import SeamCore
 
 /// SPEC §13 through the built `seam` itself: what an agent types and what it gets back, exit
@@ -19,41 +19,29 @@ struct SeamCommandTests {
 
     private let store = Scratch.path("seam-cli-threads")
 
-    /// Built beside the test bundles by `swift build --build-tests`.
+    /// Built beside the test bundles by `swift build --build-tests`; on Linux the tests are an
+    /// executable rather than a bundle, beside it all the same.
     private static var seam: URL {
-        Bundle(for: Here.self).bundleURL.deletingLastPathComponent().appending(path: "seam")
+        #if os(macOS)
+            Bundle(for: Here.self).bundleURL.deletingLastPathComponent().appending(path: "seam")
+        #else
+            URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent()
+                .appending(path: "seam")
+        #endif
     }
 
+    /// Through GitKit's runner, which launches safely on Linux too, unlike Foundation's Process.
     private func seam(_ arguments: [String], in directory: URL) async throws -> Run {
-        let process = Process()
-        process.executableURL = Self.seam
-        process.arguments = arguments
-        process.currentDirectoryURL = directory
-        process.environment = [
-            "PATH": "/usr/bin:/bin", "HOME": FileManager.default.temporaryDirectory.path,
-            "SEAM_THREAD_DIR": store.path, "GIT_CONFIG_GLOBAL": "/dev/null",
-            "GIT_CONFIG_NOSYSTEM": "1",
-        ]
-        let output = Pipe()
-        let errors = Pipe()
-        process.standardOutput = output
-        process.standardError = errors
-        process.standardInput = FileHandle.nullDevice
-        // A termination handler, not waitUntilExit(), which can block a pool thread for good.
-        let status: Int32 = try await withCheckedThrowingContinuation { continuation in
-            process.terminationHandler = { continuation.resume(returning: $0.terminationStatus) }
-            do {
-                try process.run()
-            } catch {
-                process.terminationHandler = nil
-                continuation.resume(throwing: error)
-            }
-        }
-        let outData = output.fileHandleForReading.readDataToEndOfFile()
-        let errData = errors.fileHandleForReading.readDataToEndOfFile()
+        let result = try await ProcessRunner.run(
+            executable: Self.seam, arguments: arguments, directory: directory,
+            environment: [
+                "PATH": "/usr/bin:/bin", "HOME": FileManager.default.temporaryDirectory.path,
+                "SEAM_THREAD_DIR": store.path, "GIT_CONFIG_GLOBAL": "/dev/null",
+                "GIT_CONFIG_NOSYSTEM": "1",
+            ], input: nil)
         return Run(
-            status: status, output: String(decoding: outData, as: UTF8.self),
-            errors: String(decoding: errData, as: UTF8.self))
+            status: result.status, output: String(decoding: result.stdout, as: UTF8.self),
+            errors: String(decoding: result.stderr, as: UTF8.self))
     }
 
     private func fixture() async throws -> FixtureRepo {
