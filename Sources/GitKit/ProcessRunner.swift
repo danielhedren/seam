@@ -1,12 +1,12 @@
 import Foundation
 
-struct ProcessResult: Sendable {
-    var status: Int32
-    var stdout: Data
-    var stderr: Data
+package struct ProcessResult: Sendable {
+    package var status: Int32
+    package var stdout: Data
+    package var stderr: Data
 }
 
-enum ProcessRunner {}
+package enum ProcessRunner {}
 
 #if canImport(Darwin)
     // Process is not Sendable; it is only touched again by terminate(), which Foundation allows from
@@ -16,7 +16,7 @@ enum ProcessRunner {}
     }
 
     extension ProcessRunner {
-        static func run(
+        package static func run(
             executable: URL,
             arguments: [String],
             directory: URL,
