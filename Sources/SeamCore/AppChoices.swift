@@ -1,4 +1,4 @@
-import CryptoKit
+import Crypto
 import Foundation
 
 /// What the reader chose in the app that the `seam` command must agree with (SPEC §13): the
@@ -6,8 +6,20 @@ import Foundation
 public enum AppChoices {
     /// The app's defaults domain. The command isn't the app's bundle, so it names it.
     public static let defaultsDomain = "com.danielhedren.seam"
-    public static let stateRoot = URL.applicationSupportDirectory.appending(
-        path: "Seam", directoryHint: .isDirectory)
+    public static let stateRoot = stateRoot(environment: ProcessInfo.processInfo.environment)
+
+    /// Application Support on macOS; on Linux the XDG data directory, which must be absolute.
+    static func stateRoot(environment: [String: String]) -> URL {
+        #if os(macOS)
+            URL.applicationSupportDirectory.appending(path: "Seam", directoryHint: .isDirectory)
+        #else
+            let data =
+                environment["XDG_DATA_HOME"].flatMap { $0.hasPrefix("/") ? $0 : nil }
+                .map { URL(fileURLWithPath: $0, isDirectory: true) }
+                ?? URL.homeDirectory.appending(path: ".local/share", directoryHint: .isDirectory)
+            return data.appending(path: "seam", directoryHint: .isDirectory)
+        #endif
+    }
 
     static let defaultBaseKey = "seam.defaultBase"
     static let ignoredRefsKey = "seam.ignoredRefs"

@@ -15,12 +15,13 @@ spec disagree, stop and ask; do not pick one silently.
 ## Toolchain
 
 - Swift 6.4, Swift 6 language mode, complete strict concurrency, warnings are errors. Minimum
-  macOS 26, Apple silicon.
+  macOS 26, Apple silicon. The targets `Package.swift` lists as portable also build on Linux:
+  run `make linux-check` (Docker) before committing a change to them (ADR 0007).
 - `make check` must pass before every commit: format lint, build, `swift test`. Run `make setup`
   once per clone to install the pre-commit hook. Never bypass it with `--no-verify`.
 - `make format` rewrites files with `swift format`. Don't hand-format against it.
 - No new dependency without the user's approval. Allowed today: SwiftTreeSitter,
-  swift-argument-parser, swift-snapshot-testing (tests only), and the tree-sitter grammars
+  swift-argument-parser, swift-crypto, swift-snapshot-testing (tests only), and the tree-sitter grammars
   vendored by `Scripts/vendor-grammars.sh`. Pin exact versions.
 
 ## Architecture (SPEC §8.2)
@@ -38,8 +39,9 @@ spec disagree, stop and ask; do not pick one silently.
   non-Sendable Apple type, with a one-line comment saying why it is safe.
 - Errors: typed domain errors (`throws(GitError)` etc.) where the set is closed. No `fatalError`,
   `try!`, force unwraps or `precondition` on paths that real input can reach.
-- Logging via `os.Logger` (subsystem `com.danielhedren.seam`, category = module). Signpost every
-  operation that has a §8.7 budget. No `print` outside `seam-debug`.
+- Logging through `GitKit`'s `Logger` and `OSSignposter` (`os` on macOS, quiet on Linux; ADR
+  0007), never `import os` directly. Subsystem `com.danielhedren.seam`, category = module.
+  Signpost every operation that has a §8.7 budget. No `print` outside `seam-debug`.
 - Git: always the `git` CLI through `GitClient`. Pass every option whose user config would change
   the output (prefixes, colour, renames, algorithm, context, textconv). Seam never writes to the
   repository, the index or `.git`.

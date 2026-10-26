@@ -26,7 +26,7 @@ func until(_ condition: @escaping @MainActor () -> Bool) async {
     @Test func editingAFileUpdatesTheDiff() async throws {
         let repo = try await FixtureRepo()
         let services = SeamServices(
-            git: repo.git, watcher: FSEventsWatcher(), clock: ContinuousClock(),
+            git: repo.git, watcher: SystemFileWatcher(), clock: ContinuousClock(),
             store: MemoryStore(), threads: scratchThreadStore(), settings: testSettings())
         let session = RepoSession(directory: repo.main, services: services)
         await session.open()

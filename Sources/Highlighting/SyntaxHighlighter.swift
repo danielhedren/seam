@@ -1,5 +1,6 @@
-import CryptoKit
+import Crypto
 import Foundation
+import GitKit
 import SeamCore
 import SwiftTreeSitter
 import TreeSitterCSharp
@@ -14,7 +15,6 @@ import TreeSitterTSX
 import TreeSitterTypeScript
 import TreeSitterXML
 import TreeSitterYAML
-import os
 
 /// The v1 grammars of SPEC §8.4.
 public enum SyntaxLanguage: String, CaseIterable, Sendable {

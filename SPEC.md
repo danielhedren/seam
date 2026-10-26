@@ -703,7 +703,9 @@ GitHub.
 - **SwiftUI** for the app frame: window, sidebars, toolbar, settings, palette. **AppKit** for the
   diff view (§8.5), wrapped in `NSViewRepresentable`. SwiftUI is Apple's current default. AppKit
   is used only where SwiftUI can't meet the §8.7 budgets.
-- Minimum macOS 26, Apple silicon only.
+- Minimum macOS 26, Apple silicon only. The modules below the UI and the `seam` command also
+  build and pass their tests on Linux (ADR 0007): `make linux-check` runs the targets
+  `Package.swift` lists as portable in Docker. The app is macOS only.
 - Rejected: Rust + Tauri, and Electron. Both give up native text rendering, menus, accessibility
   and FSEvents integration, which are the reason for a native app.
 - **Formatting and linting:** `swift format` (ships with the toolchain), with a checked-in
@@ -713,6 +715,7 @@ GitHub.
   added only after review:
   - SwiftTreeSitter and the grammar packages
   - swift-argument-parser (CLI)
+  - swift-crypto (hashing on every platform, ADR 0007)
   - swift-snapshot-testing (tests only)
 - **Project layout:** a thin Xcode app target, with all code in a local Swift package. The Xcode
   project (`App/Seam.xcodeproj`) contains only the app entry point (`App/Seam/SeamApp.swift`),
@@ -754,7 +757,7 @@ seam-debug (M1)       ─ SeamCore
   - Rejected: TCA. It adds a large dependency and longer compile times, which a single-developer
     app with one main screen doesn't benefit from.
 - **Concurrency:** structured concurrency throughout. Long-lived work runs in actors:
-  - `RepoMonitor`: FSEvents, debouncing.
+  - `RepoMonitor`: the `FileWatcher` (FSEvents on macOS, inotify on Linux), debouncing.
   - `ReviewService`: diff computation.
   - `BlobStore`: the `cat-file --batch` process.
 
@@ -766,8 +769,9 @@ seam-debug (M1)       ─ SeamCore
 - **Errors:** typed domain errors (`GitError`, `DetectionError`, …) as `throws(E)` where the set is
   closed. The UI turns them into inline banners (§9). They never cause a crash or a modal unless
   data would be lost, and Seam has no such case.
-- **Observability:** `os.Logger` with subsystem `com.danielhedren.seam` and a category per module.
-  `OSSignposter` intervals around every operation with a §8.7 budget, so Instruments shows them
+- **Observability:** Seam's logging in `GitKit` (`Logging.swift`), which is `os.Logger` and
+  `OSSignposter` on macOS (subsystem `com.danielhedren.seam`, a category per module) and quiet on
+  Linux. Signpost intervals around every operation with a §8.7 budget, so Instruments shows them
   directly. No analytics or telemetry.
 - **Decisions** are recorded as short ADRs in `docs/adr/`. Starting set:
   - git CLI vs libgit2 (§8.3)
@@ -847,8 +851,8 @@ This is where the project's performance risk lies.
 
 ### 8.6 Live updates
 
-- FSEvents watches each worktree directory, honouring `.gitignore` (events under ignored paths are
-  dropped), and the repo's common git dir (`refs/`, `packed-refs`, `HEAD`, `worktrees/*/HEAD`,
+- FSEvents (inotify on Linux) watches each worktree directory, honouring `.gitignore` (events under
+  ignored paths are dropped), and the repo's common git dir (`refs/`, `packed-refs`, `HEAD`, `worktrees/*/HEAD`,
   `index`).
 - Events are coalesced: the first relevant event opens a 300 ms window, and everything arriving
   within it is delivered as one change. Unlike a trailing debounce, continuous writes can't
@@ -1060,6 +1064,7 @@ The app bundle includes a `seam` command, installed via a menu item that symlink
 seam                    # open the repo containing $PWD, select the worktree you're in
 seam <path>             # same, for <path>
 seam --base <ref>       # set the base override for this worktree, then open
+                        # (on Linux, where there's no app, these say so and exit 1)
 
 seam threads [--all] [--notes] [--repo] [--since <time>] [--json]
                                        # this worktree's open threads (--all: resolved too,
@@ -1202,6 +1207,14 @@ read, an agent given the prompt finds it with `seam threads` and can answer it w
 command, and every test runs against a fake `gh`.
 
 **Later:** the PR's conversation comments.
+
+**M8 — Portable core (ADR 0007).** The diff's row model and layout move to `DiffModel` and the
+observable models to `ReviewModel`, free of AppKit and SwiftUI. Logging, hashing, file watching,
+the state location and the platform services the models use are chosen per platform. The app
+stays macOS only.
+*Done when:* `make linux-check` builds `GitKit`, `SeamCore`, `Highlighting`, `DiffModel`,
+`ReviewModel` and `seam` in Docker and their tests pass there, `make check` passes with no
+change in behaviour, and `DiffView` and `Features` hold only views, drawing, scenes and menus.
 
 ## 15. Risks
 

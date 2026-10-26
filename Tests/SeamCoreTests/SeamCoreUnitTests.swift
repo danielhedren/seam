@@ -245,3 +245,24 @@ import Testing
             ])
     }
 }
+
+@Suite(.timeLimit(.minutes(1))) struct StateRootTests {
+    #if os(macOS)
+        @Test func stateLivesInApplicationSupport() {
+            #expect(
+                AppChoices.stateRoot(environment: ["XDG_DATA_HOME": "/data"])
+                    == URL.applicationSupportDirectory.appending(path: "Seam/"))
+        }
+    #else
+        @Test func stateLivesInTheXDGDataDirectory() {
+            #expect(
+                AppChoices.stateRoot(environment: ["XDG_DATA_HOME": "/data"]).path == "/data/seam")
+        }
+
+        @Test func withoutAnAbsoluteXDGDataDirectoryStateLivesInLocalShare() {
+            let local = URL.homeDirectory.appending(path: ".local/share/seam").path
+            #expect(AppChoices.stateRoot(environment: [:]).path == local)
+            #expect(AppChoices.stateRoot(environment: ["XDG_DATA_HOME": "data"]).path == local)
+        }
+    #endif
+}

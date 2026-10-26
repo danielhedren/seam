@@ -1,6 +1,5 @@
 import Foundation
 import GitKit
-import os
 
 /// Both sides of a reviewed file in full, for context expansion, highlighting and binary entries
 /// (SPEC §6.3, §7.4, §8.4). A nil side doesn't exist, wasn't loaded, or isn't that kind of file.

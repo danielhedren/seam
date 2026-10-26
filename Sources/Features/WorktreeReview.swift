@@ -4,7 +4,6 @@ import GitKit
 import Highlighting
 import Observation
 import SeamCore
-import os
 
 /// One worktree's row data and review state (SPEC §7.2–7.4). Owned by `RepoSession`.
 @MainActor

@@ -1,5 +1,4 @@
 import Foundation
-import os
 
 public enum GitHubError: Error, Equatable, Sendable {
     case notInstalled

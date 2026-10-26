@@ -4,7 +4,6 @@ import Foundation
 import GitKit
 import Highlighting
 import SeamCore
-import os
 
 public protocol StateStore: Sendable {
     /// An empty state when there's none or it can't be read; `loadProblem` says which.
@@ -187,7 +186,7 @@ public struct SeamServices: Sendable {
     @MainActor
     public static func live() -> SeamServices {
         SeamServices(
-            git: CLIGitClient(), watcher: FSEventsWatcher(), clock: ContinuousClock(),
+            git: CLIGitClient(), watcher: SystemFileWatcher(), clock: ContinuousClock(),
             store: JSONStateStore(), threads: ThreadStore(), settings: AppSettings(),
             spotlight: SpotlightRepoIndex(), github: .live())
     }

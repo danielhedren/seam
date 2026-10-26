@@ -1,7 +1,6 @@
-import CryptoKit
+import Crypto
 import Foundation
 import GitKit
-import os
 
 public enum ReviewScope: String, CaseIterable, Sendable {
     /// Base → working tree, plus untracked files.

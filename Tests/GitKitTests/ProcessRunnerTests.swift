@@ -66,8 +66,8 @@ import Testing
         #expect(stderr.contains("not a git repository"))
     }
 
-    /// git exits without reading its input, so the write hits a closed pipe. Without
-    /// F_SETNOSIGPIPE that raises SIGPIPE and kills the whole app (and this test process).
+    /// git exits without reading its input, so the write hits a closed pipe. Unguarded, that
+    /// raises SIGPIPE and kills the whole app (and this test process).
     @Test func aCommandThatIgnoresItsInputDoesNotKillTheProcess() async throws {
         let input = Data(repeating: UInt8(ascii: "x"), count: 8_000_000)
         let output = try await CLIGitClient().run(["version"], in: root, input: input)

@@ -1,5 +1,4 @@
 import Foundation
-import os
 
 public enum GitError: Error, Equatable, Sendable {
     case launchFailed(String)
