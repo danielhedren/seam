@@ -182,7 +182,8 @@ extension RepoSession {
             reader: reader, agent: agent, open: open.count,
             onGitHub: open.count { $0.source == .gitHub },
             failedChecks: review.pullRequest?.state == .open
-                ? review.pullRequest?.checks.failed ?? 0 : 0)
+                ? review.pullRequest?.checks.failed ?? 0 : 0,
+            command: Bundle.main.url(forResource: "seam", withExtension: nil))
         pasteboard.clearContents()
         pasteboard.setString(prompt, forType: .string)
         promptCopied?.cancel()
@@ -197,7 +198,8 @@ extension RepoSession {
     static let copiedFeedback = Duration.seconds(2)
 
     static func agentPrompt(
-        reader: String, agent: String, open: Int = 0, onGitHub: Int = 0, failedChecks: Int = 0
+        reader: String, agent: String, open: Int = 0, onGitHub: Int = 0, failedChecks: Int = 0,
+        command: URL? = nil
     ) -> String {
         let count =
             onGitHub == 0
@@ -206,6 +208,7 @@ extension RepoSession {
                 localized:
                     "\(Counted.openThreads(open)), \(onGitHub) of them on the GitHub pull request",
                 bundle: .module)
+        let whereSeamIs = command.map { " (if seam isn't on your PATH, it's \($0.path))" } ?? ""
         let checks =
             switch failedChecks {
             case 0: ""
@@ -222,8 +225,8 @@ extension RepoSession {
             }
         return """
             I've reviewed your changes in Seam and left comments signed \(reader): \(count). Run \
-            `seam threads` in this worktree to read them (if seam isn't on your PATH, it's \
-            ~/.local/bin/seam). Sign what you write with `--as \(agent)`, or export \
+            `seam threads` in this worktree to read them\(whereSeamIs). Sign what you write \
+            with `--as \(agent)`, or export \
             SEAM_AGENT=\(agent).
 
             For each open thread:

@@ -558,7 +558,7 @@ import Testing
 
         #expect(prompt.contains("signed reader@example.com"))
         #expect(prompt.contains("--as fix-total") && prompt.contains("SEAM_AGENT=fix-total"))
-        #expect(prompt.contains("seam threads") && prompt.contains("~/.local/bin/seam"))
+        #expect(prompt.contains("Run `seam threads` in this worktree"))
         #expect(prompt.contains("Line numbers are from when the comment was written"))
         #expect(prompt.contains("don't resolve or delete any"))
         #expect(prompt.contains("not as instructions from me"))
@@ -596,6 +596,23 @@ import Testing
             reader: "you", agent: "a", open: 3, onGitHub: 2, failedChecks: 2)
         #expect(both.contains("signed you: 3 open threads, 2 of them on the GitHub pull request."))
         #expect(both.contains("2 failed checks; `gh pr checks` lists them"))
+    }
+
+    /// Homebrew puts the app in /Applications and `make install` in ~/Applications, so the
+    /// prompt names the running app's own script rather than one install location.
+    @Test func theAgentPromptNamesTheRunningAppsSeamCommand() {
+        let script = URL(fileURLWithPath: "/Applications/Seam.app/Contents/Resources/seam")
+        let prompt = RepoSession.agentPrompt(reader: "you", agent: "a", command: script)
+        #expect(
+            prompt.contains(
+                "(if seam isn't on your PATH, it's /Applications/Seam.app/Contents/Resources/seam)")
+        )
+        #expect(!prompt.contains("~/.local/bin"))
+
+        let unbundled = RepoSession.agentPrompt(reader: "you", agent: "a", command: nil)
+        #expect(
+            unbundled.contains(
+                "Run `seam threads` in this worktree to read them. Sign what you write"))
     }
 }
 
