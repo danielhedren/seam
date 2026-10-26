@@ -1010,7 +1010,10 @@ Rules:
 - `make check` runs everything except the opt-in and UI tests: format lint, build with warnings
   as errors, and `swift test`. `make test-all` also builds the app and runs the opt-in tests:
   the real-repo tests and the performance budgets in a release build. A pre-commit hook runs
-  `make check`. If the repo goes to GitHub, a macOS Actions workflow runs `make test-all`.
+  `make check`. On GitHub, Actions runs `make check` and `make app` on macOS and builds and tests
+  the portable targets on Linux for every push to `main` and every pull request; the
+  performance budgets run nightly on the macOS runner, whose timings vary too much to gate a
+  push. The macOS runner is pinned to the major the snapshot references were recorded on.
 
 **Commits:** Conventional Commits (`feat:`, `fix:`, `test:`, …), each one building and passing
 `make check`.

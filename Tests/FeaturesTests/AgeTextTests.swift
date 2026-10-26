@@ -10,19 +10,24 @@ import Testing
 struct AgeTextTests {
     private let now = Date(timeIntervalSince1970: 1_767_225_600)
 
+    /// The narrow style differs between locales ("1m ago" in en_US, "1 min ago" in en_SE).
+    private func age(_ seconds: TimeInterval) -> String {
+        AgeText.age(
+            of: now.addingTimeInterval(seconds), at: now, locale: Locale(identifier: "en_US"))
+    }
+
     @Test func pastDatesReadAsAnAge() {
-        #expect(AgeText.age(of: now.addingTimeInterval(-3 * 3600), at: now) == "3 hr ago")
+        #expect(age(-3 * 3600) == "3h ago")
     }
 
     /// A file's modification time can be ahead of this Mac's clock (copied from another machine,
     /// restored from a backup); the row says it changed just now rather than "in 9 mo".
     @Test func futureDatesReadAsNow() {
-        let future = now.addingTimeInterval(9 * 30 * 86400)
-        #expect(AgeText.age(of: future, at: now) == "now")
+        #expect(age(9 * 30 * 86400) == "now")
     }
 
     @Test func underAMinuteReadsAsNow() {
-        #expect(AgeText.age(of: now.addingTimeInterval(-30), at: now) == "now")
-        #expect(AgeText.age(of: now.addingTimeInterval(-60), at: now) == "1 min ago")
+        #expect(age(-30) == "now")
+        #expect(age(-60) == "1m ago")
     }
 }

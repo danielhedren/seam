@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "17 3 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -15,6 +17,10 @@ jobs:
     # macOS 27, the major the snapshot references were recorded on (SPEC §10).
     runs-on: xcode-27
     timeout-minutes: 45
+    env:
+      # Swift Testing starts every test at once; on the runner's few cores session tests then
+      # outlast their one-minute limits waiting for git.
+      SWT_EXPERIMENTAL_MAXIMUM_PARALLELIZATION_WIDTH: 4
     steps:
       - uses: actions/checkout@v4
       - name: Toolchain
@@ -29,8 +35,24 @@ jobs:
           restore-keys: macos-build-
       - name: make check
         run: make check
+      - name: Keep failed snapshots
+        if: failure()
+        run: |
+          mkdir -p snapshot-failures
+          cp -R "$TMPDIR"/*SnapshotTests snapshot-failures/ 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: snapshot-failures
+          path: snapshot-failures
+          if-no-files-found: ignore
       - name: make app
         run: make app
+      - name: Performance budgets (SPEC §8.7)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          SEAM_BENCH=1 swift test -c release -Xswiftc -enable-testing --filter 'Budget|Benchmark'
+          SEAM_BENCH=1 swift test -c release -Xswiftc -enable-testing --filter LiveReload
 
   linux:
     # The portable targets (ADR 0007); the same image make linux-check uses.

@@ -137,11 +137,18 @@ struct DiffSnapshotTests {
     }
 
     private static func png(_ size: NSSize, draw: @escaping (NSRect) -> Void) throws -> Data {
-        let image = NSImage(size: size, flipped: false) { rect in
-            draw(rect)
-            return true
-        }
-        let rep = try #require(image.tiffRepresentation.flatMap(NSBitmapImageRep.init))
+        // A bitmap of its own, sRGB at one pixel per point: an NSImage's would follow the screen.
+        let rep = try #require(
+            NSBitmapImageRep(
+                bitmapDataPlanes: nil, pixelsWide: Int(size.width), pixelsHigh: Int(size.height),
+                bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
+            )?.retagging(with: .sRGB))
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        draw(NSRect(origin: .zero, size: size))
+        NSGraphicsContext.current?.flushGraphics()
         return try #require(rep.representation(using: .png, properties: [:]))
     }
 

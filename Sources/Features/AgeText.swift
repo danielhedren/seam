@@ -21,14 +21,14 @@ struct AgeText: View {
         }
     }
 
-    static func age(of date: Date, at now: Date) -> String {
+    static func age(of date: Date, at now: Date, locale: Locale = .autoupdatingCurrent) -> String {
         // Ages refresh once a minute, so seconds would go stale; a modification time ahead of
         // this Mac's clock is also just now, not "in 9 mo".
         guard now.timeIntervalSince(date) >= 60 else {
             return String(localized: "now", bundle: .module)
         }
         return Date.AnchoredRelativeFormatStyle(
-            anchor: date, presentation: .numeric, unitsStyle: .narrow
+            anchor: date, presentation: .numeric, unitsStyle: .narrow, locale: locale
         )
         .format(now)
     }
