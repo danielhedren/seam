@@ -11,8 +11,8 @@ public struct ThreadStore: Sendable {
     public let directory: URL
 
     public init(
-        directory: URL = URL.applicationSupportDirectory.appending(
-            path: "Seam/threads", directoryHint: .isDirectory)
+        directory: URL = AppChoices.stateRoot.appending(
+            path: "threads", directoryHint: .isDirectory)
     ) {
         self.directory = directory
     }
