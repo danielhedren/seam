@@ -19,7 +19,7 @@ import Testing
             directory: repo.main,
             services: SeamServices(
                 git: repo.git, watcher: watcher, clock: ManualClock(), store: MemoryStore(),
-                threads: store, settings: testSettings()))
+                threads: store, settings: testSettings(), platform: RecordingPlatform()))
         await session.open()
         await session.settled()
         return (session, session.selected, store)
@@ -603,10 +603,8 @@ import Testing
         let tree = try await repo.worktree("fix-total", branch: "fix-total", from: "origin/main")
         let (session, _, _) = await session(repo)
         session.select(tree.path)
-        let pasteboard = NSPasteboard(name: .init("seam-tests-\(UUID().uuidString)"))
-        await session.copyAgentPrompt(to: pasteboard)
-        let prompt = try #require(pasteboard.string(forType: .string))
-        pasteboard.releaseGlobally()
+        await session.copyAgentPrompt()
+        let prompt = try #require(session.platform?.copied.last)
 
         #expect(prompt.contains("signed reader@example.com"))
         #expect(prompt.contains("--as fix-total") && prompt.contains("SEAM_AGENT=fix-total"))
@@ -631,10 +629,8 @@ import Testing
             worktree: reviewed.id,
             anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
         await session.post("Why?")
-        let pasteboard = NSPasteboard(name: .init("seam-tests-\(UUID().uuidString)"))
-        await session.copyAgentPrompt(to: pasteboard)
-        let prompt = try #require(pasteboard.string(forType: .string))
-        pasteboard.releaseGlobally()
+        await session.copyAgentPrompt()
+        let prompt = try #require(session.platform?.copied.last)
         #expect(prompt.contains(": 1 open thread. Run"))
         #expect(!prompt.contains("failed check"))
 

@@ -12,7 +12,7 @@ import Testing
     let github = FakeGitHub()
     let clock = ManualClock()
     let store = MemoryStore()
-    let opened = OpenedURLs()
+    let opened = RecordingPlatform()
 
     private static func pullRequest(
         _ number: Int, head: String = "feature", state: PullRequest.State = .open,
@@ -39,8 +39,7 @@ import Testing
     private func open(_ repo: FixtureRepo, selecting worktree: URL) async -> RepoSession {
         var services = services(
             repo.git, clock: clock, store: store, github: GitHubAccount(client: github))
-        let opened = opened
-        services.openURL = { opened.urls.append($0) }
+        services.platform = opened
         let session = RepoSession(directory: repo.main, services: services)
         await session.open()
         session.select(worktree.path)
@@ -115,9 +114,8 @@ import Testing
         let failed = PullRequest.Checks(failed: 1)
         github.answer(open: [Self.pullRequest(12, checks: failed)])
         github.hold("view")
-        var services = services(
+        let services = services(
             repo.git, clock: clock, store: store, github: GitHubAccount(client: github))
-        services.openURL = { _ in }
         let session = RepoSession(directory: repo.main, services: services)
         await session.open()
         session.select(feature.path)
@@ -494,11 +492,10 @@ import Testing
         try command("pull-request-open").run(session)
         try command("pull-request-check").run(session)
         #expect(
-            opened.urls.map(\.absoluteString)
+            opened.opened.map(\.absoluteString)
                 == ["https://github.com/owner/app/pull/12", "https://ci/run/1"])
-        let pasteboard = NSPasteboard(name: .init("seam-tests-\(UUID())"))
-        session.copyPullRequestURL(of: try review(session, feature), to: pasteboard)
-        #expect(pasteboard.string(forType: .string) == "https://github.com/owner/app/pull/12")
+        session.copyPullRequestURL(of: try review(session, feature))
+        #expect(session.platform?.copied.last == "https://github.com/owner/app/pull/12")
 
         let actions = RowActions.actions(for: try review(session, feature), in: session)
         #expect(

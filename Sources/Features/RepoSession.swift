@@ -1,4 +1,3 @@
-import AppKit
 import DiffModel
 import DiffView
 import Foundation
@@ -420,16 +419,14 @@ final class RepoSession {
     }
 
     /// The file's absolute path in the reviewed worktree, or its path in the repository.
-    func copyPath(_ file: String, relative: Bool, to pasteboard: NSPasteboard = .general) {
+    func copyPath(_ file: String, relative: Bool) {
         guard let review = selected else { return }
-        let text = relative ? file : review.worktree.path.appending(path: file).path
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
+        services.platform.copy(relative ? file : review.worktree.path.appending(path: file).path)
     }
 
     func revealInFinder(_ file: String) {
         guard let review = selected else { return }
-        NSWorkspace.shared.activateFileViewerSelecting([review.worktree.path.appending(path: file)])
+        services.platform.reveal(review.worktree.path.appending(path: file))
     }
 
     func dismissStaleParent() {

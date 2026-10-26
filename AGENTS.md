@@ -34,7 +34,8 @@ spec disagree, stop and ask; do not pick one silently.
   viewed-state logic are pure functions over value types. I/O (processes, files, FSEvents,
   persistence) lives at the edges behind protocols.
 - Injection through initialisers with protocols (`GitClient`, `FileSystem`, `FileWatcher`,
-  `Clock`, `Store`). No singletons, no global mutable state, no DI framework.
+  `Clock`, `Store`, `PlatformServices`). Models reach the pasteboard, browser and file manager
+  only through `PlatformServices`, never `NSPasteboard` or `NSWorkspace`. No singletons, no global mutable state, no DI framework.
 - Concurrency: structured concurrency and actors. No `DispatchQueue` in new code except where an
   Apple API requires it. No blocking I/O on the main actor. `@unchecked Sendable` only around a
   non-Sendable Apple type, with a one-line comment saying why it is safe.

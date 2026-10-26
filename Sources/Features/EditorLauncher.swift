@@ -1,4 +1,8 @@
-import AppKit
+import Foundation
+
+#if canImport(AppKit)
+    import AppKit
+#endif
 
 /// The editor command (SPEC §7.6): a template whose `{path}` and `{line}` are filled in.
 struct EditorCommand: Equatable, Sendable {
@@ -47,8 +51,13 @@ struct EditorPreset: Sendable {
 
     var command: String { String(template.prefix { $0 != " " }) }
 
+    /// Editors are found as installed macOS apps; elsewhere only their shell commands are.
     @Sendable static func locate(_ bundleID: String) -> URL? {
-        NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+        #if canImport(AppKit)
+            NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+        #else
+            nil
+        #endif
     }
 }
 

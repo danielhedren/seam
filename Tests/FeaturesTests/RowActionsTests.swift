@@ -14,10 +14,6 @@ struct RowActionsTests {
         groups.map { $0.map(\.title) }
     }
 
-    private func scratchPasteboard() -> NSPasteboard {
-        NSPasteboard(name: NSPasteboard.Name("seam-tests-\(UUID())"))
-    }
-
     @Test func aWorktreeRowOffersItsFolderPathAndBranch() async throws {
         let repo = try await FixtureRepo()
         let tree = try await repo.worktree("feature", branch: "feature", from: "origin/main")
@@ -32,12 +28,10 @@ struct RowActionsTests {
                 ["Open in Editor", "Reveal in Finder"], ["Copy Path", "Copy Branch Name"],
             ])
         #expect(groups.joined().allSatisfy { $0.isEnabled })
-        let pasteboard = scratchPasteboard()
-        session.copyWorktreePath(of: review, to: pasteboard)
-        #expect(pasteboard.string(forType: .string) == tree.path)
-        session.copyBranchName(of: review, to: pasteboard)
-        #expect(pasteboard.string(forType: .string) == "feature")
-        pasteboard.releaseGlobally()
+        session.copyWorktreePath(of: review)
+        #expect(session.platform?.copied.last == tree.path)
+        session.copyBranchName(of: review)
+        #expect(session.platform?.copied.last == "feature")
     }
 
     @Test func aDetachedWorktreeHasNoBranchToCopy() async throws {
@@ -112,13 +106,11 @@ struct RowActionsTests {
             for: [.commit(first), .commit(second)], of: review, in: session)
         #expect(
             titles(groups) == [["Copy Commit ID", "Copy Subject"], ["Show Only This Commit"]])
-        let pasteboard = scratchPasteboard()
         let log = try #require(review.commitLog)
-        session.copyCommitID(log.commits[0], to: pasteboard)
-        #expect(pasteboard.string(forType: .string) == second)
-        session.copySubject(of: log.commits[1], to: pasteboard)
-        #expect(pasteboard.string(forType: .string) == "Add a")
-        pasteboard.releaseGlobally()
+        session.copyCommitID(log.commits[0])
+        #expect(session.platform?.copied.last == second)
+        session.copySubject(of: log.commits[1])
+        #expect(session.platform?.copied.last == "Add a")
 
         let older = RowActions.actions(for: [.commit(first)], of: review, in: session)
         older[1][0].run()

@@ -15,7 +15,7 @@ import Testing
     let github = FakeGitHub()
     let store = MemoryStore()
     let threadStore = scratchThreadStore()
-    let opened = OpenedURLs()
+    let opened = RecordingPlatform()
     let clock = ManualClock()
 
     private static func pullRequest(updated: TimeInterval = 0) -> PullRequest {
@@ -56,8 +56,7 @@ import Testing
         var services = services(
             repo.git, clock: clock, store: store, watcher: watcher, threads: threadStore,
             github: GitHubAccount(client: github))
-        let opened = opened
-        services.openURL = { opened.urls.append($0) }
+        services.platform = opened
         let session = RepoSession(directory: repo.main, services: services)
         await session.open()
         session.select(worktree.path)
@@ -102,7 +101,8 @@ import Testing
         let open = try command("thread-on-github")
         #expect(open.isEnabled(session))
         open.run(session)
-        #expect(opened.urls == [URL(string: "https://github.com/owner/app/pull/12#discussion_r7")])
+        #expect(
+            opened.opened == [URL(string: "https://github.com/owner/app/pull/12#discussion_r7")])
         session.close()
     }
 

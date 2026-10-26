@@ -1,6 +1,4 @@
-import AppKit
 import DiffModel
-import DiffView
 import Foundation
 import Observation
 import SeamCore
@@ -70,13 +68,6 @@ public final class AppSettings {
     }
 
     var editor: EditorCommand { EditorCommand(template: editorTemplate) }
-
-    /// Empty name means SF Mono, the system's monospaced font.
-    var font: NSFont {
-        let size = CGFloat(min(max(fontSize, 8), 32))
-        return NSFont(name: fontName, size: size)
-            ?? .monospacedSystemFont(ofSize: size, weight: .regular)
-    }
 
     func adjustFontSize(by delta: Double) {
         fontSize = min(max(fontSize + delta, 8), 32)

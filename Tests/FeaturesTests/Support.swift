@@ -145,7 +145,7 @@ func services(
 ) -> SeamServices {
     SeamServices(
         git: ReadOnlyGit(git), watcher: watcher, clock: clock, store: store, threads: threads,
-        settings: testSettings(), github: github)
+        settings: testSettings(), github: github, platform: RecordingPlatform())
 }
 
 /// Never the real store: that holds the reader's threads.
@@ -386,9 +386,21 @@ final class FakeGitHub: GitHubClient, Sendable {
     }
 }
 
+/// Records what a session asked of the desktop.
 @MainActor
-final class OpenedURLs {
-    var urls: [URL] = []
+final class RecordingPlatform: PlatformServices {
+    private(set) var copied: [String] = []
+    private(set) var opened: [URL] = []
+    private(set) var revealed: [URL] = []
+
+    func copy(_ text: String) { copied.append(text) }
+    func open(_ url: URL) { opened.append(url) }
+    func reveal(_ file: URL) { revealed.append(file) }
+}
+
+extension RepoSession {
+    /// What the session copied, opened and revealed, when its services record them.
+    var platform: RecordingPlatform? { services.platform as? RecordingPlatform }
 }
 
 /// A catalog command by id, as menus and the palette run it.

@@ -1,4 +1,3 @@
-import AppKit
 import Foundation
 import GitKit
 import SeamCore
@@ -51,20 +50,19 @@ extension RepoSession {
 
     func openPullRequest(of review: WorktreeReview) {
         guard let url = review.pullRequest.flatMap({ URL(string: $0.url) }) else { return }
-        services.openURL(url)
+        services.platform.open(url)
     }
 
-    func copyPullRequestURL(of review: WorktreeReview, to pasteboard: NSPasteboard = .general) {
+    func copyPullRequestURL(of review: WorktreeReview) {
         guard let url = review.pullRequest?.url else { return }
-        pasteboard.clearContents()
-        pasteboard.setString(url, forType: .string)
+        services.platform.copy(url)
     }
 
     func openFailedCheck(of review: WorktreeReview) {
         guard let pullRequest = review.pullRequest, pullRequest.ciFailed,
             let url = URL(string: pullRequest.checks.failedURL ?? pullRequest.url + "/checks")
         else { return }
-        services.openURL(url)
+        services.platform.open(url)
     }
 
     func usePullRequestBase() {

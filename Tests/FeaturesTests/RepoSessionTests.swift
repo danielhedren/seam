@@ -618,12 +618,11 @@ import Testing
         let session = RepoSession(directory: repo.main, services: services(repo.git))
         await session.open()
         await session.settled()
-        let pasteboard = NSPasteboard(name: NSPasteboard.Name("seam-tests-\(UUID())"))
 
-        session.copyPath("dir/a.txt", relative: true, to: pasteboard)
-        #expect(pasteboard.string(forType: .string) == "dir/a.txt")
-        session.copyPath("dir/a.txt", relative: false, to: pasteboard)
-        #expect(pasteboard.string(forType: .string) == repo.main.appending(path: "dir/a.txt").path)
+        session.copyPath("dir/a.txt", relative: true)
+        #expect(session.platform?.copied.last == "dir/a.txt")
+        session.copyPath("dir/a.txt", relative: false)
+        #expect(session.platform?.copied.last == repo.main.appending(path: "dir/a.txt").path)
 
         let titles = {
             FileActions.actions(for: "dir/a.txt", in: session).flatMap { $0.map(\.title) }
@@ -634,7 +633,6 @@ import Testing
         #expect(titles().contains("Expand File"))
         session.toggleCollapsed("dir/a.txt")
         #expect(titles().contains("Collapse File"))
-        pasteboard.releaseGlobally()
     }
 
     @Test func viewedFilesFoldAwayAndOpenAgainWhenTheyChange() async throws {

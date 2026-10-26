@@ -1,6 +1,6 @@
-import AppKit
 import DiffModel
 import DiffView
+import Foundation
 import SeamCore
 
 /// A thread being written, before it's posted (SPEC §7.7). Kept in the session, not the
@@ -82,7 +82,7 @@ extension RepoSession {
 
     func openOnGitHub(_ thread: ReviewThread) {
         guard let url = thread.github.flatMap({ URL(string: $0.url) }) else { return }
-        services.openURL(url)
+        services.platform.open(url)
     }
 
     /// From the diff's thread row, `t`, or the panel: opens the thread in the diff, its file
@@ -182,7 +182,7 @@ extension RepoSession {
     /// Review › Copy Prompt for Agent: how the agent in the selected worktree reads and answers,
     /// naming the reader's signature and one for the agent (SPEC §7.7). The panel's button shows
     /// a checkmark for a moment after, so the reader knows it worked.
-    func copyAgentPrompt(to pasteboard: NSPasteboard = .general) async {
+    func copyAgentPrompt() async {
         guard let review = selected else { return }
         let reader = await threads?.reader(in: review.id).name ?? ReviewThread.reader
         let agent = review.worktree.branch ?? review.worktree.path.lastPathComponent
@@ -193,8 +193,7 @@ extension RepoSession {
             failedChecks: review.pullRequest?.state == .open
                 ? review.pullRequest?.checks.failed ?? 0 : 0,
             command: Bundle.main.url(forResource: "seam", withExtension: nil))
-        pasteboard.clearContents()
-        pasteboard.setString(prompt, forType: .string)
+        services.platform.copy(prompt)
         promptCopied?.cancel()
         let clock = services.clock
         promptCopied = Task { [weak self] in

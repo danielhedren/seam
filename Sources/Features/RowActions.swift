@@ -91,26 +91,21 @@ extension WorktreeReview {
 }
 
 extension RepoSession {
-    func copyWorktreePath(of review: WorktreeReview, to pasteboard: NSPasteboard = .general) {
-        Self.copy(review.worktree.path.path, to: pasteboard)
+    func copyWorktreePath(of review: WorktreeReview) {
+        services.platform.copy(review.worktree.path.path)
     }
 
-    func copyBranchName(of review: WorktreeReview, to pasteboard: NSPasteboard = .general) {
+    func copyBranchName(of review: WorktreeReview) {
         guard let branch = review.worktree.branch else { return }
-        Self.copy(branch, to: pasteboard)
+        services.platform.copy(branch)
     }
 
-    func copyCommitID(_ commit: ReviewCommit, to pasteboard: NSPasteboard = .general) {
-        Self.copy(commit.id, to: pasteboard)
+    func copyCommitID(_ commit: ReviewCommit) {
+        services.platform.copy(commit.id)
     }
 
-    func copySubject(of commit: ReviewCommit, to pasteboard: NSPasteboard = .general) {
-        Self.copy(commit.subject, to: pasteboard)
-    }
-
-    private static func copy(_ text: String, to pasteboard: NSPasteboard) {
-        pasteboard.clearContents()
-        pasteboard.setString(text, forType: .string)
+    func copySubject(of commit: ReviewCommit) {
+        services.platform.copy(commit.subject)
     }
 
     func revealWorktree(_ review: WorktreeReview) {

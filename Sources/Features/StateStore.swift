@@ -1,4 +1,3 @@
-import AppKit
 import DiffModel
 import DiffView
 import Foundation
@@ -161,8 +160,9 @@ public struct SeamServices: Sendable {
     public var spotlight: any RepoIndex
     /// Pull requests through gh (SPEC §7.8); tests get one that never runs anything.
     public var github: GitHubAccount
+    /// The pasteboard, browser and file manager.
+    public var platform: any PlatformServices
     var launcher: any CommandLauncher = ShellLauncher()
-    var openURL: @MainActor @Sendable (URL) -> Void = { NSWorkspace.shared.open($0) }
 
     @MainActor
     public init(
@@ -170,8 +170,10 @@ public struct SeamServices: Sendable {
         watcher: any FileWatcher, clock: any Clock<Duration>, store: any StateStore,
         threads: ThreadStore, settings: AppSettings,
         highlighter: SyntaxHighlighter = SyntaxHighlighter(),
-        spotlight: any RepoIndex = NoRepoIndex(), github: GitHubAccount = .none()
+        spotlight: any RepoIndex = NoRepoIndex(), github: GitHubAccount = .none(),
+        platform: any PlatformServices = NoPlatform()
     ) {
+        self.platform = platform
         self.github = github
         self.threads = threads
         self.spotlight = spotlight
@@ -189,6 +191,6 @@ public struct SeamServices: Sendable {
         SeamServices(
             git: CLIGitClient(), watcher: SystemFileWatcher(), clock: ContinuousClock(),
             store: JSONStateStore(), threads: ThreadStore(), settings: AppSettings(),
-            spotlight: SpotlightRepoIndex(), github: .live())
+            spotlight: SpotlightRepoIndex(), github: .live(), platform: MacPlatform())
     }
 }

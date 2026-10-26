@@ -766,7 +766,8 @@ seam-debug (M1)       ─ SeamCore
   Results arrive on the main actor. Each selection change cancels the task tree for the previous
   selection. Nothing blocks the main thread on I/O.
 - **Dependency injection:** protocol seams passed in through initialisers: `GitClient`,
-  `GitHubClient`, `FileSystem`, `FileWatcher`, `Clock`, `Store`. No singletons, no DI framework. Tests and SwiftUI
+  `GitHubClient`, `FileSystem`, `FileWatcher`, `Clock`, `Store`, and `PlatformServices` for the
+  pasteboard, browser and file manager (ADR 0007). No singletons, no DI framework. Tests and SwiftUI
   previews use in-memory fakes.
 - **Errors:** typed domain errors (`GitError`, `DetectionError`, …) as `throws(E)` where the set is
   closed. The UI turns them into inline banners (§9). They never cause a crash or a modal unless
