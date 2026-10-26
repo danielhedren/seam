@@ -322,6 +322,35 @@ import Testing
         #expect(session.openThreadMarker(for: reviewed) == nil)
     }
 
+    /// Resolving an agent's answer from Awaiting You moves it to its file's group, where it must
+    /// show as resolved: the panel then looks as one freshly opened on the same threads does.
+    @Test func resolvingAThreadAwaitingYouShowsItResolvedInThePanel() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\ntwo\n")
+        let (session, review, store) = await session(repo)
+        let reviewed = try #require(review)
+        session.draft = ThreadDraft(
+            worktree: reviewed.id,
+            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
+        await session.post("Why one?")
+        let id = try #require(session.selectedThreadID)
+        try store.update(try #require(session.repository)) { threads throws(ThreadError) in
+            try ThreadRules.reply(&threads, to: id, author: "claude", body: "Because.", now: .now)
+        }
+        await session.threads?.load()
+        #expect(reviewed.awaitingReply.map(\.id) == [id])
+
+        let panel = PanelWindow(session: session, review: reviewed)
+        await panel.settle()
+        await session.setResolved(true, thread: id)
+        await panel.settle()
+        #expect(reviewed.awaitingReply.isEmpty)
+
+        let fresh = PanelWindow(session: session, review: reviewed)
+        await fresh.settle()
+        #expect(try panel.png() == fresh.png())
+    }
+
     /// Marking the file viewed collapses it, which folds its open thread away with it: the panel
     /// is for threads the diff can't show, not ones the reader just put away.
     @Test func markingAFileViewedClosesItsOpenThreadWithoutShowingThePanel() async throws {

@@ -37,7 +37,9 @@ struct ThreadPanel: View {
                     Text(String(localized: "Awaiting you (\(awaiting.count))", bundle: .module))
                         .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                         .padding(.top, 4)
-                    ForEach(awaiting) { placed in
+                    // Its own ids: a lazy stack keeps a view by id, so one leaving this list for its
+                    // file's group would otherwise keep showing as it was here.
+                    ForEach(awaiting, id: \.awaitingID) { placed in
                         ThreadCard(
                             session: session, placed: placed,
                             isSelected: session.selectedThreadID == placed.id, showsPath: true)
@@ -360,4 +362,8 @@ enum CommentText {
             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
             ?? AttributedString(text)
     }
+}
+
+extension PlacedThread {
+    fileprivate var awaitingID: String { "awaiting-\(id)" }
 }

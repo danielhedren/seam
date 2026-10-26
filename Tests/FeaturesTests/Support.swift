@@ -442,3 +442,31 @@ struct CardWindow {
         }
     }
 }
+
+/// The thread panel in a window that's never shown.
+@MainActor
+struct PanelWindow {
+    let window: NSWindow
+
+    init(session: RepoSession, review: WorktreeReview) {
+        window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 360, height: 420), styleMask: [.titled],
+            backing: .buffered, defer: false)
+        window.contentView = NSHostingView(rootView: ThreadPanel(session: session, review: review))
+    }
+
+    func settle() async {
+        for _ in 0..<30 {
+            runLoopOnce()
+            await Task.yield()
+        }
+    }
+
+    func png() throws -> Data? {
+        let view = try #require(window.contentView)
+        view.layoutSubtreeIfNeeded()
+        let rep = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+        view.cacheDisplay(in: view.bounds, to: rep)
+        return rep.representation(using: .png, properties: [:])
+    }
+}
