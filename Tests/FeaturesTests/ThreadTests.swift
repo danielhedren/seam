@@ -322,6 +322,28 @@ import Testing
         #expect(session.openThreadMarker(for: reviewed) == nil)
     }
 
+    /// Marking the file viewed collapses it, which folds its open thread away with it: the panel
+    /// is for threads the diff can't show, not ones the reader just put away.
+    @Test func markingAFileViewedClosesItsOpenThreadWithoutShowingThePanel() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\ntwo\n")
+        let (session, review, _) = await session(repo)
+        let reviewed = try #require(review)
+        let card = CardWindow(session: session, review: reviewed)
+        await card.settle()
+        session.draft = ThreadDraft(
+            worktree: reviewed.id,
+            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
+        await session.post("Why one?")
+        #expect(await card.wait { card.host != nil }, "the thread is open in the diff")
+
+        session.toggleViewed("a.txt", advance: false)
+        await card.settle()
+        #expect(reviewed.collapsed == ["a.txt"])
+        #expect(session.selectedThreadID == nil)
+        #expect(!session.showsThreadPanel)
+    }
+
     /// The diff pane the app shows, in a window that's never on screen, driven by keys as the
     /// reader would: `c`, typing, ⌘↩ to post, typing a reply, ⌘↩ again, Escape. After each step
     /// the card must fit its row, or its hints and buttons hang below it out of reach.

@@ -104,6 +104,14 @@ extension RepoSession {
     /// The diff found no row for the open thread; the panel is where it can be read.
     func noteOpenThreadHidden(_ hidden: Bool) {
         guard hidden != openThreadIsHidden else { return }
+        // Collapsing its file (`x`, or marking it viewed) puts the thread away with it.
+        if hidden, let review = selected, let id = selectedThreadID,
+            let placed = review.placedThreads.first(where: { $0.id == id }),
+            placed.isInDiff, review.collapsed.contains(placed.path)
+        {
+            closeThread()
+            return
+        }
         openThreadIsHidden = hidden
         if hidden { showsThreadPanel = true }
     }
