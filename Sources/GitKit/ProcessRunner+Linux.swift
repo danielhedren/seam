@@ -26,24 +26,58 @@
             let pid = try spawning.withLock { _ in
                 try spawn(executable, arguments, directory, environment, input != nil)
             }
+            let child = Child(pid.id)
             // A cancel that lands before the spawn finds nothing running to terminate.
-            if Task.isCancelled { kill(pid.id, SIGTERM) }
+            if Task.isCancelled { child.terminate() }
             return try await withTaskCancellationHandler {
                 // Drain both pipes and feed stdin concurrently, or a full pipe buffer deadlocks git.
-                async let out = Task.detached { pid.stdout.readDataToEndOfFile() }.value
-                async let err = Task.detached { pid.stderr.readDataToEndOfFile() }.value
-                async let wrote: Void = Task.detached {
+                async let out = onOwnThread { pid.stdout.readDataToEndOfFile() }
+                async let err = onOwnThread { pid.stderr.readDataToEndOfFile() }
+                async let wrote: Void = onOwnThread {
                     guard let writer = pid.stdin else { return }
                     if let input { try? writer.write(contentsOf: input) }
                     try? writer.close()
-                }.value
-                let status = await Task.detached { waitForExit(pid.id) }.value
+                }
+                let status = await onOwnThread { child.waitForExit() }
                 await wrote
                 let result = ProcessResult(status: status, stdout: await out, stderr: await err)
                 try Task.checkCancellation()
                 return result
             } onCancel: {
-                kill(pid.id, SIGTERM)
+                child.terminate()
+            }
+        }
+
+        /// Once reaped, the pid may belong to another process, so terminating checks under the
+        /// same lock that reaping takes.
+        private final class Child: Sendable {
+            let id: pid_t
+            private let reaped = Mutex(false)
+
+            init(_ id: pid_t) { self.id = id }
+
+            func terminate() {
+                reaped.withLock { reaped in if !reaped { _ = kill(id, SIGTERM) } }
+            }
+
+            /// The exit status, or the signal that ended it, as Foundation's `terminationStatus`.
+            func waitForExit() -> Int32 {
+                // Waits without reaping, so the pid stays this child's until the lock is held.
+                var info = siginfo_t()
+                while waitid(P_PID, id_t(id), &info, WEXITED | WNOWAIT) < 0 {
+                    if errno != EINTR { break }
+                }
+                var status: Int32 = 0
+                let result = reaped.withLock { reaped in
+                    reaped = true
+                    while true {
+                        let result = waitpid(id, &status, 0)
+                        if result >= 0 || errno != EINTR { return result }
+                    }
+                }
+                guard result >= 0 else { return -1 }
+                let signal = status & 0x7f
+                return signal == 0 ? (status >> 8) & 0xff : signal
             }
         }
 
@@ -58,9 +92,15 @@
             _ executable: URL, _ arguments: [String], _ directory: URL,
             _ environment: [String: String], _ feedsInput: Bool
         ) throws -> Spawned {
-            let stdout = try pipe()
-            let stderr = try pipe()
-            let stdin = feedsInput ? try pipe() : nil
+            var pipes: [(read: Int32, write: Int32)] = []
+            do {
+                for _ in 0..<(feedsInput ? 3 : 2) { pipes.append(try pipe()) }
+            } catch {
+                for pipe in pipes { _ = (close(pipe.read), close(pipe.write)) }
+                throw error
+            }
+            let (stdout, stderr) = (pipes[0], pipes[1])
+            let stdin = feedsInput ? pipes[2] : nil
             var actions = posix_spawn_file_actions_t()
             posix_spawn_file_actions_init(&actions)
             defer { posix_spawn_file_actions_destroy(&actions) }
@@ -116,16 +156,6 @@
             guard Glibc.pipe(&fds) == 0 else { throw SpawnError(path: "pipe", code: errno) }
             for fd in fds { _ = fcntl(fd, F_SETFD, FD_CLOEXEC) }
             return (fds[0], fds[1])
-        }
-
-        /// The exit status, or the signal that ended it, as Foundation's `terminationStatus`.
-        private static func waitForExit(_ pid: pid_t) -> Int32 {
-            var status: Int32 = 0
-            while waitpid(pid, &status, 0) < 0 {
-                if errno != EINTR { return -1 }
-            }
-            let signal = status & 0x7f
-            return signal == 0 ? (status >> 8) & 0xff : signal
         }
     }
 

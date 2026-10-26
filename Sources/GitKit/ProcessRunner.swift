@@ -49,11 +49,9 @@ package enum ProcessRunner {}
                 // A cancel that lands before run() finds nothing running to terminate.
                 if Task.isCancelled { process.terminate() }
                 // Drain both pipes and feed stdin concurrently, or a full pipe buffer deadlocks git.
-                async let out = Task.detached { stdout.fileHandleForReading.readDataToEndOfFile() }
-                    .value
-                async let err = Task.detached { stderr.fileHandleForReading.readDataToEndOfFile() }
-                    .value
-                async let wrote: Void = Task.detached {
+                async let out = onOwnThread { stdout.fileHandleForReading.readDataToEndOfFile() }
+                async let err = onOwnThread { stderr.fileHandleForReading.readDataToEndOfFile() }
+                async let wrote: Void = onOwnThread {
                     guard let input else { return }
                     let writer = stdin.fileHandleForWriting
                     // git may exit, or be terminated, before reading everything. A write to the closed
@@ -61,7 +59,7 @@ package enum ProcessRunner {}
                     _ = fcntl(writer.fileDescriptor, F_SETNOSIGPIPE, 1)
                     try? writer.write(contentsOf: input)
                     try? writer.close()
-                }.value
+                }
                 var status: Int32 = -1
                 for await code in exited.stream { status = code }
                 await wrote

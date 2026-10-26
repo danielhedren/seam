@@ -23,6 +23,19 @@ import Testing
         #expect(result.stdout == input)
     }
 
+    /// More runs at once than the concurrency pool has threads. Each blocks on its pipes until
+    /// its input is written, so if blocked readers held every pool thread, no writer would run.
+    @Test func manyRunsFeedingInputAtOnceAllFinish() async throws {
+        let input = Data(repeating: UInt8(ascii: "x"), count: 200_000)
+        let runs = 4 * ProcessInfo.processInfo.activeProcessorCount
+        let outputs = try await withThrowingTaskGroup(of: Data.self) { group in
+            for _ in 0..<runs { group.addTask { try await run("/bin/cat", input: input).stdout } }
+            return try await group.reduce(into: []) { $0.append($1) }
+        }
+        #expect(outputs.count == runs)
+        #expect(outputs.allSatisfy { $0 == input })
+    }
+
     /// `seam -C ../other` makes a URL relative to the current folder.
     @Test func aRelativeFolderURLRunsInTheFolderItNames() async throws {
         let parent = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
