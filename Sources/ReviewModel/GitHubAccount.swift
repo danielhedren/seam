@@ -50,7 +50,7 @@ public final class GitHubAccount {
         return known.union(hosts.intersection(accountHosts ?? []))
     }
 
-    func note(_ error: GitHubError?) {
+    package func note(_ error: GitHubError?) {
         status = error.map(Status.failed) ?? .ready
     }
 

@@ -424,3 +424,9 @@ package func until(_ condition: @escaping @MainActor () -> Bool) async {
         }
     }
 }
+
+/// A catalog command by id, as menus and the palette run it.
+@MainActor
+package func command(_ id: String) throws -> SeamCommand {
+    try #require(CommandCatalog.all.first { $0.id == id })
+}

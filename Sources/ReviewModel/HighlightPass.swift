@@ -12,7 +12,7 @@ package struct HighlightPass {
     let highlighter: SyntaxHighlighter
 
     /// Stops between files once its task is cancelled.
-    func run(publish: @MainActor ([String: FileSyntax]) -> Void) async {
+    package func run(publish: @MainActor ([String: FileSyntax]) -> Void) async {
         let ordered =
             files.filter { $0.diff.path == first } + files.filter { $0.diff.path != first }
         var pending: [String: FileSyntax] = [:]

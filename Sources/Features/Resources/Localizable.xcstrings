@@ -68,13 +68,7 @@
         }
       }
     },
-    "Actual Size" : {
-
-    },
     "Agents' answers and questions, and failed checks, show here from every worktree." : {
-
-    },
-    "All Changes" : {
 
     },
     "All GitHub threads resolved" : {
@@ -140,9 +134,6 @@
     "Command" : {
 
     },
-    "Command Palette…" : {
-
-    },
     "Comment" : {
 
     },
@@ -159,16 +150,10 @@
         }
       }
     },
-    "Comment…" : {
-
-    },
     "Commits" : {
 
     },
     "Commits on this branch show here once there are some." : {
-
-    },
-    "Committed Changes" : {
 
     },
     "Compare with" : {
@@ -186,9 +171,6 @@
     "Copy Commit ID" : {
 
     },
-    "Copy Commit Subject" : {
-
-    },
     "Copy Path" : {
 
     },
@@ -202,9 +184,6 @@
 
     },
     "Copy Subject" : {
-
-    },
-    "Copy Worktree Path" : {
 
     },
     "Copy a prompt telling the agent to answer these threads" : {
@@ -229,9 +208,6 @@
 
     },
     "Delete" : {
-
-    },
-    "Delete Thread" : {
 
     },
     "Delete this thread (Undo brings it back)" : {
@@ -264,13 +240,7 @@
     "Expand File" : {
 
     },
-    "File" : {
-
-    },
     "Files" : {
-
-    },
-    "Files as Flat List" : {
 
     },
     "Files matching a pattern, one per line, or marked linguist-generated in .gitattributes start collapsed under Generated. Changes apply the next time a worktree loads." : {
@@ -279,25 +249,10 @@
     "Filter" : {
 
     },
-    "Filter Files" : {
-
-    },
-    "Find" : {
-
-    },
-    "Find Next" : {
-
-    },
-    "Find Previous" : {
-
-    },
     "Find in diff" : {
 
     },
     "Finds text in the changed lines and file paths." : {
-
-    },
-    "Find…" : {
 
     },
     "First %@ matches" : {
@@ -350,25 +305,13 @@
     "Hide Missing Worktrees" : {
 
     },
-    "Hide Sidebar" : {
-
-    },
     "Hide Threads" : {
-
-    },
-    "Hide Whitespace Changes" : {
 
     },
     "Ignore all whitespace" : {
 
     },
     "Ignore changes in amount" : {
-
-    },
-    "In the diff or file list" : {
-
-    },
-    "In the file list" : {
 
     },
     "Inbox" : {
@@ -386,31 +329,16 @@
     "Jump to Commit" : {
 
     },
-    "Jump to Thread's Commit" : {
-
-    },
     "Keep %@" : {
 
     },
     "Keep Detected Base" : {
 
     },
-    "Keep Parent That Looks Merged" : {
-
-    },
     "Keyboard Shortcuts" : {
 
     },
-    "Latest Commit Only" : {
-
-    },
     "Line %@" : {
-
-    },
-    "Make Text Bigger" : {
-
-    },
-    "Make Text Smaller" : {
 
     },
     "Mark as Not Viewed" : {
@@ -453,24 +381,6 @@
           }
         }
       }
-    },
-    "Next Awaiting You" : {
-
-    },
-    "Next Commit" : {
-
-    },
-    "Next File" : {
-
-    },
-    "Next Hunk" : {
-
-    },
-    "Next Thread" : {
-
-    },
-    "Next Worktree" : {
-
     },
     "Next match" : {
 
@@ -548,9 +458,6 @@
     "Open Failed Check" : {
 
     },
-    "Open Failed Check in Browser" : {
-
-    },
     "Open Pull Request in Browser" : {
 
     },
@@ -558,15 +465,6 @@
 
     },
     "Open Repository…" : {
-
-    },
-    "Open Thread on GitHub" : {
-
-    },
-    "Open Thread on This Line" : {
-
-    },
-    "Open Worktree in Editor" : {
 
     },
     "Open in Editor" : {
@@ -582,15 +480,6 @@
 
     },
     "Outdated" : {
-
-    },
-    "Outside the file list" : {
-
-    },
-    "Page Down" : {
-
-    },
-    "Page Up" : {
 
     },
     "Parent %@ looks merged. Diff against %@ instead?" : {
@@ -612,21 +501,6 @@
           }
         }
       }
-    },
-    "Previous Commit" : {
-
-    },
-    "Previous File" : {
-
-    },
-    "Previous Hunk" : {
-
-    },
-    "Previous Thread" : {
-
-    },
-    "Previous Worktree" : {
-
     },
     "Previous match" : {
 
@@ -659,22 +533,13 @@
     "Reopen" : {
 
     },
-    "Reopen Thread" : {
-
-    },
     "Reply" : {
 
     },
     "Resolve" : {
 
     },
-    "Resolve Thread" : {
-
-    },
     "Retry" : {
-
-    },
-    "Reveal Worktree in Finder" : {
 
     },
     "Reveal in Finder" : {
@@ -734,16 +599,7 @@
     "Show Full Diff" : {
 
     },
-    "Show Inbox" : {
-
-    },
     "Show Only This Commit" : {
-
-    },
-    "Show Resolved Threads" : {
-
-    },
-    "Show Sidebar" : {
 
     },
     "Show Threads" : {
@@ -771,21 +627,6 @@
 
     },
     "Sort By" : {
-
-    },
-    "Sort Worktrees Needing You First" : {
-
-    },
-    "Sort Worktrees by Name" : {
-
-    },
-    "Sort Worktrees by Recent Change" : {
-
-    },
-    "Space" : {
-
-    },
-    "Switch Worktree…" : {
 
     },
     "Tab width" : {
@@ -835,9 +676,6 @@
     "Together they leave every file as it was." : {
 
     },
-    "Uncommitted Changes" : {
-
-    },
     "Uncommitted changes" : {
 
     },
@@ -856,12 +694,6 @@
     "Use Detected Base" : {
 
     },
-    "Use Pull Request's Base" : {
-
-    },
-    "View" : {
-
-    },
     "View Mode" : {
 
     },
@@ -875,12 +707,6 @@
 
     },
     "Words in the path; ^word leaves those out" : {
-
-    },
-    "Worktree %lld" : {
-
-    },
-    "Wrap Lines" : {
 
     },
     "Write a comment…" : {

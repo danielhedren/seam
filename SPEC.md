@@ -741,9 +741,10 @@ nearly all of the logic testable without git or a window.
 
 ```
 SeamApp (app target: entry point only)
-  └ Features          SwiftUI views per pane, scenes, menus and the command catalog
+  └ Features          SwiftUI views per pane, scenes and menus
       ├ DiffView          AppKit diff view, Core Text drawing
-      └ ReviewModel       @Observable models: RepoSession, WorktreeReview, threads, pull requests
+      └ ReviewModel       @Observable models (RepoSession, WorktreeReview, threads, pull
+                          requests) and the command catalog the menus are built from
           ├ DiffModel     diff rows, layout, selection and search
           ├ Highlighting  tree-sitter wrapper, highlight cache
           └ SeamCore      domain: Repo, Worktree, BaseDetector, ReviewDiff, IntraLineDiff, ViewedState

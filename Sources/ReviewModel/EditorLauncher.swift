@@ -167,7 +167,7 @@ private enum Subprocess {
 
     /// Through GitKit's runner, which launches safely on Linux too; a timeout cancels the run,
     /// which terminates the process.
-    static func run(
+    package static func run(
         _ executable: URL, _ arguments: [String], environment: [String: String]? = nil,
         timeout: (Duration, any Clock<Duration>)? = nil
     ) async throws -> Result {

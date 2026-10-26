@@ -24,12 +24,6 @@ func showDiff(_ session: RepoSession) throws -> DiffScrollView {
     return view
 }
 
-/// A catalog command by id, as menus and the palette run it.
-@MainActor
-func command(_ id: String) throws -> SeamCommand {
-    try #require(CommandCatalog.all.first { $0.id == id })
-}
-
 /// One short turn of the run loop, for AppKit and SwiftUI layout; a sync function, since an
 /// async one can't run the loop itself.
 @MainActor

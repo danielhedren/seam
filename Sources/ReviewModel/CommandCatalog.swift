@@ -1,196 +1,27 @@
-import DiffModel
-import DiffView
-import ReviewModel
+import Foundation
+import GitKit
 import SeamCore
-import SwiftUI
-
-/// One action, shared by the menu bar and the command palette so the two can't drift (SPEC §9).
-struct SeamCommand: Identifiable {
-    /// `find` is Edit › Find, the submenu macOS apps keep their find commands in.
-    enum Menu {
-        case file, find, view, go, review
-
-        /// Where the palette says a command lives.
-        var name: String {
-            switch self {
-            case .file: String(localized: "File", bundle: .module)
-            case .find: String(localized: "Find", bundle: .module)
-            case .view: String(localized: "View", bundle: .module)
-            case .go: String(localized: "Go", bundle: .module)
-            case .review: String(localized: "Review", bundle: .module)
-            }
-        }
-    }
-
-    enum Shortcut {
-        case none
-        /// A ⌘ shortcut, always attached.
-        case command(KeyEquivalent, EventModifiers = .command)
-        /// A bare key, attached only while the diff or file list has focus: AppKit lets a menu
-        /// key equivalent win over a focused text field, even when the item is disabled.
-        case single(KeyEquivalent, EventModifiers = [])
-        /// Attached only while the condition holds: ⌘F belongs to Filter Files in the file list
-        /// and to Find elsewhere, and to neither with no repo window, where both are disabled.
-        case commandWhen(KeyEquivalent, Focus)
-    }
-
-    /// Where a shortcut works, for the conditions a menu item can't show by itself.
-    enum Focus {
-        case anywhere, review, fileList, outsideFileList
-
-        @MainActor
-        func holds(in session: RepoSession) -> Bool {
-            switch self {
-            case .anywhere: true
-            case .review: session.reviewHasFocus
-            case .fileList: session.fileListHasFocus
-            case .outsideFileList: !session.fileListHasFocus
-            }
-        }
-
-        /// The Keyboard Shortcuts window's note; nil where the key works in the whole window.
-        var note: String? {
-            switch self {
-            case .anywhere: nil
-            case .review: String(localized: "In the diff or file list", bundle: .module)
-            case .fileList: String(localized: "In the file list", bundle: .module)
-            case .outsideFileList: String(localized: "Outside the file list", bundle: .module)
-            }
-        }
-    }
-
-    var focus: Focus {
-        switch shortcut {
-        case .none, .command: .anywhere
-        case .single: .review
-        case .commandWhen(_, let focus): focus
-        }
-    }
-
-    let id: String
-    let title: String
-    let menu: Menu
-    /// Commands in the same section sit between the same dividers.
-    let section: Int
-    let shortcut: Shortcut
-    var isEnabled: @MainActor (RepoSession) -> Bool = { $0.selected != nil }
-    /// Set for commands that show a checkmark in the menu.
-    var isOn: (@MainActor (RepoSession) -> Bool)?
-    /// Set for commands whose title says what they'll do now, as the HIG prefers to a "Toggle":
-    /// Hide Sidebar or Show Sidebar.
-    var currentTitle: (@MainActor (RepoSession) -> String?)?
-    let run: @MainActor (RepoSession) -> Void
-
-    @MainActor
-    func title(for session: RepoSession?) -> String {
-        session.flatMap { currentTitle?($0) } ?? title
-    }
-
-    @MainActor
-    func keyboardShortcut(for session: RepoSession?) -> KeyboardShortcut? {
-        switch shortcut {
-        case .none: nil
-        case .command(let key, let modifiers): KeyboardShortcut(key, modifiers: modifiers)
-        case .single(let key, let modifiers):
-            session.map(focus.holds) == true ? KeyboardShortcut(key, modifiers: modifiers) : nil
-        case .commandWhen(let key, let focus):
-            session.map(focus.holds) == true ? KeyboardShortcut(key) : nil
-        }
-    }
-
-    /// How the palette shows the shortcut: "⌘K", "⇧⌘G", "j".
-    var shortcutLabel: String {
-        switch shortcut {
-        case .none: ""
-        case .command(let key, let modifiers), .single(let key, let modifiers):
-            Self.label(key, modifiers)
-        case .commandWhen(let key, _): Self.label(key, .command)
-        }
-    }
-
-    /// The palette's label: like `shortcutLabel`, but ⌘F only on whichever of Find and Filter
-    /// Files it runs now.
-    @MainActor
-    func shortcutLabel(for session: RepoSession) -> String {
-        if case .commandWhen(_, let focus) = shortcut, !focus.holds(in: session) { return "" }
-        return shortcutLabel
-    }
-
-    static func label(_ key: KeyEquivalent, _ modifiers: EventModifiers) -> String {
-        var label = ""
-        if modifiers.contains(.control) { label += "⌃" }
-        if modifiers.contains(.option) { label += "⌥" }
-        if modifiers.contains(.shift) { label += "⇧" }
-        if modifiers.contains(.command) { label += "⌘" }
-        let character = key.character
-        label +=
-            character == " "
-            ? String(localized: "Space", bundle: .module)
-            : Self.symbols[key] ?? String(character).uppercased()
-        return label
-    }
-
-    /// Keys without a printable character, written as the menu bar writes them.
-    private static let symbols: [KeyEquivalent: String] = [
-        .return: "↩", .escape: "⎋", .delete: "⌫", .deleteForward: "⌦", .tab: "⇥",
-        .upArrow: "↑", .downArrow: "↓", .leftArrow: "←", .rightArrow: "→",
-        .home: "↖", .end: "↘", .pageUp: "⇞", .pageDown: "⇟",
-    ]
-}
 
 @MainActor
-enum CommandCatalog {
+package enum CommandCatalog {
     private static func localized(_ key: String.LocalizationValue) -> String {
         String(localized: key, bundle: .module)
     }
 
-    static let all: [SeamCommand] = file + find + view + go + review
+    package static let all: [SeamCommand] = file + find + view + go + review
 
-    /// File › New Window and Open Repository, which the File menu builds itself.
-    static let newWindow = KeyboardShortcut("n")
-    static let openRepository = KeyboardShortcut("o")
-    /// Sends what's typed in the thread panel's reply box.
-    static let send = KeyboardShortcut(.return, modifiers: .command)
-    /// Posts a new thread's text as a note, asking no answer.
-    static let sendNote = KeyboardShortcut(.return, modifiers: [.command, .option])
-
-    /// The keys the diff view pages on by itself, from Go › Page Down and Page Up.
-    static var diffKeyBindings: [DiffKeyBinding: DiffKeyAction] {
-        var bindings: [DiffKeyBinding: DiffKeyAction] = [:]
-        for (id, action) in [("page-down", DiffKeyAction.pageDown), ("page-up", .pageUp)] {
-            guard case .single(let key, let modifiers) = byID[id]?.shortcut else { continue }
-            bindings[DiffKeyBinding(key.character, shift: modifiers.contains(.shift))] = action
-        }
-        return bindings
-    }
-
-    /// Whether `event` is `shortcut`, for views that handle a catalog key themselves.
-    static func matches(_ event: NSEvent, _ shortcut: KeyboardShortcut) -> Bool {
-        var flags: NSEvent.ModifierFlags = []
-        if shortcut.modifiers.contains(.command) { flags.insert(.command) }
-        if shortcut.modifiers.contains(.shift) { flags.insert(.shift) }
-        if shortcut.modifiers.contains(.option) { flags.insert(.option) }
-        if shortcut.modifiers.contains(.control) { flags.insert(.control) }
-        return event.modifierFlags.intersection(.deviceIndependentFlagsMask) == flags
-            && event.charactersIgnoringModifiers == String(shortcut.key.character)
-    }
-
-    private static let byID = Dictionary(all.map { ($0.id, $0) }) { first, _ in first }
+    package static let byID = Dictionary(all.map { ($0.id, $0) }) { first, _ in first }
 
     /// A tooltip ending in the command's shortcut, read from the catalog so the two can't
     /// drift: "Reload (r)".
     /// A command's key as menus show it; empty when it has none.
-    static func shortcutLabel(of id: String) -> String {
+    package static func shortcutLabel(of id: String) -> String {
         byID[id]?.shortcutLabel ?? ""
     }
 
-    static func help(_ text: String, command id: String) -> String {
+    package static func help(_ text: String, command id: String) -> String {
         guard let label = byID[id]?.shortcutLabel, !label.isEmpty else { return text }
         return "\(text) (\(label))"
-    }
-
-    static func help(_ text: String, shortcut: KeyboardShortcut) -> String {
-        "\(text) (\(SeamCommand.label(shortcut.key, shortcut.modifiers)))"
     }
 
     /// The selected worktree's, also in its row's context menu (`RowActions`).
@@ -327,7 +158,7 @@ enum CommandCatalog {
         + (1..<10).map { position in
             SeamCommand(
                 id: "worktree-\(position)", title: localized("Worktree \(position)"), menu: .go,
-                section: 1, shortcut: .command(KeyEquivalent(Character(String(position)))),
+                section: 1, shortcut: .command(CommandKey(Character(String(position)))),
                 isEnabled: { $0.sortedReviews.count >= position },
                 currentTitle: { session in
                     let reviews = session.sortedReviews
@@ -553,7 +384,7 @@ enum CommandCatalog {
             run: { session in Task { await session.copyAgentPrompt() } }),
     ]
 
-    static func items(in menu: SeamCommand.Menu) -> [SeamCommand] {
+    package static func items(in menu: SeamCommand.Menu) -> [SeamCommand] {
         all.filter { $0.menu == menu }
     }
 }

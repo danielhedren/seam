@@ -1,6 +1,4 @@
-import AppKit
 import DiffModel
-import DiffView
 import Foundation
 import GitKit
 import ReviewTestSupport
@@ -8,7 +6,6 @@ import SeamCore
 import TestSupport
 import Testing
 
-@testable import Features
 @testable import ReviewModel
 
 /// A pull request's review threads beside Seam's own (SPEC §7.9), through the real session
