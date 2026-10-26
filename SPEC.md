@@ -39,6 +39,11 @@ That repo has 20 worktrees, several outside the repo directory (`~/Code/.worktre
 3. **Every worktree in one place,** with enough status to see which ones are moving, and switching
    in one keystroke.
 4. **Fast.** Native rendering. Large diffs (20k+ lines) scroll smoothly.
+5. **Start to merged, overseen by one person.** The work doesn't stop at a drafted pull request:
+   Seam follows each branch's PR until it merges and says when something needs the author
+   (an agent's question, failed checks, a review, a PR ready to merge), so one developer can
+   oversee many parallel branches and the time from starting work to a merged PR shrinks.
+   GitHub stays read-only (§3): Seam shows and tells; the author and their agents act.
 
 ## 3. Non-goals
 
@@ -1223,6 +1228,16 @@ stays macOS only.
 *Done when:* `make linux-check` builds `GitKit`, `SeamCore`, `Highlighting`, `DiffModel`,
 `ReviewModel` and `seam` in Docker and their tests pass there, `make check` passes with no
 change in behaviour, and `DiffView` and `Features` hold only views, drawing, scenes and menus.
+
+**M9 — Following pull requests (§7.9, §7.10).** Still read-only and still optional: without
+`gh` nothing changes. A PR's conversation (its comments and its reviews' summaries) is read
+with its threads and shown in the thread panel and by `seam threads`. Notifications say when an
+agent answers or asks, when a PR's checks finish, when a review or a GitHub comment arrives,
+when a PR is ready to merge (approved, checks passed, mergeable), and when it merges or closes; each kind can be turned off in Settings, and PRs keep being read
+in the background, more slowly, only while a kind that needs them is on.
+*Done when:* a conversation comment posted on GitHub shows in the panel after the next read, an
+agent finds it with `seam threads`, each notification kind fires once per event from a session
+test with fakes, and turning a kind off stops it.
 
 ## 15. Risks
 
