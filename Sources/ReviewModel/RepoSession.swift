@@ -38,13 +38,10 @@ package final class RepoSession {
     /// The repo's pull requests, once it's open (SPEC §7.8).
     package private(set) var pullRequests: RepoPullRequests?
     package var showsThreadPanel = false
-    /// The thread open in the diff, and selected in the panel (SPEC §7.7).
-    package var selectedThreadID: String?
     /// While set, the agent prompt was just copied.
     package var promptCopied: Task<Void, Never>?
-    /// The open thread's lines are hidden in a gap, so it shows in the panel instead.
-    var openThreadIsHidden = false
-    package var draft: ThreadDraft?
+    /// Each worktree's open thread and draft, kept while another is shown (SPEC §7.7).
+    var threadSelections: [String: ThreadSelection] = [:]
     package private(set) var reviews: [WorktreeReview] = []
     package private(set) var selectedID: String?
     package var sort = WorktreeSort.attention
@@ -271,10 +268,12 @@ package final class RepoSession {
         }
         if let anchor = diff.anchor { selected?.savedAnchor = anchor }
         selected?.cancelLoading()
-        // The open thread is the old worktree's; the draft is kept per worktree (SPEC §7.7).
-        selectedThreadID = nil
-        openThreadIsHidden = false
         selectedID = id
+        // The diff reports only a change in whether it can show the thread, so a hidden one
+        // comes back in the panel from here.
+        if selectedThreadID != nil, threadSelections[id]?.isHidden == true {
+            showsThreadPanel = true
+        }
         // Known before the panel sorts threads by whose turn it is.
         Task { [threads] in _ = await threads?.reader(in: id) }
         repoState.selectedWorktree = id
