@@ -5,9 +5,9 @@ import Foundation
 #endif
 
 /// The editor command (SPEC §7.6): a template whose `{path}` and `{line}` are filled in.
-struct EditorCommand: Equatable, Sendable {
+package struct EditorCommand: Equatable, Sendable {
     static let zed = "zed {path}:{line}"
-    static let presets = [
+    package static let presets = [
         EditorPreset(
             name: "Zed", template: zed, bundleID: "dev.zed.Zed", bundledTool: "Contents/MacOS/cli"),
         EditorPreset(
@@ -22,7 +22,7 @@ struct EditorCommand: Equatable, Sendable {
             bundledTool: "Contents/Resources/app/bin/cursor"),
     ]
 
-    var template = EditorCommand.zed
+    package var template = EditorCommand.zed
 
     /// The first preset whose app is installed, so a fresh install opens an editor the reader has.
     static func installedDefault(locate: (String) -> URL? = EditorPreset.locate) -> String {
@@ -37,14 +37,14 @@ struct EditorCommand: Equatable, Sendable {
             .replacingOccurrences(of: "{line}", with: String(line))
     }
 
-    static func quoted(_ value: String) -> String {
+    package static func quoted(_ value: String) -> String {
         "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 }
 
-struct EditorPreset: Sendable {
-    var name: String
-    var template: String
+package struct EditorPreset: Sendable {
+    package var name: String
+    package var template: String
     var bundleID: String
     /// The command-line tool inside the app, used when its shell command isn't installed.
     var bundledTool: String
@@ -61,23 +61,23 @@ struct EditorPreset: Sendable {
     }
 }
 
-protocol CommandLauncher: Sendable {
+package protocol CommandLauncher: Sendable {
     /// Runs `commandLine`; throws with the command's own output when it fails.
     func run(_ commandLine: String) async throws
 }
 
-struct LaunchFailed: Error, Equatable {
+package struct LaunchFailed: Error, Equatable {
     var message: String
 }
 
 /// Runs the command with `/bin/sh` and the PATH of the user's shell. Running the command in an
 /// interactive shell instead would mix its startup files' complaints into every error.
-struct ShellLauncher: CommandLauncher {
+package struct ShellLauncher: CommandLauncher {
     var shell = URL(fileURLWithPath: ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh")
     var locateApp: @Sendable (String) -> URL? = EditorPreset.locate
     private let searchPath = LoginShellPath()
 
-    func run(_ commandLine: String) async throws {
+    package func run(_ commandLine: String) async throws {
         let path = await searchPath.value(shell: shell)
         var environment = ProcessInfo.processInfo.environment
         environment["PATH"] = path
@@ -123,7 +123,7 @@ struct ShellLauncher: CommandLauncher {
 
 /// The PATH of the user's login, interactive shell, read once: an app started from Finder doesn't
 /// get it, and many people set PATH in `.zshrc`.
-actor LoginShellPath {
+package actor LoginShellPath {
     private static let marker = "__SEAM_PATH__="
     /// A startup file that never returns mustn't hold up the editor or gh for good.
     static let timeout = Duration.seconds(10)
@@ -159,7 +159,7 @@ actor LoginShellPath {
 
 private enum Subprocess {
     struct Result {
-        var status: Int32
+        package var status: Int32
         var output: Data
         var errors: Data
     }

@@ -1,8 +1,8 @@
 import Foundation
 
 /// One visible row of the file list (SPEC §7.3).
-struct FileListRow: Equatable, Identifiable, Sendable {
-    enum Kind: Equatable, Sendable {
+package struct FileListRow: Equatable, Identifiable, Sendable {
+    package enum Kind: Equatable, Sendable {
         /// A directory, with single-child chains compacted into one name (`src/Orders.Service`).
         case directory(isExpanded: Bool)
         /// Index into the review's files.
@@ -11,19 +11,19 @@ struct FileListRow: Equatable, Identifiable, Sendable {
         case generated(count: Int, isExpanded: Bool)
     }
 
-    var id: String
-    var name: String
-    var depth: Int
-    var kind: Kind
+    package var id: String
+    package var name: String
+    package var depth: Int
+    package var kind: Kind
 }
 
 /// The file list's filter: space-separated terms matched against the path, ignoring case. Every
 /// plain term must appear; a term starting with `^` must not (`^test` hides test files).
-struct FileFilter: Equatable, Sendable {
+package struct FileFilter: Equatable, Sendable {
     var included: [String] = []
     var excluded: [String] = []
 
-    init(_ text: String) {
+    package init(_ text: String) {
         for term in text.split(whereSeparator: \.isWhitespace) {
             if term.hasPrefix("^") {
                 if term.count > 1 { excluded.append(String(term.dropFirst())) }
@@ -33,15 +33,15 @@ struct FileFilter: Equatable, Sendable {
         }
     }
 
-    var isEmpty: Bool { included.isEmpty && excluded.isEmpty }
+    package var isEmpty: Bool { included.isEmpty && excluded.isEmpty }
 
-    func matches(_ path: String) -> Bool {
+    package func matches(_ path: String) -> Bool {
         included.allSatisfy { path.localizedCaseInsensitiveContains($0) }
             && !excluded.contains { path.localizedCaseInsensitiveContains($0) }
     }
 }
 
-enum FileTree {
+package enum FileTree {
     static let generatedID = "generated:"
 
     /// Rows for `paths`, as a tree grouped by directory or as a flat list. A `filter` keeps the
@@ -112,7 +112,7 @@ enum FileTree {
 
     private final class Node {
         var directories: [(String, Node)] = []
-        var files: [(String, Int)] = []
+        package var files: [(String, Int)] = []
 
         func child(_ name: String) -> Node {
             if let existing = directories.first(where: { $0.0 == name }) { return existing.1 }
@@ -151,10 +151,10 @@ enum FileTree {
     }
 }
 
-enum FuzzyMatch {
+package enum FuzzyMatch {
     /// A score for `query` as a subsequence of `candidate`, higher is better; nil when it isn't
     /// one. Consecutive characters and matches at word starts score more.
-    static func score(_ query: String, in candidate: String) -> Int? {
+    package static func score(_ query: String, in candidate: String) -> Int? {
         let query = Array(query.lowercased())
         let text = Array(candidate.lowercased())
         guard !query.isEmpty else { return 0 }

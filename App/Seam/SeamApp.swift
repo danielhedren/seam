@@ -1,4 +1,5 @@
 import Features
+import ReviewModel
 import SwiftUI
 
 @main

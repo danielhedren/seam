@@ -9,25 +9,25 @@ import SeamCore
 @Observable
 public final class AppSettings {
     /// Empty means automatic: `origin/HEAD`, then `origin/main`, then `main`.
-    var defaultBase: String { didSet { save(defaultBase, "defaultBase") } }
-    var ignoredRefs: [String] { didSet { save(ignoredRefs, "ignoredRefs") } }
-    var generatedGlobs: [String] { didSet { save(generatedGlobs, "generatedGlobs") } }
-    var editorTemplate: String { didSet { save(editorTemplate, "editorTemplate") } }
-    var fontName: String { didSet { save(fontName, "fontName") } }
-    var fontSize: Double { didSet { save(fontSize, "fontSize") } }
-    var tabWidth: Int { didSet { save(tabWidth, "tabWidth") } }
+    package var defaultBase: String { didSet { save(defaultBase, "defaultBase") } }
+    package var ignoredRefs: [String] { didSet { save(ignoredRefs, "ignoredRefs") } }
+    package var generatedGlobs: [String] { didSet { save(generatedGlobs, "generatedGlobs") } }
+    package var editorTemplate: String { didSet { save(editorTemplate, "editorTemplate") } }
+    package var fontName: String { didSet { save(fontName, "fontName") } }
+    package var fontSize: Double { didSet { save(fontSize, "fontSize") } }
+    package var tabWidth: Int { didSet { save(tabWidth, "tabWidth") } }
     /// Side by side or unified, for every worktree; `s` flips it.
-    var layoutMode: DiffLayoutMode { didSet { save(layoutMode.rawValue, "defaultMode") } }
-    var whitespace: WhitespaceMode { didSet { save(whitespace.rawValue, "whitespace") } }
-    var contextLines: Int { didSet { save(contextLines, "contextLines") } }
-    var collapsesViewed: Bool { didSet { save(collapsesViewed, "collapsesViewed") } }
+    package var layoutMode: DiffLayoutMode { didSet { save(layoutMode.rawValue, "defaultMode") } }
+    package var whitespace: WhitespaceMode { didSet { save(whitespace.rawValue, "whitespace") } }
+    package var contextLines: Int { didSet { save(contextLines, "contextLines") } }
+    package var collapsesViewed: Bool { didSet { save(collapsesViewed, "collapsesViewed") } }
     /// Review › Show Resolved Threads: resolved threads keep their row in the diff.
-    var showsResolvedThreads: Bool {
+    package var showsResolvedThreads: Bool {
         didSet { save(showsResolvedThreads, "showsResolvedThreads") }
     }
 
     /// Pull request markers through gh (SPEC §7.8), on wherever gh is installed.
-    var showsPullRequests: Bool { didSet { save(showsPullRequests, "showsPullRequests") } }
+    package var showsPullRequests: Bool { didSet { save(showsPullRequests, "showsPullRequests") } }
 
     private let defaults: UserDefaults
 
@@ -55,7 +55,7 @@ public final class AppSettings {
         defaults.set(value, forKey: "seam." + key)
     }
 
-    var detection: DetectionSettings {
+    package var detection: DetectionSettings {
         DetectionSettings(
             defaultBase: defaultBase.isEmpty ? nil : defaultBase,
             ignoredRefs: ignoredRefs.map(Glob.init))
@@ -67,9 +67,9 @@ public final class AppSettings {
             generatedGlobs: generatedGlobs.map(Glob.init))
     }
 
-    var editor: EditorCommand { EditorCommand(template: editorTemplate) }
+    package var editor: EditorCommand { EditorCommand(template: editorTemplate) }
 
-    func adjustFontSize(by delta: Double) {
+    package func adjustFontSize(by delta: Double) {
         fontSize = min(max(fontSize + delta, 8), 32)
     }
 }

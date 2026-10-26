@@ -1,4 +1,5 @@
 import AppKit
+import ReviewModel
 
 extension AppSettings {
     /// Empty name means SF Mono, the system's monospaced font.

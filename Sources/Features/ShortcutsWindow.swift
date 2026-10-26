@@ -1,3 +1,4 @@
+import ReviewModel
 import SwiftUI
 
 /// Help › Keyboard Shortcuts: every shortcut, by menu, read from `CommandCatalog` so the list

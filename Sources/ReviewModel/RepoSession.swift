@@ -1,11 +1,10 @@
 import DiffModel
-import DiffView
 import Foundation
 import GitKit
 import Observation
 import SeamCore
 
-enum WorktreeSort: String, CaseIterable, Sendable {
+package enum WorktreeSort: String, CaseIterable, Sendable {
     /// Worktrees with something awaiting the reader first, then by recent change.
     case attention
     case recent
@@ -16,56 +15,56 @@ enum WorktreeSort: String, CaseIterable, Sendable {
 /// Views read it and call its methods; nothing else mutates it.
 @MainActor
 @Observable
-final class RepoSession {
-    enum OpenState: Equatable {
+package final class RepoSession {
+    package enum OpenState: Equatable {
         case opening
         case open
         case failed(String)
     }
 
-    let directory: URL
-    private(set) var state = OpenState.opening
+    package let directory: URL
+    package private(set) var state = OpenState.opening
     private(set) var repository: Repository?
     /// The repo's review threads, once it's open (SPEC §7.7).
-    private(set) var threads: RepoThreads?
+    package private(set) var threads: RepoThreads?
     private(set) var pullRequestThreads: PullRequestThreads?
     private var rowRefresh: Task<Void, Never>?
     /// A save asked for while one is being written; it runs once that one is done.
     private var saveIsWaiting = false
     /// What Seam couldn't read or save of its own state, shown above the diff (SPEC §11).
-    private(set) var stateProblem: String?
+    package private(set) var stateProblem: String?
     private var stateProblemIsSaving = false
     private var rowRefreshPending = false
     /// The repo's pull requests, once it's open (SPEC §7.8).
-    private(set) var pullRequests: RepoPullRequests?
-    var showsThreadPanel = false
+    package private(set) var pullRequests: RepoPullRequests?
+    package var showsThreadPanel = false
     /// The thread open in the diff, and selected in the panel (SPEC §7.7).
-    var selectedThreadID: String?
+    package var selectedThreadID: String?
     /// While set, the agent prompt was just copied.
-    var promptCopied: Task<Void, Never>?
+    package var promptCopied: Task<Void, Never>?
     /// The open thread's lines are hidden in a gap, so it shows in the panel instead.
     var openThreadIsHidden = false
-    var draft: ThreadDraft?
-    private(set) var reviews: [WorktreeReview] = []
-    private(set) var selectedID: String?
-    var sort = WorktreeSort.attention
-    var hidesMissing = false
-    var diffHasFocus = false
-    var fileListHasFocus = false
-    var showsSwitcher = false
-    var showsPalette = false
+    package var draft: ThreadDraft?
+    package private(set) var reviews: [WorktreeReview] = []
+    package private(set) var selectedID: String?
+    package var sort = WorktreeSort.attention
+    package var hidesMissing = false
+    package var diffHasFocus = false
+    package var fileListHasFocus = false
+    package var showsSwitcher = false
+    package var showsPalette = false
     /// The worktree column. The file list always shows: macOS's three-column split view ignores
     /// `.detailOnly` and can't collapse its middle column.
-    var showsWorktreeList = true
-    var showsBasePicker = false
+    package var showsWorktreeList = true
+    package var showsBasePicker = false
     /// Bumped by Edit › Filter Files; the window moves focus to the filter field.
-    var filterFocusRequests = 0
+    package var filterFocusRequests = 0
     /// Bumped by Search in Review; the window moves focus to the search field once it shows.
-    var searchFocusRequests = 0
-    let diff: DiffController
-    let find: FindState
+    package var searchFocusRequests = 0
+    package let diff: DiffController
+    package let find: FindState
 
-    let services: SeamServices
+    package let services: SeamServices
     private var repoState = RepoState()
     private var monitorTask: Task<Void, Never>?
     private var saveTask: Task<Void, Never>?
@@ -82,7 +81,7 @@ final class RepoSession {
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
     private let signposter = OSSignposter(subsystem: "com.danielhedren.seam", category: "Features")
 
-    init(directory: URL, services: SeamServices) {
+    package init(directory: URL, services: SeamServices) {
         self.directory = directory
         self.services = services
         let diff = DiffController()
@@ -91,10 +90,10 @@ final class RepoSession {
         find.onQueryChange = { [weak self] in self?.refreshDiffQuery() }
     }
 
-    var settings: AppSettings { services.settings }
+    package var settings: AppSettings { services.settings }
 
     /// What the diff highlights: find's query while there is one, else the search Search shows.
-    var diffQuery: TextQuery {
+    package var diffQuery: TextQuery {
         guard find.query.isEmpty else { return TextQuery(find.query) }
         guard let review = selected, review.isSearching else { return TextQuery() }
         return review.appliedSearch
@@ -105,7 +104,7 @@ final class RepoSession {
     }
 
     /// Edit › Find › Search in Review.
-    func showSearch() {
+    package func showSearch() {
         guard let review = selected else { return }
         review.navigator = .search
         searchFocusRequests += 1
@@ -114,15 +113,15 @@ final class RepoSession {
     /// The diff or the file list has keyboard focus, so single-letter shortcuts apply (SPEC §9).
     /// The sheet and popover are separate windows, so the canvas keeps first responder under them;
     /// their text fields must still get every key.
-    var reviewHasFocus: Bool {
+    package var reviewHasFocus: Bool {
         (diffHasFocus || fileListHasFocus) && !showsSwitcher && !showsBasePicker && !showsPalette
     }
 
-    var selected: WorktreeReview? {
+    package var selected: WorktreeReview? {
         reviews.first { $0.id == selectedID }
     }
 
-    var repositoryName: String {
+    package var repositoryName: String {
         guard let repository else { return directory.lastPathComponent }
         let common = repository.commonDirectory
         return common.lastPathComponent == ".git"
@@ -131,7 +130,7 @@ final class RepoSession {
 
     /// The main worktree pinned first, then by recent change or name; or by attention: those
     /// needing the reader, then those with work, then idle ones, main first among them (SPEC §7.2).
-    var sortedReviews: [WorktreeReview] {
+    package var sortedReviews: [WorktreeReview] {
         let visible = reviews.filter { !(hidesMissing && $0.worktree.isMissing) }
         func ordered(_ reviews: [WorktreeReview]) -> [WorktreeReview] {
             reviews.filter(\.worktree.isMain)
@@ -157,7 +156,7 @@ final class RepoSession {
 
     // MARK: - Opening
 
-    func open() async {
+    package func open() async {
         let interval = signposter.beginInterval("openRepository")
         defer { signposter.endInterval("openRepository", interval) }
         let service = RepositoryService(git: services.git, fileSystem: services.fileSystem)
@@ -266,7 +265,7 @@ final class RepoSession {
 
     // MARK: - Selection
 
-    func select(_ id: String?) {
+    package func select(_ id: String?) {
         guard let id, id != selectedID, let review = reviews.first(where: { $0.id == id }) else {
             return
         }
@@ -284,13 +283,13 @@ final class RepoSession {
     }
 
     /// `⌘1`…`⌘9`: the worktree at that position in the list.
-    func select(position: Int) {
+    package func select(position: Int) {
         let sorted = sortedReviews
         guard sorted.indices.contains(position) else { return }
         select(sorted[position].id)
     }
 
-    func selectAdjacent(_ delta: Int) {
+    package func selectAdjacent(_ delta: Int) {
         let sorted = sortedReviews
         guard !sorted.isEmpty else { return }
         let current = sorted.firstIndex { $0.id == selectedID } ?? (delta > 0 ? -1 : 0)
@@ -299,30 +298,30 @@ final class RepoSession {
 
     // MARK: - Review intents
 
-    func selectCommits(_ selection: CommitSelection) {
+    package func selectCommits(_ selection: CommitSelection) {
         selected?.selectCommits(selection)
     }
 
-    func selectLatestCommit() {
+    package func selectLatestCommit() {
         selected?.selectLatestCommit()
     }
 
-    func setScope(_ scope: ReviewScope) {
+    package func setScope(_ scope: ReviewScope) {
         selected?.setScope(scope)
         persist()
     }
 
-    func toggleMode() {
+    package func toggleMode() {
         let settings = services.settings
         settings.layoutMode = settings.layoutMode == .unified ? .split : .unified
     }
 
     /// The window's undo manager; viewed toggles are the only state changes that can be undone.
-    weak var undoManager: UndoManager?
+    package weak var undoManager: SessionUndo?
 
     /// `v`: toggles the current file's mark and, when it became viewed, moves to the next
     /// unviewed file. Undo restores the mark exactly (SPEC §9).
-    func toggleViewed(_ path: String? = nil, advance: Bool = true) {
+    package func toggleViewed(_ path: String? = nil, advance: Bool = true) {
         guard let review = selected, let path = path ?? review.currentFile,
             let previous = review.toggleViewed(path)
         else { return }
@@ -349,7 +348,7 @@ final class RepoSession {
 
     /// Review › Show Changes Since Viewed, or Show Full Diff when it's shown (SPEC §7.4). A
     /// version the store doesn't have may still be a git object, if it was committed.
-    func toggleSinceViewed(_ path: String? = nil) async {
+    package func toggleSinceViewed(_ path: String? = nil) async {
         guard let review = selected, let path = path ?? review.currentFile else { return }
         if review.sinceViewed[path] != nil {
             review.showFullDiff(path)
@@ -389,7 +388,7 @@ final class RepoSession {
 
     /// `o`: opens the reader's file and line in their editor, inside the reviewed worktree.
     /// Without a `file`, opens what the reader is on; with one, its first changed line.
-    func openInEditor(_ command: EditorCommand? = nil, file: String? = nil) {
+    package func openInEditor(_ command: EditorCommand? = nil, file: String? = nil) {
         guard let review = selected,
             let location = file.map({ ($0, review.firstChangedLine(of: $0)) })
                 ?? diff.readingLocation
@@ -406,7 +405,7 @@ final class RepoSession {
     }
 
     /// Runs an editor command line; a failure shows on the worktree's banner.
-    func launchEditor(_ line: String, for review: WorktreeReview) {
+    package func launchEditor(_ line: String, for review: WorktreeReview) {
         let launcher = services.launcher
         Task {
             do {
@@ -419,37 +418,37 @@ final class RepoSession {
     }
 
     /// The file's absolute path in the reviewed worktree, or its path in the repository.
-    func copyPath(_ file: String, relative: Bool) {
+    package func copyPath(_ file: String, relative: Bool) {
         guard let review = selected else { return }
         services.platform.copy(relative ? file : review.worktree.path.appending(path: file).path)
     }
 
-    func revealInFinder(_ file: String) {
+    package func revealInFinder(_ file: String) {
         guard let review = selected else { return }
         services.platform.reveal(review.worktree.path.appending(path: file))
     }
 
-    func dismissStaleParent() {
+    package func dismissStaleParent() {
         selected?.dismissStaleParent()
         persist()
     }
 
-    func dismissPullRequestBase() {
+    package func dismissPullRequestBase() {
         selected?.dismissPullRequestBase()
         persist()
     }
 
-    func toggleWhitespace() {
+    package func toggleWhitespace() {
         selected?.toggleWhitespace()
         persist()
     }
 
-    func toggleWrap() {
+    package func toggleWrap() {
         selected?.toggleWrap()
         persist()
     }
 
-    func setBaseOverride(_ ref: String?) {
+    package func setBaseOverride(_ ref: String?) {
         guard let review = selected else { return }
         review.setOverride(ref)
         if let branch = review.worktree.branch {
@@ -460,7 +459,7 @@ final class RepoSession {
 
     /// A ref typed into the base picker, stored by its full name so it matches the candidates.
     /// One that doesn't resolve is kept as typed, and the load reports it as gone.
-    func setTypedBase(_ name: String) async {
+    package func setTypedBase(_ name: String) async {
         guard let review = selected else { return }
         let resolved = try? await BaseDetector(git: services.git)
             .resolveRef(name, in: review.worktree.path)
@@ -468,12 +467,12 @@ final class RepoSession {
         setBaseOverride(resolved ?? name)
     }
 
-    func toggleCollapsed(_ path: String? = nil) {
+    package func toggleCollapsed(_ path: String? = nil) {
         guard let review = selected, let path = path ?? review.currentFile else { return }
         review.toggleCollapsed(path)
     }
 
-    func reload() {
+    package func reload() {
         guard let review = selected else { return }
         reloadTask = Task { [weak self] in
             await review.refreshDetection()
@@ -497,7 +496,7 @@ final class RepoSession {
         persist()
     }
 
-    func dismissStateProblem() {
+    package func dismissStateProblem() {
         stateProblem = nil
         stateProblemIsSaving = false
     }
@@ -631,7 +630,7 @@ final class RepoSession {
     }
 
     /// Stops watching; the window is closing.
-    func close() {
+    package func close() {
         if let anchor = diff.anchor { selected?.savedAnchor = anchor }
         persist()
         isClosed = true
@@ -651,7 +650,7 @@ final class RepoSession {
     /// An open request (`seam`, a drop, Open Recent). A worktree created since the list was read
     /// isn't in it yet, so the list is read again first; the base applies only if that worktree
     /// really got selected.
-    func handle(worktree: String, base: String?) async {
+    package func handle(worktree: String, base: String?) async {
         if !reviews.contains(where: { $0.id == worktree }) { await relistWorktrees() }
         select(worktree)
         guard selectedID == worktree, let base else { return }
@@ -660,7 +659,7 @@ final class RepoSession {
 
     /// The diff scrolled to another file. Saving here, not only on switch or close, keeps the
     /// position across ⌘Q, where nothing else gets a chance to run.
-    func noteReading(_ path: String?) {
+    package func noteReading(_ path: String?) {
         guard let review = selected else { return }
         review.currentFile = path
         if let anchor = diff.anchor { review.savedAnchor = anchor }
@@ -676,7 +675,7 @@ final class RepoSession {
         await refreshRows(skippingSelected: false)
     }
 
-    func recentRepositories() async -> [URL] {
+    package func recentRepositories() async -> [URL] {
         await services.store.recentRepositories()
     }
 

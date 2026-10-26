@@ -1,5 +1,4 @@
 import DiffModel
-import DiffView
 import Foundation
 import GitKit
 import Highlighting
@@ -9,8 +8,8 @@ import SeamCore
 /// One worktree's row data and review state (SPEC §7.2–7.4). Owned by `RepoSession`.
 @MainActor
 @Observable
-final class WorktreeReview: Identifiable {
-    enum Problem: Equatable, Sendable {
+package final class WorktreeReview: Identifiable {
+    package enum Problem: Equatable, Sendable {
         case missingDirectory
         case overrideGone(String)
         case gitFailed(String)
@@ -19,23 +18,23 @@ final class WorktreeReview: Identifiable {
         case seenGone(String)
     }
 
-    let id: String
-    private(set) var worktree: Worktree
-    private(set) var detection: BaseDetection?
-    private(set) var activity: WorktreeActivity?
+    package let id: String
+    package private(set) var worktree: Worktree
+    package private(set) var detection: BaseDetection?
+    package private(set) var activity: WorktreeActivity?
     /// The parent ref chosen in the base picker, overriding detection (SPEC §5.3).
-    private(set) var baseOverride: String?
-    private(set) var scope = ReviewScope.all
+    package private(set) var baseOverride: String?
+    package private(set) var scope = ReviewScope.all
     /// Commits picked in the commit list, in place of `scope` until a scope is picked again.
-    private(set) var commitSelection: CommitSelection?
-    private(set) var commitLog: CommitLog?
+    package private(set) var commitSelection: CommitSelection?
+    package private(set) var commitLog: CommitLog?
     private var collapse = CollapseState()
-    var collapsed: Set<String> { collapse.collapsed }
-    private(set) var wraps = false
+    package var collapsed: Set<String> { collapse.collapsed }
+    package private(set) var wraps = false
     /// Starts from the setting; Review › Hide Whitespace Changes flips it for this worktree.
-    private(set) var whitespace: WhitespaceMode?
+    package private(set) var whitespace: WhitespaceMode?
 
-    var effectiveWhitespace: WhitespaceMode { whitespace ?? services.settings.whitespace }
+    package var effectiveWhitespace: WhitespaceMode { whitespace ?? services.settings.whitespace }
 
     private var diffOptions: DiffOptions {
         var options = services.settings.diffOptions
@@ -43,9 +42,9 @@ final class WorktreeReview: Identifiable {
         return options
     }
     /// Files marked viewed, by path (SPEC §11).
-    private(set) var viewed = ViewedMarks()
+    package private(set) var viewed = ViewedMarks()
     /// Files shown as their change since viewed, by path: the text the reader saw (SPEC §7.4).
-    private(set) var sinceViewed: [String: String] = [:]
+    package private(set) var sinceViewed: [String: String] = [:]
     /// Worked out when the files or the choice change, not on every redraw.
     private var sinceViewedDiffs: [String: FileDiff] = [:]
     /// What the git checks found (SPEC §5.4); `staleParent` adds the pull request's word.
@@ -65,41 +64,41 @@ final class WorktreeReview: Identifiable {
     private var staleCheckedAt = -1
     /// Full file contents for the current diff; empty until loaded.
     private(set) var contents: [String: FileContents] = [:]
-    private(set) var contentsVersion = 0
+    package private(set) var contentsVersion = 0
     private(set) var syntax: [String: FileSyntax] = [:]
-    private(set) var syntaxVersion = 0
+    package private(set) var syntaxVersion = 0
     private var highlightTask: Task<Void, Never>?
     /// Whether the file list's "Generated" group is open.
-    var showsGenerated = false
+    package var showsGenerated = false
     /// Revealed context per file and gap. Kept across reloads; gaps that moved simply reset.
-    private(set) var expansions: [String: [Int: GapExpansion]] = [:]
-    private(set) var diff: ReviewDiff?
+    package private(set) var expansions: [String: [Int: GapExpansion]] = [:]
+    package private(set) var diff: ReviewDiff?
     /// Bumped on every new diff, so the view knows to redraw even when the content is equal.
-    private(set) var diffVersion = 0
+    package private(set) var diffVersion = 0
     /// Bumped when the reader picks another range (scope, commits or parent); the shown diff
     /// carries the one it was built for, and a new range starts at the top.
     private var rangeVersion = 0
-    private(set) var shownRangeVersion = 0
-    private(set) var isLoading = false
+    package private(set) var shownRangeVersion = 0
+    package private(set) var isLoading = false
     /// Turns on only once a load has taken 150 ms, so fast loads don't flicker (SPEC §9).
-    private(set) var showsProgress = false
-    private(set) var problem: Problem?
+    package private(set) var showsProgress = false
+    package private(set) var problem: Problem?
     /// The file the diff is scrolled to; the file list follows it.
-    var currentFile: String?
+    package var currentFile: String?
     /// Where the reader was when they last left this worktree.
-    var savedAnchor: ScrollAnchor?
-    var fileFilter = "" {
+    package var savedAnchor: ScrollAnchor?
+    package var fileFilter = "" {
         didSet { scheduleDiffFilter() }
     }
     /// The filter the diff shows; it follows `fileFilter` once typing pauses, so the diff isn't
     /// rebuilt on every keystroke. Clearing applies at once.
-    private(set) var diffFilter = ""
+    package private(set) var diffFilter = ""
     private var filterTask: Task<Void, Never>?
-    var flatFileList = false
-    var collapsedDirectories: Set<String> = []
+    package var flatFileList = false
+    package var collapsedDirectories: Set<String> = []
     /// Files or Search in the file list's column (SPEC §7.3.1).
-    var navigator = Navigator.files
-    var search = TextQuery() {
+    package var navigator = Navigator.files
+    package var search = TextQuery() {
         didSet {
             guard search != oldValue else { return }
             searchFoldToggles = []
@@ -108,23 +107,23 @@ final class WorktreeReview: Identifiable {
     }
     /// The query the results and the diff show; it follows `search` as `diffFilter` follows
     /// `fileFilter`.
-    private(set) var appliedSearch = TextQuery()
+    package private(set) var appliedSearch = TextQuery()
     private var searchTask: Task<Void, Never>?
     /// Result files whose fold the reader flipped from the default.
     var searchFoldToggles: Set<String> = []
-    var selectedSearchRow: String?
+    package var selectedSearchRow: String?
     @ObservationIgnored let searchCache = SearchCache()
 
     /// The repo's threads; this worktree's are placed on its diff (SPEC §7.7).
-    var threads: RepoThreads?
+    package var threads: RepoThreads?
     /// The repo's pull requests' threads, placed beside Seam's (SPEC §7.9).
     var pullRequestThreads: PullRequestThreads?
     /// The repo's pull requests; this worktree's branch's is its row's (SPEC §7.8).
-    var pullRequests: RepoPullRequests?
+    package var pullRequests: RepoPullRequests?
     @ObservationIgnored let placementCache = ThreadPlacementCache()
     @ObservationIgnored let fileListCache = FileListCache()
 
-    let services: SeamServices
+    package let services: SeamServices
     private var loadTask: Task<Void, Never>?
     private var loadGeneration = 0
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
@@ -136,14 +135,14 @@ final class WorktreeReview: Identifiable {
         self.services = services
     }
 
-    var mode: DiffLayoutMode { services.settings.layoutMode }
+    package var mode: DiffLayoutMode { services.settings.layoutMode }
 
     /// The parent the diff is against: the override if set, else the detected one.
-    var parentName: String? {
+    package var parentName: String? {
         baseOverride.map(RefName.short) ?? detection?.parent?.name
     }
 
-    var uniqueCommitCount: Int? {
+    package var uniqueCommitCount: Int? {
         guard let detection else { return nil }
         guard let baseOverride else { return detection.uniqueCommitCount }
         return detection.candidates.first { $0.ref == baseOverride }?.commitCount
@@ -151,7 +150,7 @@ final class WorktreeReview: Identifiable {
     }
 
     /// The newest of the status-derived time and the last watcher event (SPEC §7.2).
-    var lastChange: Date? {
+    package var lastChange: Date? {
         [activity?.lastChange, lastEvent].compactMap(\.self).max()
     }
 
@@ -199,7 +198,7 @@ final class WorktreeReview: Identifiable {
 
     // MARK: - Intents
 
-    func setScope(_ scope: ReviewScope) {
+    package func setScope(_ scope: ReviewScope) {
         guard scope != self.scope || commitSelection != nil else { return }
         self.scope = scope
         commitSelection = nil
@@ -208,11 +207,11 @@ final class WorktreeReview: Identifiable {
     }
 
     /// The commit list's highlighted rows: the picked commits, or the ones the scope covers.
-    var shownSelection: CommitSelection? {
+    package var shownSelection: CommitSelection? {
         commitSelection ?? commitLog?.selection(for: scope)
     }
 
-    func selectCommits(_ selection: CommitSelection) {
+    package func selectCommits(_ selection: CommitSelection) {
         guard selection != shownSelection, let log = commitLog else { return }
         if let scope = log.scope(matching: selection) {
             setScope(scope)
@@ -224,7 +223,7 @@ final class WorktreeReview: Identifiable {
     }
 
     /// What the diff leaves out, said where the reader is: nil while it shows every change.
-    var rangeSummary: String? {
+    package var rangeSummary: String? {
         var parts: [String] = []
         if let selection = commitSelection, let commits = commitLog?.commits {
             if selection.newest == selection.oldest, case .commit(let id) = selection.newest,
@@ -260,14 +259,14 @@ final class WorktreeReview: Identifiable {
     }
 
     /// The range bar's Show All: every change, whitespace included.
-    func showEverything() {
+    package func showEverything() {
         if effectiveWhitespace != .show { toggleWhitespace() }
         setScope(.all)
     }
 
     /// The one commit Go › Next Commit (later in time) or Previous Commit would show, reading a
     /// branch commit by commit; from no single commit, Next starts at the oldest. Nil at an end.
-    func commitStep(by delta: Int) -> CommitSelection? {
+    package func commitStep(by delta: Int) -> CommitSelection? {
         guard let commits = commitLog?.commits, !commits.isEmpty else { return nil }
         // Listed newest first, so later in time is up the list.
         let index: Int
@@ -284,32 +283,32 @@ final class WorktreeReview: Identifiable {
         return CommitSelection(newest: end, oldest: end)
     }
 
-    func stepCommit(by delta: Int) {
+    package func stepCommit(by delta: Int) {
         if let step = commitStep(by: delta) { selectCommits(step) }
     }
 
-    func isShowing(_ scope: ReviewScope) -> Bool {
+    package func isShowing(_ scope: ReviewScope) -> Bool {
         commitSelection == nil && self.scope == scope
     }
 
-    var isShowingLatestCommit: Bool {
+    package var isShowingLatestCommit: Bool {
         guard let latest = commitLog?.commits.first else { return false }
         return commitSelection
             == CommitSelection(newest: .commit(latest.id), oldest: .commit(latest.id))
     }
 
     /// Only the newest commit; nothing to do on a branch with no commits of its own.
-    func selectLatestCommit() {
+    package func selectLatestCommit() {
         guard let latest = commitLog?.commits.first else { return }
         selectCommits(CommitSelection(newest: .commit(latest.id), oldest: .commit(latest.id)))
     }
 
-    func toggleWrap() {
+    package func toggleWrap() {
         wraps.toggle()
     }
 
     /// Between showing whitespace and the configured way of hiding it (all of it, by default).
-    func toggleWhitespace() {
+    package func toggleWhitespace() {
         let hidden =
             services.settings.whitespace == .show ? .ignoreAll : services.settings.whitespace
         whitespace = effectiveWhitespace == .show ? hidden : .show
@@ -321,7 +320,7 @@ final class WorktreeReview: Identifiable {
     }
 
     /// Returns the mark the file had before, for undo; nil when there's no such file.
-    func toggleViewed(_ path: String) -> String?? {
+    package func toggleViewed(_ path: String) -> String?? {
         guard let file = file(path) else { return nil }
         let previous = viewed.marks[path]
         viewed.toggle(file)
@@ -345,7 +344,7 @@ final class WorktreeReview: Identifiable {
     }
 
     /// The mark's content id, when the file has changed since and its text now is loaded.
-    func sinceViewedID(_ path: String) -> String? {
+    package func sinceViewedID(_ path: String) -> String? {
         guard viewedStatus(path) == .changedSinceViewed, contents[path]?.new != nil,
             let id = viewed.marks[path], !id.hasPrefix("deleted:")
         else { return nil }
@@ -395,7 +394,7 @@ final class WorktreeReview: Identifiable {
         return max(hunk.newStart, 1)
     }
 
-    func viewedStatus(_ path: String) -> ViewedMarks.Status {
+    package func viewedStatus(_ path: String) -> ViewedMarks.Status {
         file(path).map(viewed.status) ?? .unviewed
     }
 
@@ -416,7 +415,7 @@ final class WorktreeReview: Identifiable {
         reloadDiff()
     }
 
-    func toggleCollapsed(_ path: String) {
+    package func toggleCollapsed(_ path: String) {
         collapse.toggle(path)
     }
 
@@ -429,7 +428,7 @@ final class WorktreeReview: Identifiable {
             }, collapsesViewed: services.settings.collapsesViewed)
     }
 
-    func expand(_ path: String, gap: Int, _ direction: ExpandDirection) {
+    package func expand(_ path: String, gap: Int, _ direction: ExpandDirection) {
         var expansion = expansions[path]?[gap] ?? GapExpansion()
         switch direction {
         case .down: expansion.top += DiffContent.expandStep
@@ -471,12 +470,12 @@ final class WorktreeReview: Identifiable {
     }
 
     /// How the diff is narrowed: by the filter, or while Search shows a query, by its results.
-    var narrowing: Narrowing {
+    package var narrowing: Narrowing {
         isSearching ? .search(appliedSearch) : .filter(diffFilter)
     }
 
     /// What the diff view shows, narrowed; nil until the diff has loaded.
-    var content: DiffContent? {
+    package var content: DiffContent? {
         let filter = FileFilter(diffFilter)
         let found = searchResult.map { Set($0.files.map(\.index)) }
         return diff.map { diff in
@@ -621,13 +620,13 @@ final class WorktreeReview: Identifiable {
         await loadTask?.value
     }
 
-    func dismissStaleParent() {
+    package func dismissStaleParent() {
         if let parent = staleParent?.parent { dismissedStaleParents.insert(parent) }
     }
 
     /// A detected parent that looks merged (SPEC §5.4), by git's evidence or because its own
     /// pull request merged; nil once dismissed or overridden.
-    var staleParent: StaleParent? {
+    package var staleParent: StaleParent? {
         guard baseOverride == nil else { return nil }
         let stale = checkedStaleParent ?? mergedParentPullRequest
         return stale.flatMap { dismissedStaleParents.contains($0.parent) ? nil : $0 }
@@ -641,19 +640,19 @@ final class WorktreeReview: Identifiable {
         return StaleParent.pullRequestMerged(detection, number: pullRequest.number)
     }
 
-    var pullRequest: PullRequest? {
+    package var pullRequest: PullRequest? {
         pullRequests?.pullRequest(for: worktree.branch)
     }
 
     /// Commits on this branch its pull request doesn't have yet.
-    var unpushedCount: Int? {
+    package var unpushedCount: Int? {
         guard pullRequest != nil, let branch = worktree.branch else { return nil }
         return pullRequests?.unpushedCount(for: branch)
     }
 
     /// An open PR's base, offered when it isn't the parent the diff is against (SPEC §7.8):
     /// the full ref here, and its short name. Not while the stale-parent banner already asks.
-    var pullRequestBase: (ref: String, name: String)? {
+    package var pullRequestBase: (ref: String, name: String)? {
         guard baseOverride == nil, staleParent == nil, let pullRequest,
             pullRequest.state == .open, let branch = worktree.branch,
             let ref = pullRequests?.baseRef(for: branch), let parent = detection?.parent,
@@ -663,7 +662,7 @@ final class WorktreeReview: Identifiable {
         return (ref, RefName.short(ref))
     }
 
-    func dismissPullRequestBase() {
+    package func dismissPullRequestBase() {
         if let ref = pullRequestBase?.ref { dismissedPullRequestBases.insert(ref) }
     }
 
@@ -691,7 +690,7 @@ final class WorktreeReview: Identifiable {
     }
 
     /// Only the notices: the others describe the diff and clear when it loads again.
-    func dismissNotice() {
+    package func dismissNotice() {
         switch problem {
         case .editorFailed, .seenGone: problem = nil
         default: break

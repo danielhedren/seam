@@ -1,0 +1,195 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ already exists and isn't Seam's. Remove it and try again." : {
+
+    },
+    "%@ isn't installed or isn't on your PATH. Choose your editor in Settings." : {
+
+    },
+    "%@ no longer exists." : {
+
+    },
+    "%@, %lld of them on the GitHub pull request" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$lld of them on the GitHub pull request"
+          }
+        }
+      }
+    },
+    "%lld awaiting you" : {
+
+    },
+    "%lld comments" : {
+
+    },
+    "%lld commits" : {
+
+    },
+    "%lld commits and uncommitted changes" : {
+
+    },
+    "%lld failed" : {
+
+    },
+    "%lld files" : {
+
+    },
+    "%lld local commits aren't in the pull request" : {
+
+    },
+    "%lld matches" : {
+
+    },
+    "%lld open threads" : {
+
+    },
+    "%lld passed" : {
+
+    },
+    "%lld running" : {
+
+    },
+    "%lld uncommitted files" : {
+
+    },
+    "1 comment" : {
+
+    },
+    "1 commit" : {
+
+    },
+    "1 file" : {
+
+    },
+    "1 local commit isn't in the pull request" : {
+
+    },
+    "1 match" : {
+
+    },
+    "1 open thread" : {
+
+    },
+    "1 uncommitted file" : {
+
+    },
+    "Approved" : {
+
+    },
+    "Cancelled" : {
+
+    },
+    "Changes requested" : {
+
+    },
+    "Checks: %@" : {
+
+    },
+    "Closed" : {
+
+    },
+    "Commit %lld of %lld · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Commit %1$lld of %2$lld · %3$@"
+          }
+        }
+      }
+    },
+    "Committed changes only" : {
+
+    },
+    "Couldn't read the threads: %@" : {
+
+    },
+    "Couldn't run git: %@" : {
+
+    },
+    "Couldn't save the threads: %@" : {
+
+    },
+    "Delete Thread" : {
+
+    },
+    "Draft" : {
+
+    },
+    "Generated" : {
+
+    },
+    "Mark as Not Viewed" : {
+
+    },
+    "Mark as Viewed" : {
+
+    },
+    "Merged" : {
+
+    },
+    "Not a git repository. Choose another folder." : {
+
+    },
+    "Read from GitHub %@" : {
+
+    },
+    "Reviewed, not approved" : {
+
+    },
+    "Seam couldn't read what it saved for this repository, so viewed files and chosen bases start afresh. The old file is kept as %@." : {
+
+    },
+    "Seam couldn't save its state: %@" : {
+
+    },
+    "The pull request also has %lld failed checks; `gh pr checks` lists them. Fix them once every thread is answered.\n\n" : {
+
+    },
+    "The pull request also has a failed check; `gh pr checks` shows it. Fix it once every thread is answered.\n\n" : {
+
+    },
+    "These threads were saved by a newer version of Seam. Update Seam to change them." : {
+
+    },
+    "This copy of Seam doesn't include the seam command. Build it with make app or make install." : {
+
+    },
+    "Thread #%@ no longer exists." : {
+
+    },
+    "Uncommitted changes only" : {
+
+    },
+    "Unexpected output from git: %@" : {
+
+    },
+    "Waiting for review" : {
+
+    },
+    "Whitespace changes hidden" : {
+
+    },
+    "Write something first." : {
+
+    },
+    "checks failed" : {
+
+    },
+    "git %@ failed: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "git %1$@ failed: %2$@"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

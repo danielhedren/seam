@@ -1,5 +1,6 @@
 import AppKit
 import GitKit
+import ReviewModel
 import SeamCore
 import SwiftUI
 

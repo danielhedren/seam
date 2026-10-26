@@ -1,5 +1,4 @@
 import DiffModel
-import DiffView
 import Foundation
 import GitKit
 import Highlighting
@@ -23,18 +22,18 @@ public protocol StateStore: Sendable {
 }
 
 /// JSON files under `~/Library/Application Support/Seam/`. Nothing is written into the repo.
-actor JSONStateStore: StateStore {
+package actor JSONStateStore: StateStore {
     private let root: URL
     private var loadProblems: [String: String] = [:]
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
 
-    init(root: URL = AppChoices.stateRoot) {
+    package init(root: URL = AppChoices.stateRoot) {
         self.root = root
     }
 
     /// A file that won't decode is moved aside rather than overwritten by the next save, so
     /// the reader's viewed marks and bases can still be recovered by hand.
-    func load(_ repository: Repository) -> RepoState {
+    package func load(_ repository: Repository) -> RepoState {
         let url = file(for: repository)
         loadProblems[url.path] = nil
         guard let data = try? Data(contentsOf: url) else { return RepoState() }
@@ -55,16 +54,16 @@ actor JSONStateStore: StateStore {
         }
     }
 
-    func loadProblem(for repository: Repository) -> String? {
+    package func loadProblem(for repository: Repository) -> String? {
         loadProblems[file(for: repository).path]
     }
 
     @discardableResult
-    func save(_ state: RepoState, for repository: Repository) -> String? {
+    package func save(_ state: RepoState, for repository: Repository) -> String? {
         write(state, to: file(for: repository))
     }
 
-    func keepSeen(_ text: String, id: String, for repository: Repository) {
+    package func keepSeen(_ text: String, id: String, for repository: Repository) {
         let url = seenDirectory(for: repository).appending(path: id)
         guard !FileManager.default.fileExists(atPath: url.path) else { return }
         do {
@@ -76,7 +75,7 @@ actor JSONStateStore: StateStore {
         }
     }
 
-    func seen(_ id: String, for repository: Repository) -> String? {
+    package func seen(_ id: String, for repository: Repository) -> String? {
         (try? Data(contentsOf: seenDirectory(for: repository).appending(path: id)))
             .map { String(decoding: $0, as: UTF8.self) }
     }
@@ -96,17 +95,17 @@ actor JSONStateStore: StateStore {
         file(for: repository).deletingLastPathComponent().appending(path: "viewed")
     }
 
-    func recentRepositories() -> [URL] {
+    package func recentRepositories() -> [URL] {
         (read([String].self, from: root.appending(path: "repos.json")) ?? []).map {
             URL(fileURLWithPath: $0, isDirectory: true)
         }
     }
 
-    func clearRecent() {
+    package func clearRecent() {
         write([String](), to: root.appending(path: "repos.json"))
     }
 
-    func noteOpened(_ directory: URL) {
+    package func noteOpened(_ directory: URL) {
         var paths = recentRepositories().map(\.path).filter { $0 != directory.path }
         paths.insert(directory.path, at: 0)
         write(Array(paths.prefix(10)), to: root.appending(path: "repos.json"))
@@ -184,13 +183,5 @@ public struct SeamServices: Sendable {
         self.clock = clock
         self.store = store
         self.settings = settings
-    }
-
-    @MainActor
-    public static func live() -> SeamServices {
-        SeamServices(
-            git: CLIGitClient(), watcher: SystemFileWatcher(), clock: ContinuousClock(),
-            store: JSONStateStore(), threads: ThreadStore(), settings: AppSettings(),
-            spotlight: SpotlightRepoIndex(), github: .live(), platform: MacPlatform())
     }
 }

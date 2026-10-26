@@ -4,6 +4,7 @@ import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 /// SPEC §9: progress shows only after 150 ms, so a fast open doesn't flicker.
 @MainActor

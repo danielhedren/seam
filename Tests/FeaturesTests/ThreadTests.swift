@@ -9,6 +9,7 @@ import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 @MainActor @Suite(.timeLimit(.minutes(1))) struct ThreadTests {
     private func session(_ repo: FixtureRepo, watcher: any FileWatcher = SilentWatcher()) async

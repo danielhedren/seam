@@ -4,6 +4,7 @@ import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 @MainActor
 @Suite(.timeLimit(.minutes(1)))

@@ -3,37 +3,37 @@ import GitKit
 import SeamCore
 
 /// What the file list's column shows (SPEC §7.3.1).
-enum Navigator: Equatable, Sendable {
+package enum Navigator: Equatable, Sendable {
     case files
     case search
     /// What awaits the reader across every worktree (SPEC §7.3.2).
     case inbox
 }
 
-enum Narrowing: Equatable {
+package enum Narrowing: Equatable {
     case filter(String)
     case search(TextQuery)
 }
 
 /// The search's results per diff and query, worked out once rather than on every redraw.
-final class SearchCache {
+package final class SearchCache {
     struct Key: Equatable {
-        var diffVersion: Int
-        var query: TextQuery
+        package var diffVersion: Int
+        package var query: TextQuery
     }
 
     var key: Key?
-    var result: ReviewSearch.Result?
+    package var result: ReviewSearch.Result?
 }
 
 extension WorktreeReview {
     /// Search shows a query, so the diff narrows to its results and highlights them.
-    var isSearching: Bool { navigator == .search && !appliedSearch.isEmpty }
+    package var isSearching: Bool { navigator == .search && !appliedSearch.isEmpty }
 
-    var searchIsInvalid: Bool { !appliedSearch.isEmpty && appliedSearch.matcher() == nil }
+    package var searchIsInvalid: Bool { !appliedSearch.isEmpty && appliedSearch.matcher() == nil }
 
     /// Nil without a query, a pattern that compiles or a diff.
-    var searchResult: ReviewSearch.Result? {
+    package var searchResult: ReviewSearch.Result? {
         let key = SearchCache.Key(diffVersion: diffVersion, query: appliedSearch)
         if searchCache.key == key { return searchCache.result }
         let result = diff.flatMap { diff in
@@ -46,23 +46,23 @@ extension WorktreeReview {
 
     static let foldedLineCount = 20
 
-    func isFolded(_ file: ReviewSearch.File) -> Bool {
+    package func isFolded(_ file: ReviewSearch.File) -> Bool {
         let path = diff?.files[file.index].diff.path ?? ""
         return (file.lines.count > Self.foldedLineCount) != searchFoldToggles.contains(path)
     }
 
-    func toggleFold(_ path: String) {
+    package func toggleFold(_ path: String) {
         if searchFoldToggles.remove(path) == nil { searchFoldToggles.insert(path) }
     }
 
-    var searchRows: [SearchRow] {
+    package var searchRows: [SearchRow] {
         guard let result = searchResult, let files = diff?.files else { return [] }
         return SearchRow.rows(result, files: files, flat: flatFileList, isFolded: isFolded)
     }
 
     /// Picking a result: a file scrolls the diff to it, a line also makes its match current,
     /// opening the file first if it's collapsed.
-    func pick(_ row: SearchRow, controller: DiffController) {
+    package func pick(_ row: SearchRow, controller: DiffController) {
         selectedSearchRow = row.id
         switch row.kind {
         case .heading: return
@@ -81,30 +81,30 @@ extension WorktreeReview {
 /// One row of the search results (SPEC §7.3.1): folders as in the file tree, matching files, and
 /// under each file its matching lines. Rows carry what they show: SwiftUI can still draw a row
 /// from the previous result while the new one is in place.
-struct SearchRow: Equatable, Identifiable {
-    struct File: Equatable {
-        var path: String
-        var status: FileStatus
+package struct SearchRow: Equatable, Identifiable {
+    package struct File: Equatable {
+        package var path: String
+        package var status: FileStatus
         /// In the row's name, which is the end of the path.
-        var nameRanges: [Range<Int>]
-        var lineMatchCount: Int
-        var hasLines: Bool
-        var isFolded: Bool
+        package var nameRanges: [Range<Int>]
+        package var lineMatchCount: Int
+        package var hasLines: Bool
+        package var isFolded: Bool
     }
 
-    enum Kind: Equatable {
+    package enum Kind: Equatable {
         /// A folder, or the "Generated" heading.
         case heading
         case file(File)
         case line(path: String, ReviewSearch.Line)
     }
 
-    var id: String
-    var name: String
-    var depth: Int
-    var kind: Kind
+    package var id: String
+    package var name: String
+    package var depth: Int
+    package var kind: Kind
 
-    var path: String? {
+    package var path: String? {
         switch kind {
         case .heading: nil
         case .file(let file): file.path
@@ -148,11 +148,12 @@ struct SearchRow: Equatable, Identifiable {
 }
 
 /// A result line as the list shows it: without its indent, and cut so the first match shows.
-enum SearchSnippet {
+package enum SearchSnippet {
     static let lead = 12
 
-    static func make(_ text: String, _ ranges: [Range<Int>]) -> (text: String, ranges: [Range<Int>])
-    {
+    package static func make(_ text: String, _ ranges: [Range<Int>]) -> (
+        text: String, ranges: [Range<Int>]
+    ) {
         let characters = Array(text)
         var start = characters.prefix { $0 == " " || $0 == "\t" }.count
         var prefix = ""
@@ -171,7 +172,7 @@ enum SearchSnippet {
     }
 
     /// A file row's name is the end of its path, so the path's ranges move to it.
-    static func name(_ name: String, path: String, _ ranges: [Range<Int>]) -> [Range<Int>] {
+    package static func name(_ name: String, path: String, _ ranges: [Range<Int>]) -> [Range<Int>] {
         let offset = path.count - name.count
         return ranges.compactMap { range in
             let lower = max(range.lowerBound - offset, 0)

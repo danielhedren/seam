@@ -8,8 +8,8 @@ import SeamCore
 /// off the main actor, and a read that finishes after a newer one is dropped.
 @MainActor
 @Observable
-final class RepoThreads {
-    private(set) var threads: [ReviewThread] = []
+package final class RepoThreads {
+    package private(set) var threads: [ReviewThread] = []
     /// Bumped when the threads change, so placements are worked out again only then.
     private(set) var version = 0
     private(set) var failure: String?
@@ -83,7 +83,7 @@ final class RepoThreads {
         failure = nil
     }
 
-    func threads(in worktree: String) -> [ReviewThread] {
+    package func threads(in worktree: String) -> [ReviewThread] {
         threads.filter { $0.worktree == worktree }
     }
 
@@ -103,7 +103,7 @@ final class RepoThreads {
     }
 
     @discardableResult
-    func reply(to id: String, body: String) async -> Bool {
+    package func reply(to id: String, body: String) async -> Bool {
         var reader = ReviewThread.reader
         if let worktree = threads.first(where: { $0.id == id })?.worktree {
             reader = await self.reader(in: worktree).name
@@ -115,7 +115,7 @@ final class RepoThreads {
     }
 
     @discardableResult
-    func setResolved(_ resolved: Bool, id: String) async -> Bool {
+    package func setResolved(_ resolved: Bool, id: String) async -> Bool {
         await change { threads throws(ThreadError) in
             try ThreadRules.setResolved(resolved, &threads, id: id, now: .now)
         } != nil

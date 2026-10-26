@@ -2,22 +2,12 @@ import AppKit
 import CoreSpotlight
 import Foundation
 import GitKit
+import ReviewModel
 import SeamCore
 import UniformTypeIdentifiers
 
 /// Recent repositories in Spotlight (SPEC §7.1): typing part of a repo's name there lists it,
 /// and picking it opens the repo in Seam.
-public protocol RepoIndex: Sendable {
-    /// Makes Seam's Spotlight entries exactly these repos.
-    func replace(with repositories: [URL]) async
-}
-
-/// Indexes nothing, for tests and previews.
-public struct NoRepoIndex: RepoIndex {
-    public init() {}
-    public func replace(with repositories: [URL]) async {}
-}
-
 public struct SpotlightRepoIndex: RepoIndex {
     static let domain = "com.danielhedren.seam.repositories"
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")

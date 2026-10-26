@@ -7,6 +7,7 @@ import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 @MainActor @Suite(.timeLimit(.minutes(1))) struct PullRequestTests {
     let github = FakeGitHub()
@@ -356,7 +357,7 @@ import Testing
         let row = try review(session, feature)
         let pullRequest = try #require(row.pullRequest)
         #expect(row.unpushedCount == 1)
-        let help = PullRequestBadge.help(pullRequest, unpushed: row.unpushedCount, read: nil)
+        let help = PullRequestText.help(pullRequest, unpushed: row.unpushedCount, read: nil)
         #expect(
             help
                 == "#12 Count the lines\nChanges requested · Checks: 3 passed, 1 failed\n"

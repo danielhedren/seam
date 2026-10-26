@@ -4,6 +4,7 @@ import SeamCore
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 private let environment = ProcessInfo.processInfo.environment
 

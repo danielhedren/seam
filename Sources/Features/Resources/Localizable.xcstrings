@@ -20,9 +20,6 @@
         }
       }
     },
-    "%@ already exists and isn't Seam's. Remove it and try again." : {
-
-    },
     "%@ in %@" : {
       "localizations" : {
         "en" : {
@@ -36,47 +33,10 @@
     "%@ is not in a git repository." : {
 
     },
-    "%@ isn't installed or isn't on your PATH. Choose your editor in Settings." : {
-
-    },
-    "%@ no longer exists." : {
-
-    },
     "%@ now opens Seam. Make sure ~/.local/bin is on your PATH." : {
 
     },
-    "%@, %lld of them on the GitHub pull request" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@, %2$lld of them on the GitHub pull request"
-          }
-        }
-      }
-    },
     "%lld awaiting you" : {
-
-    },
-    "%lld comments" : {
-
-    },
-    "%lld commits" : {
-
-    },
-    "%lld commits and uncommitted changes" : {
-
-    },
-    "%lld failed" : {
-
-    },
-    "%lld files" : {
-
-    },
-    "%lld local commits aren't in the pull request" : {
-
-    },
-    "%lld matches" : {
 
     },
     "%lld more lines" : {
@@ -98,18 +58,6 @@
     "%lld open on GitHub" : {
 
     },
-    "%lld open threads" : {
-
-    },
-    "%lld passed" : {
-
-    },
-    "%lld running" : {
-
-    },
-    "%lld uncommitted files" : {
-
-    },
     "%lld/%lld viewed" : {
       "localizations" : {
         "en" : {
@@ -119,27 +67,6 @@
           }
         }
       }
-    },
-    "1 comment" : {
-
-    },
-    "1 commit" : {
-
-    },
-    "1 file" : {
-
-    },
-    "1 local commit isn't in the pull request" : {
-
-    },
-    "1 match" : {
-
-    },
-    "1 open thread" : {
-
-    },
-    "1 uncommitted file" : {
-
     },
     "Actual Size" : {
 
@@ -154,9 +81,6 @@
 
     },
     "All threads resolved" : {
-
-    },
-    "Approved" : {
 
     },
     "Automatic" : {
@@ -180,12 +104,6 @@
     "Cancel" : {
 
     },
-    "Cancelled" : {
-
-    },
-    "Changes requested" : {
-
-    },
     "Changes show here as soon as files in this worktree are edited." : {
 
     },
@@ -193,9 +111,6 @@
 
     },
     "Checked when a repository on GitHub opens" : {
-
-    },
-    "Checks: %@" : {
 
     },
     "Choose Base" : {
@@ -214,9 +129,6 @@
 
     },
     "Close" : {
-
-    },
-    "Closed" : {
 
     },
     "Collapse File" : {
@@ -250,16 +162,6 @@
     "Comment…" : {
 
     },
-    "Commit %lld of %lld · %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Commit %1$lld of %2$lld · %3$@"
-          }
-        }
-      }
-    },
     "Commits" : {
 
     },
@@ -267,9 +169,6 @@
 
     },
     "Committed Changes" : {
-
-    },
-    "Committed changes only" : {
 
     },
     "Compare with" : {
@@ -323,15 +222,6 @@
     "Couldn't read the commits" : {
 
     },
-    "Couldn't read the threads: %@" : {
-
-    },
-    "Couldn't run git: %@" : {
-
-    },
-    "Couldn't save the threads: %@" : {
-
-    },
     "Custom" : {
 
     },
@@ -363,9 +253,6 @@
 
     },
     "Done" : {
-
-    },
-    "Draft" : {
 
     },
     "Edit › Find" : {
@@ -420,9 +307,6 @@
 
     },
     "From a later commit" : {
-
-    },
-    "Generated" : {
 
     },
     "Generated files" : {
@@ -538,9 +422,6 @@
     "Match Case" : {
 
     },
-    "Merged" : {
-
-    },
     "Name" : {
 
     },
@@ -631,9 +512,6 @@
 
     },
     "No worktree selected" : {
-
-    },
-    "Not a git repository. Choose another folder." : {
 
     },
     "Not in this diff" : {
@@ -763,9 +641,6 @@
         }
       }
     },
-    "Read from GitHub %@" : {
-
-    },
     "Reading pull requests with gh" : {
 
     },
@@ -814,19 +689,10 @@
     "Review › Open in Editor (O) runs the command with {path} and {line} filled in, using your login shell's PATH." : {
 
     },
-    "Reviewed, not approved" : {
-
-    },
     "SF Mono" : {
 
     },
     "Seam" : {
-
-    },
-    "Seam couldn't read what it saved for this repository, so viewed files and chosen bases start afresh. The old file is kept as %@." : {
-
-    },
-    "Seam couldn't save its state: %@" : {
 
     },
     "Seam no longer has the version of %@ you marked viewed, so it can only show the full diff." : {
@@ -934,28 +800,13 @@
     "The chosen base %@ no longer exists." : {
 
     },
-    "The pull request also has %lld failed checks; `gh pr checks` lists them. Fix them once every thread is answered.\n\n" : {
-
-    },
-    "The pull request also has a failed check; `gh pr checks` shows it. Fix it once every thread is answered.\n\n" : {
-
-    },
     "The working tree matches the branch's latest commit." : {
 
     },
     "The worktree's directory is missing" : {
 
     },
-    "These threads were saved by a newer version of Seam. Update Seam to change them." : {
-
-    },
-    "This copy of Seam doesn't include the seam command. Build it with make app or make install." : {
-
-    },
     "This worktree's directory is missing. If it was deleted, “git worktree prune” takes it off the list." : {
-
-    },
-    "Thread #%@ no longer exists." : {
 
     },
     "Thread on %@, line %@" : {
@@ -990,12 +841,6 @@
     "Uncommitted changes" : {
 
     },
-    "Uncommitted changes only" : {
-
-    },
-    "Unexpected output from git: %@" : {
-
-    },
     "Unified" : {
 
     },
@@ -1023,13 +868,7 @@
     "View › Make Text Bigger and Make Text Smaller change the size too. A repository's .editorconfig overrides the tab width." : {
 
     },
-    "Waiting for review" : {
-
-    },
     "Whitespace" : {
-
-    },
-    "Whitespace changes hidden" : {
 
     },
     "Whole file" : {
@@ -1050,12 +889,6 @@
     "Write a reply…" : {
 
     },
-    "Write something first." : {
-
-    },
-    "checks failed" : {
-
-    },
     "detached" : {
 
     },
@@ -1070,16 +903,6 @@
     },
     "gh isn't signed in. Run gh auth login in Terminal, then check again." : {
 
-    },
-    "git %@ failed: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "git %1$@ failed: %2$@"
-          }
-        }
-      }
     },
     "locked" : {
 

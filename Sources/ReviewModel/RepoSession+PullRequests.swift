@@ -33,14 +33,14 @@ extension RepoSession {
     }
 
     /// The app came to the front; the PRs are read again if they're older than a minute.
-    func noteActivation(_ isActive: Bool) {
+    package func noteActivation(_ isActive: Bool) {
         pullRequests?.appIsActive = isActive
         if isActive { pullRequests?.request(.activation) }
     }
 
     /// Settings turned pull requests on or off, or asked gh to check again. Off, the threads
     /// `seam` would list are cleared rather than left to go stale.
-    func refreshPullRequests() async {
+    package func refreshPullRequests() async {
         if !settings.showsPullRequests {
             await pullRequestThreads?.clearAll()
             return
@@ -48,24 +48,24 @@ extension RepoSession {
         pullRequests?.request(.settings)
     }
 
-    func openPullRequest(of review: WorktreeReview) {
+    package func openPullRequest(of review: WorktreeReview) {
         guard let url = review.pullRequest.flatMap({ URL(string: $0.url) }) else { return }
         services.platform.open(url)
     }
 
-    func copyPullRequestURL(of review: WorktreeReview) {
+    package func copyPullRequestURL(of review: WorktreeReview) {
         guard let url = review.pullRequest?.url else { return }
         services.platform.copy(url)
     }
 
-    func openFailedCheck(of review: WorktreeReview) {
+    package func openFailedCheck(of review: WorktreeReview) {
         guard let pullRequest = review.pullRequest, pullRequest.ciFailed,
             let url = URL(string: pullRequest.checks.failedURL ?? pullRequest.url + "/checks")
         else { return }
         services.platform.open(url)
     }
 
-    func usePullRequestBase() {
+    package func usePullRequestBase() {
         guard let base = selected?.pullRequestBase else { return }
         setBaseOverride(base.ref)
     }

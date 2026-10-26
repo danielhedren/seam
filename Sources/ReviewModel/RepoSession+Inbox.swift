@@ -3,18 +3,18 @@ import GitKit
 import SeamCore
 
 /// Something in one of the repo's worktrees that's the reader's to act on (SPEC §7.3.2).
-struct InboxItem: Identifiable, Equatable {
-    enum Kind: Equatable {
+package struct InboxItem: Identifiable, Equatable {
+    package enum Kind: Equatable {
         /// A thread whose latest word is an agent's: an answer or a question.
         case thread(ReviewThread)
         case failedChecks(PullRequest)
     }
 
-    var worktree: String
-    var kind: Kind
-    var date: Date
+    package var worktree: String
+    package var kind: Kind
+    package var date: Date
 
-    var id: String {
+    package var id: String {
         switch kind {
         case .thread(let thread): thread.id
         case .failedChecks: "checks:\(worktree)"
@@ -25,7 +25,7 @@ struct InboxItem: Identifiable, Equatable {
 /// The Inbox navigator: what awaits the reader across every worktree, newest first, and
 /// opening it where it is.
 extension RepoSession {
-    var inbox: [InboxItem] {
+    package var inbox: [InboxItem] {
         reviews.filter { !$0.worktree.isMissing }.flatMap(inboxItems)
             .sorted { $0.date == $1.date ? $0.id < $1.id : $0.date > $1.date }
     }
@@ -49,13 +49,13 @@ extension RepoSession {
     }
 
     /// Go › Show Inbox.
-    func showInbox() {
+    package func showInbox() {
         selected?.navigator = .inbox
     }
 
     /// Picks the item's worktree, keeping the Inbox shown there, and opens its thread in the
     /// diff, or the panel when the diff can't show it.
-    func open(_ item: InboxItem) async {
+    package func open(_ item: InboxItem) async {
         select(item.worktree)
         guard let review = selected, review.id == item.worktree else { return }
         review.navigator = .inbox
@@ -70,7 +70,7 @@ extension RepoSession {
     }
 
     /// Go › Next Awaiting You: the item after the open thread, wrapping.
-    func openNextInInbox() async {
+    package func openNextInInbox() async {
         let items = inbox
         guard !items.isEmpty else { return }
         let current = items.firstIndex { $0.id == selectedThreadID }

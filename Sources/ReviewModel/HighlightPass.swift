@@ -3,10 +3,10 @@ import SeamCore
 
 /// Highlights a review's files, the one being read first (SPEC §8.4). Results publish after that
 /// file and then in batches, since each publish rebuilds the diff's rows.
-struct HighlightPass {
+package struct HighlightPass {
     static let batchSize = 25
 
-    let files: [ReviewFile]
+    package let files: [ReviewFile]
     let contents: [String: FileContents]
     let first: String?
     let highlighter: SyntaxHighlighter

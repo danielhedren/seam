@@ -8,6 +8,7 @@ import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 /// A pull request's review threads beside Seam's own (SPEC §7.9), through the real session
 /// against a fake gh.

@@ -1,19 +1,18 @@
 import DiffModel
-import DiffView
 import Foundation
 import SeamCore
 
-struct FileThreadCounts: Equatable {
-    var open = 0
-    var resolved = 0
+package struct FileThreadCounts: Equatable {
+    package var open = 0
+    package var resolved = 0
     /// A pull request's threads, which get a dot of their own (SPEC §7.9).
-    var gitHubOpen = 0
-    var gitHubResolved = 0
+    package var gitHubOpen = 0
+    package var gitHubResolved = 0
 }
 
 /// Placements and markers per (threads, diff, contents) version: placing splits each file's text,
 /// a marker parses its comment's Markdown, and the diff view asks for both on every update.
-final class ThreadPlacementCache {
+package final class ThreadPlacementCache {
     var key: [Int] = []
     var placed: [PlacedThread] = []
     var markersKey: [Int] = []
@@ -27,7 +26,7 @@ extension WorktreeReview {
     }
 
     /// This worktree's threads with where they are now, open ones first, then by file and line.
-    var placedThreads: [PlacedThread] {
+    package var placedThreads: [PlacedThread] {
         guard threads != nil || pullRequestThreads != nil else { return [] }
         let key = [
             threads?.version ?? 0, pullRequestThreads?.version ?? 0, diffVersion, contentsVersion,
@@ -61,7 +60,7 @@ extension WorktreeReview {
 
     /// The branch's commits up to the one a thread was written on, as its diff showed then; nil
     /// when that commit isn't on the branch any more, such as after a rebase.
-    func commitsUpTo(_ thread: ReviewThread) -> CommitSelection? {
+    package func commitsUpTo(_ thread: ReviewThread) -> CommitSelection? {
         guard let commit = thread.github?.commit, let log = commitLog,
             log.commits.contains(where: { $0.id == commit }), let oldest = log.commits.last
         else { return nil }
@@ -69,14 +68,14 @@ extension WorktreeReview {
     }
 
     /// The file list's markers: each file's open and resolved threads, outdated ones included.
-    var threadCountsByPath: [String: FileThreadCounts] {
+    package var threadCountsByPath: [String: FileThreadCounts] {
         let paths = Dictionary(
             placedThreads.map { ($0.id, $0.path) }, uniquingKeysWith: { first, _ in first })
         return threadCounts { paths[$0.id] ?? $0.anchor.path }
     }
 
     /// The commit list's markers: each row's threads, by the commit they were written on.
-    var threadCountsByCommit: [CommitSelection.End: FileThreadCounts] {
+    package var threadCountsByCommit: [CommitSelection.End: FileThreadCounts] {
         threadCounts(by: \.writtenOn)
     }
 
@@ -99,7 +98,7 @@ extension WorktreeReview {
 
     /// The threads Go › Next and Previous Thread step through, in file order: open ones, and
     /// resolved ones too while they're shown.
-    var steppableThreads: [PlacedThread] {
+    package var steppableThreads: [PlacedThread] {
         let showsResolved = services.settings.showsResolvedThreads
         return placedThreads.filter { showsResolved || !$0.thread.isResolved }
             .sorted { lhs, rhs in
@@ -112,14 +111,14 @@ extension WorktreeReview {
 
     /// Seam's open threads whose latest word isn't the reader's: an agent's answer or question,
     /// waiting on them. A pull request's threads are answered on GitHub, so they aren't here.
-    var awaitingReply: [PlacedThread] {
+    package var awaitingReply: [PlacedThread] {
         let reader = threads?.knownReader(in: id) ?? ReviewerIdentity(name: ReviewThread.reader)
         return placedThreads.filter { $0.thread.source == .seam && reader.awaitsReply($0.thread) }
     }
 
     /// What awaits the reader here, for the worktree's row and the Needs You sort (SPEC §7.2).
     /// Unlike `awaitingReply`, it needs no diff, so every row has it.
-    var attention: WorktreeAttention {
+    package var attention: WorktreeAttention {
         let reader = threads?.knownReader(in: id) ?? ReviewerIdentity(name: ReviewThread.reader)
         return WorktreeAttention(
             awaiting: (threads?.threads(in: id) ?? []).count { reader.awaitsReply($0) },
@@ -127,12 +126,12 @@ extension WorktreeReview {
     }
 
     /// The toolbar's badge: open threads, whether or not the diff shows them.
-    var openThreadCount: Int {
+    package var openThreadCount: Int {
         allThreads.count { !$0.isResolved && !$0.isNote }
     }
 
     /// What the diff draws: placed threads, without resolved ones unless they're asked for.
-    var threadMarkers: [String: [ThreadMarker]] {
+    package var threadMarkers: [String: [ThreadMarker]] {
         let showsResolved = services.settings.showsResolvedThreads
         let placedThreads = placedThreads
         guard threads != nil || pullRequestThreads != nil else { return [:] }
@@ -150,7 +149,7 @@ extension WorktreeReview {
 
     /// One thread's marker, resolved or not; nil for a thread the diff has no lines for.
     /// Resolved threads while they're hidden, which still mark their lines, hollow (SPEC §7.7).
-    var hiddenResolvedMarkers: [String: [ThreadMarker]] {
+    package var hiddenResolvedMarkers: [String: [ThreadMarker]] {
         guard !services.settings.showsResolvedThreads else { return [:] }
         var markers: [String: [ThreadMarker]] = [:]
         for placed in placedThreads where placed.thread.isResolved {
@@ -168,9 +167,14 @@ extension WorktreeReview {
         guard case .lines(let lines) = placed.placement, let latest = placed.thread.comments.last
         else { return nil }
         // The diff draws plain text: the Markdown's words, not its asterisks and backticks.
-        let plain =
-            (try? AttributedString(markdown: latest.body)).map { String($0.characters) }
-            ?? latest.body
+        // Foundation on Linux can't parse Markdown, so there the text stays as written.
+        #if canImport(Darwin)
+            let plain =
+                (try? AttributedString(markdown: latest.body)).map { String($0.characters) }
+                ?? latest.body
+        #else
+            let plain = latest.body
+        #endif
         let firstLine = plain.prefix { !$0.isNewline }
         return ThreadMarker(
             id: placed.id, side: placed.thread.anchor.side, lines: lines,
@@ -192,14 +196,14 @@ extension WorktreeReview {
 
 /// What in a worktree is the reader's to act on: threads whose latest word isn't theirs (an
 /// agent's answer or question), and an open pull request's failed checks.
-struct WorktreeAttention: Equatable {
+package struct WorktreeAttention: Equatable {
     var awaiting = 0
     var checksFailed = false
 
     var needsReader: Bool { awaiting > 0 || checksFailed }
 
     /// "2 awaiting you · checks failed"; nil when nothing does.
-    var summary: String? {
+    package var summary: String? {
         var parts: [String] = []
         if awaiting > 0 {
             parts.append(String(localized: "\(awaiting) awaiting you", bundle: .module))

@@ -8,16 +8,16 @@ import SeamCore
 @MainActor
 @Observable
 public final class GitHubAccount {
-    enum Status: Equatable {
+    package enum Status: Equatable {
         case unknown
         case ready
         case failed(GitHubError)
     }
 
     let client: any GitHubClient
-    private(set) var status = Status.unknown
+    package private(set) var status = Status.unknown
     /// Bumped by Settings › Check Again; every window refreshes when it changes.
-    private(set) var retries = 0
+    package private(set) var retries = 0
     private var accountHosts: Set<String>?
     @ObservationIgnored private let onRetry: @Sendable () async -> Void
 
@@ -54,7 +54,7 @@ public final class GitHubAccount {
         status = error.map(Status.failed) ?? .ready
     }
 
-    func checkAgain() {
+    package func checkAgain() {
         accountHosts = nil
         status = .unknown
         Task {
@@ -65,7 +65,7 @@ public final class GitHubAccount {
 }
 
 /// Finds `gh` once: the login shell's PATH, then Homebrew's usual places.
-actor GHLocator {
+package actor GHLocator {
     private var found: URL??
     private let path = LoginShellPath()
 
@@ -87,24 +87,25 @@ actor GHLocator {
     }
 }
 
-struct NoGitHub: GitHubClient {
-    func hosts() throws(GitHubError) -> [String] { throw .notInstalled }
+package struct NoGitHub: GitHubClient {
+    package func hosts() throws(GitHubError) -> [String] { throw .notInstalled }
 
-    func openPullRequests(in repo: GitHubRepo) throws(GitHubError) -> [PullRequest] {
+    package func openPullRequests(in repo: GitHubRepo) throws(GitHubError) -> [PullRequest] {
         throw .notInstalled
     }
 
-    func latestPullRequest(from branch: String, in repo: GitHubRepo) throws(GitHubError)
+    package func latestPullRequest(from branch: String, in repo: GitHubRepo) throws(GitHubError)
         -> PullRequest?
     {
         throw .notInstalled
     }
 
-    func pullRequest(_ number: Int, in repo: GitHubRepo) throws(GitHubError) -> PullRequest {
+    package func pullRequest(_ number: Int, in repo: GitHubRepo) throws(GitHubError) -> PullRequest
+    {
         throw .notInstalled
     }
 
-    func reviewThreads(_ number: Int, in repo: GitHubRepo) throws(GitHubError)
+    package func reviewThreads(_ number: Int, in repo: GitHubRepo) throws(GitHubError)
         -> [GitHubReviewThread]
     {
         throw .notInstalled

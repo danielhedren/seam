@@ -1,4 +1,5 @@
 import AppKit
+import ReviewModel
 
 public struct MacPlatform: PlatformServices {
     public init() {}

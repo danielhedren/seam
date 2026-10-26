@@ -1,6 +1,7 @@
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 @MainActor @Suite(.timeLimit(.minutes(1))) struct QuotedLinesTests {
     @Test func aQuoteOfEightLinesShowsWhole() {

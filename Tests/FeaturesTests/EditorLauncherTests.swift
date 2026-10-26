@@ -3,6 +3,7 @@ import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 @Suite(.timeLimit(.minutes(1))) struct ShellLauncherTests {
     private let launcher = ShellLauncher(shell: URL(fileURLWithPath: "/bin/sh"))

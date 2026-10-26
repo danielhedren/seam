@@ -5,6 +5,7 @@ import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 /// Returns once `condition` holds, re-checking whenever an observed property changes, or once the
 /// test's time limit cancels it.

@@ -10,6 +10,7 @@ import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 actor MemoryStore: StateStore {
     var states: [String: RepoState] = [:]

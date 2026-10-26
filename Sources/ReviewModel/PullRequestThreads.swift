@@ -8,12 +8,12 @@ import SeamCore
 /// read of the PRs; Seam's own threads are `RepoThreads`'.
 @MainActor
 @Observable
-final class PullRequestThreads {
-    private(set) var threads: [ReviewThread] = []
+package final class PullRequestThreads {
+    package private(set) var threads: [ReviewThread] = []
     /// Bumped when the threads change, so placements are worked out again only then.
     private(set) var version = 0
     /// Settings can turn pull requests, and with them their threads, off.
-    @ObservationIgnored var isShown: @MainActor () -> Bool = { true }
+    @ObservationIgnored package var isShown: @MainActor () -> Bool = { true }
 
     /// Read again after this long even when the PR's update time hasn't moved: resolving a
     /// thread may not change it.
@@ -39,7 +39,7 @@ final class PullRequestThreads {
         self.clock = clock
     }
 
-    func threads(in worktree: String) -> [ReviewThread] {
+    package func threads(in worktree: String) -> [ReviewThread] {
         isShown() ? threads.filter { $0.worktree == worktree } : []
     }
 

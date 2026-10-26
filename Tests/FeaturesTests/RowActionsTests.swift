@@ -5,6 +5,7 @@ import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 /// The worktree and commit rows' context menus and their menu-bar twins (SPEC §7.2, §7.2.1).
 @MainActor

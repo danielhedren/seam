@@ -1,6 +1,7 @@
 import DiffModel
 import DiffView
 import GitKit
+import ReviewModel
 import SeamCore
 import SwiftUI
 

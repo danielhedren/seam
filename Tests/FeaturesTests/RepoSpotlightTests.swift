@@ -7,6 +7,7 @@ import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 /// Remembers what it was asked to index.
 private final class RecordingIndex: RepoIndex {

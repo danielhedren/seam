@@ -741,12 +741,13 @@ nearly all of the logic testable without git or a window.
 
 ```
 SeamApp (app target: entry point only)
-  └ Features      @Observable models, SwiftUI views per pane, scenes and menus
-      ├ DiffView      AppKit diff view, Core Text drawing
-      │ └ DiffModel   diff rows, layout, selection and search; no AppKit (ADR 0007)
-      ├ Highlighting  tree-sitter wrapper, highlight cache
-      └ SeamCore      domain: Repo, Worktree, BaseDetector, ReviewDiff, IntraLineDiff, ViewedState
-          └ GitKit    process runner, git commands, porcelain/-z/patch parsers
+  └ Features          SwiftUI views per pane, scenes, menus and the command catalog
+      ├ DiffView          AppKit diff view, Core Text drawing
+      └ ReviewModel       @Observable models: RepoSession, WorktreeReview, threads, pull requests
+          ├ DiffModel     diff rows, layout, selection and search
+          ├ Highlighting  tree-sitter wrapper, highlight cache
+          └ SeamCore      domain: Repo, Worktree, BaseDetector, ReviewDiff, IntraLineDiff, ViewedState
+              └ GitKit    process runner, git commands, porcelain/-z/patch parsers
 seam (CLI executable) ─ SeamCore, GitKit: the URL scheme, the thread store, and the app's
                         state file and settings, whose types live in SeamCore
 seam-debug (M1)       ─ SeamCore

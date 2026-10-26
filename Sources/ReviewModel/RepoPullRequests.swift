@@ -7,8 +7,8 @@ import SeamCore
 /// `RepoSession`; rows read their branch's.
 @MainActor
 @Observable
-final class RepoPullRequests {
-    enum Status: Equatable {
+package final class RepoPullRequests {
+    package enum Status: Equatable {
         case unknown
         /// No remote points at a GitHub host.
         case notGitHub
@@ -35,8 +35,8 @@ final class RepoPullRequests {
     static let firstBackoff = Duration.seconds(60)
     static let longestBackoff = Duration.seconds(960)
 
-    private(set) var saved = SavedPullRequests()
-    private(set) var status = Status.unknown
+    package private(set) var saved = SavedPullRequests()
+    package private(set) var status = Status.unknown
     /// Where the PRs were last read from.
     private(set) var repo: GitHubRepo?
     /// Counts finished refreshes, for tests to wait on.
@@ -81,7 +81,7 @@ final class RepoPullRequests {
     }
 
     /// The branch's PR, unless Settings turned pull requests off.
-    func pullRequest(for branch: String?) -> PullRequest? {
+    package func pullRequest(for branch: String?) -> PullRequest? {
         guard services.settings.showsPullRequests, let branch else { return nil }
         return saved.byBranch[branch]
     }
@@ -90,7 +90,7 @@ final class RepoPullRequests {
         saved.baseRefs[branch]
     }
 
-    func unpushedCount(for branch: String) -> Int? {
+    package func unpushedCount(for branch: String) -> Int? {
         saved.unpushed[branch]
     }
 
@@ -363,7 +363,7 @@ final class RepoPullRequests {
 }
 
 /// Time since it was made, by the injected clock, so tests can move it.
-struct Stopwatch: Sendable {
+package struct Stopwatch: Sendable {
     private let read: @Sendable () -> Duration
 
     init(_ clock: any Clock<Duration>) {

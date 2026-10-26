@@ -7,6 +7,7 @@ import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 /// SPEC §10: images of the window's panes, rendered in this process with a fixture repo, so
 /// layout and sizing are checked without driving the real screen. Sidebar rows are rendered
