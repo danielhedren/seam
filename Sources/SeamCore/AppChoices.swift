@@ -1,4 +1,4 @@
-import CryptoKit
+import Crypto
 import Foundation
 
 /// What the reader chose in the app that the `seam` command must agree with (SPEC §13): the

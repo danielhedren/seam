@@ -1,4 +1,4 @@
-import CryptoKit
+import Crypto
 import Foundation
 
 /// Review threads on disk (SPEC §7.7), shared by the app and the `seam` command: one JSON file

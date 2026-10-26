@@ -32,6 +32,9 @@ let grammarTargets: [Target] = grammars.map { grammar in
         cSettings: [.headerSearchPath(source), .unsafeFlags(["-w"])])
 }
 
+/// CryptoKit on Apple platforms, its open-source implementation elsewhere (ADR 0007).
+let crypto = Target.Dependency.product(name: "Crypto", package: "swift-crypto")
+
 let package = Package(
     name: "Seam",
     defaultLocalization: "en",
@@ -47,16 +50,18 @@ let package = Package(
         .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", exact: "1.19.6"),
         .package(url: "https://github.com/ChimeHQ/SwiftTreeSitter", exact: "0.25.0"),
         .package(url: "https://github.com/apple/swift-argument-parser", exact: "1.6.1"),
+        .package(url: "https://github.com/apple/swift-crypto", exact: "5.0.1"),
     ],
     targets: grammarTargets + [
         .target(name: "GitKit", swiftSettings: strict),
         .target(
             name: "Highlighting",
             dependencies: [
-                "SeamCore", "GitKit", .product(name: "SwiftTreeSitter", package: "SwiftTreeSitter"),
+                "SeamCore", "GitKit", crypto,
+                .product(name: "SwiftTreeSitter", package: "SwiftTreeSitter"),
             ] + grammars.map { .target(name: $0.target) },
             resources: [.copy("Queries"), .copy("QueryAdditions")], swiftSettings: strict),
-        .target(name: "SeamCore", dependencies: ["GitKit"], swiftSettings: strict),
+        .target(name: "SeamCore", dependencies: ["GitKit", crypto], swiftSettings: strict),
         .target(
             name: "DiffView", dependencies: ["SeamCore", "GitKit"],
             resources: [.process("Resources")], swiftSettings: strict),
