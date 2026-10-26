@@ -1,5 +1,4 @@
 import DiffModel
-import DiffView
 import Foundation
 import SeamCore
 
@@ -7,7 +6,7 @@ import SeamCore
 /// not model state.
 @MainActor
 final class DiffController {
-    weak var view: DiffScrollView?
+    weak var view: (any DiffNavigator)?
 
     init() {}
 

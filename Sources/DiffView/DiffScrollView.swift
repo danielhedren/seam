@@ -499,3 +499,4 @@ extension DiffCanvasView {
         }
     }
 }
+extension DiffScrollView: DiffNavigator {}
