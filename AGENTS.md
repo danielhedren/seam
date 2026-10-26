@@ -20,7 +20,7 @@ spec disagree, stop and ask; do not pick one silently.
   once per clone to install the pre-commit hook. Never bypass it with `--no-verify`.
 - `make format` rewrites files with `swift format`. Don't hand-format against it.
 - No new dependency without the user's approval. Allowed today: SwiftTreeSitter,
-  swift-argument-parser, swift-snapshot-testing (tests only), and the tree-sitter grammars
+  swift-argument-parser, swift-crypto, swift-snapshot-testing (tests only), and the tree-sitter grammars
   vendored by `Scripts/vendor-grammars.sh`. Pin exact versions.
 
 ## Architecture (SPEC §8.2)

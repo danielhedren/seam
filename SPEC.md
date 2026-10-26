@@ -712,6 +712,7 @@ GitHub.
   added only after review:
   - SwiftTreeSitter and the grammar packages
   - swift-argument-parser (CLI)
+  - swift-crypto (hashing on every platform, ADR 0007)
   - swift-snapshot-testing (tests only)
 - **Project layout:** a thin Xcode app target, with all code in a local Swift package. The Xcode
   project (`App/Seam.xcodeproj`) contains only the app entry point (`App/Seam/SeamApp.swift`),
@@ -1201,6 +1202,14 @@ read, an agent given the prompt finds it with `seam threads` and can answer it w
 command, and every test runs against a fake `gh`.
 
 **Later:** the PR's conversation comments.
+
+**M8 — Portable core (ADR 0007).** The diff's row model and layout move to `DiffModel` and the
+observable models to `ReviewModel`, free of AppKit and SwiftUI. Logging, hashing, file watching,
+the state location and the platform services the models use are chosen per platform. The app
+stays macOS only.
+*Done when:* `make linux-check` builds `GitKit`, `SeamCore`, `Highlighting`, `DiffModel`,
+`ReviewModel` and `seam` in Docker and their tests pass there, `make check` passes with no
+change in behaviour, and `DiffView` and `Features` hold only views, drawing, scenes and menus.
 
 ## 15. Risks
 
