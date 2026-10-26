@@ -4,7 +4,6 @@ import Foundation
 import GitKit
 import Highlighting
 import SeamCore
-import os
 
 public protocol StateStore: Sendable {
     /// An empty state when there's none or it can't be read; `loadProblem` says which.

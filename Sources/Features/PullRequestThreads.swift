@@ -2,7 +2,6 @@ import Foundation
 import GitKit
 import Observation
 import SeamCore
-import os
 
 /// A repo's pull request review threads (SPEC §7.9): which worktrees' to read and when, the
 /// GitHub file `seam` reads them from, and what's in memory. `RepoPullRequests` hands it each

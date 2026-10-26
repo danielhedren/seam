@@ -1,6 +1,5 @@
 import Foundation
 import GitKit
-import os
 
 /// What a batch of file events means for the repo (SPEC §8.6).
 public struct RepoChange: Equatable, Sendable {

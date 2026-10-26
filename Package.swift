@@ -53,7 +53,7 @@ let package = Package(
         .target(
             name: "Highlighting",
             dependencies: [
-                "SeamCore", .product(name: "SwiftTreeSitter", package: "SwiftTreeSitter"),
+                "SeamCore", "GitKit", .product(name: "SwiftTreeSitter", package: "SwiftTreeSitter"),
             ] + grammars.map { .target(name: $0.target) },
             resources: [.copy("Queries"), .copy("QueryAdditions")], swiftSettings: strict),
         .target(name: "SeamCore", dependencies: ["GitKit"], swiftSettings: strict),

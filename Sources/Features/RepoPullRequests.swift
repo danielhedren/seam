@@ -2,7 +2,6 @@ import Foundation
 import GitKit
 import Observation
 import SeamCore
-import os
 
 /// A repo's pull requests, read through gh and kept current (SPEC §7.8). Owned by
 /// `RepoSession`; rows read their branch's.

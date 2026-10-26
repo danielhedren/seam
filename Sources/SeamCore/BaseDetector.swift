@@ -1,6 +1,5 @@
 import Foundation
 import GitKit
-import os
 
 public struct DetectionSettings: Equatable, Sendable {
     /// A ref name, full (`refs/remotes/origin/main`) or short (`origin/main`, `main`); nil

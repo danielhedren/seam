@@ -4,7 +4,6 @@ import Foundation
 import GitKit
 import Observation
 import SeamCore
-import os
 
 enum WorktreeSort: String, CaseIterable, Sendable {
     /// Worktrees with something awaiting the reader first, then by recent change.

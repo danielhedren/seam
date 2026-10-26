@@ -1,9 +1,9 @@
 import AppKit
 import CoreSpotlight
 import Foundation
+import GitKit
 import SeamCore
 import UniformTypeIdentifiers
-import os
 
 /// Recent repositories in Spotlight (SPEC §7.1): typing part of a repo's name there lists it,
 /// and picking it opens the repo in Seam.

@@ -766,8 +766,9 @@ seam-debug (M1)       ─ SeamCore
 - **Errors:** typed domain errors (`GitError`, `DetectionError`, …) as `throws(E)` where the set is
   closed. The UI turns them into inline banners (§9). They never cause a crash or a modal unless
   data would be lost, and Seam has no such case.
-- **Observability:** `os.Logger` with subsystem `com.danielhedren.seam` and a category per module.
-  `OSSignposter` intervals around every operation with a §8.7 budget, so Instruments shows them
+- **Observability:** Seam's logging in `GitKit` (`Logging.swift`), which is `os.Logger` and
+  `OSSignposter` on macOS (subsystem `com.danielhedren.seam`, a category per module) and quiet on
+  Linux. Signpost intervals around every operation with a §8.7 budget, so Instruments shows them
   directly. No analytics or telemetry.
 - **Decisions** are recorded as short ADRs in `docs/adr/`. Starting set:
   - git CLI vs libgit2 (§8.3)

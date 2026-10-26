@@ -2,7 +2,6 @@ import Foundation
 import GitKit
 import Observation
 import SeamCore
-import os
 
 /// A repo's own review threads (SPEC §7.7), from the store the `seam` command shares, reloaded
 /// whenever another process changes it so agents' replies appear live. Store I/O runs in order

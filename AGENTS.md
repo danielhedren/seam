@@ -38,8 +38,9 @@ spec disagree, stop and ask; do not pick one silently.
   non-Sendable Apple type, with a one-line comment saying why it is safe.
 - Errors: typed domain errors (`throws(GitError)` etc.) where the set is closed. No `fatalError`,
   `try!`, force unwraps or `precondition` on paths that real input can reach.
-- Logging via `os.Logger` (subsystem `com.danielhedren.seam`, category = module). Signpost every
-  operation that has a §8.7 budget. No `print` outside `seam-debug`.
+- Logging through `GitKit`'s `Logger` and `OSSignposter` (`os` on macOS, quiet on Linux; ADR
+  0007), never `import os` directly. Subsystem `com.danielhedren.seam`, category = module.
+  Signpost every operation that has a §8.7 budget. No `print` outside `seam-debug`.
 - Git: always the `git` CLI through `GitClient`. Pass every option whose user config would change
   the output (prefixes, colour, renames, algorithm, context, textconv). Seam never writes to the
   repository, the index or `.git`.

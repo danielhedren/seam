@@ -2,7 +2,6 @@ import AppKit
 import CoreText
 import GitKit
 import SeamCore
-import os
 
 /// The diff document view: draws only the visible rows with Core Text (SPEC §8.5). Both split
 /// columns live in this one view, so they scroll together by construction.
