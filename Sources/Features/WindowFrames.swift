@@ -1,4 +1,5 @@
 import AppKit
+import ReviewModel
 import SwiftUI
 
 /// Each repo's window reopens in its last frame (SPEC §7.1). SwiftUI replaces frame autosave

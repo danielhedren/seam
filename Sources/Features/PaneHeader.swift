@@ -1,4 +1,6 @@
+import DiffModel
 import DiffView
+import ReviewModel
 
 /// The header row every pane beside the diff shares, so the file list's, the diff's and the
 /// thread panel's header borders meet in one line (SPEC §9). Its height follows the diff font.

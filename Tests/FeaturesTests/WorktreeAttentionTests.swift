@@ -1,10 +1,12 @@
 import Foundation
 import GitKit
+import ReviewTestSupport
 import SeamCore
 import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 /// Worktree rows say what awaits the reader, and Needs You First lists those worktrees at the
 /// top (SPEC §7.2).

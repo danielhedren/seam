@@ -1,4 +1,5 @@
 import AppKit
+import DiffModel
 import SeamCore
 
 /// What the diff's one card holds (SPEC §7.7): a new thread being written, or an open thread.

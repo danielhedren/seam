@@ -1,0 +1,438 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ already exists and isn't Seam's. Remove it and try again." : {
+
+    },
+    "%@ isn't installed or isn't on your PATH. Choose your editor in Settings." : {
+
+    },
+    "%@ no longer exists." : {
+
+    },
+    "%@, %lld of them on the GitHub pull request" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$lld of them on the GitHub pull request"
+          }
+        }
+      }
+    },
+    "%lld awaiting you" : {
+
+    },
+    "%lld comments" : {
+
+    },
+    "%lld commits" : {
+
+    },
+    "%lld commits and uncommitted changes" : {
+
+    },
+    "%lld failed" : {
+
+    },
+    "%lld files" : {
+
+    },
+    "%lld local commits aren't in the pull request" : {
+
+    },
+    "%lld matches" : {
+
+    },
+    "%lld open threads" : {
+
+    },
+    "%lld passed" : {
+
+    },
+    "%lld running" : {
+
+    },
+    "%lld uncommitted files" : {
+
+    },
+    "1 comment" : {
+
+    },
+    "1 commit" : {
+
+    },
+    "1 file" : {
+
+    },
+    "1 local commit isn't in the pull request" : {
+
+    },
+    "1 match" : {
+
+    },
+    "1 open thread" : {
+
+    },
+    "1 uncommitted file" : {
+
+    },
+    "Actual Size" : {
+
+    },
+    "All Changes" : {
+
+    },
+    "Approved" : {
+
+    },
+    "Cancelled" : {
+
+    },
+    "Changes requested" : {
+
+    },
+    "Checks: %@" : {
+
+    },
+    "Choose Base…" : {
+
+    },
+    "Closed" : {
+
+    },
+    "Collapse File" : {
+
+    },
+    "Command Palette…" : {
+
+    },
+    "Comment…" : {
+
+    },
+    "Commit %lld of %lld · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Commit %1$lld of %2$lld · %3$@"
+          }
+        }
+      }
+    },
+    "Committed Changes" : {
+
+    },
+    "Committed changes only" : {
+
+    },
+    "Copy Branch Name" : {
+
+    },
+    "Copy Commit ID" : {
+
+    },
+    "Copy Commit Subject" : {
+
+    },
+    "Copy Path" : {
+
+    },
+    "Copy Prompt for Agent" : {
+
+    },
+    "Copy Pull Request URL" : {
+
+    },
+    "Copy Relative Path" : {
+
+    },
+    "Copy Worktree Path" : {
+
+    },
+    "Couldn't read the threads: %@" : {
+
+    },
+    "Couldn't run git: %@" : {
+
+    },
+    "Couldn't save the threads: %@" : {
+
+    },
+    "Delete Thread" : {
+
+    },
+    "Draft" : {
+
+    },
+    "Expand File" : {
+
+    },
+    "File" : {
+
+    },
+    "Files as Flat List" : {
+
+    },
+    "Filter Files" : {
+
+    },
+    "Find" : {
+
+    },
+    "Find Next" : {
+
+    },
+    "Find Previous" : {
+
+    },
+    "Find…" : {
+
+    },
+    "Generated" : {
+
+    },
+    "Go" : {
+
+    },
+    "Hide Missing Worktrees" : {
+
+    },
+    "Hide Sidebar" : {
+
+    },
+    "Hide Threads" : {
+
+    },
+    "Hide Whitespace Changes" : {
+
+    },
+    "In the diff or file list" : {
+
+    },
+    "In the file list" : {
+
+    },
+    "Jump to Thread's Commit" : {
+
+    },
+    "Keep Detected Base" : {
+
+    },
+    "Keep Parent That Looks Merged" : {
+
+    },
+    "Latest Commit Only" : {
+
+    },
+    "Make Text Bigger" : {
+
+    },
+    "Make Text Smaller" : {
+
+    },
+    "Mark as Not Viewed" : {
+
+    },
+    "Mark as Viewed" : {
+
+    },
+    "Merged" : {
+
+    },
+    "Next Awaiting You" : {
+
+    },
+    "Next Commit" : {
+
+    },
+    "Next File" : {
+
+    },
+    "Next Hunk" : {
+
+    },
+    "Next Thread" : {
+
+    },
+    "Next Worktree" : {
+
+    },
+    "Not a git repository. Choose another folder." : {
+
+    },
+    "Open Failed Check in Browser" : {
+
+    },
+    "Open Pull Request in Browser" : {
+
+    },
+    "Open Thread on GitHub" : {
+
+    },
+    "Open Thread on This Line" : {
+
+    },
+    "Open Worktree in Editor" : {
+
+    },
+    "Open in Editor" : {
+
+    },
+    "Outside the file list" : {
+
+    },
+    "Page Down" : {
+
+    },
+    "Page Up" : {
+
+    },
+    "Previous Commit" : {
+
+    },
+    "Previous File" : {
+
+    },
+    "Previous Hunk" : {
+
+    },
+    "Previous Thread" : {
+
+    },
+    "Previous Worktree" : {
+
+    },
+    "Read from GitHub %@" : {
+
+    },
+    "Reload" : {
+
+    },
+    "Reopen Thread" : {
+
+    },
+    "Resolve Thread" : {
+
+    },
+    "Reveal Worktree in Finder" : {
+
+    },
+    "Reveal in Finder" : {
+
+    },
+    "Review" : {
+
+    },
+    "Reviewed, not approved" : {
+
+    },
+    "Seam couldn't read what it saved for this repository, so viewed files and chosen bases start afresh. The old file is kept as %@." : {
+
+    },
+    "Seam couldn't save its state: %@" : {
+
+    },
+    "Search in Review" : {
+
+    },
+    "Show Changes Since Viewed" : {
+
+    },
+    "Show Full Diff" : {
+
+    },
+    "Show Inbox" : {
+
+    },
+    "Show Resolved Threads" : {
+
+    },
+    "Show Sidebar" : {
+
+    },
+    "Show Threads" : {
+
+    },
+    "Side by Side" : {
+
+    },
+    "Sort Worktrees Needing You First" : {
+
+    },
+    "Sort Worktrees by Name" : {
+
+    },
+    "Sort Worktrees by Recent Change" : {
+
+    },
+    "Space" : {
+
+    },
+    "Switch Worktree…" : {
+
+    },
+    "The pull request also has %lld failed checks; `gh pr checks` lists them. Fix them once every thread is answered.\n\n" : {
+
+    },
+    "The pull request also has a failed check; `gh pr checks` shows it. Fix it once every thread is answered.\n\n" : {
+
+    },
+    "These threads were saved by a newer version of Seam. Update Seam to change them." : {
+
+    },
+    "This copy of Seam doesn't include the seam command. Build it with make app or make install." : {
+
+    },
+    "Thread #%@ no longer exists." : {
+
+    },
+    "Uncommitted Changes" : {
+
+    },
+    "Uncommitted changes only" : {
+
+    },
+    "Unexpected output from git: %@" : {
+
+    },
+    "Use Detected Base" : {
+
+    },
+    "Use Pull Request's Base" : {
+
+    },
+    "View" : {
+
+    },
+    "Waiting for review" : {
+
+    },
+    "Whitespace changes hidden" : {
+
+    },
+    "Worktree %lld" : {
+
+    },
+    "Wrap Lines" : {
+
+    },
+    "Write something first." : {
+
+    },
+    "checks failed" : {
+
+    },
+    "git %@ failed: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "git %1$@ failed: %2$@"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

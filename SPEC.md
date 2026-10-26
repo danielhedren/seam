@@ -705,7 +705,8 @@ GitHub.
   is used only where SwiftUI can't meet the §8.7 budgets.
 - Minimum macOS 26, Apple silicon only. The modules below the UI and the `seam` command also
   build and pass their tests on Linux (ADR 0007): `make linux-check` runs the targets
-  `Package.swift` lists as portable in Docker. The app is macOS only.
+  `Package.swift` lists as portable in Docker. The app is macOS only. Linux has no String
+  Catalogs, so there a string is its English key (`GitKit/Localization.swift`).
 - Rejected: Rust + Tauri, and Electron. Both give up native text rendering, menus, accessibility
   and FSEvents integration, which are the reason for a native app.
 - **Formatting and linting:** `swift format` (ships with the toolchain), with a checked-in
@@ -740,11 +741,14 @@ nearly all of the logic testable without git or a window.
 
 ```
 SeamApp (app target: entry point only)
-  └ Features      @Observable models, SwiftUI views per pane, scenes and menus
-      ├ DiffView      AppKit diff view, row model, Core Text drawing
-      ├ Highlighting  tree-sitter wrapper, highlight cache
-      └ SeamCore      domain: Repo, Worktree, BaseDetector, ReviewDiff, IntraLineDiff, ViewedState
-          └ GitKit    process runner, git commands, porcelain/-z/patch parsers
+  └ Features          SwiftUI views per pane, scenes and menus
+      ├ DiffView          AppKit diff view, Core Text drawing
+      └ ReviewModel       @Observable models (RepoSession, WorktreeReview, threads, pull
+                          requests) and the command catalog the menus are built from
+          ├ DiffModel     diff rows, layout, selection and search
+          ├ Highlighting  tree-sitter wrapper, highlight cache
+          └ SeamCore      domain: Repo, Worktree, BaseDetector, ReviewDiff, IntraLineDiff, ViewedState
+              └ GitKit    process runner, git commands, porcelain/-z/patch parsers
 seam (CLI executable) ─ SeamCore, GitKit: the URL scheme, the thread store, and the app's
                         state file and settings, whose types live in SeamCore
 seam-debug (M1)       ─ SeamCore
@@ -764,7 +768,8 @@ seam-debug (M1)       ─ SeamCore
   Results arrive on the main actor. Each selection change cancels the task tree for the previous
   selection. Nothing blocks the main thread on I/O.
 - **Dependency injection:** protocol seams passed in through initialisers: `GitClient`,
-  `GitHubClient`, `FileSystem`, `FileWatcher`, `Clock`, `Store`. No singletons, no DI framework. Tests and SwiftUI
+  `GitHubClient`, `FileSystem`, `FileWatcher`, `Clock`, `Store`, and `PlatformServices` for the
+  pasteboard, browser and file manager (ADR 0007). No singletons, no DI framework. Tests and SwiftUI
   previews use in-memory fakes.
 - **Errors:** typed domain errors (`GitError`, `DetectionError`, …) as `throws(E)` where the set is
   closed. The UI turns them into inline banners (§9). They never cause a crash or a modal unless

@@ -1,3 +1,4 @@
+import ReviewModel
 import SwiftUI
 
 /// The worktree list above the commit list. `VSplitView` lays its panes out again whenever the

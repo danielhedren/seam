@@ -1,12 +1,15 @@
 import AppKit
+import DiffModel
 import DiffView
 import Foundation
+import ReviewTestSupport
 import SeamCore
 import SwiftUI
 import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 @MainActor @Suite(.timeLimit(.minutes(1))) struct SearchTests {
     private func session(_ repo: FixtureRepo, clock: ManualClock = ManualClock()) async throws

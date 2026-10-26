@@ -1,5 +1,6 @@
 import SeamCore
 
+@testable import DiffModel
 @testable import DiffView
 
 extension DiffRowBuilder {

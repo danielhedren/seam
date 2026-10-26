@@ -63,10 +63,20 @@ let package = Package(
             resources: [.copy("Queries"), .copy("QueryAdditions")], swiftSettings: strict),
         .target(name: "SeamCore", dependencies: ["GitKit", crypto], swiftSettings: strict),
         .target(
-            name: "DiffView", dependencies: ["SeamCore", "GitKit"],
+            name: "DiffModel", dependencies: ["SeamCore", "GitKit"],
             resources: [.process("Resources")], swiftSettings: strict),
         .target(
-            name: "Features", dependencies: ["DiffView", "Highlighting", "SeamCore", "GitKit"],
+            name: "DiffView", dependencies: ["DiffModel", "SeamCore", "GitKit"],
+            resources: [.process("Resources")], swiftSettings: strict),
+        .target(
+            name: "ReviewModel",
+            dependencies: ["DiffModel", "Highlighting", "SeamCore", "GitKit"],
+            resources: [.process("Resources")], swiftSettings: strict),
+        .target(
+            name: "Features",
+            dependencies: [
+                "ReviewModel", "DiffView", "DiffModel", "Highlighting", "SeamCore", "GitKit",
+            ],
             resources: [.process("Resources")], swiftSettings: strict),
         .executableTarget(
             name: "seam-debug", dependencies: ["SeamCore", "GitKit"], swiftSettings: strict),
@@ -79,6 +89,10 @@ let package = Package(
         .target(
             name: "TestSupport", dependencies: ["GitKit"], path: "Tests/TestSupport",
             swiftSettings: strict),
+        .target(
+            name: "ReviewTestSupport",
+            dependencies: ["ReviewModel", "SeamCore", "GitKit", "TestSupport"],
+            path: "Tests/ReviewTestSupport", swiftSettings: strict),
         .testTarget(
             name: "GitKitTests",
             dependencies: ["GitKit", "TestSupport"],
@@ -86,19 +100,30 @@ let package = Package(
             swiftSettings: strict
         ),
         .testTarget(
+            name: "DiffModelTests", dependencies: ["DiffModel", "SeamCore", "GitKit"],
+            swiftSettings: strict),
+        .testTarget(
             name: "DiffViewTests",
             dependencies: [
-                "DiffView", "SeamCore", "GitKit",
+                "DiffView", "DiffModel", "SeamCore", "GitKit",
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ],
             exclude: ["__Snapshots__"], swiftSettings: strict),
         .testTarget(
             name: "FeaturesTests",
             dependencies: [
-                "Features", "DiffView", "SeamCore", "GitKit", "TestSupport",
+                "Features", "ReviewModel", "DiffView", "DiffModel", "SeamCore", "GitKit",
+                "TestSupport", "ReviewTestSupport",
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ],
             exclude: ["__Snapshots__"], swiftSettings: strict),
+        .testTarget(
+            name: "ReviewModelTests",
+            dependencies: [
+                "ReviewModel", "DiffModel", "SeamCore", "GitKit", "TestSupport",
+                "ReviewTestSupport",
+            ],
+            swiftSettings: strict),
         .testTarget(
             name: "HighlightingTests", dependencies: ["Highlighting"], swiftSettings: strict),
         .testTarget(
@@ -113,7 +138,8 @@ let package = Package(
     let portable = Set(
         [
             "GitKit", "TestSupport", "GitKitTests", "SeamCore", "SeamCoreTests", "Highlighting",
-            "HighlightingTests", "seam", "seam-debug",
+            "HighlightingTests", "DiffModel", "DiffModelTests", "ReviewModel", "ReviewTestSupport",
+            "ReviewModelTests", "seam", "seam-debug",
         ] + grammars.map(\.target))
     package.targets.removeAll { !portable.contains($0.name) }
     package.products.removeAll { !portable.contains($0.name) }

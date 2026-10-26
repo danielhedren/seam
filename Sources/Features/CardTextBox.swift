@@ -1,4 +1,5 @@
 import AppKit
+import ReviewModel
 import SwiftUI
 
 /// The card's text box: an AppKit text view, so ⌘↩ and Escape are the box's own keys rather

@@ -1,5 +1,6 @@
 import AppKit
 import CoreText
+import DiffModel
 import SeamCore
 
 /// File header drawing, shared by the header rows and the sticky header above them.

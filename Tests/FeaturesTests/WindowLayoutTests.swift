@@ -1,10 +1,12 @@
 import AppKit
+import ReviewTestSupport
 import SeamCore
 import SwiftUI
 import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 /// SPEC §7.1: a window keeps its frame, titlebar and toolbar while its repo opens, and a repo's
 /// window comes back in its own frame. Windows here are real but never ordered on screen.

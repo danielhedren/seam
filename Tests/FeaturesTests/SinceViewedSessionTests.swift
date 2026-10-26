@@ -1,11 +1,14 @@
 import Foundation
 import GitKit
+import ReviewTestSupport
 import SeamCore
 import TestSupport
 import Testing
 
+@testable import DiffModel
 @testable import DiffView
 @testable import Features
+@testable import ReviewModel
 
 /// Review › Show Changes Since Viewed (SPEC §7.4), through the catalog command and the session.
 @MainActor

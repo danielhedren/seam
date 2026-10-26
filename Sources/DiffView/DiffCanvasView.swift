@@ -1,5 +1,6 @@
 import AppKit
 import CoreText
+import DiffModel
 import GitKit
 import SeamCore
 

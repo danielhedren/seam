@@ -1,19 +1,35 @@
 import AppKit
+import DiffModel
 import DiffView
 import Foundation
+import ReviewTestSupport
 import SwiftUI
 import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 @MainActor @Suite(.timeLimit(.minutes(1))) struct CommandCatalogTests {
     private func key(_ shortcut: SeamCommand.Shortcut) -> String? {
         switch shortcut {
         case .command(let key, let modifiers), .single(let key, let modifiers):
             "\(key.character)-\(modifiers.rawValue)"
-        case .commandWhen(let key, _): "\(key.character)-\(EventModifiers.command.rawValue)"
+        case .commandWhen(let key, _): "\(key.character)-\(CommandModifiers.command.rawValue)"
         case .none: nil
+        }
+    }
+
+    /// The catalog names keys by character so it needs no SwiftUI; each must be SwiftUI's own.
+    @Test func namedKeysAreSwiftUIsKeyEquivalents() {
+        let pairs: [(CommandKey, KeyEquivalent)] = [
+            (.space, .space), (.return, .return), (.escape, .escape), (.delete, .delete),
+            (.deleteForward, .deleteForward), (.tab, .tab), (.upArrow, .upArrow),
+            (.downArrow, .downArrow), (.leftArrow, .leftArrow), (.rightArrow, .rightArrow),
+            (.home, .home), (.end, .end), (.pageUp, .pageUp), (.pageDown, .pageDown),
+        ]
+        for (key, swiftUI) in pairs {
+            #expect(KeyEquivalent(key) == swiftUI, "\(swiftUI)")
         }
     }
 
@@ -138,13 +154,13 @@ import Testing
     }
 
     @Test func specialKeysAreLabelledWithTheirSymbols() {
-        #expect(SeamCommand.label(.return, .command) == "⌘↩")
-        #expect(SeamCommand.label(.escape, []) == "⎋")
-        #expect(SeamCommand.label(.upArrow, .option) == "⌥↑")
-        #expect(SeamCommand.label(.downArrow, []) == "↓")
-        #expect(SeamCommand.label(.delete, .command) == "⌘⌫")
-        #expect(SeamCommand.label(.tab, .shift) == "⇧⇥")
-        #expect(SeamCommand.label("g", [.command, .shift]) == "⇧⌘G")
+        #expect(SeamCommand.label(CommandKey.return, .command) == "⌘↩")
+        #expect(SeamCommand.label(CommandKey.escape, []) == "⎋")
+        #expect(SeamCommand.label(CommandKey.upArrow, .option) == "⌥↑")
+        #expect(SeamCommand.label(CommandKey.downArrow, []) == "↓")
+        #expect(SeamCommand.label(CommandKey.delete, .command) == "⌘⌫")
+        #expect(SeamCommand.label(CommandKey.tab, .shift) == "⇧⇥")
+        #expect(SeamCommand.label(CommandKey("g"), CommandModifiers([.command, .shift])) == "⇧⌘G")
     }
 
     @Test func theViewedCheckboxSaysHowItDiffersFromItsKey() {

@@ -1,6 +1,8 @@
+import ReviewTestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 /// Help › Keyboard Shortcuts (SPEC §9), generated from the catalog.
 @MainActor

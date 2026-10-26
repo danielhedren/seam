@@ -1,10 +1,12 @@
 import Foundation
 import GitKit
+import ReviewTestSupport
 import SeamCore
 import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 @MainActor @Suite(.timeLimit(.minutes(1))) struct SettingsTests {
     @Test func valuesPersistInTheirDefaultsDomain() throws {

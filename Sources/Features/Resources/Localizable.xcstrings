@@ -20,9 +20,6 @@
         }
       }
     },
-    "%@ already exists and isn't Seam's. Remove it and try again." : {
-
-    },
     "%@ in %@" : {
       "localizations" : {
         "en" : {
@@ -36,47 +33,10 @@
     "%@ is not in a git repository." : {
 
     },
-    "%@ isn't installed or isn't on your PATH. Choose your editor in Settings." : {
-
-    },
-    "%@ no longer exists." : {
-
-    },
     "%@ now opens Seam. Make sure ~/.local/bin is on your PATH." : {
 
     },
-    "%@, %lld of them on the GitHub pull request" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@, %2$lld of them on the GitHub pull request"
-          }
-        }
-      }
-    },
     "%lld awaiting you" : {
-
-    },
-    "%lld comments" : {
-
-    },
-    "%lld commits" : {
-
-    },
-    "%lld commits and uncommitted changes" : {
-
-    },
-    "%lld failed" : {
-
-    },
-    "%lld files" : {
-
-    },
-    "%lld local commits aren't in the pull request" : {
-
-    },
-    "%lld matches" : {
 
     },
     "%lld more lines" : {
@@ -98,18 +58,6 @@
     "%lld open on GitHub" : {
 
     },
-    "%lld open threads" : {
-
-    },
-    "%lld passed" : {
-
-    },
-    "%lld running" : {
-
-    },
-    "%lld uncommitted files" : {
-
-    },
     "%lld/%lld viewed" : {
       "localizations" : {
         "en" : {
@@ -120,43 +68,13 @@
         }
       }
     },
-    "1 comment" : {
-
-    },
-    "1 commit" : {
-
-    },
-    "1 file" : {
-
-    },
-    "1 local commit isn't in the pull request" : {
-
-    },
-    "1 match" : {
-
-    },
-    "1 open thread" : {
-
-    },
-    "1 uncommitted file" : {
-
-    },
-    "Actual Size" : {
-
-    },
     "Agents' answers and questions, and failed checks, show here from every worktree." : {
-
-    },
-    "All Changes" : {
 
     },
     "All GitHub threads resolved" : {
 
     },
     "All threads resolved" : {
-
-    },
-    "Approved" : {
 
     },
     "Automatic" : {
@@ -180,12 +98,6 @@
     "Cancel" : {
 
     },
-    "Cancelled" : {
-
-    },
-    "Changes requested" : {
-
-    },
     "Changes show here as soon as files in this worktree are edited." : {
 
     },
@@ -193,9 +105,6 @@
 
     },
     "Checked when a repository on GitHub opens" : {
-
-    },
-    "Checks: %@" : {
 
     },
     "Choose Base" : {
@@ -216,9 +125,6 @@
     "Close" : {
 
     },
-    "Closed" : {
-
-    },
     "Collapse File" : {
 
     },
@@ -226,9 +132,6 @@
 
     },
     "Command" : {
-
-    },
-    "Command Palette…" : {
 
     },
     "Comment" : {
@@ -247,29 +150,10 @@
         }
       }
     },
-    "Comment…" : {
-
-    },
-    "Commit %lld of %lld · %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Commit %1$lld of %2$lld · %3$@"
-          }
-        }
-      }
-    },
     "Commits" : {
 
     },
     "Commits on this branch show here once there are some." : {
-
-    },
-    "Committed Changes" : {
-
-    },
-    "Committed changes only" : {
 
     },
     "Compare with" : {
@@ -287,9 +171,6 @@
     "Copy Commit ID" : {
 
     },
-    "Copy Commit Subject" : {
-
-    },
     "Copy Path" : {
 
     },
@@ -303,9 +184,6 @@
 
     },
     "Copy Subject" : {
-
-    },
-    "Copy Worktree Path" : {
 
     },
     "Copy a prompt telling the agent to answer these threads" : {
@@ -323,15 +201,6 @@
     "Couldn't read the commits" : {
 
     },
-    "Couldn't read the threads: %@" : {
-
-    },
-    "Couldn't run git: %@" : {
-
-    },
-    "Couldn't save the threads: %@" : {
-
-    },
     "Custom" : {
 
     },
@@ -339,9 +208,6 @@
 
     },
     "Delete" : {
-
-    },
-    "Delete Thread" : {
 
     },
     "Delete this thread (Undo brings it back)" : {
@@ -365,9 +231,6 @@
     "Done" : {
 
     },
-    "Draft" : {
-
-    },
     "Edit › Find" : {
 
     },
@@ -377,13 +240,7 @@
     "Expand File" : {
 
     },
-    "File" : {
-
-    },
     "Files" : {
-
-    },
-    "Files as Flat List" : {
 
     },
     "Files matching a pattern, one per line, or marked linguist-generated in .gitattributes start collapsed under Generated. Changes apply the next time a worktree loads." : {
@@ -392,25 +249,10 @@
     "Filter" : {
 
     },
-    "Filter Files" : {
-
-    },
-    "Find" : {
-
-    },
-    "Find Next" : {
-
-    },
-    "Find Previous" : {
-
-    },
     "Find in diff" : {
 
     },
     "Finds text in the changed lines and file paths." : {
-
-    },
-    "Find…" : {
 
     },
     "First %@ matches" : {
@@ -420,9 +262,6 @@
 
     },
     "From a later commit" : {
-
-    },
-    "Generated" : {
 
     },
     "Generated files" : {
@@ -466,25 +305,13 @@
     "Hide Missing Worktrees" : {
 
     },
-    "Hide Sidebar" : {
-
-    },
     "Hide Threads" : {
-
-    },
-    "Hide Whitespace Changes" : {
 
     },
     "Ignore all whitespace" : {
 
     },
     "Ignore changes in amount" : {
-
-    },
-    "In the diff or file list" : {
-
-    },
-    "In the file list" : {
 
     },
     "Inbox" : {
@@ -502,31 +329,16 @@
     "Jump to Commit" : {
 
     },
-    "Jump to Thread's Commit" : {
-
-    },
     "Keep %@" : {
 
     },
     "Keep Detected Base" : {
 
     },
-    "Keep Parent That Looks Merged" : {
-
-    },
     "Keyboard Shortcuts" : {
 
     },
-    "Latest Commit Only" : {
-
-    },
     "Line %@" : {
-
-    },
-    "Make Text Bigger" : {
-
-    },
-    "Make Text Smaller" : {
 
     },
     "Mark as Not Viewed" : {
@@ -536,9 +348,6 @@
 
     },
     "Match Case" : {
-
-    },
-    "Merged" : {
 
     },
     "Name" : {
@@ -572,24 +381,6 @@
           }
         }
       }
-    },
-    "Next Awaiting You" : {
-
-    },
-    "Next Commit" : {
-
-    },
-    "Next File" : {
-
-    },
-    "Next Hunk" : {
-
-    },
-    "Next Thread" : {
-
-    },
-    "Next Worktree" : {
-
     },
     "Next match" : {
 
@@ -633,9 +424,6 @@
     "No worktree selected" : {
 
     },
-    "Not a git repository. Choose another folder." : {
-
-    },
     "Not in this diff" : {
 
     },
@@ -670,9 +458,6 @@
     "Open Failed Check" : {
 
     },
-    "Open Failed Check in Browser" : {
-
-    },
     "Open Pull Request in Browser" : {
 
     },
@@ -680,15 +465,6 @@
 
     },
     "Open Repository…" : {
-
-    },
-    "Open Thread on GitHub" : {
-
-    },
-    "Open Thread on This Line" : {
-
-    },
-    "Open Worktree in Editor" : {
 
     },
     "Open in Editor" : {
@@ -704,15 +480,6 @@
 
     },
     "Outdated" : {
-
-    },
-    "Outside the file list" : {
-
-    },
-    "Page Down" : {
-
-    },
-    "Page Up" : {
 
     },
     "Parent %@ looks merged. Diff against %@ instead?" : {
@@ -735,21 +502,6 @@
         }
       }
     },
-    "Previous Commit" : {
-
-    },
-    "Previous File" : {
-
-    },
-    "Previous Hunk" : {
-
-    },
-    "Previous Thread" : {
-
-    },
-    "Previous Worktree" : {
-
-    },
     "Previous match" : {
 
     },
@@ -762,9 +514,6 @@
           }
         }
       }
-    },
-    "Read from GitHub %@" : {
-
     },
     "Reading pull requests with gh" : {
 
@@ -784,22 +533,13 @@
     "Reopen" : {
 
     },
-    "Reopen Thread" : {
-
-    },
     "Reply" : {
 
     },
     "Resolve" : {
 
     },
-    "Resolve Thread" : {
-
-    },
     "Retry" : {
-
-    },
-    "Reveal Worktree in Finder" : {
 
     },
     "Reveal in Finder" : {
@@ -814,19 +554,10 @@
     "Review › Open in Editor (O) runs the command with {path} and {line} filled in, using your login shell's PATH." : {
 
     },
-    "Reviewed, not approved" : {
-
-    },
     "SF Mono" : {
 
     },
     "Seam" : {
-
-    },
-    "Seam couldn't read what it saved for this repository, so viewed files and chosen bases start afresh. The old file is kept as %@." : {
-
-    },
-    "Seam couldn't save its state: %@" : {
 
     },
     "Seam no longer has the version of %@ you marked viewed, so it can only show the full diff." : {
@@ -868,16 +599,7 @@
     "Show Full Diff" : {
 
     },
-    "Show Inbox" : {
-
-    },
     "Show Only This Commit" : {
-
-    },
-    "Show Resolved Threads" : {
-
-    },
-    "Show Sidebar" : {
 
     },
     "Show Threads" : {
@@ -907,21 +629,6 @@
     "Sort By" : {
 
     },
-    "Sort Worktrees Needing You First" : {
-
-    },
-    "Sort Worktrees by Name" : {
-
-    },
-    "Sort Worktrees by Recent Change" : {
-
-    },
-    "Space" : {
-
-    },
-    "Switch Worktree…" : {
-
-    },
     "Tab width" : {
 
     },
@@ -934,28 +641,13 @@
     "The chosen base %@ no longer exists." : {
 
     },
-    "The pull request also has %lld failed checks; `gh pr checks` lists them. Fix them once every thread is answered.\n\n" : {
-
-    },
-    "The pull request also has a failed check; `gh pr checks` shows it. Fix it once every thread is answered.\n\n" : {
-
-    },
     "The working tree matches the branch's latest commit." : {
 
     },
     "The worktree's directory is missing" : {
 
     },
-    "These threads were saved by a newer version of Seam. Update Seam to change them." : {
-
-    },
-    "This copy of Seam doesn't include the seam command. Build it with make app or make install." : {
-
-    },
     "This worktree's directory is missing. If it was deleted, “git worktree prune” takes it off the list." : {
-
-    },
-    "Thread #%@ no longer exists." : {
 
     },
     "Thread on %@, line %@" : {
@@ -984,16 +676,7 @@
     "Together they leave every file as it was." : {
 
     },
-    "Uncommitted Changes" : {
-
-    },
     "Uncommitted changes" : {
-
-    },
-    "Uncommitted changes only" : {
-
-    },
-    "Unexpected output from git: %@" : {
 
     },
     "Unified" : {
@@ -1011,25 +694,13 @@
     "Use Detected Base" : {
 
     },
-    "Use Pull Request's Base" : {
-
-    },
-    "View" : {
-
-    },
     "View Mode" : {
 
     },
     "View › Make Text Bigger and Make Text Smaller change the size too. A repository's .editorconfig overrides the tab width." : {
 
     },
-    "Waiting for review" : {
-
-    },
     "Whitespace" : {
-
-    },
-    "Whitespace changes hidden" : {
 
     },
     "Whole file" : {
@@ -1038,22 +709,10 @@
     "Words in the path; ^word leaves those out" : {
 
     },
-    "Worktree %lld" : {
-
-    },
-    "Wrap Lines" : {
-
-    },
     "Write a comment…" : {
 
     },
     "Write a reply…" : {
-
-    },
-    "Write something first." : {
-
-    },
-    "checks failed" : {
 
     },
     "detached" : {
@@ -1070,16 +729,6 @@
     },
     "gh isn't signed in. Run gh auth login in Terminal, then check again." : {
 
-    },
-    "git %@ failed: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "git %1$@ failed: %2$@"
-          }
-        }
-      }
     },
     "locked" : {
 

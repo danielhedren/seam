@@ -1,5 +1,6 @@
 import AppKit
 import CoreText
+import DiffModel
 import SeamCore
 
 /// Core Text lines for everything the diff draws. Plain runs take the context's fill colour, so a

@@ -3,6 +3,7 @@ import GitKit
 import SeamCore
 import Testing
 
+@testable import DiffModel
 @testable import DiffView
 
 @MainActor @Suite(.timeLimit(.minutes(1))) struct DiffScrollViewTests {

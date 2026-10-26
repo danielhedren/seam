@@ -14,7 +14,7 @@
         /// inherit an end before it's marked close-on-exec and keep that pipe open.
         private static let spawning = Mutex(())
 
-        static func run(
+        package static func run(
             executable: URL,
             arguments: [String],
             directory: URL,
@@ -79,8 +79,21 @@
             let argv = ([executable.path] + arguments).map { strdup($0) } + [nil]
             let envp = environment.map { strdup("\($0.key)=\($0.value)") } + [nil]
             defer { for pointer in argv + envp { free(pointer) } }
+            // The child starts with every signal unblocked and at its default, as Process does:
+            // pool threads block signals, and this process ignores SIGPIPE.
+            var attributes = posix_spawnattr_t()
+            posix_spawnattr_init(&attributes)
+            defer { posix_spawnattr_destroy(&attributes) }
+            var unblocked = sigset_t()
+            sigemptyset(&unblocked)
+            posix_spawnattr_setsigmask(&attributes, &unblocked)
+            var every = sigset_t()
+            sigfillset(&every)
+            posix_spawnattr_setsigdefault(&attributes, &every)
+            posix_spawnattr_setflags(
+                &attributes, Int16(POSIX_SPAWN_SETSIGMASK | POSIX_SPAWN_SETSIGDEF))
             var pid = pid_t()
-            let status = posix_spawn(&pid, executable.path, &actions, nil, argv, envp)
+            let status = posix_spawn(&pid, executable.path, &actions, &attributes, argv, envp)
             // The child has its own copies now; ours would keep the pipes from reaching EOF.
             close(stdout.write)
             close(stderr.write)

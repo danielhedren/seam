@@ -1,3 +1,4 @@
+import ReviewModel
 import SeamCore
 import SwiftUI
 
@@ -97,8 +98,8 @@ struct CommandPalette: View {
         return commands + worktrees
     }
 
-    private static func digit(_ value: Int) -> KeyEquivalent {
-        KeyEquivalent(Character(String(value)))
+    private static func digit(_ value: Int) -> CommandKey {
+        CommandKey(Character(String(value)))
     }
 
     private var ranked: [Entry] {

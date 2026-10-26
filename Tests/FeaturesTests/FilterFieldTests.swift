@@ -1,8 +1,10 @@
 import AppKit
+import ReviewTestSupport
 import SwiftUI
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 /// The file filter's keyboard behaviour, in a window that is never shown.
 @MainActor @Suite(.timeLimit(.minutes(1))) struct FilterFieldTests {

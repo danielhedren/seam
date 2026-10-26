@@ -1,12 +1,14 @@
 import AppKit
 import CoreSpotlight
 import Foundation
+import ReviewTestSupport
 import SeamCore
 import Synchronization
 import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 /// Remembers what it was asked to index.
 private final class RecordingIndex: RepoIndex {

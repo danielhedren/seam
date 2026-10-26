@@ -1,10 +1,12 @@
 import AppKit
+import ReviewTestSupport
 import SeamCore
 import SwiftUI
 import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 /// A worktree row (SPEC §7.2), measured from off-screen renders.
 @MainActor

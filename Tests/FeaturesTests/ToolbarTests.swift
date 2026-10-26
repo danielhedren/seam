@@ -1,10 +1,12 @@
 import AppKit
+import ReviewTestSupport
 import SeamCore
 import SwiftUI
 import TestSupport
 import Testing
 
 @testable import Features
+@testable import ReviewModel
 
 /// The review toolbar as AppKit builds it, in a window that is never shown.
 @MainActor @Suite(.timeLimit(.minutes(1))) struct ToolbarTests {

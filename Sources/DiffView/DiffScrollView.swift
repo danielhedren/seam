@@ -1,4 +1,5 @@
 import AppKit
+import DiffModel
 import SeamCore
 
 /// The diff pane: a scroll view around the canvas, with the sticky file header and keyboard
@@ -498,3 +499,4 @@ extension DiffCanvasView {
         }
     }
 }
+extension DiffScrollView: DiffNavigator {}

@@ -27,13 +27,15 @@ spec disagree, stop and ask; do not pick one silently.
 ## Architecture (SPEC §8.2)
 
 - Module dependencies point downward only:
-  `SeamApp → Features → DiffView / Highlighting → SeamCore → GitKit`. Never import upward or
-  sideways. `seam-debug` and the `seam` command may use `SeamCore` and `GitKit`, nothing above them.
+  `SeamApp → Features → DiffView / ReviewModel → DiffModel / Highlighting → SeamCore → GitKit`.
+  Never import upward or sideways. Below `Features` and `DiffView`, no AppKit or SwiftUI: the
+  models build on Linux too (ADR 0007). What the module above uses is `package`, not `public`. `seam-debug` and the `seam` command may use `SeamCore` and `GitKit`, nothing above them.
 - **Functional core, imperative shell.** Parsing, detection ranking, diff assembly, layout and
   viewed-state logic are pure functions over value types. I/O (processes, files, FSEvents,
   persistence) lives at the edges behind protocols.
 - Injection through initialisers with protocols (`GitClient`, `FileSystem`, `FileWatcher`,
-  `Clock`, `Store`). No singletons, no global mutable state, no DI framework.
+  `Clock`, `Store`, `PlatformServices`). Models reach the pasteboard, browser and file manager
+  only through `PlatformServices`, never `NSPasteboard` or `NSWorkspace`. No singletons, no global mutable state, no DI framework.
 - Concurrency: structured concurrency and actors. No `DispatchQueue` in new code except where an
   Apple API requires it. No blocking I/O on the main actor. `@unchecked Sendable` only around a
   non-Sendable Apple type, with a one-line comment saying why it is safe.
@@ -70,6 +72,9 @@ spec disagree, stop and ask; do not pick one silently.
   calls the views make. Every interactive feature gets one such test per user flow.
 - Wait on conditions (`settled()`, `loaded()`, `until {}`, `clock.sleepers()`), never fixed
   pauses. Every suite has a `.timeLimit`, and a helper that waits must give up when cancelled.
+- Session helpers (stores, fake git and gh, `services()`, `until {}`) live in
+  `Tests/ReviewTestSupport`; window helpers stay in `FeaturesTests/Support.swift`. A session test
+  that needs no window or catalog belongs in `ReviewModelTests`, which also runs on Linux.
 - Assert values (`== ["a.txt"]`), not presence (`!= nil`). Scratch settings and folders come
   from `Scratch` so nothing is left behind; session tests run git through `ReadOnlyGit`.
 
