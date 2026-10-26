@@ -1,12 +1,9 @@
 # Seam
 
 A native macOS diff viewer for reviewing git worktrees. Each worktree is diffed against the branch
-it was cut from, including stacked branches. See `SPEC.md` for the full design and `AGENTS.md`
-for the rules every contributor and agent follows.
+it was cut from, including stacked branches.
 
-Status: milestone M5 (review threads, `SPEC.md` §14).
-
-## Installing
+## Install with Homebrew
 
 Seam needs macOS 26 or later on Apple silicon.
 
@@ -15,15 +12,22 @@ brew tap danielhedren/seam https://github.com/danielhedren/seam
 brew install --cask seam
 ```
 
+The cask installs Seam.app and the `seam` command. Upgrade with `brew upgrade --cask seam`.
+
 The app isn't notarized, so macOS blocks its first launch: allow it in System Settings › Privacy
 & Security › Open Anyway. Or build it yourself with `make install` (below), which needs no
 approval.
 
+## About
+
+See `SPEC.md` for the full design and `AGENTS.md` for the rules every contributor and agent
+follows. Status: milestone M5 (review threads, `SPEC.md` §14).
+
 ## Using Seam
 
 Open a repository with File › Open Repository… (⌘O), by dropping its folder on a window, or by
-running `seam` in any of its worktrees (install the command with File › Install Command Line
-Tool…). Each repository gets one window listing every worktree, the files changed against the
+running `seam` in any of its worktrees (the cask installs the command; otherwise use File ›
+Install Command Line Tool…). Each repository gets one window listing every worktree, the files changed against the
 branch it was cut from, and the diff.
 
 While the diff or file list has focus, single keys move through the review: `J`/`K` next and
