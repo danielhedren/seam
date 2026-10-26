@@ -214,4 +214,26 @@ private final class FakeWatcher: FileWatcher, Sendable {
         }
         Issue.record("the stream ended without reporting \(file.path)")
     }
+
+    /// inotify keeps a moved folder's watch, so the watcher must learn the folder's new name.
+    @Test func reportsAFileInARenamedFolderByItsNewPath() async throws {
+        let directory = try TemporaryDirectory()
+        let root = directory.resolved
+        try FileManager.default.createDirectory(
+            at: root.appending(path: "src"), withIntermediateDirectories: true)
+        let renamed = root.appending(path: "lib")
+        let events = SystemFileWatcher().events(for: [root])
+
+        try FileManager.default.moveItem(at: root.appending(path: "src"), to: renamed)
+        var wrote = false
+        for await batch in events {
+            if !wrote, batch.contains(renamed.path) {
+                try Data("x".utf8).write(to: renamed.appending(path: "x.txt"))
+                wrote = true
+            }
+            #expect(!batch.contains(root.appending(path: "src/x.txt").path))
+            if batch.contains(renamed.appending(path: "x.txt").path) { return }
+        }
+        Issue.record("the stream ended without reporting lib/x.txt")
+    }
 }
