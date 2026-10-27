@@ -66,7 +66,11 @@ package final class RepoSession {
     private var monitorTask: Task<Void, Never>?
     private var saveTask: Task<Void, Never>?
     private var keepingSeen: Task<Void, Never>?
-    private var isClosed = false
+    private(set) var isClosed = false
+    /// What notifications last compared against (SPEC §7.10).
+    @ObservationIgnored var lastSnapshot = NotificationSnapshot()
+    /// Whether Seam is the app in front; notifications wait for the background unless asked.
+    @ObservationIgnored var isAppActive = true
     private var rowsTask: Task<Void, Never>?
     private var reloadTask: Task<Void, Never>?
     /// The recent repos going to Spotlight; tests wait on it.
@@ -188,6 +192,7 @@ package final class RepoSession {
             let last = repoState.selectedWorktree.flatMap { id in reviews.first { $0.id == id } }
             select(last?.id ?? worktree.path)
             startMonitor()
+            startNotifications()
             rowsTask = Task { [weak self] in
                 await self?.refreshRows(skippingSelected: true)
                 // After detection, so local parents are among the branches looked up.
@@ -649,11 +654,15 @@ package final class RepoSession {
     /// An open request (`seam`, a drop, Open Recent). A worktree created since the list was read
     /// isn't in it yet, so the list is read again first; the base applies only if that worktree
     /// really got selected.
-    package func handle(worktree: String, base: String?) async {
+    package func handle(worktree: String, base: String?, thread: String? = nil) async {
         if !reviews.contains(where: { $0.id == worktree }) { await relistWorktrees() }
         select(worktree)
-        guard selectedID == worktree, let base else { return }
-        await setTypedBase(base)
+        guard selectedID == worktree else { return }
+        if let base { await setTypedBase(base) }
+        if let thread {
+            await selected?.loaded()
+            openThread(thread)
+        }
     }
 
     /// The diff scrolled to another file. Saving here, not only on switch or close, keeps the

@@ -68,7 +68,7 @@ struct RepoWindow: View {
 
     private func handle(_ request: OpenRequests.Request?) async {
         guard let request else { return }
-        await session.handle(worktree: request.worktree, base: request.base)
+        await session.handle(worktree: request.worktree, base: request.base, thread: request.thread)
     }
 
     /// The split view also changes visibility itself, when the user drags a column closed.

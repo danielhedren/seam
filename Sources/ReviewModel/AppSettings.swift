@@ -29,6 +29,13 @@ public final class AppSettings {
     /// Pull request markers through gh (SPEC §7.8), on wherever gh is installed.
     package var showsPullRequests: Bool { didSet { save(showsPullRequests, "showsPullRequests") } }
 
+    /// What notifications are about (SPEC §7.10); every kind is on until turned off.
+    package var notifications: Set<NotificationKind> {
+        didSet { save(notifications.map(\.rawValue).sorted(), "notifications") }
+    }
+    /// Off, notifications wait until Seam isn't the app in front.
+    package var notifiesInFront: Bool { didSet { save(notifiesInFront, "notifiesInFront") } }
+
     private let defaults: UserDefaults
 
     public init(defaults: UserDefaults = .standard) {
@@ -49,6 +56,10 @@ public final class AppSettings {
         collapsesViewed = value("collapsesViewed", true)
         showsResolvedThreads = value("showsResolvedThreads", false)
         showsPullRequests = value("showsPullRequests", true)
+        notifications = Set(
+            value("notifications", NotificationKind.allCases.map(\.rawValue))
+                .compactMap(NotificationKind.init))
+        notifiesInFront = value("notifiesInFront", false)
     }
 
     private func save(_ value: some Any, _ key: String) {

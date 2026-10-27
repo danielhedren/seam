@@ -365,6 +365,7 @@ package final class FakeGitHub: GitHubClient, Sendable {
             var summary = summary
             summary.review = .none
             summary.checks = .init()
+            summary.mergeState = nil
             return summary
         }
     }
@@ -405,18 +406,21 @@ package final class FakeGitHub: GitHubClient, Sendable {
     }
 }
 
-/// Records what a session asked of the desktop.
+/// Records what a session asked of the desktop; observable, so a test can wait for it.
 @MainActor
+@Observable
 package final class RecordingPlatform: PlatformServices {
     package init() {}
 
     package private(set) var copied: [String] = []
     package private(set) var opened: [URL] = []
     package private(set) var revealed: [URL] = []
+    package private(set) var notified: [SeamNotification] = []
 
     package func copy(_ text: String) { copied.append(text) }
     package func open(_ url: URL) { opened.append(url) }
     package func reveal(_ file: URL) { revealed.append(file) }
+    package func notify(_ notification: SeamNotification) { notified.append(notification) }
 }
 
 extension RepoSession {

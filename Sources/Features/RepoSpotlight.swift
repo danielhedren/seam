@@ -5,6 +5,7 @@ import GitKit
 import ReviewModel
 import SeamCore
 import UniformTypeIdentifiers
+import UserNotifications
 
 /// Recent repositories in Spotlight (SPEC §7.1): typing part of a repo's name there lists it,
 /// and picking it opens the repo in Seam.
@@ -46,7 +47,9 @@ public struct SpotlightRepoIndex: RepoIndex {
 /// Takes Spotlight picks, which AppKit hands the app delegate, not SwiftUI's windows, and opens
 /// them as `seam <path>` does: a `seam://` URL sent to this app, which routes it to the repo's
 /// window or a new one.
-public final class SeamAppDelegate: NSObject, NSApplicationDelegate {
+public final class SeamAppDelegate: NSObject, NSApplicationDelegate,
+    UNUserNotificationCenterDelegate
+{
     var send: @MainActor (URL) -> Void = { url in
         NSWorkspace.shared.open(
             [url], withApplicationAt: Bundle.main.bundleURL,
@@ -64,5 +67,26 @@ public final class SeamAppDelegate: NSObject, NSApplicationDelegate {
         logger.info("spotlight opens \(path, privacy: .public)")
         send(url)
         return true
+    }
+
+    public func applicationDidFinishLaunching(_ notification: Notification) {
+        UNUserNotificationCenter.current().delegate = self
+    }
+
+    /// A clicked notification opens what it's about, like `seam <path>` does (SPEC §7.10).
+    public func userNotificationCenter(
+        _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse
+    ) async {
+        guard let text = response.notification.request.content.userInfo["url"] as? String,
+            let url = URL(string: text)
+        else { return }
+        await send(url)
+    }
+
+    /// Posted while Seam is in front only when Settings asked for that.
+    public func userNotificationCenter(
+        _ center: UNUserNotificationCenter, willPresent notification: UNNotification
+    ) async -> UNNotificationPresentationOptions {
+        [.banner, .list, .sound]
     }
 }

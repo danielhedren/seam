@@ -15,6 +15,8 @@ final class OpenRequests {
         var worktree: String
         /// From `seam --base`: set as the worktree's base override once it's selected.
         var base: String?
+        /// From a notification: the thread to open once the worktree shows.
+        var thread: String?
     }
 
     var pending: [String: Request] = [:]
@@ -265,7 +267,7 @@ struct WindowRoot: View {
                 URL(fileURLWithPath: request.path, isDirectory: true))
         else { return false }
         requests.pending[resolved.main.path] = .init(
-            worktree: resolved.worktree.path, base: request.base)
+            worktree: resolved.worktree.path, base: request.base, thread: request.thread)
         switch OpenRoute.decide(
             repo: resolved.main.path, shown: url?.path, open: requests.openWindows)
         {

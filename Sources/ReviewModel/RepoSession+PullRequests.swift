@@ -34,6 +34,7 @@ extension RepoSession {
 
     /// The app came to the front; the PRs are read again if they're older than a minute.
     package func noteActivation(_ isActive: Bool) {
+        isAppActive = isActive
         pullRequests?.appIsActive = isActive
         if isActive { pullRequests?.request(.activation) }
     }

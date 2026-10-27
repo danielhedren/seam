@@ -4,6 +4,35 @@
     "#%@ checks failed" : {
 
     },
+    "#%@ is ready to merge" : {
+
+    },
+    "#%@ merged" : {
+
+    },
+    "#%@ was closed" : {
+
+    },
+    "%@ %@ #%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ #%3$@"
+          }
+        }
+      }
+    },
+    "%@ %@ #%@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ #%3$@: %4$@"
+          }
+        }
+      }
+    },
     "%@ already exists and isn't Seam's. Remove it and try again." : {
 
     },
@@ -20,8 +49,28 @@
     "%@ isn't installed or isn't on your PATH. Choose your editor in Settings." : {
 
     },
+    "%@ new comments on #%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ new comments on #%2$@"
+          }
+        }
+      }
+    },
     "%@ no longer exists." : {
 
+    },
+    "%@ on #%@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ on #%2$@: %3$@"
+          }
+        }
+      }
     },
     "%@, %lld of them on the GitHub pull request" : {
       "localizations" : {
@@ -29,6 +78,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@, %2$lld of them on the GitHub pull request"
+          }
+        }
+      }
+    },
+    "%@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@"
           }
         }
       }
@@ -107,6 +166,26 @@
     },
     "Changes show here as soon as files in this worktree are edited." : {
 
+    },
+    "Checks failed on #%@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Checks failed on #%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "Checks passed on #%@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Checks passed on #%1$@ %2$@"
+          }
+        }
+      }
     },
     "Checks: %@" : {
 

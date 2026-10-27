@@ -47,6 +47,9 @@ import Testing
             events(before, after)
                 == [.agent(thread: "t2", author: "claude", body: "Done in a.txt:3.")])
         #expect(events(after, after).isEmpty)
+        var unread = before
+        unread.threadsRead = false
+        #expect(events(unread, after).isEmpty, "the first read is a state, not news")
     }
 
     @Test func checksFinishingIsNewsAsFailedOrPassed() {

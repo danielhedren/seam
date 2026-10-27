@@ -59,6 +59,9 @@ public struct NotificationSnapshot: Equatable, Sendable {
     public struct Worktree: Equatable, Sendable {
         /// Seam threads awaiting the author: id → its latest comment.
         public var awaiting: [String: ThreadComment] = [:]
+        /// Whether Seam's threads have been read with the author known, so the first read and
+        /// the author's own words aren't news.
+        public var threadsRead = false
         public var pullRequest: PullRequest?
         /// Whether the PR's threads and conversation have been read, so a first read isn't news.
         public var discussionRead = false
@@ -68,11 +71,13 @@ public struct NotificationSnapshot: Equatable, Sendable {
         public var conversation: [String: GitHubConversationItem] = [:]
 
         public init(
-            awaiting: [String: ThreadComment] = [:], pullRequest: PullRequest? = nil,
+            awaiting: [String: ThreadComment] = [:], threadsRead: Bool = true,
+            pullRequest: PullRequest? = nil,
             discussionRead: Bool = false, gitHubComments: [Int: NotificationEvent.Comment] = [:],
             conversation: [GitHubConversationItem] = []
         ) {
             self.awaiting = awaiting
+            self.threadsRead = threadsRead
             self.pullRequest = pullRequest
             self.discussionRead = discussionRead
             self.gitHubComments = gitHubComments
@@ -109,11 +114,12 @@ public enum NotificationRules {
     private static func events(
         _ before: NotificationSnapshot.Worktree, _ now: NotificationSnapshot.Worktree
     ) -> [NotificationEvent.What] {
-        var events: [NotificationEvent.What] = now.awaiting.sorted { $0.key < $1.key }
-            .compactMap { id, latest in
+        var events: [NotificationEvent.What] =
+            before.threadsRead && now.threadsRead
+            ? now.awaiting.sorted { $0.key < $1.key }.compactMap { id, latest in
                 before.awaiting[id]?.id == latest.id
                     ? nil : .agent(thread: id, author: latest.author, body: latest.body)
-            }
+            } : []
         guard let pullRequest = now.pullRequest, let last = before.pullRequest,
             last.number == pullRequest.number
         else { return events }

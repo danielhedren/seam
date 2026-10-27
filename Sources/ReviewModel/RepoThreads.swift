@@ -36,6 +36,14 @@ package final class RepoThreads {
         readers[worktree] ?? ReviewerIdentity(name: ReviewThread.reader)
     }
 
+    /// Nil until `reader(in:)` has asked git.
+    func reader(knownIn worktree: String) -> ReviewerIdentity? {
+        readers[worktree]
+    }
+
+    /// Whether the store has been read once.
+    var hasLoaded: Bool { applied > 0 }
+
     /// The worktree's `user.email`, so a comment says who wrote it wherever it's read; "you"
     /// when git has none.
     func reader(in worktree: String) async -> ReviewerIdentity {
