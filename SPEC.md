@@ -555,7 +555,8 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   commit, goes where its lines would be now: after what replaced them, found by diffing the file
   it was written on with the file now, else at its old line number. It has no gutter mark, and
   its title says where it is ("· outdated", "· from a later commit"). Open, it shows "Changed
-  since this comment": that diff around its lines, in the card's font, the lines it was written
+  since this comment": that diff cut to its lines and two either side as they were, and as many
+  around where they are now, in the card's font, the lines it was written
   on marked in amber, so what became of them reads at a glance. A thread written on uncommitted
   changes or on the old side has no such file, so its card quotes its lines instead. A comment
   on the whole file goes under the file's header. One on a file the diff doesn't show goes
@@ -578,7 +579,8 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   it, never leaving it at the bottom edge.
 - **Jump to Commit** (`⇧T`, Review › Jump to Thread's Commit, and a button on an outdated
   card) picks the branch's commits from its oldest up to the one the open thread was written
-  on, the diff it was written on, and opens it there on its lines. Seam's threads written on
+  on, the diff it was written on, and opens it there on its lines, scrolled to the card with
+  its lines and two more above it. Seam's threads written on
   committed lines have it as well as GitHub's (§7.9). It's unavailable when that commit isn't
   on the branch any more.
 - Review › Resolve Thread and Delete Thread (Undo brings it back) act on the open thread.

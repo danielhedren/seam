@@ -88,6 +88,43 @@ import Testing
         #expect(try panel.png() == fresh.png())
     }
 
+    /// Jump to Commit from an outdated thread far down a file shows the diff it was written on
+    /// scrolled to the thread, open on its lines, not the top of the diff.
+    @Test func jumpingToAThreadsCommitShowsTheThreadThere() async throws {
+        let repo = try await FixtureRepo()
+        let tree = try await repo.worktree("a", branch: "a", from: "origin/main")
+        let text = (1...120).map { "line \($0)" }.joined(separator: "\n") + "\n"
+        try await repo.commit("a.txt", text, "Add a", in: tree)
+        let (session, _, _) = await threadSession(repo)
+        session.select(tree.path)
+        let reviewed = try #require(session.selected)
+        await reviewed.loaded()
+        let card = CardWindow(session: session, review: reviewed)
+        await card.settle()
+        let anchor = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 90...90))
+        session.draft = ThreadDraft(worktree: reviewed.id, anchor: anchor)
+        await session.post("Why ninety?")
+        let id = try #require(session.selectedThreadID)
+        try repo.write(
+            "a.txt", text.replacingOccurrences(of: "line 90\n", with: "ninety\n"), in: tree)
+        reviewed.reloadDiff()
+        await reviewed.loaded()
+        #expect(reviewed.placedThreads.map(\.placement) == [.outdated])
+
+        try command("thread-commit").run(session)
+        let canvas = try #require(CardWindow.find(DiffCanvasView.self, in: card.window.contentView))
+        let scroll = try #require(canvas.enclosingScrollView)
+        #expect(await card.wait { session.openThreadMarker(for: reviewed)?.spot == .lines })
+        #expect(await card.wait { canvas.openThreadRow != nil })
+        let row = try #require(canvas.openThreadRow)
+        let visible = scroll.contentView.bounds
+        #expect(visible.minY > 0, "not the top of the diff")
+        #expect(canvas.layout.top(of: row) >= visible.minY)
+        #expect(canvas.layout.top(of: row) < visible.maxY)
+        #expect(session.selectedThreadID == id)
+        session.close()
+    }
+
     /// Marking the file viewed collapses it, which folds its open thread away with it.
     @Test func markingAFileViewedClosesItsOpenThread() async throws {
         let repo = try await FixtureRepo()

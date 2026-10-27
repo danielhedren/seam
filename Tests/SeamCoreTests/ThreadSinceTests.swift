@@ -34,4 +34,19 @@ import Testing
             ThreadSince.change(of: anchor, from: "a\nb\nlet total = 1\r\n", to: "a\n") != nil,
             "line endings don't count")
     }
+
+    /// However much changed nearby, a one-line thread gets a few lines: its line and two
+    /// either side as they were, and as many around where it is now.
+    @Test func theChangeShownIsOnlyWhatIsAboutTheThreadsLines() throws {
+        let then = (1...40).map { "old \($0)" }.joined(separator: "\n") + "\n"
+        let now =
+            (1...40).map { $0 == 20 ? "new 20" : "old \($0)" }.joined(separator: "\n") + "\n"
+            + (1...30).map { "added \($0)" }.joined(separator: "\n") + "\n"
+        let anchor = ThreadAnchor(path: "a", side: .new, lines: 20...20, text: ["old 20"])
+        let since = try #require(ThreadSince.change(of: anchor, from: then, to: now))
+        #expect(since.line == 20)
+        #expect(
+            since.hunks.flatMap(\.lines).map(\.text)
+                == ["old 18", "old 19", "old 20", "new 20", "old 21", "old 22"])
+    }
 }

@@ -50,7 +50,7 @@ extension RepoSession {
         let position: DiffPosition =
             if previous?.id == review.id {
                 previous?.range == shown.range && previous?.narrowing == shown.narrowing
-                    ? .keep : .top
+                    ? .keep : threadJumps.removeValue(forKey: review.id).map { .thread($0) } ?? .top
             } else if let anchor = review.savedAnchor {
                 .anchor(anchor)
             } else {

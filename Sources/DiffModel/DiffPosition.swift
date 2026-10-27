@@ -7,4 +7,6 @@ public enum DiffPosition: Equatable, Sendable {
     case top
     case anchor(ScrollAnchor)
     case file(String)
+    /// A thread's card, with the lines it's on above it.
+    case thread(String)
 }

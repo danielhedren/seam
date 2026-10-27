@@ -3,7 +3,7 @@ import GitKit
 /// What happened to an outdated thread's lines (SPEC §7.7): the change from the file it was
 /// written on to the file now, around those lines, and where they'd be now.
 public struct ThreadSince: Equatable, Sendable {
-    /// The hunks that touch the thread's lines, numbered old as then and new as now.
+    /// The change around the thread's lines, numbered old as then and new as now.
     public var hunks: [Hunk]
     /// The line now nearest to the thread's last line then, for placing its card.
     public var line: Int
@@ -33,10 +33,30 @@ public struct ThreadSince: Equatable, Sendable {
             if let old = entry.oldNumber, old > anchor.lines.upperBound { break }
             if let new = entry.newNumber { line = new }
         }
-        let hunks = SinceViewed.cut(script).filter { hunk in
-            let old = hunk.oldStart...max(hunk.oldStart, hunk.oldStart + hunk.oldCount - 1)
-            return old.overlaps(anchor.lines)
+        let now = max(line, 1)
+        return ThreadSince(hunks: excerpt(script, then: anchor.lines, now: now), line: now)
+    }
+
+    static let context = 2
+
+    /// Only what's about the thread's lines: them and `context` lines around them as they were,
+    /// and as many lines around where they are now. Changes further off belong to the diff Jump
+    /// to Commit shows.
+    static func excerpt(_ script: [DiffLine], then lines: ClosedRange<Int>, now line: Int)
+        -> [Hunk]
+    {
+        let old = (lines.lowerBound - context)...(lines.upperBound + context)
+        let new = (line - lines.count - context + 1)...(line + context)
+        let window = script.filter { entry in
+            entry.oldNumber.map(old.contains) ?? false || entry.newNumber.map(new.contains) ?? false
         }
-        return ThreadSince(hunks: hunks, line: max(line, 1))
+        guard window.contains(where: { $0.kind != .context }) else { return [] }
+        var hunk = Hunk(
+            oldStart: window.lazy.compactMap(\.oldNumber).first ?? 0,
+            oldCount: window.count { $0.oldNumber != nil },
+            newStart: window.lazy.compactMap(\.newNumber).first ?? 0,
+            newCount: window.count { $0.newNumber != nil }, section: "")
+        hunk.lines = window
+        return [hunk]
     }
 }

@@ -148,6 +148,7 @@ public final class DiffScrollView: NSScrollView {
         case .top: scroll(toY: 0)
         case .anchor(let anchor): restore(anchor)
         case .file(let path): scroll(toFile: path)
+        case .thread(let id): scroll(toThread: id)
         }
         if position != .keep || markRow == nil { markReading() } else { setMark(mark) }
         if let draft = content.draft, draft != previousDraft { reveal(canvas.draftRow) }
@@ -171,6 +172,26 @@ public final class DiffScrollView: NSScrollView {
     }
 
     static let revealContext = 3
+
+    /// The thread's card just below the sticky header, with the lines it's on, and two more,
+    /// above it.
+    private func scroll(toThread id: String) {
+        let row = layout.rows.firstIndex { row in
+            switch row {
+            case .thread(_, let marker), .openThread(_, let marker): marker.id == id
+            default: false
+            }
+        }
+        guard let row else { return }
+        var lines = 0
+        if case .thread(_, let marker) = layout.rows[row], marker.spot == .lines {
+            lines = marker.lines.count
+        } else if case .openThread(_, let marker) = layout.rows[row], marker.spot == .lines {
+            lines = marker.lines.count
+        }
+        let above = layout.metrics.lineHeight * Double(min(lines, 10) + 2)
+        scroll(toY: max(layout.top(of: row) - headerHeight - above, 0))
+    }
 
     /// The line just below the sticky header, which is what the reader is looking at.
     public var anchor: ScrollAnchor? {

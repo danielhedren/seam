@@ -103,6 +103,7 @@ extension RepoSession {
     /// Shows the branch as it was when the thread was written, with the thread open on its lines.
     package func jumpToCommit(of thread: ReviewThread) async {
         guard let review = selected, let selection = review.commitsUpTo(thread) else { return }
+        threadJumps[review.id] = thread.id
         selectCommits(selection)
         await review.loaded()
         openThread(thread.id)

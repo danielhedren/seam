@@ -76,6 +76,8 @@ package final class RepoSession {
     @ObservationIgnored private(set) var spotlightTask: Task<Void, Never>?
     /// An undone thread deletion being written back; tests wait on it.
     @ObservationIgnored var restoringThreads: Task<Void, Never>?
+    /// The thread Jump to Commit is showing, per worktree, until the diff it picked arrives.
+    @ObservationIgnored var threadJumps: [String: String] = [:]
     private var deferredActivity: [String: Task<Void, Never>] = [:]
     private var staleActivity: Set<String> = []
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
