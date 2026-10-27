@@ -53,26 +53,32 @@ private func texts(_ rows: [DiffRow]) -> [String] {
         #expect(after("old") == (mode == .unified ? "two" : "two a"))
     }
 
-    /// No thread goes missing from the diff: one on hidden lines goes where they would be, one
-    /// without lines (outdated, on the whole file) under its file's header, and one on a file
-    /// the diff doesn't show above the first file. A collapsed file shows only its header.
+    /// No thread goes missing from the diff: one on hidden lines goes where they would be, an
+    /// outdated one where its lines would be now (without a gutter mark), one on the whole file
+    /// under its file's header, and one on a file the diff doesn't show above the first file.
+    /// A collapsed file shows only its header.
     @Test func everyThreadHasARowUnlessItsFileIsCollapsed() {
-        var outdated = marker("outdated", .new, 2...2)
-        outdated.isOnLines = false
-        var content = DiffContent(
-            review: review(),
-            threads: [
-                "a.txt": [marker("far", .new, 40...41), outdated, marker("one", .new, 1...1)]
-            ])
+        var outdated = marker("near", .new, 2...2)
+        outdated.spot = .near
+        var wholeFile = marker("file", .new, 1...1)
+        wholeFile.spot = .file
+        let threads = [
+            "a.txt": [
+                marker("far", .new, 40...41), outdated, wholeFile, marker("one", .new, 1...1),
+            ]
+        ]
+        var content = DiffContent(review: review(), threads: threads)
         content.preamble = [marker("elsewhere", .new, 1...1)]
         let rows = DiffRowBuilder.rows(for: content)
         #expect(
             texts(rows) == [
-                "[elsewhere]", "[outdated]", "one", "[one]", "two", "two a", "two b", "three",
-                "[far]",
+                "[elsewhere]", "[file]", "one", "[one]", "two", "two a", "[near]", "two b",
+                "three", "[far]",
             ])
         #expect(rows.first == .thread(file: DiffRow.preamble, content.preamble[0]))
         #expect(rows[1] == .fileHeader(file: 0))
+        let marked = DiffRowBuilder.threadedRows(rows, paths: ["a.txt"], threads: threads)
+        #expect(marked.keys.map { texts([rows[$0]]).first ?? "" } == ["one"])
 
         content.collapsed = ["a.txt"]
         #expect(DiffRowBuilder.rows(for: content).count == 2)

@@ -136,3 +136,51 @@ private func texts(_ rows: [DiffRow]) -> [String] {
         #expect(canvas.targetRows[row] == nil, "the selection's marks go")
     }
 }
+
+/// Opening a thread whose card doesn't fit below brings its top up under the sticky header, a
+/// few lines of code above it, rather than leaving it at the bottom edge; one that fits stays.
+@MainActor @Suite(.timeLimit(.minutes(1))) struct RevealTests {
+    final class Stub: NSView, DiffCardView {
+        var onHeightChange: (() -> Void)?
+        func height(forWidth width: Double) -> Double { 200 }
+    }
+
+    private func review() -> ReviewDiff {
+        var hunk = Hunk(oldStart: 0, oldCount: 0, newStart: 1, newCount: 80, section: "")
+        hunk.lines = (1...80).map { (number: Int) in
+            DiffLine(kind: .added, text: "line \(number)", oldNumber: nil, newNumber: number)
+        }
+        var file = FileDiff(oldPath: nil, newPath: "a.txt", status: .added)
+        file.hunks = [hunk]
+        return ReviewDiff(scope: .all, files: [ReviewFile(diff: file)])
+    }
+
+    private func marker(_ line: Int) -> ThreadMarker {
+        ThreadMarker(
+            id: "t\(line)", side: .new, lines: line...line, latestAuthor: "you", latest: "Why?",
+            commentCount: 1, isResolved: false)
+    }
+
+    @Test func anOpenedCardShowsFromItsTop() throws {
+        let view = DiffScrollView()
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 400)
+        view.makeCardView = { _ in Stub() }
+        let canvas = try #require(view.documentView as? DiffCanvasView)
+        let threads = ["a.txt": [marker(3), marker(16)]]
+        view.show(DiffContent(review: review(), threads: threads), position: .top)
+
+        var open = DiffContent(review: review(), threads: threads, openThread: "t16")
+        view.show(open, position: .keep)
+        let row = try #require(canvas.openThreadRow)
+        let metrics = canvas.layout.metrics
+        let top = canvas.layout.top(of: row) - view.contentView.bounds.minY
+        #expect(
+            top == metrics.fileHeaderHeight + metrics.lineHeight
+                * Double(DiffScrollView.revealContext))
+
+        view.show(DiffContent(review: review(), threads: threads), position: .top)
+        open.openThread = "t3"
+        view.show(open, position: .keep)
+        #expect(view.contentView.bounds.minY == 0, "it fits, so nothing moves")
+    }
+}

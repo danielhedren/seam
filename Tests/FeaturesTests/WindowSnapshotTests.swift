@@ -216,6 +216,36 @@ struct WindowSnapshotTests {
         }
     }
 
+    /// An outdated thread, open: what became of its lines since the commit it was written on,
+    /// placed after what replaced them.
+    @Test func anOutdatedThreadShowsWhatBecameOfItsLines() async throws {
+        let (session, repo) = try await session()
+        let review = try #require(session.selected)
+        let repository = try #require(session.repository)
+        let tip = try await repo.sha("feature")
+        try session.services.threads.update(repository) { threads throws(ThreadError) in
+            _ = try ThreadRules.open(
+                &threads, worktree: review.id,
+                anchor: ThreadAnchor(
+                    path: "src/Order.cs", side: .new, lines: 3...3, text: ["    int Total() => 1;"]),
+                author: "you", body: "Shouldn't this count the lines?", now: Self.fixtureEpoch,
+                origin: ThreadOrigin(commit: tip, uncommitted: false), newID: { "0000000c" })
+        }
+        await session.threads?.load()
+        let id = try #require(review.placedThreads.first?.id)
+        _ = review.threadMarkers
+        await until { review.threadSince[id] != nil }
+        session.openThread(id)
+        for (appearance, name) in Self.appearances {
+            check(
+                of: try render(
+                    DiffPane(session: session, review: review),
+                    size: CGSize(width: 760, height: 560), appearance),
+                as: .image(precision: 0.99, perceptualPrecision: 0.98),
+                named: "outdated-\(name)-\(Self.os)")
+        }
+    }
+
     @Test func threadsAwaitingTheReader() async throws {
         let (session, _) = try await session()
         let review = try #require(session.selected)

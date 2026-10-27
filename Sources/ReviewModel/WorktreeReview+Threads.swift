@@ -60,13 +60,47 @@ extension WorktreeReview {
         let placed = ThreadPlacer.place(allThreads, in: context)
         placementCache.key = key
         placementCache.placed = placed
+        readThreadSince(placed, key: key)
         return placed
+    }
+
+    /// Reads the file each outdated thread was written on and diffs it with the file now, so
+    /// its card can show what became of its lines and sit where they'd be. A thread written on
+    /// uncommitted changes, or on the old side, has no such file; its card quotes its lines.
+    private func readThreadSince(_ placed: [PlacedThread], key: [Int]) {
+        guard key != threadSinceKey else { return }
+        threadSinceKey = key
+        let wanted = placed.compactMap { placed -> (String, ThreadAnchor, String, String)? in
+            let thread = placed.thread
+            guard placed.placement == .outdated || placed.placement == .later,
+                thread.anchor.side == .new,
+                let commit = thread.github?.commit
+                    ?? (thread.uncommitted == true ? nil : thread.commit),
+                let now = contents[placed.path]?.new
+            else { return nil }
+            return (thread.id, thread.anchor, commit, now)
+        }
+        let git = services.git
+        let directory = worktree.path
+        Task { [weak self] in
+            var found: [String: ThreadSince] = [:]
+            for (id, anchor, commit, now) in wanted {
+                guard
+                    let then = try? await git.string(
+                        ["show", "\(commit):\(anchor.path)"], in: directory),
+                    let since = ThreadSince.change(of: anchor, from: then, to: now)
+                else { continue }
+                found[id] = since
+            }
+            guard let self, self.threadSinceKey == key else { return }
+            self.setThreadSince(found)
+        }
     }
 
     /// The branch's commits up to the one a thread was written on, as its diff showed then; nil
     /// when that commit isn't on the branch any more, such as after a rebase.
     package func commitsUpTo(_ thread: ReviewThread) -> CommitSelection? {
-        guard let commit = thread.github?.commit, let log = commitLog,
+        guard case .commit(let commit) = thread.writtenOn, let log = commitLog,
             log.commits.contains(where: { $0.id == commit }), let oldest = log.commits.last
         else { return nil }
         return CommitSelection(newest: .commit(commit), oldest: .commit(oldest.id))
@@ -140,13 +174,13 @@ extension WorktreeReview {
         let showsResolved = services.settings.showsResolvedThreads
         let placedThreads = placedThreads
         guard threads != nil || pullRequestThreads != nil else { return [:] }
-        let key = placementCache.key + [showsResolved ? 1 : 0]
+        let key = placementCache.key + [showsResolved ? 1 : 0, threadSince.count]
         if placementCache.markersKey == key { return placementCache.markers }
         var markers: [String: [ThreadMarker]] = [:]
         let paths = diffPaths
         for placed in placedThreads
         where paths.contains(placed.path) && (showsResolved || !placed.thread.isResolved) {
-            guard let marker = Self.marker(placed, inDiff: paths) else { continue }
+            guard let marker = marker(placed, inDiff: paths) else { continue }
             markers[placed.path, default: []].append(marker)
         }
         placementCache.markersKey = key
@@ -161,7 +195,7 @@ extension WorktreeReview {
         var markers: [String: [ThreadMarker]] = [:]
         let paths = diffPaths
         for placed in placedThreads where placed.thread.isResolved && placed.isInDiff {
-            guard let marker = Self.marker(placed, inDiff: paths) else { continue }
+            guard let marker = marker(placed, inDiff: paths) else { continue }
             markers[placed.path, default: []].append(marker)
         }
         return markers
@@ -179,12 +213,12 @@ extension WorktreeReview {
             !paths.contains(placed.path) && (showsResolved || !placed.thread.isResolved)
         }
         return [conversationMarker].compactMap { $0 }
-            + threads.compactMap { Self.marker($0, inDiff: paths) }
+            + threads.compactMap { marker($0, inDiff: paths) }
     }
 
     package func marker(for id: String) -> ThreadMarker? {
         if id == Self.conversationID { return conversationMarker }
-        return placedThreads.first { $0.id == id }.flatMap { Self.marker($0, inDiff: diffPaths) }
+        return placedThreads.first { $0.id == id }.flatMap { marker($0, inDiff: diffPaths) }
     }
 
     private var diffPaths: Set<String> { Set(diff?.files.map(\.diff.path) ?? []) }
@@ -200,29 +234,30 @@ extension WorktreeReview {
                 localized:
                     "Conversation on #\(String(conversation.pullRequest)) · \(Counted.comments(conversation.items.count))",
                 bundle: .module),
-            isOnLines: false)
+            spot: .file)
     }
 
     /// A thread's card: on its lines, under its file's header when the diff has no lines for
     /// it, or above the first file, naming the file, when the diff doesn't show the file.
-    private static func marker(_ placed: PlacedThread, inDiff paths: Set<String>)
-        -> ThreadMarker?
-    {
+    private func marker(_ placed: PlacedThread, inDiff paths: Set<String>) -> ThreadMarker? {
         guard let latest = placed.thread.comments.last else { return nil }
         var lines = placed.thread.anchor.lines
         var title = placed.thread.cardTitle(placement: placed.placement)
+        var spot = ThreadMarker.Spot.near
         if case .lines(let now) = placed.placement {
             lines = now
+            spot = .lines
         } else {
             if let location = placed.location { title += " · \(location)" }
             if !paths.contains(placed.path) { title = "\(placed.path) · \(title)" }
+            if placed.thread.github?.onFile == true { spot = .file }
+            if let line = threadSince[placed.id]?.line { lines = line...line }
         }
         return ThreadMarker(
             id: placed.id, side: placed.thread.anchor.side, lines: lines,
-            latestAuthor: latest.author, latest: firstLine(latest.body),
+            latestAuthor: latest.author, latest: Self.firstLine(latest.body),
             commentCount: placed.thread.comments.count, isResolved: placed.thread.isResolved,
-            source: placed.thread.source, isNote: placed.thread.isNote, title: title,
-            isOnLines: placed.isInDiff)
+            source: placed.thread.source, isNote: placed.thread.isNote, title: title, spot: spot)
     }
 
     /// The diff draws plain text: the Markdown's words, not its asterisks and backticks.

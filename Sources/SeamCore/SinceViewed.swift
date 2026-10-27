@@ -21,6 +21,11 @@ public enum SinceViewed {
     }
 
     static func hunks(from old: String, to new: String) -> [Hunk] {
+        cut(script(from: old, to: new))
+    }
+
+    /// Every line of both texts in order: context, removed and added.
+    static func script(from old: String, to new: String) -> [DiffLine] {
         let before = lines(old)
         let after = lines(new)
         var removed = Set<Int>()
@@ -48,11 +53,11 @@ public enum SinceViewed {
                 j += 1
             }
         }
-        return cut(script)
+        return script
     }
 
     /// The changed lines with `context` lines around them, runs that touch merged into one hunk.
-    private static func cut(_ script: [DiffLine]) -> [Hunk] {
+    static func cut(_ script: [DiffLine]) -> [Hunk] {
         var ranges: [ClosedRange<Int>] = []
         for index in script.indices where script[index].kind != .context {
             let range = max(0, index - context)...min(script.count - 1, index + context)

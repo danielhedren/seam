@@ -482,6 +482,7 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 | `c` | comment on the selected lines (§7.7) |
 | `esc` | drop the selection, and with it the lines `c` would comment on; with none, close the open thread |
 | `t` | open or close the thread on the current line |
+| `⇧T` | jump to the open thread's commit |
 | `b` | base picker |
 | `r` | force reload |
 | `⌘\` | hide or show the worktree list |
@@ -550,10 +551,15 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   threads are seen before they're scrolled to. Side by side, the card spans both columns,
   since it's prose, not code; the gutter mark keeps to its side. A title too long for the
   width is shortened in the middle, a comment at its end. Every thread has a card: one whose
-  lines are hidden in a gap goes where they would be; one the diff has no lines for (outdated,
-  or on the whole file) goes under its file's header, its title saying where it is ("· outdated",
-  "· from a later commit"), and opens quoting its lines; one on a file the diff doesn't show
-  goes above the first file, its title starting with the file. The pull request's conversation
+  lines are hidden in a gap goes where they would be. An outdated one, or one from a later
+  commit, goes where its lines would be now: after what replaced them, found by diffing the file
+  it was written on with the file now, else at its old line number. It has no gutter mark, and
+  its title says where it is ("· outdated", "· from a later commit"). Open, it shows "Changed
+  since this comment": that diff around its lines, in the card's font, the lines it was written
+  on marked in amber, so what became of them reads at a glance. A thread written on uncommitted
+  changes or on the old side has no such file, so its card quotes its lines instead. A comment
+  on the whole file goes under the file's header. One on a file the diff doesn't show goes
+  above the first file, its title starting with the file. The pull request's conversation
   (§7.9) is the first card there. Resolved threads show only the gutter marker, a hollow grey bar,
   unless Review › Show Resolved Threads is on; `t` on their lines opens them.
 - **Reading and answering in the diff:** clicking a collapsed card's title, `t` on its lines, or picking it
@@ -567,7 +573,14 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   keeps its own open thread and draft: switching away and back opens the same thread and keeps
   the draft's text, and no other worktree shows them. Opening a thread opens its collapsed
   file, and a resolved thread stays while it's open. Its row is as tall as the conversation
-  at the column's width.
+  at the column's width. A card that opens, or a composer, stays put when it shows whole;
+  otherwise the diff scrolls its top under the sticky header with three lines of code above
+  it, never leaving it at the bottom edge.
+- **Jump to Commit** (`⇧T`, Review › Jump to Thread's Commit, and a button on an outdated
+  card) picks the branch's commits from its oldest up to the one the open thread was written
+  on, the diff it was written on, and opens it there on its lines. Seam's threads written on
+  committed lines have it as well as GitHub's (§7.9). It's unavailable when that commit isn't
+  on the branch any more.
 - Review › Resolve Thread and Delete Thread (Undo brings it back) act on the open thread.
   Agent replies appear live. A quote longer than 8 lines shows 7 and an "N more lines" row that
   expands it until the thread is closed again.
@@ -688,10 +701,8 @@ GitHub.
   aren't in its hunk, has its card under its file's header. GitHub keeps a comment's path as it was,
   so on a file renamed since, the thread is placed on the new path. While the commit list shows commits
   older than the one a thread was written on, it's labelled "from a later commit", not outdated.
-- **Jump to Commit** (a row's context menu in Threads, and Review › Jump to Thread's Commit) picks the
-  branch's commits from its oldest up to the one the thread was written on, the diff GitHub
-  showed the reviewer, and opens the thread there. A comment often concerns code from an earlier
-  commit, so those stay in. It's unavailable when that commit isn't on the branch any more.
+- **Jump to Commit** (§7.7, and a row's context menu in Threads) shows the diff GitHub showed
+  the reviewer. A comment often concerns code from an earlier commit, so those stay in.
 - **Resolved** on GitHub is resolved here: hidden in the diff unless Show Resolved Threads is on.
   The toolbar badge and the file list count them with Seam's.
 - **Reading:** a worktree's PR's threads are read when the PR's update time changes (from the

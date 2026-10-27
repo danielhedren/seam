@@ -100,6 +100,9 @@
     "Cancel" : {
 
     },
+    "Changed since this comment" : {
+
+    },
     "Check Again" : {
 
     },
@@ -540,6 +543,9 @@
 
     },
     "Show pull requests" : {
+
+    },
+    "Show the diff this thread was written on" : {
 
     },
     "Side by Side" : {

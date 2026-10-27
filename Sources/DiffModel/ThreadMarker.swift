@@ -16,17 +16,15 @@ public struct ThreadMarker: Equatable, Sendable {
     public var isNote: Bool
     /// The card's title, which the collapsed card shows too.
     public var title: String
-    /// False for a thread the diff has no lines for (outdated, or on the whole file): its card
-    /// goes under its file's header.
-    public var isOnLines: Bool
+    public var spot: Spot
 
     public init(
         id: String, side: ThreadAnchor.Side, lines: ClosedRange<Int>, latestAuthor: String,
         latest: String, commentCount: Int, isResolved: Bool, source: ThreadSource = .seam,
-        isNote: Bool = false, title: String = "", isOnLines: Bool = true
+        isNote: Bool = false, title: String = "", spot: Spot = .lines
     ) {
         self.title = title
-        self.isOnLines = isOnLines
+        self.spot = spot
         self.source = source
         self.isNote = isNote
         self.id = id
@@ -36,6 +34,19 @@ public struct ThreadMarker: Equatable, Sendable {
         self.latest = latest
         self.commentCount = commentCount
         self.isResolved = isResolved
+    }
+}
+
+extension ThreadMarker {
+    /// Where its card goes (SPEC §7.7).
+    public enum Spot: Equatable, Sendable {
+        /// On its lines: a gutter mark on them and the card after the last.
+        case lines
+        /// Its lines are gone: the card goes after `lines.upperBound`, which is where they'd be
+        /// now, without a mark.
+        case near
+        /// On the whole file: under the file's header.
+        case file
     }
 }
 

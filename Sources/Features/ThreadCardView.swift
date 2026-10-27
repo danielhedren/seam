@@ -39,7 +39,7 @@ struct ThreadCardView: View {
                 // Read-only (SPEC §7.9): no reply box, and the one action is GitHub's page.
                 layout(
                     title: title, thread: placed.thread, showsQuote: !placed.isInDiff,
-                    text: nil, placeholder: "",
+                    since: session.selected?.threadSince[id], text: nil, placeholder: "",
                     submit: String(localized: "Open on GitHub", bundle: .module),
                     dismiss: String(localized: "Close", bundle: .module),
                     onSubmit: { session.openOnGitHub(placed.thread) },
@@ -47,7 +47,7 @@ struct ThreadCardView: View {
             } else if let placed = session.selected?.placedThreads.first(where: { $0.id == id }) {
                 layout(
                     title: title, thread: placed.thread, showsQuote: !placed.isInDiff,
-                    text: $reply,
+                    since: session.selected?.threadSince[id], text: $reply,
                     placeholder: String(localized: "Write a reply…", bundle: .module),
                     submit: String(localized: "Reply", bundle: .module),
                     dismiss: String(localized: "Close", bundle: .module),
@@ -58,7 +58,8 @@ struct ThreadCardView: View {
     }
 
     private func layout(
-        title: String, thread: ReviewThread?, showsQuote: Bool = false, text: Binding<String>?,
+        title: String, thread: ReviewThread?, showsQuote: Bool = false, since: ThreadSince? = nil,
+        text: Binding<String>?,
         placeholder: String,
         submit: String, dismiss: String, onSubmit: @escaping () -> Void,
         onSubmitNote: (() -> Void)? = nil, onDismiss: @escaping () -> Void,
@@ -66,7 +67,8 @@ struct ThreadCardView: View {
     ) -> some View {
         ThreadCardLayout(
             session: session, font: session.settings.font, title: title, thread: thread,
-            showsQuote: showsQuote, text: text, placeholder: placeholder, submit: submit,
+            showsQuote: showsQuote, since: since, text: text, placeholder: placeholder,
+            submit: submit,
             dismiss: dismiss,
             takesFocus: thread == nil, onSubmit: onSubmit, onSubmitNote: onSubmitNote,
             onDismiss: onDismiss, onTitle: onTitle
@@ -102,8 +104,10 @@ struct ThreadCardLayout: View {
     let font: NSFont
     var title: String?
     let thread: ReviewThread?
-    /// A card off its lines quotes them; one on them sits under them.
+    /// A card off its lines quotes them, or shows what became of them; one on them sits under
+    /// them.
     var showsQuote = false
+    var since: ThreadSince?
     let text: Binding<String>?
     let placeholder: String
     let submit: String
@@ -130,10 +134,14 @@ struct ThreadCardLayout: View {
                         titleLabel(title)
                     }
                     Spacer(minLength: 4)
-                    if let thread { ThreadActions(session: session, thread: thread) }
+                    if let thread {
+                        ThreadActions(session: session, thread: thread, offItsLines: showsQuote)
+                    }
                 }
             }
-            if showsQuote, let thread, !thread.anchor.text.isEmpty {
+            if showsQuote, let thread, let since {
+                SinceChange(since: since, anchor: thread.anchor, font: font)
+            } else if showsQuote, let thread, !thread.anchor.text.isEmpty {
                 QuotedLines(anchor: thread.anchor)
             }
             if let thread { ThreadComments(thread: thread, font: Font(font), authorFont: bold) }
@@ -186,12 +194,26 @@ struct ThreadCardLayout: View {
     }
 }
 
-/// Resolve and Delete, at the top right of a thread wherever it's laid out.
+/// Jump to Commit for a thread off its lines, then Resolve and Delete, at the top right of a
+/// thread.
 struct ThreadActions: View {
     let session: RepoSession
     let thread: ReviewThread
+    var offItsLines = false
 
     var body: some View {
+        if offItsLines, session.selected?.commitsUpTo(thread) != nil {
+            Button(String(localized: "Jump to Commit", bundle: .module)) {
+                Task { await session.jumpToCommit(of: thread) }
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .pointerStyle(.link)
+            .help(
+                CommandCatalog.help(
+                    String(localized: "Show the diff this thread was written on", bundle: .module),
+                    command: "thread-commit"))
+        }
         if thread.capabilities.contains(.resolve) {
             let resolve =
                 thread.isResolved

@@ -156,18 +156,21 @@ public final class DiffScrollView: NSScrollView {
         updateSticky()
     }
 
-    /// Scrolls a new composer or an opened thread fully into view, its top first when it's
-    /// taller than the view.
-    private func reveal(_ row: Int?) {
+    /// Leaves a new composer or an opened thread where it is when it shows whole. Otherwise its
+    /// top goes under the sticky header with a few lines above, so the card reads from the
+    /// top with the code it's about, rather than ending at the bottom edge.
+    package func reveal(_ row: Int?) {
         guard let row else { return }
         let top = layout.top(of: row)
         let bottom = top + layout.height(of: row)
-        if top < visibleTop + headerHeight || bottom - top > contentSize.height - headerHeight {
-            scroll(toY: top - headerHeight)
-        } else if bottom > visibleTop + contentSize.height {
-            scroll(toY: bottom - contentSize.height)
+        guard top < visibleTop + headerHeight || bottom > visibleTop + contentSize.height else {
+            return
         }
+        let context = layout.metrics.lineHeight * Double(Self.revealContext)
+        scroll(toY: max(top - headerHeight - context, 0))
     }
+
+    static let revealContext = 3
 
     /// The line just below the sticky header, which is what the reader is looking at.
     public var anchor: ScrollAnchor? {

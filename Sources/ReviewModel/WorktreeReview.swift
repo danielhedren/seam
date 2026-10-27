@@ -65,6 +65,10 @@ package final class WorktreeReview: Identifiable {
     /// Full file contents for the current diff; empty until loaded.
     private(set) var contents: [String: FileContents] = [:]
     package private(set) var contentsVersion = 0
+    /// What became of outdated threads' lines, by thread id, read for the placements of
+    /// `threadSinceKey` (SPEC §7.7).
+    package private(set) var threadSince: [String: ThreadSince] = [:]
+    @ObservationIgnored var threadSinceKey: [Int] = []
     private(set) var syntax: [String: FileSyntax] = [:]
     package private(set) var syntaxVersion = 0
     private var highlightTask: Task<Void, Never>?
@@ -770,6 +774,10 @@ package final class WorktreeReview: Identifiable {
             problem = .gitFailed(Self.describe(error))
         }
         finish(generation)
+    }
+
+    func setThreadSince(_ since: [String: ThreadSince]) {
+        threadSince = since
     }
 
     private func present(_ diff: ReviewDiff, _ rangeVersion: Int) {

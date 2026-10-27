@@ -32,8 +32,8 @@ import Testing
         reviewed.reloadDiff()
         await reviewed.loaded()
         #expect(reviewed.placedThreads.map(\.placement) == [.outdated])
-        // Off its lines, its card goes under the file's header.
-        #expect(reviewed.content?.threads["a.txt"]?.map(\.isOnLines) == [false])
+        // Its lines are gone; its card goes where they'd be, without a gutter mark.
+        #expect(reviewed.content?.threads["a.txt"]?.map(\.spot) == [.near])
     }
 
     /// A thread that couldn't be saved says so above the diff, where the reader is, and keeps the
@@ -270,6 +270,43 @@ import Testing
         session.close()
     }
 
+    /// An outdated thread's card goes after what replaced its lines and, open, shows the change
+    /// from the file it was written on to the file now; ⇧T shows the diff it was written on.
+    @Test func anOutdatedThreadShowsWhatBecameOfItsLines() async throws {
+        let repo = try await FixtureRepo()
+        let tree = try await repo.worktree("a", branch: "a", from: "origin/main")
+        try await repo.commit("a.txt", "one\ntwo\nthree\n", "Add a", in: tree)
+        let (session, _, _) = await threadSession(repo)
+        session.select(tree.path)
+        let reviewed = try #require(session.selected)
+        await reviewed.loaded()
+        let anchor = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 2...2))
+        session.draft = ThreadDraft(worktree: reviewed.id, anchor: anchor)
+        await session.post("Why two?")
+        let id = try #require(session.selectedThreadID)
+
+        try repo.write("a.txt", "zero\none\nTWO\nthree\n", in: tree)
+        reviewed.reloadDiff()
+        await reviewed.loaded()
+        #expect(reviewed.placedThreads.map(\.placement) == [.outdated])
+        _ = reviewed.threadMarkers
+        await until { reviewed.threadSince[id] != nil }
+        let since = try #require(reviewed.threadSince[id])
+        #expect(since.line == 3, "after TWO, which replaced it")
+        #expect(
+            since.hunks.flatMap(\.lines).filter { $0.kind != .context }.map(\.text)
+                == ["zero", "two", "TWO"])
+        let marker = try #require(reviewed.threadMarkers["a.txt"]?.first)
+        #expect(marker.spot == .near)
+        #expect(marker.lines == 3...3)
+
+        #expect(try command("thread-commit").isEnabled(session))
+        try command("thread-commit").run(session)
+        await until { session.openThreadMarker(for: reviewed)?.spot == .lines }
+        #expect(session.openThreadMarker(for: reviewed)?.lines == 2...2)
+        session.close()
+    }
+
     /// The commit list's dots: a thread on committed lines sits on the tip it was written at,
     /// one on uncommitted lines on the working tree's row.
     @Test func aThreadsDotGoesOnTheCommitListRowItWasWrittenOn() async throws {
@@ -328,7 +365,7 @@ import Testing
         session.openThread(id)
         let open = try #require(session.openThreadMarker(for: reviewed))
         #expect(open.id == id)
-        #expect(!open.isOnLines)
+        #expect(open.spot == .near)
         #expect(open.title == "Thread on line 1 · 1 comment · resolved · outdated")
     }
 

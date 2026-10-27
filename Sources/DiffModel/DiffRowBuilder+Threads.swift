@@ -13,8 +13,8 @@ extension DiffRowBuilder {
     }
 
     /// Each thread's row goes after the row showing its last line, or before the first row past
-    /// it when that line is hidden in a gap, so no thread goes missing. One without lines in the
-    /// diff goes under the file's header.
+    /// it when that line is hidden in a gap, so no thread goes missing. One on the whole file
+    /// goes under the file's header.
     static func insertingThreads(
         _ markers: [ThreadMarker], into rows: [DiffRow], file: Int, open: String? = nil
     ) -> [DiffRow] {
@@ -24,7 +24,7 @@ extension DiffRowBuilder {
         }
         var result: [DiffRow] = []
         result.reserveCapacity(rows.count + markers.count)
-        var pending = markers.filter(\.isOnLines)
+        var pending = markers.filter { $0.spot != .file }
         for current in rows {
             pending.removeAll { marker in
                 guard let number = number(of: current, on: marker.side),
@@ -35,7 +35,7 @@ extension DiffRowBuilder {
             }
             result.append(current)
             if current.isFileHeader {
-                result += markers.filter { !$0.isOnLines }.map(row)
+                result += markers.filter { $0.spot == .file }.map(row)
             }
             pending.removeAll { marker in
                 guard number(of: current, on: marker.side) == marker.lines.upperBound else {
@@ -74,7 +74,7 @@ extension DiffRowBuilder {
         for (index, row) in rows.enumerated() where paths.indices.contains(row.file) {
             let path = paths[row.file]
             for (marker, isResolved) in (threads[path] ?? []).map({ ($0, false) })
-                + (resolved[path] ?? []).map({ ($0, true) })
+                + (resolved[path] ?? []).map({ ($0, true) }) where marker.spot == .lines
             {
                 if let number = number(of: row, on: marker.side), marker.lines.contains(number) {
                     marked[index, default: []].insert(

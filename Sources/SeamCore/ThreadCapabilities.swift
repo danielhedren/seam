@@ -27,8 +27,9 @@ extension ReviewThread {
     public var source: ThreadSource { github == nil ? .seam : .gitHub }
 
     public var capabilities: ThreadCapabilities {
-        guard let github else { return [.reply, .resolve, .delete] }
-        return github.commit == nil ? [.openRemote] : [.openRemote, .jumpToCommit]
+        let base: ThreadCapabilities = github == nil ? [.reply, .resolve, .delete] : [.openRemote]
+        guard case .commit = writtenOn else { return base }
+        return base.union(.jumpToCommit)
     }
 }
 

@@ -361,12 +361,12 @@ package enum CommandCatalog {
             }),
         SeamCommand(
             id: "thread-commit", title: localized("Jump to Thread's Commit"), menu: .review,
-            section: 5, shortcut: .none,
+            section: 5, shortcut: .single("t", .shift),
             isEnabled: { session in
-                session.selectedGitHubThread.flatMap { session.selected?.commitsUpTo($0) } != nil
+                session.openThread.flatMap { session.selected?.commitsUpTo($0) } != nil
             },
             run: { session in
-                guard let thread = session.selectedGitHubThread else { return }
+                guard let thread = session.openThread else { return }
                 Task { await session.jumpToCommit(of: thread) }
             }),
         SeamCommand(
@@ -392,6 +392,11 @@ extension RepoSession {
     /// The open thread, when it's one of Seam's own: GitHub's can't be resolved or deleted.
     fileprivate var selectedThread: ReviewThread? {
         selectedThreadID.flatMap { id in threads?.threads.first { $0.id == id } }
+    }
+
+    /// The open thread, Seam's or a pull request's.
+    var openThread: ReviewThread? {
+        selectedThreadID.flatMap { id in selected?.placedThreads.first { $0.id == id }?.thread }
     }
 
     var selectedGitHubThread: ReviewThread? {
