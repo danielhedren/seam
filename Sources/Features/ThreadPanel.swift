@@ -51,7 +51,7 @@ struct ThreadPanel: View {
                     ConversationSection(
                         session: session, review: review, conversation: conversation)
                 }
-                ForEach(groups(placed.filter { !waiting.contains($0.id) }), id: \.path) { group in
+                ForEach(review.threadGroups(excluding: waiting), id: \.path) { group in
                     Text(group.path).font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                         .padding(.top, 4)
@@ -101,17 +101,6 @@ struct ThreadPanel: View {
         }
         .padding(.horizontal, 10)
         .frame(height: PaneHeader.height(session) - 1)
-    }
-
-    private func groups(_ placed: [PlacedThread]) -> [(path: String, threads: [PlacedThread])] {
-        var order: [String] = []
-        var byPath: [String: [PlacedThread]] = [:]
-        for item in placed {
-            let path = item.path
-            if byPath[path] == nil { order.append(path) }
-            byPath[path, default: []].append(item)
-        }
-        return order.map { ($0, byPath[$0] ?? []) }
     }
 }
 

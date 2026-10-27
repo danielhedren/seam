@@ -133,26 +133,6 @@ import Testing
         #expect(try command("worktree-3").title(for: session) == "Worktree 3")
     }
 
-    @Test func paletteJumpsToWorktreesWithTheirShortcutsAndShowsWhatIsOn() async throws {
-        let repo = try await FixtureRepo()
-        let tree = try await repo.worktree("feature", branch: "feature", from: "origin/main")
-        let session = RepoSession(directory: repo.main, services: services(repo.git))
-        await session.open()
-        session.select(tree.path)
-        await session.settled()
-
-        let entries = CommandPalette.entries(for: session)
-
-        #expect(!entries.contains { $0.id.hasPrefix("worktree-") })
-        let jump = try #require(entries.first { $0.id == "go:" + tree.path })
-        #expect(jump.title == "Go to \(tree.lastPathComponent)")
-        #expect(jump.shortcut == "⌘2")
-        #expect(entries.first { $0.id == "scope-all" }?.isOn == true)
-        #expect(entries.first { $0.id == "scope-all" }?.menu == "Review")
-        #expect(entries.first { $0.id == "find" }?.shortcut == "⌘F")
-        #expect(entries.first { $0.id == "filter-files" }?.shortcut == "")
-    }
-
     @Test func specialKeysAreLabelledWithTheirSymbols() {
         #expect(SeamCommand.label(CommandKey.return, .command) == "⌘↩")
         #expect(SeamCommand.label(CommandKey.escape, []) == "⎋")

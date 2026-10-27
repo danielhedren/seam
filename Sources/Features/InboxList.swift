@@ -23,7 +23,7 @@ struct InboxList: View {
     let session: RepoSession
 
     var body: some View {
-        let groups = Self.groups(session.inbox)
+        let groups = session.inboxGroups
         List(selection: selection) {
             ForEach(groups, id: \.worktree) { group in
                 Section {
@@ -47,17 +47,6 @@ struct InboxList: View {
                         bundle: .module))
             }
         }
-    }
-
-    /// Newest first, so the worktree with the latest word leads.
-    static func groups(_ items: [InboxItem]) -> [(worktree: String, items: [InboxItem])] {
-        var order: [String] = []
-        var byWorktree: [String: [InboxItem]] = [:]
-        for item in items {
-            if byWorktree[item.worktree] == nil { order.append(item.worktree) }
-            byWorktree[item.worktree, default: []].append(item)
-        }
-        return order.map { ($0, byWorktree[$0] ?? []) }
     }
 
     private func name(of worktree: String) -> String {

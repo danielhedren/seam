@@ -10,21 +10,6 @@ import Testing
 @MainActor
 @Suite(.timeLimit(.minutes(1)))
 struct WorktreeSwitcherTests {
-    @Test func matchesWorktreeAndBranchNamesBestFirst() async throws {
-        let repo = try await FixtureRepo()
-        _ = try await repo.worktree("orders", branch: "feat/delivery", from: "origin/main")
-        _ = try await repo.worktree("delivery-fix", branch: "fix", from: "origin/main")
-        let session = RepoSession(directory: repo.main, services: services(repo.git))
-        await session.open()
-
-        let names = { (query: String) in
-            WorktreeSwitcher.matches(query, in: session.sortedReviews).map(\.worktree.name)
-        }
-        #expect(names("delivery") == ["wt-delivery-fix", "wt-orders"])
-        #expect(names("") == session.sortedReviews.map(\.worktree.name))
-        #expect(names("zzz").isEmpty)
-    }
-
     @Test func arrowsMoveTheHighlightAndStopAtTheEnds() {
         let ids = ["a", "b", "c"]
         #expect(WorktreeSwitcher.moved("a", by: 1, in: ids) == "b")

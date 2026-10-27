@@ -11,7 +11,7 @@ struct WorktreeSwitcher: View {
     @FocusState private var fieldFocused: Bool
 
     var body: some View {
-        let matches = Self.matches(query, in: session.sortedReviews)
+        let matches = session.worktrees(matching: query)
         VStack(spacing: 0) {
             TextField(
                 String(localized: "Search worktrees and branches", bundle: .module), text: $query
@@ -55,23 +55,9 @@ struct WorktreeSwitcher: View {
             selection = matches.first?.id
         }
         .onChange(of: query) {
-            selection = Self.matches(query, in: session.sortedReviews).first?.id
+            selection = session.worktrees(matching: query).first?.id
         }
         .onExitCommand { session.showsSwitcher = false }
-    }
-
-    /// Best match first; ties keep the sidebar's order.
-    static func matches(_ query: String, in reviews: [WorktreeReview]) -> [WorktreeReview] {
-        reviews
-            .enumerated()
-            .compactMap { position, review -> (WorktreeReview, Int, Int)? in
-                let name = FuzzyMatch.score(query, in: review.worktree.name)
-                let branch = review.worktree.branch.flatMap { FuzzyMatch.score(query, in: $0) }
-                guard let best = [name, branch].compactMap(\.self).max() else { return nil }
-                return (review, best, position)
-            }
-            .sorted { ($0.1, -$0.2) > ($1.1, -$1.2) }
-            .map(\.0)
     }
 
     /// The highlight `delta` rows on, stopping at either end.
