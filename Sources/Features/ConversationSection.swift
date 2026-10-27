@@ -77,8 +77,3 @@ struct ConversationSection: View {
         }
     }
 }
-
-extension GitHubConversationItem {
-    /// A comment and a review can share a database id.
-    fileprivate var key: String { "\(kind == .comment ? "c" : "r")\(id)" }
-}
