@@ -610,10 +610,10 @@ Each worktree's branch shows its GitHub pull request, read through the user's ow
   have yet, and when it was read. Those local commits also show after the marker as `↑2`, since
   GitHub's reviewers see other code than the reader. With the worktree list hidden, the selected
   worktree's marker shows in the file list's header.
-- **At completion:** once every file is viewed and no thread awaits the reader, a line under the
-  file list's header says what the PR does, where the approval is decided: "#12 Waiting for
-  review · Checks: 3 passed, 1 failed · 2 local commits aren't in the pull request", with Open
-  Failed Check when one failed. It wraps rather than cutting a fact off.
+- **At completion:** once every file is viewed and no thread awaits the reader, lines under the
+  file list's header say what the PR does, where the approval is decided, one fact to a line:
+  "#12 Waiting for review", "Checks: 3 passed, 1 failed", "2 local commits aren't in the pull
+  request", with Open Failed Check when one failed. A line wraps rather than cutting a fact off.
 - **Reviews:** GitHub's review decision where the repo requires reviews; elsewhere the latest
   review of each reviewer: changes requested, then approved, then commented. One approval of two
   required is "reviewed, not approved".

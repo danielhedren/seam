@@ -71,21 +71,23 @@ struct FileList: View {
                     Button(String(localized: "Show All", bundle: .module)) {
                         review.showEverything()
                     }
-                    .buttonStyle(.link)
+                    .buttonStyle(.link).foregroundStyle(.tint)
                 }
                 .font(.caption).foregroundStyle(.secondary)
                 .padding(.horizontal, 10).padding(.vertical, 4)
                 Divider()
             }
             if let summary = review.completionSummary {
-                // Every fact counts here, so the line wraps rather than cutting any off.
+                // Every fact counts here, so a line wraps rather than cutting any off.
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(verbatim: summary).fixedSize(horizontal: false, vertical: true)
+                    ForEach(summary, id: \.self) { fact in
+                        Text(verbatim: fact).fixedSize(horizontal: false, vertical: true)
+                    }
                     if review.pullRequest?.ciFailed == true {
                         Button(String(localized: "Open Failed Check", bundle: .module)) {
                             session.openFailedCheck(of: review)
                         }
-                        .buttonStyle(.link)
+                        .buttonStyle(.link).foregroundStyle(.tint)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

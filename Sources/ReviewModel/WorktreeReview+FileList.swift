@@ -17,9 +17,9 @@ package final class FileListCache {
 
 extension WorktreeReview {
     /// Once every file is viewed and no thread awaits the reader, what the pull request says,
-    /// where the approval is decided: "#12 Waiting for review · Checks: 1 failed" (SPEC §7.8).
-    /// Nil before then, or without a pull request.
-    package var completionSummary: String? {
+    /// where the approval is decided, a fact to a line: "#12 Waiting for review",
+    /// "Checks: 1 failed" (SPEC §7.8). Nil before then, or without a pull request.
+    package var completionSummary: [String]? {
         guard let diff, !diff.files.isEmpty, viewed.viewedCount(in: diff) == diff.files.count,
             awaitingReply.isEmpty, let pullRequest
         else { return nil }
@@ -30,7 +30,7 @@ extension WorktreeReview {
         if let unpushed = unpushedCount, unpushed > 0 {
             parts.append(PullRequestText.unpushed(unpushed))
         }
-        return parts.joined(separator: " · ")
+        return parts
     }
 
     package var fileListRows: [FileListRow] {

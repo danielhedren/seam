@@ -410,9 +410,10 @@ import Testing
 
         session.toggleViewed("a.txt", advance: false)
         #expect(
-            row.completionSummary
-                == "#12 Waiting for review · Checks: 3 passed, 1 failed · "
-                + "1 local commit isn't in the pull request")
+            row.completionSummary == [
+                "#12 Waiting for review", "Checks: 3 passed, 1 failed",
+                "1 local commit isn't in the pull request",
+            ])
 
         // An agent's question waits for the reader first.
         let repository = try #require(session.repository)
