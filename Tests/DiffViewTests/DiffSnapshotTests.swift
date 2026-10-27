@@ -296,6 +296,23 @@ struct DiffSnapshotTests {
         assertSnapshot(of: view, as: .image2x, named: "github-thread-\(Self.os)")
     }
 
+    /// The tags come after the path in grey, so the path reads first.
+    @Test func untrackedAndGeneratedFilesSaySoInGrey() {
+        var review = Self.review
+        review.files[0].isGenerated = true
+        review.files[1].isUntracked = true
+        let view = DiffScrollView.forSnapshot()
+        view.appearance = NSAppearance(named: .aqua)
+        view.frame = NSRect(x: 0, y: 0, width: 900, height: 160)
+        view.show(
+            DiffContent(
+                review: review, collapsed: ["Sources/Order.swift", "Legacy.txt"],
+                syntax: Self.syntax),
+            position: .top)
+        view.layoutSubtreeIfNeeded()
+        assertSnapshot(of: view, as: .image2x, named: "tags-\(Self.os)")
+    }
+
     @Test func collapsedFileShowsOnlyItsHeader() {
         let view = view(.unified, .aqua, collapsed: ["Sources/Order.swift"])
         assertSnapshot(of: view, as: .image2x, named: "collapsed-\(Self.os)")

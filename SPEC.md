@@ -405,8 +405,8 @@ work starts in one list rather than a click per worktree.
 - Side-by-side and unified modes: the toolbar's Unified | Side by Side control shows the current
   one and picks either, `s` and View › Side by Side flip it. The mode is global: toggling it
   changes every worktree, and it is remembered.
-- A sticky file header per file: a collapse chevron, status, path, `+/−` counts (left out when
-  both are 0), and the viewed checkbox with its label at the right edge, so it sits in the same
+- A sticky file header per file: a collapse chevron, status, path, "untracked" or "generated"
+  in grey, `+/−` counts (left out when both are 0), and the viewed checkbox with its label at the right edge, so it sits in the same
   place on every file. The checkbox's tooltip says that `v` also moves to the next unviewed
   file, which a click doesn't. The chevron and checkbox are drawn at the text's height. A path too long
   for the pane is shortened in the middle, so the counts and checkbox stay in view.

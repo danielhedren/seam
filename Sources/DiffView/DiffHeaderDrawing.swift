@@ -13,11 +13,15 @@ enum DiffHeaderDrawing {
             } else {
                 file.diff.path
             }
+        return "\(file.diff.status.letter)  \(path)"
+    }
+
+    /// Said after the path, in grey, so the path reads first.
+    static func tags(_ file: ReviewFile) -> [String] {
         var tags: [String] = []
         if file.isUntracked { tags.append(String(localized: "untracked", bundle: .module)) }
         if file.isGenerated { tags.append(String(localized: "generated", bundle: .module)) }
-        let suffix = tags.isEmpty ? "" : "  (" + tags.joined(separator: ", ") + ")"
-        return "\(file.diff.status.letter)  \(path)\(suffix)"
+        return tags
     }
 
     /// Where each piece of a header goes; drawing and hit testing share it.
@@ -44,8 +48,9 @@ enum DiffHeaderDrawing {
         var x = disclosure.maxX + 8
         var pieces: [(line: CTLine, color: RGB, x: Double)] = []
         func width(_ line: CTLine) -> Double { CTLineGetTypographicBounds(line, nil, nil, nil) }
+        var counts = tags(file).map { (TextLine.make($0, font: font), palette.gutterText) }
         // Binary files and pure renames have no lines to count.
-        var counts =
+        counts +=
             file.diff.additions + file.diff.deletions > 0
             ? [
                 (
