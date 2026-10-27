@@ -43,6 +43,7 @@ final class DiffCanvasView: NSView {
         }
     }
     private(set) var hasFocus = false
+    var onRelayout: (() -> Void)?
     var onToggleCollapse: ((String) -> Void)?
     var onFocusChange: ((Bool) -> Void)?
     var onExpand: ((String, Int, ExpandDirection) -> Void)?
@@ -209,6 +210,7 @@ final class DiffCanvasView: NSView {
         resize()
         updateCardView()
         updateTargetRows()
+        onRelayout?()
     }
 
     /// The card's view needs another height: the same rows, measured again.

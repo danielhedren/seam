@@ -207,4 +207,37 @@ private func texts(_ rows: [DiffRow]) -> [String] {
             #expect(washed.blueComponent < washed.redComponent - 0.05, "at \(x)")
         }
     }
+
+    /// Each thread's row has a tick down the diff's right edge, whichever scrollers the system
+    /// uses, so it's seen before it's scrolled to.
+    @Test(arguments: [NSScroller.Style.overlay, .legacy])
+    func theRightEdgeMarksWhereEachThreadIs(style: NSScroller.Style) throws {
+        let view = DiffScrollView()
+        view.scrollerStyle = style
+        view.appearance = NSAppearance(named: .aqua)
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 120)
+        let threads = ["a.txt": [marker("new", .new, 2...3), marker("old", .old, 2...2)]]
+        view.show(DiffContent(review: review(), threads: threads), position: .top)
+        view.layoutSubtreeIfNeeded()
+        let layout = try #require(view.documentView as? DiffCanvasView).layout
+        let rows = layout.rows.indices.filter { layout.rows[$0].isThread }
+        #expect(view.ruler.spans.map(\.marker.id) == ["old", "new"])
+        #expect(
+            view.ruler.spans.map(\.top) == rows.map { layout.top(of: $0) / layout.totalHeight })
+
+        let rep = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+        view.cacheDisplay(in: view.bounds, to: rep)
+        let scale = Double(rep.pixelsWide) / view.bounds.width
+        let ruler = view.ruler.frame
+        let span = view.ruler.spans[0]
+        let y = ruler.minY + (span.top + span.height / 2) * ruler.height
+        let tick = try #require(
+            rep.colorAt(x: Int((ruler.maxX - 3.5) * scale), y: Int(y * scale))?
+                .usingColorSpace(.sRGB))
+        #expect(tick.redComponent > 0.9 && tick.blueComponent < 0.3, "\(tick)")
+
+        view.show(
+            DiffContent(review: review(), collapsed: ["a.txt"], threads: threads), position: .top)
+        #expect(view.ruler.spans == [])
+    }
 }

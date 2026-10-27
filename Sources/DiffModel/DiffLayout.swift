@@ -324,3 +324,26 @@ extension DiffLayout {
         return endsAtLineEnd ? joined + "\n" : joined
     }
 }
+
+extension DiffLayout {
+    /// Where a thread's row is, as shares of the document's height, for the scroller's marks.
+    package struct ThreadSpan: Equatable, Sendable {
+        package var top: Double
+        package var height: Double
+        package var marker: ThreadMarker
+    }
+
+    /// Every thread's row, read or not, top first.
+    package var threadSpans: [ThreadSpan] {
+        guard totalHeight > 0 else { return [] }
+        return rows.indices.compactMap { index in
+            switch rows[index] {
+            case .thread(_, let marker), .openThread(_, let marker):
+                ThreadSpan(
+                    top: top(of: index) / totalHeight, height: height(of: index) / totalHeight,
+                    marker: marker)
+            default: nil
+            }
+        }
+    }
+}

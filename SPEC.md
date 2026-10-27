@@ -536,7 +536,8 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   resolved. The row must be seen while scrolling, so it can't look like code: taller than a
   line, washed more strongly than the card, ruled above and below with a bar at its left edge
   in the thread's colour, a speech bubble before it, and its text in the system font with the
-  author in bold. Side by side, the row and the card span both columns, since they're prose, not
+  author in bold. A tick in the same colour down the diff's right edge marks where each thread's
+  row is, over the scroller, so threads are seen before they're scrolled to. Side by side, the row and the card span both columns, since they're prose, not
   code; the gutter mark keeps to its side. A comment too long for the width is shortened before
   its count. Resolved threads show only the gutter marker, a hollow grey bar,
   unless Review › Show Resolved Threads is on; `t` on their lines opens them.

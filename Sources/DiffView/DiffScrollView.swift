@@ -67,6 +67,7 @@ public final class DiffScrollView: NSScrollView {
     /// A match `showMatch` asked for in a file that isn't laid out yet (it was collapsed).
     private var pendingMatch: (path: String, line: Int, isOld: Bool, occurrence: Int)?
     private let sticky = DiffStickyHeaderView()
+    let ruler = ThreadRuler()
     private var reportedFile: String?
     /// After a jump to a file, the clip view's top the jump landed on. A short file near the end
     /// can't reach the top, so until the reader scrolls away the jumped-to file stays current.
@@ -80,6 +81,7 @@ public final class DiffScrollView: NSScrollView {
         super.init(frame: .zero)
         documentView = canvas
         hasVerticalScroller = true
+        canvas.onRelayout = { [weak self] in self?.updateRuler() }
         scrollerInsets.top = Self.fileHeaderHeight(for: canvas.font)
         hasHorizontalScroller = true
         autohidesScrollers = true
@@ -96,6 +98,7 @@ public final class DiffScrollView: NSScrollView {
             }
         }
         addSubview(sticky)
+        addSubview(ruler)
         NSWorkspace.shared.notificationCenter.addObserver(
             self, selector: #selector(displayOptionsChanged),
             name: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil)
@@ -392,6 +395,19 @@ public final class DiffScrollView: NSScrollView {
         let anchor = anchor
         if canvas.setVisibleWidth(contentSize.width), let anchor { restore(anchor) }
         updateSticky()
+        updateRuler()
+    }
+
+    /// Ticks only help when there's somewhere to scroll; a scroller swapped in for another
+    /// style mustn't cover them.
+    private func updateRuler() {
+        let top = scrollerInsets.top
+        ruler.frame = NSRect(
+            x: bounds.maxX - ThreadRuler.width, y: isFlipped ? top : 0, width: ThreadRuler.width,
+            height: max(bounds.height - top, 0))
+        ruler.spans = layout.threadSpans
+        ruler.isHidden = layout.totalHeight <= contentSize.height
+        if subviews.last !== ruler { addSubview(ruler, positioned: .above, relativeTo: nil) }
     }
 
     public override func reflectScrolledClipView(_ clipView: NSClipView) {
