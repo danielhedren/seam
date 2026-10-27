@@ -32,20 +32,21 @@ struct ThreadCardView: View {
             {
                 // Read-only (SPEC §7.9): no reply box, and the one action is GitHub's page.
                 layout(
-                    title: Self.threadTitle(placed.thread, lines: placed.placement),
+                    title: placed.thread.cardTitle(placement: placed.placement),
                     thread: placed.thread, text: nil, placeholder: "",
                     submit: String(localized: "Open on GitHub", bundle: .module),
                     dismiss: String(localized: "Close", bundle: .module),
                     onSubmit: { session.openOnGitHub(placed.thread) },
-                    onDismiss: { session.closeThread() })
+                    onDismiss: { session.closeThread() }, onTitle: { session.closeThread() })
             } else if let placed = session.selected?.placedThreads.first(where: { $0.id == id }) {
                 layout(
-                    title: Self.threadTitle(placed.thread, lines: placed.placement),
+                    title: placed.thread.cardTitle(placement: placed.placement),
                     thread: placed.thread, text: $reply,
                     placeholder: String(localized: "Write a reply…", bundle: .module),
                     submit: String(localized: "Reply", bundle: .module),
                     dismiss: String(localized: "Close", bundle: .module),
-                    onSubmit: { send(to: id) }, onDismiss: { session.closeThread() })
+                    onSubmit: { send(to: id) }, onDismiss: { session.closeThread() },
+                    onTitle: { session.closeThread() })
             }
         }
     }
@@ -53,13 +54,14 @@ struct ThreadCardView: View {
     private func layout(
         title: String, thread: ReviewThread?, text: Binding<String>?, placeholder: String,
         submit: String, dismiss: String, onSubmit: @escaping () -> Void,
-        onSubmitNote: (() -> Void)? = nil, onDismiss: @escaping () -> Void
+        onSubmitNote: (() -> Void)? = nil, onDismiss: @escaping () -> Void,
+        onTitle: (() -> Void)? = nil
     ) -> some View {
         ThreadCardLayout(
             session: session, font: session.settings.font, title: title, thread: thread,
             text: text, placeholder: placeholder, submit: submit, dismiss: dismiss,
             takesFocus: thread == nil, onSubmit: onSubmit, onSubmitNote: onSubmitNote,
-            onDismiss: onDismiss
+            onDismiss: onDismiss, onTitle: onTitle
         )
         .padding(.horizontal, 7)
     }
@@ -75,44 +77,12 @@ struct ThreadCardView: View {
         lines.count == 1 ? "\(lines.lowerBound)" : "\(lines.lowerBound)–\(lines.upperBound)"
     }
 
-    /// "New thread on src/a.cs, line 12".
+    /// "New thread on line 12"; the sticky header above names the file.
     static func draftTitle(_ marker: DraftMarker) -> String {
         let lines = range(marker.lines)
         return marker.side == .old
-            ? String(localized: "New thread on \(marker.path), old line \(lines)", bundle: .module)
-            : String(localized: "New thread on \(marker.path), line \(lines)", bundle: .module)
-    }
-
-    /// "Thread on src/a.cs, line 12 · 3 comments · resolved"; a pull request's says "GitHub
-    /// thread on src/a.cs, line 12 · #12 · 3 comments".
-    static func threadTitle(_ thread: ReviewThread, lines placement: ThreadPlacement) -> String {
-        let lines = range(
-            { if case .lines(let now) = placement { now } else { thread.anchor.lines } }())
-        let status = thread.isResolved ? String(localized: " · resolved", bundle: .module) : ""
-        if let github = thread.github {
-            let place =
-                github.onFile
-                ? String(localized: "GitHub thread on \(thread.anchor.path)", bundle: .module)
-                : thread.anchor.side == .old
-                    ? String(
-                        localized: "GitHub thread on \(thread.anchor.path), old line \(lines)",
-                        bundle: .module)
-                    : String(
-                        localized: "GitHub thread on \(thread.anchor.path), line \(lines)",
-                        bundle: .module)
-            return "\(place) · #\(github.pullRequest) · "
-                + "\(Counted.comments(thread.comments.count))\(status)"
-        }
-        let place =
-            thread.isNote
-            ? String(localized: "Note on \(thread.anchor.path), line \(lines)", bundle: .module)
-            : thread.anchor.side == .old
-                ? String(
-                    localized: "Thread on \(thread.anchor.path), old line \(lines)",
-                    bundle: .module)
-                : String(
-                    localized: "Thread on \(thread.anchor.path), line \(lines)", bundle: .module)
-        return "\(place) · \(Counted.comments(thread.comments.count))\(status)"
+            ? String(localized: "New thread on old line \(lines)", bundle: .module)
+            : String(localized: "New thread on line \(lines)", bundle: .module)
     }
 }
 
@@ -135,6 +105,8 @@ struct ThreadCardLayout: View {
     let onSubmit: () -> Void
     var onSubmitNote: (() -> Void)?
     let onDismiss: () -> Void
+    /// Clicking an open thread's title collapses it, as clicking a collapsed one's opens it.
+    var onTitle: (() -> Void)?
 
     var body: some View {
         // A weight on a font made from an NSFont is ignored, so the bold face is asked for.
@@ -144,13 +116,11 @@ struct ThreadCardLayout: View {
         VStack(alignment: .leading, spacing: 10) {
             if let title {
                 HStack(spacing: 16) {
-                    HStack(spacing: 6) {
-                        if thread?.source == .gitHub {
-                            Octicon.mark.image.resizable().frame(width: 13, height: 13)
-                                .foregroundStyle(Color(nsColor: ThreadColor.gitHubAccent))
-                        }
-                        Text(verbatim: title).foregroundStyle(.secondary)
-                            .lineLimit(1).truncationMode(.middle)
+                    if let onTitle {
+                        Button(action: onTitle) { titleLabel(title) }
+                            .buttonStyle(.plain).pointerStyle(.link)
+                    } else {
+                        titleLabel(title)
                     }
                     Spacer(minLength: 4)
                     if let thread { ThreadActions(session: session, thread: thread) }
@@ -195,6 +165,17 @@ struct ThreadCardLayout: View {
         }
         .font(Font(font))
         .onExitCommand(perform: onDismiss)
+    }
+
+    private func titleLabel(_ title: String) -> some View {
+        HStack(spacing: 6) {
+            if thread?.source == .gitHub {
+                Octicon.mark.image.resizable().frame(width: 13, height: 13)
+                    .foregroundStyle(Color(nsColor: ThreadColor.gitHubAccent))
+            }
+            Text(verbatim: title).foregroundStyle(.secondary)
+                .lineLimit(1).truncationMode(.middle)
+        }
     }
 }
 

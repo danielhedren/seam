@@ -236,7 +236,8 @@ struct DiffSnapshotTests {
         func marker(_ id: String, _ lines: ClosedRange<Int>, resolved: Bool) -> ThreadMarker {
             ThreadMarker(
                 id: id, side: .new, lines: lines, latestAuthor: "you", latest: "Why?",
-                commentCount: 1, isResolved: resolved)
+                commentCount: 1, isResolved: resolved,
+                title: "Thread on line \(lines.lowerBound) · 1 comment")
         }
         let view = DiffScrollView.forSnapshot()
         view.appearance = NSAppearance(named: .aqua)
@@ -260,7 +261,8 @@ struct DiffSnapshotTests {
             id: "t", side: .old, lines: 9...9, latestAuthor: "claude",
             latest:
                 "The total was an Int because the old API sent whole kronor; Decimal keeps öre.",
-            commentCount: 2, isResolved: false)
+            commentCount: 2, isResolved: false,
+            title: "Thread on old line 9 · 2 comments")
         view.show(
             DiffContent(
                 review: Self.review, mode: .split, collapsed: ["Legacy.txt"], syntax: Self.syntax,

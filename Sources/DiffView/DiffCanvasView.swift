@@ -279,7 +279,7 @@ final class DiffCanvasView: NSView {
                 row: index, source: marker.source, isNote: marker.isNote, palette: palette,
                 context: context)
         case .thread(_, let marker):
-            drawThreadRow(marker, row: index, in: rect, palette: palette, context: context)
+            drawCollapsedCard(marker, row: index, palette: palette, context: context)
         case .gap(_, let gap):
             fill(rect, palette.hunkBackground, context)
             drawText(
@@ -337,63 +337,46 @@ final class DiffCanvasView: NSView {
         updateCardView()
     }
 
-    /// Prose on a band of its own, ruled and barred in the thread's colour with a speech bubble,
-    /// so it can't be taken for code while scrolling. Side by side it spans both columns; the
-    /// gutter mark says which side it's on.
-    private func drawThreadRow(
-        _ marker: ThreadMarker, row: Int, in rect: NSRect, palette: DiffPalette,
-        context: CGContext
+    /// The open card collapsed to its title and the latest comment, in the same frame, font
+    /// and margins (`DiffCanvasView+Card.swift`, `ThreadCardView`), so opening it changes only
+    /// how much it shows. Side by side it spans both columns; the gutter mark says which side.
+    private func drawCollapsedCard(
+        _ marker: ThreadMarker, row: Int, palette: DiffPalette, context: CGContext
     ) {
-        let accent =
-            marker.isResolved
-            ? palette.gutterText.nsColor : ThreadColor.accent(marker.source, note: marker.isNote)
-        context.setFillColor(ThreadColor.rowWash(marker.source, note: marker.isNote).cgColor)
-        context.fill(rect)
-        context.setFillColor(accent.withAlphaComponent(0.6).cgColor)
-        context.fill(NSRect(x: rect.minX, y: rect.minY, width: rect.width, height: 1))
-        context.fill(NSRect(x: rect.minX, y: rect.maxY - 1, width: rect.width, height: 1))
-        context.setFillColor(accent.cgColor)
-        context.fill(NSRect(x: rect.minX, y: rect.minY, width: 3, height: rect.height))
-
-        let x = geometry.textX(for: mode == .split ? .left : .unified)
-        let size = font.pointSize
-        if let bubble = Self.bubble(size: size, color: accent) {
-            let side = bubble.size
-            bubble.draw(
-                in: NSRect(
-                    x: x - side.width - 6, y: (rect.midY - side.height / 2).rounded(),
-                    width: side.width, height: side.height),
-                from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true,
-                hints: nil)
-        }
-        let color = (marker.isResolved ? palette.gutterText : palette.text).nsColor
-        let regular = NSFont.systemFont(ofSize: size)
-        func line(_ text: String, _ font: NSFont, _ color: NSColor) -> CTLine {
+        drawCardFrame(
+            row: row, source: marker.source, isNote: marker.isNote, palette: palette,
+            context: context)
+        // The card view's margin plus its own horizontal padding.
+        let inner = draftFrame(row: row).insetBy(dx: DiffCardMetrics.margin + 7, dy: 0)
+        let textHeight = layout.metrics.lineHeight - 4
+        let top = draftFrame(row: row).minY + DiffCardMetrics.margin
+        let bold = NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask)
+        func line(_ text: String, _ font: NSFont, _ color: RGB) -> CTLine {
             CTLineCreateWithAttributedString(
                 NSAttributedString(
-                    string: text, attributes: [.font: font, .foregroundColor: color]))
+                    string: text, attributes: [.font: font, .foregroundColor: color.nsColor]))
         }
-        let byline = line(marker.byline + "  ", .systemFont(ofSize: size, weight: .semibold), color)
-        let latest = line(marker.latest, regular, color)
-        let tally = line("   " + marker.tally, regular, palette.gutterText.nsColor)
-        func width(_ line: CTLine) -> Double { CTLineGetTypographicBounds(line, nil, nil, nil) }
-        let room = max(bounds.width - geometry.padding - x - width(byline) - width(tally), 1)
-        let summary =
-            CTLineCreateTruncatedLine(latest, room, .end, line("…", regular, color)) ?? latest
-        let baseline = (rect.midY + (regular.ascender + regular.descender) / 2).rounded()
-        var pen = x
-        for part in [byline, summary, tally] {
-            context.textPosition = CGPoint(x: pen, y: baseline)
-            CTLineDraw(part, context)
-            pen += width(part)
+        func draw(_ parts: [CTLine], truncation: CTLineTruncationType, y: Double) {
+            var pen = inner.minX
+            var room = inner.width
+            for (index, part) in parts.enumerated() {
+                let width = CTLineGetTypographicBounds(part, nil, nil, nil)
+                let shown =
+                    width <= room || index < parts.count - 1
+                    ? part
+                    : CTLineCreateTruncatedLine(
+                        part, max(room, 1), truncation, line("…", font, palette.text)) ?? part
+                context.textPosition = CGPoint(x: pen, y: y + font.ascender)
+                CTLineDraw(shown, context)
+                pen += width
+                room -= width
+            }
         }
-    }
-
-    private static func bubble(size: Double, color: NSColor) -> NSImage? {
-        NSImage(systemSymbolName: "text.bubble.fill", accessibilityDescription: nil)?
-            .withSymbolConfiguration(
-                NSImage.SymbolConfiguration(pointSize: size, weight: .regular)
-                    .applying(.init(paletteColors: [color])))
+        draw([line(marker.title, font, palette.gutterText)], truncation: .middle, y: top)
+        let body = marker.isResolved ? palette.gutterText : palette.text
+        draw(
+            [line(marker.latestAuthor + " ", bold, body), line(marker.latest, font, body)],
+            truncation: .end, y: top + textHeight + 6)
     }
 
     /// A bar at the left of the gutter beside a thread's lines, on the side the thread is on;

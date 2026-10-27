@@ -232,7 +232,7 @@ private func texts(_ rows: [DiffRow]) -> [String] {
         let span = view.ruler.spans[0]
         let y = ruler.minY + (span.top + span.height / 2) * ruler.height
         let tick = try #require(
-            rep.colorAt(x: Int((ruler.maxX - 3.5) * scale), y: Int(y * scale))?
+            rep.colorAt(x: Int((ruler.maxX - 4.5) * scale), y: Int(y * scale))?
                 .usingColorSpace(.sRGB))
         #expect(tick.redComponent > 0.9 && tick.blueComponent < 0.3, "\(tick)")
 

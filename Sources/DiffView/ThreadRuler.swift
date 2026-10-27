@@ -5,7 +5,7 @@ import DiffModel
 /// seen before they're scrolled to (SPEC §7.7). A view of its own over the scroller: overlay
 /// scrollers don't call `draw(_:)`, and a legacy one draws its knob over anything drawn there.
 final class ThreadRuler: NSView {
-    static let width = 8.0
+    static let width = 10.0
 
     var spans: [DiffLayout.ThreadSpan] = [] {
         didSet { if spans != oldValue { needsDisplay = true } }
@@ -18,14 +18,14 @@ final class ThreadRuler: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         for span in spans {
-            let height = max(span.height * bounds.height, 3)
+            let height = max(span.height * bounds.height, 4)
             let y = min(span.top * bounds.height, bounds.height - height)
             let color =
                 span.marker.isResolved
                 ? NSColor.systemGray
                 : ThreadColor.accent(span.marker.source, note: span.marker.isNote)
             color.setFill()
-            NSRect(x: bounds.maxX - 5, y: y.rounded(), width: 3, height: height.rounded()).fill()
+            NSRect(x: bounds.maxX - 7, y: y.rounded(), width: 5, height: height.rounded()).fill()
         }
     }
 }

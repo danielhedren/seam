@@ -1,6 +1,5 @@
 import AppKit
 import DiffModel
-import DiffView
 import Foundation
 import GitKit
 import ReviewTestSupport
@@ -9,6 +8,7 @@ import SwiftUI
 import TestSupport
 import Testing
 
+@testable import DiffView
 @testable import Features
 @testable import ReviewModel
 
@@ -179,5 +179,51 @@ import Testing
         #expect(session.selectedThreadID == id)
         session.openThreadAtCursor()
         #expect(session.selectedThreadID == nil)
+    }
+
+    /// A collapsed thread is the open card's title and latest comment: clicking it opens the
+    /// card, and clicking the open card's title collapses it again.
+    @Test func clickingACollapsedCardOpensItAndItsTitleCollapsesIt() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\ntwo\n")
+        let (session, review, _) = await threadSession(repo)
+        let reviewed = try #require(review)
+        session.draft = ThreadDraft(
+            worktree: reviewed.id,
+            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
+        await session.post("Why one?")
+        let id = try #require(session.selectedThreadID)
+        session.closeThread()
+        let card = CardWindow(session: session, review: reviewed)
+        await card.settle()
+        let canvas = try #require(CardWindow.find(DiffCanvasView.self, in: card.window.contentView))
+        let row = try #require(
+            canvas.layout.rows.firstIndex { if case .thread = $0 { true } else { false } })
+        guard case .thread(_, let marker) = canvas.layout.rows[row] else { return }
+        #expect(marker.title == "Thread on line 1 · 1 comment")
+
+        func event(_ type: NSEvent.EventType, _ point: NSPoint, in view: NSView) throws -> NSEvent {
+            try #require(
+                NSEvent.mouseEvent(
+                    with: type, location: view.convert(point, to: nil), modifierFlags: [],
+                    timestamp: 0, windowNumber: card.window.windowNumber, context: nil,
+                    eventNumber: 0, clickCount: 1, pressure: 1))
+        }
+        canvas.mouseDown(
+            with: try event(
+                .leftMouseDown, NSPoint(x: 200, y: canvas.layout.top(of: row) + 20), in: canvas))
+        #expect(await card.wait { session.selectedThreadID == id }, "the click opens it")
+        let host = try #require(card.host)
+        // SwiftUI only takes clicks in a window on screen; this one is invisible.
+        card.window.alphaValue = 0
+        card.window.orderFrontRegardless()
+        defer { card.window.orderOut(nil) }
+        await card.settle()
+        let title = NSPoint(x: 40, y: host.isFlipped ? 12 : host.bounds.height - 12)
+        for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+            card.window.sendEvent(try event(type, title, in: host))
+        }
+        #expect(await card.wait { session.selectedThreadID == nil }, "its title collapses it")
+        #expect(card.host == nil)
     }
 }

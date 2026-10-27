@@ -4,9 +4,6 @@
     "" : {
 
     },
-    " · resolved" : {
-
-    },
     "%@ (%@ marks it and goes to the next unviewed file)" : {
       "localizations" : {
         "en" : {
@@ -272,29 +269,6 @@
     "GitHub" : {
 
     },
-    "GitHub thread on %@" : {
-
-    },
-    "GitHub thread on %@, line %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "GitHub thread on %1$@, line %2$@"
-          }
-        }
-      }
-    },
-    "GitHub thread on %@, old line %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "GitHub thread on %1$@, old line %2$@"
-          }
-        }
-      }
-    },
     "GitHub's rate limit was reached. Seam tries again later." : {
 
     },
@@ -361,25 +335,11 @@
     "New Window" : {
 
     },
-    "New thread on %@, line %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "New thread on %1$@, line %2$@"
-          }
-        }
-      }
+    "New thread on line %@" : {
+
     },
-    "New thread on %@, old line %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "New thread on %1$@, old line %2$@"
-          }
-        }
-      }
+    "New thread on old line %@" : {
+
     },
     "Next match" : {
 
@@ -413,16 +373,6 @@
     },
     "Note" : {
 
-    },
-    "Note on %@, line %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Note on %1$@, line %2$@"
-          }
-        }
-      }
     },
     "Nothing awaits you" : {
 
@@ -648,26 +598,6 @@
     },
     "This worktree's directory is missing. If it was deleted, “git worktree prune” takes it off the list." : {
 
-    },
-    "Thread on %@, line %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Thread on %1$@, line %2$@"
-          }
-        }
-      }
-    },
-    "Thread on %@, old line %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Thread on %1$@, old line %2$@"
-          }
-        }
-      }
     },
     "Threads" : {
 

@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    " · resolved" : {
+
+    },
     "#%@ checks failed" : {
 
     },
@@ -293,6 +296,15 @@
     "Generated" : {
 
     },
+    "GitHub thread on line %@" : {
+
+    },
+    "GitHub thread on old line %@" : {
+
+    },
+    "GitHub thread on the file" : {
+
+    },
     "Go" : {
 
     },
@@ -390,6 +402,9 @@
 
     },
     "Not in this diff" : {
+
+    },
+    "Note on line %@" : {
 
     },
     "Nothing in the diff matches “%@”." : {
@@ -525,6 +540,12 @@
 
     },
     "Thread #%@ no longer exists." : {
+
+    },
+    "Thread on line %@" : {
+
+    },
+    "Thread on old line %@" : {
 
     },
     "Together they leave every file as it was." : {

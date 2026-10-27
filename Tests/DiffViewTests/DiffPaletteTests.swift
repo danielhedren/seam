@@ -36,7 +36,7 @@ import Testing
         }
     }
 
-    /// Thread rows sit on the amber wash (the composer on a lighter one); the lines a new thread goes on have
+    /// Thread rows and the composer sit on the amber wash; the lines a new thread goes on have
     /// their gutter washed more strongly, under line numbers drawn in the text colour.
     @Test(arguments: DiffPalette.all.map(\.name))
     func textMeetsWCAGAAOnTheThreadsAmber(name: String) throws {
@@ -51,7 +51,7 @@ import Testing
             mixed.blue = amber.blue * alpha + under.blue * (1 - alpha)
             return mixed
         }
-        let wash = blend(ThreadColor.rowWashAlpha, over: palette.background)
+        let wash = blend(ThreadColor.washAlpha, over: palette.background)
         var pairs: [(String, RGB, RGB)] = [
             ("text on thread row", palette.text, wash),
             ("resolved thread row", palette.gutterText, wash),

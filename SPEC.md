@@ -510,7 +510,7 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   line. A card opens in the diff under the last of those lines (in their column side by side),
   with the cursor in its text box; ⌘↩ posts and Escape cancels, and posting turns it into the
   new thread's card. The card is in the diff's font on an amber frame: a title ("New thread on
-  src/a.cs, line 3"), a text box four lines tall whatever is typed, without a background of its
+  line 3"; the sticky header above names the file), a text box four lines tall whatever is typed, without a background of its
   own, and its keys as hints at the bottom ("⌘↩ Comment ⌥⌘↩ Note ⎋ Cancel"), which are also
   buttons. The row is as tall as the card, measured again whenever what it shows changes. The
   lines a selection or a clicked line would comment on, and the open draft's, have their gutter
@@ -531,22 +531,21 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   side-by-side view they were picked in, so the thread follows the code as it's edited and
   behaves the same in both view modes. A side-by-side selection takes its rows from the column
   it was made in.
-- **In the diff:** a commented range gets a marker in the gutter and a compact row after its last
-  line: author, the first line of the latest comment, the number of comments, and open or
-  resolved. The row must be seen while scrolling, so it can't look like code: taller than a
-  line, washed more strongly than the card, ruled above and below with a bar at its left edge
-  in the thread's colour, a speech bubble before it, and its text in the system font with the
-  author in bold. A tick in the same colour down the diff's right edge marks where each thread's
-  row is, over the scroller, so threads are seen before they're scrolled to. Side by side, the row and the card span both columns, since they're prose, not
-  code; the gutter mark keeps to its side. A comment too long for the width is shortened before
-  its count. Resolved threads show only the gutter marker, a hollow grey bar,
+- **In the diff:** a commented range gets a marker in the gutter and, after its last line, the
+  thread's card collapsed: the open card's frame, font and title, and one more line with the
+  latest comment's author in bold and its first line. Opening it only shows more, so a thread
+  can't be taken for code while scrolling and doesn't change look when opened. A tick in the
+  same colour down the diff's right edge marks where each thread is, over the scroller, so
+  threads are seen before they're scrolled to. Side by side, the card spans both columns,
+  since it's prose, not code; the gutter mark keeps to its side. A title too long for the
+  width is shortened in the middle, a comment at its end. Resolved threads show only the gutter marker, a hollow grey bar,
   unless Review › Show Resolved Threads is on; `t` on their lines opens them.
-- **Reading and answering in the diff:** clicking a thread's row, `t` on its lines, or picking it
-  in the panel opens it in place of its row, in the same card as the composer (one view for
+- **Reading and answering in the diff:** clicking a collapsed card, `t` on its lines, or picking it
+  in the panel opens it in place of its collapsed card, in the same card as the composer (one view for
   both, so they can't look different): a title with its lines, comment count and status,
   Resolve or Reopen and Delete beside it, every comment (author in bold, age, Markdown body),
-  the reply box, and "⌘↩ Reply ⎋ Close". Escape in the card, `t` again, or Escape in
-  the diff with nothing selected closes it back to its row; collapsing its file, or marking it
+  the reply box, and "⌘↩ Reply ⎋ Close". Clicking its title, Escape in the card, `t` again,
+  or Escape in the diff with nothing selected collapses it again; collapsing its file, or marking it
   viewed, closes it too. One thread is open at a time. Opening
   one while writing sets the draft aside, text and all, until the thread closes. Each worktree
   keeps its own open thread and draft: switching away and back opens the same thread and keeps
@@ -671,10 +670,9 @@ GitHub.
   section's Open on GitHub opens the pull request. Read with the threads, in the same query;
   kept per worktree in the GitHub file below.
 - **Looks:** the same views as Seam's threads, in GitHub's blue (Primer's accent, `#0969da`
-  light, `#4493f8` dark) where Seam's are amber: the gutter bar, the row's wash, the card's
-  frame, the file list's dot (a file with both kinds shows both) and the panel's marks. A row
-  reads "octocat on GitHub: …", the card and the panel carry the GitHub mark, authors are GitHub
-  logins, and the card's title reads "GitHub thread on src/a.cs, line 12 · #12 · 3 comments".
+  light, `#4493f8` dark) where Seam's are amber: the gutter bar, the card's frame, the file list's dot (a file with both kinds shows both) and the panel's marks. The open
+  card and the panel carry the GitHub mark, authors are GitHub logins, and the card's title
+  reads "GitHub thread on line 12 · #12 · 3 comments".
 - **Read-only:** the card has no reply box, Resolve or Delete. It has Open on GitHub (also Review
   › Open Thread on GitHub) and "⎋ Close". Review › Resolve Thread and Delete Thread are disabled
   for them. `c` on their lines starts a Seam thread as anywhere else.

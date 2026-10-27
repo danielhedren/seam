@@ -14,12 +14,15 @@ public struct ThreadMarker: Equatable, Sendable {
     public var source: ThreadSource
     /// A note asks no answer, so it's drawn in grey rather than the source's colour.
     public var isNote: Bool
+    /// The card's title, which the collapsed card shows too.
+    public var title: String
 
     public init(
         id: String, side: ThreadAnchor.Side, lines: ClosedRange<Int>, latestAuthor: String,
         latest: String, commentCount: Int, isResolved: Bool, source: ThreadSource = .seam,
-        isNote: Bool = false
+        isNote: Bool = false, title: String = ""
     ) {
+        self.title = title
         self.source = source
         self.isNote = isNote
         self.id = id
@@ -42,31 +45,5 @@ public struct DraftMarker: Equatable, Sendable {
         self.path = path
         self.side = side
         self.lines = lines
-    }
-}
-
-extension ThreadMarker {
-    package var text: String { "\(summary)   \(tally)" }
-
-    package var summary: String {
-        source == .gitHub
-            ? String(localized: "\(latestAuthor) on GitHub: \(latest)", bundle: .module)
-            : "\(latestAuthor): \(latest)"
-    }
-
-    /// Who wrote the latest comment, and where when it's not Seam.
-    package var byline: String {
-        source == .gitHub
-            ? String(localized: "\(latestAuthor) on GitHub", bundle: .module) : latestAuthor
-    }
-
-    /// The count and status, which a summary too long for its column gives way to.
-    package var tally: String {
-        let count =
-            commentCount == 1
-            ? String(localized: "1 comment", bundle: .module)
-            : String(localized: "\(commentCount) comments", bundle: .module)
-        let status = isResolved ? String(localized: " · resolved", bundle: .module) : ""
-        return "\(count)\(status)"
     }
 }

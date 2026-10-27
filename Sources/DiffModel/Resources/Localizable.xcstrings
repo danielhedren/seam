@@ -1,28 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    " · resolved" : {
-
-    },
-    "%@ on GitHub" : {
-
-    },
-    "%@ on GitHub: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ on GitHub: %2$@"
-          }
-        }
-      }
-    },
-    "%lld comments" : {
-
-    },
-    "1 comment" : {
-
-    },
     "Binary file" : {
 
     },

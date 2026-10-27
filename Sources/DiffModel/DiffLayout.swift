@@ -10,8 +10,9 @@ package struct DiffLayout: Equatable, Sendable {
         package var fileHeaderHeight: Double
         package var characterWidth: Double
         var imageHeight = 240.0
-        /// Taller than a line, so a thread's row stands apart from the code around it.
-        package var threadRowHeight: Double { (lineHeight * 1.6).rounded() }
+        /// A collapsed card: its title and the latest comment, in the open card's frame and
+        /// margins (`DiffCanvasView.drawCollapsedCard`).
+        package var threadRowHeight: Double { 2 * lineHeight + 22 }
 
         package init(lineHeight: Double, fileHeaderHeight: Double, characterWidth: Double) {
             self.lineHeight = lineHeight
@@ -150,8 +151,7 @@ package struct DiffLayout: Equatable, Sendable {
         case .split(_, let left, let right): max(left?.text.count ?? 0, right?.text.count ?? 0)
         case .hunkHeader(_, _, .titled(let text)), .notice(_, let text): text.count
         case .gap(_, let gap): DiffRowBuilder.gapLabel(gap).text.count
-        case .thread(_, let marker): marker.text.count
-        case .fileHeader, .image, .hunkHeader, .draft, .openThread: 0
+        case .fileHeader, .image, .hunkHeader, .draft, .thread, .openThread: 0
         }
     }
 }

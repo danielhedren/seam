@@ -185,7 +185,8 @@ extension WorktreeReview {
             id: placed.id, side: placed.thread.anchor.side, lines: lines,
             latestAuthor: latest.author, latest: String(firstLine.prefix(120)),
             commentCount: placed.thread.comments.count, isResolved: placed.thread.isResolved,
-            source: placed.thread.source, isNote: placed.thread.isNote)
+            source: placed.thread.source, isNote: placed.thread.isNote,
+            title: placed.thread.cardTitle(placement: placed.placement))
     }
 
     /// The anchor `c` would comment on, with the lines' text from the file as it is.
