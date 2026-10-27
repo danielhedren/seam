@@ -319,8 +319,8 @@ first parents (a merge from main is one row):
   base went away are taken down.
 
 The rows the diff covers are selected; selecting other rows (click, ⇧-click, arrow keys) picks a
-new run (§6.2), and a ⌘-click selection is filled to a contiguous run. "Show All" returns to the
-All scope. The divider between the worktree and commit lists keeps its position across worktree
+new run (§6.2), and a ⌘-click selection is filled to a contiguous run. "Select All" in the list's header selects
+every row, which is the All scope. The divider between the worktree and commit lists keeps its position across worktree
 switches and launches.
 
 A commit's context menu has Copy Commit ID (the full SHA), Copy Subject, Show Only This Commit

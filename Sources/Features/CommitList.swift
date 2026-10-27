@@ -95,7 +95,7 @@ struct CommitList: View {
             Text(verbatim: Counted.commits(log.commits.count))
             Spacer()
             if review.commitSelection != nil {
-                Button(String(localized: "Show All", bundle: .module)) {
+                Button(String(localized: "Select All", bundle: .module)) {
                     session.setScope(.all)
                 }
                 .buttonStyle(.link)
