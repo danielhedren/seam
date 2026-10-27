@@ -10,6 +10,8 @@ package struct DiffLayout: Equatable, Sendable {
         package var fileHeaderHeight: Double
         package var characterWidth: Double
         var imageHeight = 240.0
+        /// Taller than a line, so a thread's row stands apart from the code around it.
+        package var threadRowHeight: Double { (lineHeight * 1.6).rounded() }
 
         package init(lineHeight: Double, fileHeaderHeight: Double, characterWidth: Double) {
             self.lineHeight = lineHeight
@@ -49,6 +51,7 @@ package struct DiffLayout: Equatable, Sendable {
                 case .draft, .openThread: cardHeight
                 case .hunkHeader(_, _, .separator): (metrics.lineHeight / 3).rounded()
                 case .hunkHeader(_, _, .hidden): 0.0
+                case .thread: metrics.threadRowHeight
                 case .line(_, let line):
                     metrics.lineHeight * Double(Self.visualLines(line.text.count, wrapColumns))
                 case .split(_, let left, let right):

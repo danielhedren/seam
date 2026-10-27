@@ -9,6 +9,8 @@ public enum ThreadColor {
     /// Behind a thread's row and the composer, light enough for text on either appearance.
     public static let wash = accent.withAlphaComponent(washAlpha)
     static let washAlpha = 0.14
+    /// A thread's row in the diff, stronger than the card's so it's seen while scrolling.
+    static let rowWashAlpha = 0.2
     /// Primer's accent, as github.com draws links and its own highlights.
     public static let gitHubAccent = primerBlue(alpha: 1)
     public static let gitHubWash = primerBlue(alpha: washAlpha)
@@ -31,5 +33,12 @@ public enum ThreadColor {
 
     public static func wash(_ source: ThreadSource, note: Bool = false) -> NSColor {
         note ? noteWash : source == .gitHub ? gitHubWash : wash
+    }
+
+    static func rowWash(_ source: ThreadSource, note: Bool) -> NSColor {
+        note
+            ? noteAccent.withAlphaComponent(rowWashAlpha)
+            : source == .gitHub
+                ? primerBlue(alpha: rowWashAlpha) : accent.withAlphaComponent(rowWashAlpha)
     }
 }

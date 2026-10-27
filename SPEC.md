@@ -533,7 +533,10 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   it was made in.
 - **In the diff:** a commented range gets a marker in the gutter and a compact row after its last
   line: author, the first line of the latest comment, the number of comments, and open or
-  resolved. Side by side, the row and the card span both columns, since they're prose, not
+  resolved. The row must be seen while scrolling, so it can't look like code: taller than a
+  line, washed more strongly than the card, ruled above and below with a bar at its left edge
+  in the thread's colour, a speech bubble before it, and its text in the system font with the
+  author in bold. Side by side, the row and the card span both columns, since they're prose, not
   code; the gutter mark keeps to its side. A comment too long for the width is shortened before
   its count. Resolved threads show only the gutter marker, a hollow grey bar,
   unless Review › Show Resolved Threads is on; `t` on their lines opens them.

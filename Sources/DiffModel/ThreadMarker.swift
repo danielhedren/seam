@@ -54,6 +54,12 @@ extension ThreadMarker {
             : "\(latestAuthor): \(latest)"
     }
 
+    /// Who wrote the latest comment, and where when it's not Seam.
+    package var byline: String {
+        source == .gitHub
+            ? String(localized: "\(latestAuthor) on GitHub", bundle: .module) : latestAuthor
+    }
+
     /// The count and status, which a summary too long for its column gives way to.
     package var tally: String {
         let count =
