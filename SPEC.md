@@ -277,7 +277,8 @@ Each row shows:
 - State markers: detached, locked, prunable (from porcelain output), missing directory, stale
   parent (§5.4), and the branch's pull request (§7.8).
 - The totals are green and red and the markers orange, except on a selected row, where they
-  take the row's text colour: the accent fill leaves those colours unreadable.
+  take the row's text colour: the accent fill leaves those colours unreadable. A total of 0 is
+  grey wherever line totals show, so only real changes take a colour.
 
 Sorting: Needs You First (default) lists the worktrees with something awaiting the reader at the
 top, then those with work (changes against the base, uncommitted files or an open pull request),

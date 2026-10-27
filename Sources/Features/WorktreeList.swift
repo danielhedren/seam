@@ -73,8 +73,10 @@ struct WorktreeRow: View {
                     }
                     Spacer(minLength: 0)
                     if let changes = review.activity?.changes, changes.files > 0 {
-                        Text(verbatim: "+\(changes.additions)").foregroundStyle(tint(.green))
-                        Text(verbatim: "−\(changes.deletions)").foregroundStyle(tint(.red))
+                        Text(verbatim: "+\(changes.additions)")
+                            .foregroundStyle(changes.additions > 0 ? tint(.green) : grey)
+                        Text(verbatim: "−\(changes.deletions)")
+                            .foregroundStyle(changes.deletions > 0 ? tint(.red) : grey)
                     }
                 }
                 .font(.caption)
@@ -88,6 +90,8 @@ struct WorktreeRow: View {
 
     /// Green, red and orange are unreadable on a selected row's accent fill; the signs and words
     /// still carry the meaning there.
+    private var grey: AnyShapeStyle { AnyShapeStyle(.secondary) }
+
     private func tint(_ color: Color) -> AnyShapeStyle {
         prominence == .increased ? AnyShapeStyle(.foreground) : AnyShapeStyle(color)
     }

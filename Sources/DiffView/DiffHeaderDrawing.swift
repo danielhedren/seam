@@ -48,8 +48,14 @@ enum DiffHeaderDrawing {
         var counts =
             file.diff.additions + file.diff.deletions > 0
             ? [
-                (TextLine.make("+\(file.diff.additions)", font: font), palette.addedMarker),
-                (TextLine.make("−\(file.diff.deletions)", font: font), palette.removedMarker),
+                (
+                    TextLine.make("+\(file.diff.additions)", font: font),
+                    file.diff.additions > 0 ? palette.addedMarker : palette.gutterText
+                ),
+                (
+                    TextLine.make("−\(file.diff.deletions)", font: font),
+                    file.diff.deletions > 0 ? palette.removedMarker : palette.gutterText
+                ),
             ] : []
         // Says the counts and lines are the change since viewed, not the change on the branch.
         if sinceViewed {

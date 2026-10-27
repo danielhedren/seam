@@ -111,8 +111,10 @@ struct FileList: View {
             Text(verbatim: Counted.files(diff.files.count)).fixedSize()
             if !diff.files.isEmpty {
                 if shown == .all {
-                    Text(verbatim: "+\(diff.additions)").foregroundStyle(.green).fixedSize()
-                    Text(verbatim: "−\(diff.deletions)").foregroundStyle(.red).fixedSize()
+                    Text(verbatim: "+\(diff.additions)")
+                        .foregroundStyle(diff.additions > 0 ? .green : .secondary).fixedSize()
+                    Text(verbatim: "−\(diff.deletions)")
+                        .foregroundStyle(diff.deletions > 0 ? .red : .secondary).fixedSize()
                 }
                 if shown != .filesOnly {
                     ViewedProgress(
