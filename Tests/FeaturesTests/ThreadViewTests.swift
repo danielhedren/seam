@@ -125,6 +125,32 @@ import Testing
         session.close()
     }
 
+    /// The lines an outdated thread was written on are marked in its own colour: GitHub's blue
+    /// for a pull request's thread, not Seam's amber.
+    @Test func whatBecameOfAThreadsLinesIsMarkedInItsColour() throws {
+        let anchor = ThreadAnchor(path: "a", side: .new, lines: 2...2, text: ["two"])
+        let since = try #require(ThreadSince.change(of: anchor, from: "one\ntwo\n", to: "one\n2\n"))
+        var thread = ReviewThread(
+            id: "t", worktree: "/w", anchor: anchor, author: "octocat",
+            comments: [ThreadComment(id: "c", author: "octocat", body: "Why?", date: .now)])
+        func png() throws -> Data? {
+            let host = NSHostingView(
+                rootView: SinceChange(since: since, thread: thread, font: .systemFont(ofSize: 12))
+                    .frame(width: 300))
+            host.frame = NSRect(origin: .zero, size: host.fittingSize)
+            host.layoutSubtreeIfNeeded()
+            let rep = try #require(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+            host.cacheDisplay(in: host.bounds, to: rep)
+            return rep.representation(using: .png, properties: [:])
+        }
+        let seam = try png()
+        thread.github = GitHubThreadSource(
+            repo: GitHubRepo(host: "github.com", owner: "owner", name: "app"), pullRequest: 12,
+            threadID: "PRRT_1",
+            url: "u")
+        #expect(try png() != seam)
+    }
+
     /// Marking the file viewed collapses it, which folds its open thread away with it.
     @Test func markingAFileViewedClosesItsOpenThread() async throws {
         let repo = try await FixtureRepo()

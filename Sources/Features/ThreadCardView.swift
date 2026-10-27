@@ -140,7 +140,7 @@ struct ThreadCardLayout: View {
                 }
             }
             if showsQuote, let thread, let since {
-                SinceChange(since: since, anchor: thread.anchor, font: font)
+                SinceChange(since: since, thread: thread, font: font)
             } else if showsQuote, let thread, !thread.anchor.text.isEmpty {
                 QuotedLines(anchor: thread.anchor)
             }

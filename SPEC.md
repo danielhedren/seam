@@ -557,7 +557,7 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   its title says where it is ("· outdated", "· from a later commit"). Open, it shows "Changed
   since this comment": that diff cut to its lines and two either side as they were, and as many
   around where they are now, in the card's font, the lines it was written
-  on marked in amber, so what became of them reads at a glance. A thread written on uncommitted
+  on marked in the thread's colour (GitHub's blue for a pull request's), so what became of them reads at a glance. A thread written on uncommitted
   changes or on the old side has no such file, so its card quotes its lines instead. A comment
   on the whole file goes under the file's header. One on a file the diff doesn't show goes
   above the first file, its title starting with the file. The pull request's conversation

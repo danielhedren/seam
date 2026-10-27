@@ -104,11 +104,13 @@ enum CommentText {
 
 /// What became of an outdated thread's lines (SPEC §7.7): the change from the file it was
 /// written on to the file now, around them, as a small diff in the card's font. The lines it
-/// was written on carry the threads' amber in their gutter.
+/// was written on carry the thread's colour in their gutter: amber, GitHub's blue, or a note's grey.
 struct SinceChange: View {
     let since: ThreadSince
-    let anchor: ThreadAnchor
+    let thread: ReviewThread
     let font: NSFont
+
+    private var anchor: ThreadAnchor { thread.anchor }
 
     var body: some View {
         let lines = since.hunks.flatMap { hunk in [nil] + hunk.lines.map(Optional.some) }
@@ -151,7 +153,8 @@ struct SinceChange: View {
         .background(background(line.kind))
         .overlay(alignment: .leading) {
             if isAnchor {
-                Color(nsColor: ThreadColor.accent(.seam, note: false)).frame(width: 3)
+                Color(nsColor: ThreadColor.accent(thread.source, note: thread.isNote))
+                    .frame(width: 3)
             }
         }
     }
