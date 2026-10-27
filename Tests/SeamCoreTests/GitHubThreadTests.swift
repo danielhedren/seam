@@ -190,6 +190,29 @@ private func gitHubThread(
         #expect(saved.read == ["/a": later, "/b": later, "/c": start])
     }
 
+    /// What `seam` reads: Seam's threads with GitHub's, which it refuses to change and places
+    /// by the worktree's file.
+    @Test func aListingHoldsBothKindsAndRefusesGitHubsWithItsCommand() throws {
+        let directory = try TemporaryDirectory()
+        let worktree = try TemporaryDirectory()
+        try Data("one\ntwo\n".utf8).write(to: worktree.url.appending(path: "a.swift"))
+        let store = ThreadStore(directory: directory.url)
+        let repository = Repository(
+            commonDirectory: URL(fileURLWithPath: "/r/app/.git"),
+            anchor: URL(fileURLWithPath: "/r/app"))
+        try store.saveGitHubThreads(
+            GitHubThreads.threads(
+                from: [gitHubThread()], worktree: worktree.url.path, repo: repo, pullRequest: 12),
+            worktree: worktree.url.path, read: start, for: repository)
+
+        let listing = try ThreadListing(store: store, repository: repository)
+        let thread = try #require(listing.thread("gh-7"))
+        #expect(listing.read[worktree.url.path] == start)
+        #expect(listing.refusal(for: "gh-7")?.hasSuffix("-F body=@reply.md") == true)
+        #expect(listing.refusal(for: "nope") == nil)
+        #expect(ThreadListing.placement(of: thread) == .outdated)
+    }
+
     /// A file written before conversations were kept still reads.
     @Test func aGitHubFileWithoutConversationsReads() throws {
         let directory = try TemporaryDirectory()

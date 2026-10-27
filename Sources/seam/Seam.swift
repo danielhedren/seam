@@ -157,25 +157,28 @@ struct Threads: AsyncParsableCommand {
         let scope = ThreadScope(
             worktree: repo ? nil : worktree.path, includesResolved: all, includesNotes: notes,
             since: since)
-        let (found, read) = try allThreads(repository)
+        let listing = try ThreadListing(store: threadStore(), repository: repository)
+        let (found, read) = (listing.threads, listing.read)
         let threads = found.filter(scope.contains)
         if json {
             try printJSON(
                 threads.map {
-                    ThreadOutput($0, readAt: read[$0.worktree], placement: placement(of: $0))
+                    ThreadOutput(
+                        $0, readAt: read[$0.worktree], placement: ThreadListing.placement(of: $0))
                 })
             return
         }
         var parts = threads.map {
             ThreadText.format(
-                $0, showsWorktree: repo, read: read[$0.worktree], placement: placement(of: $0))
+                $0, showsWorktree: repo, read: read[$0.worktree],
+                placement: ThreadListing.placement(of: $0))
         }
         if threads.isEmpty {
             parts.append(
                 since.map { "No threads changed since \(ThreadTime.string($0))." }
                     ?? (all ? "No threads." : "No open threads."))
         }
-        parts += try conversations(repository, worktree: repo ? nil : worktree.path, since: since)
+        parts += listing.conversationTexts(worktree: repo ? nil : worktree.path, since: since)
         print(parts.joined(separator: "\n\n"))
     }
 }
@@ -233,13 +236,16 @@ struct Wait: AsyncParsableCommand {
                 Output(
                     asOf: asOf,
                     changed: changes.changed.map {
-                        ThreadOutput($0, readAt: read[$0.worktree], placement: placement(of: $0))
+                        ThreadOutput(
+                            $0, readAt: read[$0.worktree],
+                            placement: ThreadListing.placement(of: $0))
                     }, deleted: changes.deleted))
             return
         }
         var parts = changes.changed.map {
             ThreadText.format(
-                $0, showsWorktree: repo, read: read[$0.worktree], placement: placement(of: $0))
+                $0, showsWorktree: repo, read: read[$0.worktree],
+                placement: ThreadListing.placement(of: $0))
         }
         parts += changes.deleted.map { id in
             id.hasPrefix(ReviewThread.gitHubPrefix)
@@ -277,18 +283,21 @@ struct ShowThread: AsyncParsableCommand {
     func run() async throws {
         let (repository, _) = try await options.worktree()
         let id = id.trimmingPrefix("#")
-        let (threads, read) = try allThreads(repository)
+        let listing = try ThreadListing(store: threadStore(), repository: repository)
+        let (threads, read) = (listing.threads, listing.read)
         guard let thread = threads.first(where: { $0.id == id }) else {
             throw ThreadError.unknownThread(String(id))
         }
         if json {
             try printJSON(
                 ThreadOutput(
-                    thread, readAt: read[thread.worktree], placement: placement(of: thread)))
+                    thread, readAt: read[thread.worktree],
+                    placement: ThreadListing.placement(of: thread)))
         } else {
             print(
                 ThreadText.format(
-                    thread, read: read[thread.worktree], placement: placement(of: thread)))
+                    thread, read: read[thread.worktree],
+                    placement: ThreadListing.placement(of: thread)))
         }
     }
 }
@@ -460,43 +469,6 @@ private func setResolved(_ resolved: Bool, _ id: String, _ options: ThreadOption
     print(resolved ? "Resolved #\(id)." : "Reopened #\(id).")
 }
 
-/// Where a thread's new-side lines are in its worktree's files now, by the app's own rules
-/// (SPEC §7.7); nil for the old side, which `ThreadText` explains instead.
-private func placement(of thread: ReviewThread) -> ThreadPlacement? {
-    guard thread.anchor.side == .new else { return nil }
-    let path = thread.anchor.path
-    let file = URL(fileURLWithPath: thread.worktree).appending(path: path)
-    guard let data = FileManager.default.contents(atPath: file.path) else { return .notShown }
-    let lines = TextLines.split(String(decoding: data, as: UTF8.self))
-    let context = ThreadPlacer.Context(paths: [path], text: { _, _ in lines })
-    return ThreadPlacer.place([thread], in: context).first?.placement
-}
-
-/// Seam's threads and the pull request threads the app read last, with when each worktree's
-/// were read (SPEC §7.9).
-private func allThreads(_ repository: Repository) throws(ThreadError)
-    -> (threads: [ReviewThread], read: [String: Date])
-{
-    let store = threadStore()
-    let github = try store.gitHubThreads(for: repository)
-    return (try store.threads(for: repository) + github.threads, github.read)
-}
-
-/// The pull request conversations the app read last, as text: one worktree's, or with `nil`
-/// every worktree's, each naming its worktree.
-private func conversations(_ repository: Repository, worktree: String?, since: Date?)
-    throws(ThreadError) -> [String]
-{
-    let github = try threadStore().gitHubThreads(for: repository)
-    return github.conversations.sorted { $0.key < $1.key }
-        .filter { worktree == nil || $0.key == worktree }
-        .compactMap { key, conversation in
-            ThreadText.format(
-                conversation, showsWorktree: worktree == nil ? key : nil, since: since,
-                read: github.read[key])
-        }
-}
-
 struct Conversation: AsyncParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Show this worktree's pull request conversation.",
@@ -539,20 +511,6 @@ struct Conversation: AsyncParsableCommand {
     }
 }
 
-/// GitHub's threads are read-only here: the error says how to answer one with gh instead.
-private func refuseGitHub(_ id: String, in repository: Repository) throws {
-    guard id.hasPrefix(ReviewThread.gitHubPrefix),
-        let thread = try threadStore().gitHubThreads(for: repository).threads.first(where: {
-            $0.id == id
-        }),
-        !thread.capabilities.contains(.reply), let github = thread.github,
-        let reply = thread.gitHubReply
-    else { return }
-    throw Failure(
-        "#\(id) is a thread on GitHub pull request #\(github.pullRequest), which seam can't "
-            + "change. Answer it on GitHub: write your reply to reply.md, then run\n  \(reply)")
-}
-
 /// A failure while running, not in the arguments: printed as "Error: …" with status 1, without
 /// the usage text a `ValidationError` brings.
 struct Failure: Error, CustomStringConvertible {
@@ -589,4 +547,13 @@ extension ThreadError: CustomStringConvertible {
         case .unwritable(let message): "can't write the thread store: \(message)"
         }
     }
+}
+
+/// GitHub's threads are read-only here: the error says how to answer one with gh instead.
+private func refuseGitHub(_ id: String, in repository: Repository) throws {
+    guard id.hasPrefix(ReviewThread.gitHubPrefix),
+        let refusal = try ThreadListing(store: threadStore(), repository: repository)
+            .refusal(for: id)
+    else { return }
+    throw Failure(refusal)
 }
