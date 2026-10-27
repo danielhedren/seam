@@ -25,6 +25,8 @@ struct RepoWindow: View {
         content
             .task {
                 session.undoManager = undoManager
+                // Launched behind another app, there's no activation change to learn it from.
+                session.noteActivation(NSApp.isActive)
                 await session.open()
                 requests.recent = await session.recentRepositories()
                 await handle(requests.take(session.directory.path))

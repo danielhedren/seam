@@ -48,6 +48,11 @@ package final class PullRequestThreads {
         isShown() ? conversations[worktree] : nil
     }
 
+    /// The pull request whose discussion was read for the worktree since the session opened.
+    func readThisSession(_ worktree: String) -> Int? {
+        read[worktree]?.pullRequest.number
+    }
+
     /// Shows what the file holds, and again whenever another window writes it.
     func start(watching watcher: any FileWatcher) async {
         let file = store.store.gitHubFile(for: repository).lastPathComponent

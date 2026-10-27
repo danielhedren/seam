@@ -44,6 +44,8 @@ package final class RepoPullRequests {
     private(set) var repo: GitHubRepo?
     /// Counts finished refreshes, for tests to wait on.
     private(set) var refreshes = 0
+    /// Whether a read worked since the session opened; what was kept from before isn't news.
+    private(set) var hasRead = false
     /// Set by the window; polling skips while the app is in the background.
     var appIsActive = true
     /// Whether a notification kind that needs pull requests is on, so they're read in the
@@ -239,6 +241,7 @@ package final class RepoPullRequests {
             guard !isStopped else { return true }
             saved = read
             status = .ready
+            hasRead = true
             backoff = nil
             account.note(nil)
             markFresh()

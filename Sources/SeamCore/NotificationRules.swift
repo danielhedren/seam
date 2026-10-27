@@ -124,7 +124,10 @@ public enum NotificationRules {
             last.number == pullRequest.number
         else { return events }
 
-        if last.checks.pending > 0, pullRequest.checks.pending == 0, pullRequest.state == .open {
+        // A push starts another run: the new commit's first results aren't the old run finishing.
+        if last.checks.pending > 0, pullRequest.checks.pending == 0, pullRequest.state == .open,
+            last.headCommit == pullRequest.headCommit
+        {
             if pullRequest.checks.failed > 0 {
                 events.append(.checksFailed(pullRequest))
             } else if pullRequest.checks.passed > 0 {

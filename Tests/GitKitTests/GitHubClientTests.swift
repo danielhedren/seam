@@ -333,7 +333,9 @@ import Testing
             {"data":{"viewer":{"login":"me"},"repository":{"pullRequest":{
               "comments":{"nodes":[
                 {"databaseId":5,"author":{"login":"octocat"},"body":"Looks close.",
-                 "createdAt":"2026-10-23T12:00:00Z","url":"c5"}]},
+                 "createdAt":"2026-10-23T12:00:00Z","url":"c5"},
+                {"databaseId":null,"author":{"login":"octocat"},"body":"Imported.",
+                 "createdAt":"2026-10-23T12:30:00Z","url":"c?"}]},
               "reviews":{"nodes":[
                 {"databaseId":9,"author":{"login":"hubot"},"body":"","state":"APPROVED",
                  "submittedAt":"2026-10-23T13:00:00Z","url":"r9"},

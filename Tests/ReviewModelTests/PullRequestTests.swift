@@ -223,7 +223,8 @@ import Testing
         session.noteActivation(false)
         // The poller's first sleep began in front.
         try await advance(session, by: .seconds(120), once: 3, toRefresh: 2)
-        await clock.sleepers(1)
+        // The spacer, the freshness timer and the poller: the poller is asleep again.
+        await clock.sleepers(3)
         clock.advance(by: .seconds(299))
         await clock.sleepers(1)
         #expect(refreshes(session) == 2)

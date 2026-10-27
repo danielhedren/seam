@@ -33,7 +33,9 @@ extension RepoSession {
     func notificationSnapshot() -> NotificationSnapshot {
         var worktrees: [String: NotificationSnapshot.Worktree] = [:]
         for review in reviews where !review.worktree.isMissing {
-            var entry = NotificationSnapshot.Worktree(pullRequest: review.pullRequest)
+            // What was kept from before the session opened is a state, not news.
+            let pullRequest = pullRequests?.hasRead == true ? review.pullRequest : nil
+            var entry = NotificationSnapshot.Worktree(pullRequest: pullRequest)
             if let threads, threads.hasLoaded, let reader = threads.reader(knownIn: review.id) {
                 entry.threadsRead = true
                 for thread in threads.threads(in: review.id) where reader.awaitsReply(thread) {
@@ -43,13 +45,18 @@ extension RepoSession {
                 entry.threadsRead = false
                 learnReader(in: review.id)
             }
-            if let conversation = review.conversation {
+            // A discussion counts once it was read for the PR the worktree has now.
+            if let number = pullRequest?.number, let conversation = review.conversation,
+                conversation.pullRequest == number,
+                pullRequestThreads?.readThisSession(review.id) == number
+            {
                 let viewer = conversation.viewer
                 entry.discussionRead = true
                 entry.conversation = Dictionary(
                     conversation.items.filter { $0.author != viewer }.map { ($0.key, $0) },
                     uniquingKeysWith: { first, _ in first })
-                for thread in pullRequestThreads?.threads(in: review.id) ?? [] {
+                for thread in pullRequestThreads?.threads(in: review.id) ?? []
+                where thread.github?.pullRequest == number {
                     for comment in thread.comments where comment.author != viewer {
                         guard let id = comment.githubID else { continue }
                         entry.gitHubComments[id] = NotificationEvent.Comment(

@@ -140,7 +140,8 @@ struct Threads: AsyncParsableCommand {
         abstract: "List this worktree's open threads.",
         discussion: """
             Each thread shows its id, status, file and lines, who opened it, the lines it is \
-            on, and its comments, oldest first.
+            on, and its comments, oldest first. The pull request's conversation follows the \
+            threads; with --json, `seam conversation --json` gives it.
             """)
 
     @OptionGroup var options: ThreadOptions

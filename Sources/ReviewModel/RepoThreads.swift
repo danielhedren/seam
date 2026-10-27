@@ -22,6 +22,8 @@ package final class RepoThreads {
     private var applied = 0
     /// The reader's git email per worktree, which signs what they write.
     private var readers: [String: ReviewerIdentity] = [:]
+    /// Lookups under way, so asking again while git answers doesn't run it again.
+    @ObservationIgnored private var asking: [String: Task<ReviewerIdentity, Never>] = [:]
     private var watchTask: Task<Void, Never>?
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
 
@@ -48,10 +50,17 @@ package final class RepoThreads {
     /// when git has none.
     func reader(in worktree: String) async -> ReviewerIdentity {
         if let known = readers[worktree] { return known }
-        let email = try? await git.string(
-            ["config", "--get", "user.email"], in: URL(fileURLWithPath: worktree))
-        let name = email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let reader = ReviewerIdentity(name: name.isEmpty ? ReviewThread.reader : name)
+        if let pending = asking[worktree] { return await pending.value }
+        let git = git
+        let task = Task {
+            let email = try? await git.string(
+                ["config", "--get", "user.email"], in: URL(fileURLWithPath: worktree))
+            let name = email?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return ReviewerIdentity(name: name.isEmpty ? ReviewThread.reader : name)
+        }
+        asking[worktree] = task
+        let reader = await task.value
+        asking[worktree] = nil
         readers[worktree] = reader
         return reader
     }

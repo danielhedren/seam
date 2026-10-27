@@ -38,14 +38,18 @@ import Testing
         #expect(platform.notified.first?.body == "claude: Because.")
         #expect(platform.notified.first?.url == SeamURL(path: reviewed.id, thread: id).url)
 
+        /// Once the notifier has looked at the answer, so a setting flipped next can't reach it.
+        func seen(_ body: String) async {
+            await until { session.lastSnapshot.worktrees[reviewed.id]?.awaiting[id]?.body == body }
+        }
         // Neither of these is posted; the next background answer shows they were skipped.
         session.noteActivation(true)
         try agentReplies("In front.")
-        await until { reviewed.placedThreads.first?.thread.comments.count == 3 }
+        await seen("In front.")
         session.noteActivation(false)
         session.settings.notifications.remove(.agent)
         try agentReplies("Turned off.")
-        await until { reviewed.placedThreads.first?.thread.comments.count == 4 }
+        await seen("Turned off.")
         session.settings.notifications.insert(.agent)
         try agentReplies("Again.")
         await until { platform.notified.count == 2 }
@@ -129,5 +133,77 @@ import Testing
         #expect(session.selectedID == feature.path)
         #expect(session.selectedThreadID == thread.id)
         session.close()
+    }
+
+    /// Another pull request on the branch brings its own history; none of it is news.
+    @Test func aNewPullRequestOnTheBranchPostsNothingOfItsHistory() async throws {
+        let repo = try await FixtureRepo()
+        let feature = try await repo.worktree("feature", branch: "feature", from: "origin/main")
+        try await repo.commit("a.txt", "a\n", "Add a", in: feature)
+        try await repo.run("remote", "set-url", "origin", "https://github.com/owner/app.git")
+        let github = FakeGitHub()
+        github.answer(open: [fakePullRequest(12)])
+        github.answer(threads: [], viewer: "me", for: 12)
+        var services = services(repo.git, github: GitHubAccount(client: github))
+        let platform = RecordingPlatform()
+        services.platform = platform
+        let session = RepoSession(directory: repo.main, services: services)
+        await session.open()
+        session.noteActivation(false)
+        let review = try #require(session.reviews.first { $0.id == feature.path })
+        await until { review.conversation?.pullRequest == 12 }
+
+        let created = Date(timeIntervalSince1970: 1_792_756_800)
+        github.answer(open: [fakePullRequest(13)])
+        github.answer(
+            threads: [],
+            conversation: [
+                GitHubConversationItem(
+                    id: 9, kind: .approved, author: "hubot", body: "", created: created,
+                    url: "r9"),
+                GitHubConversationItem(
+                    id: 5, author: "octocat", body: "Old news.", created: created, url: "c5"),
+            ], viewer: "me", for: 13)
+        session.pullRequests?.request(.settings)
+        await until { review.conversation?.pullRequest == 13 }
+        await until { session.lastSnapshot.worktrees[feature.path]?.conversation.count == 2 }
+        #expect(platform.notified.isEmpty)
+        session.close()
+    }
+
+    /// What changed while Seam was closed is what the reopened window shows, not news.
+    @Test func reopeningPostsNothingThatChangedWhileClosed() async throws {
+        let repo = try await FixtureRepo()
+        let feature = try await repo.worktree("feature", branch: "feature", from: "origin/main")
+        try await repo.commit("a.txt", "a\n", "Add a", in: feature)
+        try await repo.run("remote", "set-url", "origin", "https://github.com/owner/app.git")
+        let github = FakeGitHub()
+        github.answer(open: [fakePullRequest(12, checks: .init(pending: 1))])
+        let store = MemoryStore()
+        let platform = RecordingPlatform()
+        func session() -> RepoSession {
+            var services = services(
+                repo.git, store: store, github: GitHubAccount(client: github))
+            services.platform = platform
+            return RepoSession(directory: repo.main, services: services)
+        }
+        let first = session()
+        await first.open()
+        let feature1 = try #require(first.reviews.first { $0.id == feature.path })
+        await until { feature1.pullRequest?.checks.pending == 1 }
+        first.close()
+        await first.settled()
+
+        github.answer(open: [fakePullRequest(12, checks: .init(passed: 1))])
+        let second = session()
+        second.noteActivation(false)
+        await second.open()
+        let feature2 = try #require(second.reviews.first { $0.id == feature.path })
+        await until { feature2.pullRequest?.checks.passed == 1 }
+        await until {
+            second.lastSnapshot.worktrees[feature.path]?.pullRequest?.checks.passed == 1
+        }
+        #expect(platform.notified.isEmpty)
+        second.close()
     }
 }

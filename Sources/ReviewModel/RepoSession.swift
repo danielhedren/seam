@@ -68,7 +68,7 @@ package final class RepoSession {
     private var keepingSeen: Task<Void, Never>?
     private(set) var isClosed = false
     /// What notifications last compared against (SPEC §7.10).
-    @ObservationIgnored var lastSnapshot = NotificationSnapshot()
+    package internal(set) var lastSnapshot = NotificationSnapshot()
     /// Whether Seam is the app in front; notifications wait for the background unless asked.
     @ObservationIgnored var isAppActive = true
     private var rowsTask: Task<Void, Never>?
@@ -237,6 +237,8 @@ package final class RepoSession {
         if let selectedID, !reviews.contains(where: { $0.id == selectedID }) {
             self.selectedID = nil
         }
+        let ids = Set(reviews.map(\.id))
+        threadSelections = threadSelections.filter { ids.contains($0.key) }
     }
 
     /// Detection and counts for every row, at most eight at a time: dozens of simultaneous git

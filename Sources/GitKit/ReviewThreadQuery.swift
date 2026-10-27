@@ -159,22 +159,25 @@ enum ReviewThreadQuery {
         }
     }
 
+    /// `databaseId` is nullable in GitHub's schema; such an entry is skipped, not the read.
     struct ConversationComment: Decodable {
-        var databaseId: Int
+        var databaseId: Int?
         var author: Comment.Author?
         var body: String
         var createdAt: Date
         var url: String
 
-        var item: GitHubConversationItem {
-            GitHubConversationItem(
-                id: databaseId, author: author?.login ?? "ghost", body: body, created: createdAt,
-                url: url)
+        var item: GitHubConversationItem? {
+            databaseId.map {
+                GitHubConversationItem(
+                    id: $0, author: author?.login ?? "ghost", body: body, created: createdAt,
+                    url: url)
+            }
         }
     }
 
     struct Review: Decodable {
-        var databaseId: Int
+        var databaseId: Int?
         var author: Comment.Author?
         var body: String
         var state: String
@@ -192,7 +195,7 @@ enum ReviewThreadQuery {
             case "COMMENTED" where !body.isEmpty: kind = .commented
             default: return nil
             }
-            guard let submittedAt else { return nil }
+            guard let submittedAt, let databaseId else { return nil }
             return GitHubConversationItem(
                 id: databaseId, kind: kind, author: author?.login ?? "ghost", body: body,
                 created: submittedAt, url: url)
@@ -212,7 +215,8 @@ enum ReviewThreadQuery {
 
             /// Oldest first.
             var conversation: [GitHubConversationItem] {
-                ((comments?.nodes ?? []).map(\.item) + (reviews?.nodes ?? []).compactMap(\.item))
+                ((comments?.nodes ?? []).compactMap(\.item)
+                    + (reviews?.nodes ?? []).compactMap(\.item))
                     .sorted { $0.created < $1.created }
             }
         }

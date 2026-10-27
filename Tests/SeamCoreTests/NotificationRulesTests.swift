@@ -65,6 +65,9 @@ import Testing
                 .checksPassed(passed)
             ])
         #expect(events(.init(pullRequest: passed), .init(pullRequest: passed)).isEmpty)
+        var pushed = passed
+        pushed.headCommit = "def"
+        #expect(events(.init(pullRequest: running), .init(pullRequest: pushed)).isEmpty)
     }
 
     @Test func newReviewsAndCommentsByOthersAreNewsOnceTheDiscussionWasRead() {
