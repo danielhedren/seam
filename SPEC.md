@@ -646,7 +646,8 @@ Each worktree's branch shows its GitHub pull request, read through the user's ow
 - **Cost:** GitHub charges a query for every check and review it reaches, and the review
   decision takes it seconds over a hundred PRs, so a repo's open PRs are one `gh pr list`
   without them (under a second); each worktree's open PR then gets one `gh pr view` for its
-  reviews and checks, and each branch with none open one `--head` lookup, repeated at most every
+  reviews and checks when it may have moved (updated, pushed, checks running, merge state
+  unknown, or 10 minutes since; always on opening, Reload or a Settings change), and each branch with none open one `--head` lookup, repeated at most every
   10 minutes. Those run side by side, at most six at once. The open PRs show as soon as the list
   is in, with the reviews and checks last read until the new ones arrive.
 

@@ -154,6 +154,28 @@ import Testing
         session.close()
     }
 
+    /// Reviews and checks cost a gh call per PR: a poll that finds the PR unchanged doesn't ask
+    /// for them again; an update does.
+    @Test func aPullRequestThatDidntMoveIsntAskedAboutAgain() async throws {
+        let (repo, feature) = try await fixture()
+        var pullRequest = fakePullRequest(12)
+        pullRequest.mergeState = .blocked
+        github.answer(open: [pullRequest])
+        let session = await open(repo, selecting: feature)
+        func views() -> Int { github.calls.count { $0 == "view 12" } }
+        #expect(views() == 1)
+
+        try await advance(session, by: .seconds(120), once: 3, toRefresh: 2)
+        #expect(github.reads == 2)
+        #expect(views() == 1, "nothing moved")
+
+        pullRequest.updated += 60
+        github.answer(open: [pullRequest])
+        try await advance(session, by: .seconds(120), once: 3, toRefresh: 3)
+        #expect(views() == 2, "the PR was updated")
+        session.close()
+    }
+
     @Test func reloadReadsThemAgainAtOnce() async throws {
         let (repo, feature) = try await fixture()
         github.answer(open: [fakePullRequest(12)])

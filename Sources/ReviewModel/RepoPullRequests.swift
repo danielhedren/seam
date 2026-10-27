@@ -61,6 +61,10 @@ package final class RepoPullRequests {
     /// The branches to look up: every worktree's, and every local parent's.
     private let branches: @MainActor () -> [String]
     private var pending = false
+    /// A forced trigger is waiting: the next read asks for every open PR's details.
+    private var pendingIsForced = false
+    /// When each open PR's reviews and checks were last read, by number.
+    private var detailsRead: [Int: Stopwatch] = [:]
     private var isRefreshing = false
     private var idleWaiters: [Int: CheckedContinuation<Void, Never>] = [:]
     private var nextWaiter = 0
@@ -110,6 +114,7 @@ package final class RepoPullRequests {
         if trigger == .poll, case .failed(let error) = status, !Self.isTransient(error) { return }
         pending = true
         if trigger.isForced {
+            pendingIsForced = true
             spacer?.cancel()
             spacer = nil
         }
@@ -117,8 +122,10 @@ package final class RepoPullRequests {
         pump = Task { [weak self] () -> Void in
             while let self, self.pending, !self.isStopped {
                 self.pending = false
+                let forced = self.pendingIsForced
+                self.pendingIsForced = false
                 self.isRefreshing = true
-                let asked = await self.refresh()
+                let asked = await self.refresh(forced: forced)
                 self.isRefreshing = false
                 guard asked else { continue }
                 let clock = self.services.clock
@@ -216,7 +223,7 @@ package final class RepoPullRequests {
     // MARK: - Reading
 
     /// Returns whether gh ran, so the caller spaces out the next refresh.
-    private func refresh() async -> Bool {
+    private func refresh(forced: Bool) async -> Bool {
         let interval = signposter.beginInterval("pullRequests")
         defer {
             refreshes += 1
@@ -237,7 +244,7 @@ package final class RepoPullRequests {
                 return false
             }
             repo = targets.repo
-            let read = try await read(targets, refs: refs)
+            let read = try await read(targets, refs: refs, forced: forced)
             guard !isStopped else { return true }
             saved = read
             status = .ready
@@ -278,8 +285,8 @@ package final class RepoPullRequests {
 
     /// The open list first, shown as soon as it's in with the reviews and checks last read; then
     /// those and the branches without an open PR, side by side.
-    private func read(_ targets: PullRequestTargets, refs: RefSnapshot) async throws(GitHubError)
-        -> SavedPullRequests
+    private func read(_ targets: PullRequestTargets, refs: RefSnapshot, forced: Bool)
+        async throws(GitHubError) -> SavedPullRequests
     {
         let client = services.github.client
         let open = try await client.openPullRequests(in: targets.repo)
@@ -290,13 +297,16 @@ package final class RepoPullRequests {
         var jobs: [Job] = []
         for branch in wanted.sorted() {
             if var pullRequest = targets.pullRequest(for: branch, in: open) {
-                if let last = previous[branch], last.number == pullRequest.number {
+                let last = previous[branch].flatMap { $0.number == pullRequest.number ? $0 : nil }
+                if let last {
                     pullRequest.review = last.review
                     pullRequest.checks = last.checks
                     pullRequest.mergeState = last.mergeState
                 }
                 result.byBranch[branch] = pullRequest
-                jobs.append(.details(branch, pullRequest.number))
+                if forced || needsDetails(pullRequest, last: last) {
+                    jobs.append(.details(branch, pullRequest.number))
+                }
             } else if let cached = lookups[branch],
                 cached.age.elapsed < Self.rereadAfter,
                 cached.pullRequest?.state != PullRequest.State.open
@@ -322,6 +332,9 @@ package final class RepoPullRequests {
             }
         }
         for (job, pullRequest) in done {
+            if case .details(_, let number) = job {
+                detailsRead[number] = Stopwatch(services.clock)
+            }
             if case .lookUp(let branch) = job {
                 lookups[branch] = (pullRequest, Stopwatch(services.clock))
                 // Beyond the open list's limit: its checks weren't read.
@@ -334,6 +347,18 @@ package final class RepoPullRequests {
             result.byBranch[job.branch] = pullRequest
         }
         return await finish(result, targets, refs, publish: false)
+    }
+
+    /// Reviews and checks cost a gh call per PR, so they're read again only when something may
+    /// have moved: the PR was updated or pushed, checks are running (they don't change its
+    /// update time), the merge state is unknown, or ten minutes passed (a base branch moving
+    /// changes the merge state alone).
+    private func needsDetails(_ pullRequest: PullRequest, last: PullRequest?) -> Bool {
+        guard let last, let read = detailsRead[pullRequest.number],
+            read.elapsed < Self.rereadAfter
+        else { return true }
+        return last.updated != pullRequest.updated || last.headCommit != pullRequest.headCommit
+            || last.checks.pending > 0 || last.mergeState == nil
     }
 
     /// Adds where each PR merges into and what isn't pushed; shows the result unless told not to.
