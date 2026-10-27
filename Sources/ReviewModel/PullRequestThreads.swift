@@ -113,7 +113,10 @@ package final class PullRequestThreads {
                 }
             }) ?? [], uniquingKeysWith: { first, _ in first })
         for job in jobs {
-            guard !isStopped, let answer = answers[job.pullRequest.number] else { continue }
+            // Turned off while reading: what came back would outlive the switch in seam's file.
+            guard !isStopped, isShown(), let answer = answers[job.pullRequest.number] else {
+                continue
+            }
             switch answer {
             case .success(let discussion):
                 read[job.worktree] = (job.pullRequest, Stopwatch(clock))

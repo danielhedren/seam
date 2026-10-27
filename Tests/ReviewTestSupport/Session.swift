@@ -271,6 +271,9 @@ package final class FakeGitHub: GitHubClient, Sendable {
         var viewer: String?
         var threadReads: [Int] = []
         var threadError: GitHubError?
+        var holdsThreads = false
+        var heldThreads: [CheckedContinuation<Void, Never>] = []
+        var threadWatchers: [(count: Int, resume: @Sendable () -> Void)] = []
     }
 
     private let state = Mutex(State())
@@ -287,6 +290,32 @@ package final class FakeGitHub: GitHubClient, Sendable {
             $0.threads[number] = threads
             $0.conversations[number] = conversation
             $0.viewer = viewer
+        }
+    }
+
+    /// Holds review-thread reads until `releaseThreads()`, to act while one is in flight.
+    package func holdThreads() {
+        state.withLock { $0.holdsThreads = true }
+    }
+
+    package func releaseThreads() {
+        let held = state.withLock { state in
+            state.holdsThreads = false
+            defer { state.heldThreads = [] }
+            return state.heldThreads
+        }
+        for continuation in held { continuation.resume() }
+    }
+
+    /// Returns once `count` thread reads have been held.
+    package func threadsHeld(_ count: Int) async {
+        await waitCancellably { resume in
+            let done = state.withLock { state in
+                if state.heldThreads.count >= count { return true }
+                state.threadWatchers.append((count, resume))
+                return false
+            }
+            if done { resume() }
         }
     }
 
@@ -392,6 +421,18 @@ package final class FakeGitHub: GitHubClient, Sendable {
     package func discussion(_ number: Int, in repo: GitHubRepo) async throws(GitHubError)
         -> GitHubDiscussion
     {
+        await withCheckedContinuation { continuation in
+            let (holds, ready) = state.withLock { state in
+                guard state.holdsThreads else { return (false, [@Sendable () -> Void]()) }
+                state.heldThreads.append(continuation)
+                let count = state.heldThreads.count
+                let ready = state.threadWatchers.filter { $0.count <= count }.map(\.resume)
+                state.threadWatchers.removeAll { $0.count <= count }
+                return (true, ready)
+            }
+            for watcher in ready { watcher() }
+            if !holds { continuation.resume() }
+        }
         let (discussion, error) = state.withLock { state in
             state.threadReads.append(number)
             return (

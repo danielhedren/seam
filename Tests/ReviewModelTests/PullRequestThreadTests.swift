@@ -132,6 +132,30 @@ import Testing
         session.close()
     }
 
+    /// Pull requests turned off while a read is in flight: what the read brings is dropped,
+    /// so `seam threads` doesn't list threads Seam no longer shows.
+    @Test func turningPullRequestsOffDuringAReadKeepsNothing() async throws {
+        let (repo, feature) = try await fixture()
+        github.answer(open: [Self.pullRequest()])
+        github.answer(threads: [Self.thread()], for: 12)
+        let session = await open(repo, selecting: feature)
+        let repository = try #require(session.repository)
+
+        github.answer(open: [Self.pullRequest(updated: 60)])
+        github.holdThreads()
+        session.pullRequests?.request(.settings)
+        await github.threadsHeld(1)
+        session.settings.showsPullRequests = false
+        await session.refreshPullRequests()
+        github.releaseThreads()
+        await session.pullRequests?.idle()
+        await session.settled()
+
+        #expect(try threadStore.gitHubThreads(for: repository).threads.isEmpty)
+        #expect(try threadStore.gitHubThreads(for: repository).conversations.isEmpty)
+        session.close()
+    }
+
     @Test func threadsAreReadAgainWhenThePullRequestChangesAndOnReload() async throws {
         let (repo, feature) = try await fixture()
         github.answer(open: [Self.pullRequest()])
