@@ -9,6 +9,12 @@ public actor ThreadStoreAccess {
         self.store = store
     }
 
+    /// Makes the store's folder, so it can be watched before anything is written.
+    public func prepare() {
+        try? FileManager.default.createDirectory(
+            at: store.directory, withIntermediateDirectories: true)
+    }
+
     public func threads(for repository: Repository) throws(ThreadError) -> [ReviewThread] {
         try store.threads(for: repository)
     }

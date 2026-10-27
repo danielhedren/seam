@@ -161,7 +161,7 @@ public struct SeamServices: Sendable {
     public var github: GitHubAccount
     /// The pasteboard, browser and file manager.
     public var platform: any PlatformServices
-    var launcher: any CommandLauncher = ShellLauncher()
+    package var launcher: any CommandLauncher = ShellLauncher()
 
     @MainActor
     public init(

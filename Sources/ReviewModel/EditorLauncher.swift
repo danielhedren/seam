@@ -1,10 +1,6 @@
 import Foundation
 import GitKit
 
-#if canImport(AppKit)
-    import AppKit
-#endif
-
 /// The editor command (SPEC §7.6): a template whose `{path}` and `{line}` are filled in.
 package struct EditorCommand: Equatable, Sendable {
     static let zed = "zed {path}:{line}"
@@ -25,8 +21,9 @@ package struct EditorCommand: Equatable, Sendable {
 
     package var template = EditorCommand.zed
 
-    /// The first preset whose app is installed, so a fresh install opens an editor the reader has.
-    static func installedDefault(locate: (String) -> URL? = EditorPreset.locate) -> String {
+    /// The first preset whose app is installed, so a fresh install opens an editor the reader
+    /// has. `locate` finds an app by bundle id; the app passes the desktop's lookup.
+    static func installedDefault(locate: (String) -> URL?) -> String {
         presets.first { locate($0.bundleID) != nil }?.template ?? zed
     }
 
@@ -51,15 +48,6 @@ package struct EditorPreset: Sendable {
     var bundledTool: String
 
     var command: String { String(template.prefix { $0 != " " }) }
-
-    /// Editors are found as installed macOS apps; elsewhere only their shell commands are.
-    @Sendable static func locate(_ bundleID: String) -> URL? {
-        #if canImport(AppKit)
-            NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
-        #else
-            nil
-        #endif
-    }
 }
 
 package protocol CommandLauncher: Sendable {
@@ -74,9 +62,19 @@ package struct LaunchFailed: Error, Equatable {
 /// Runs the command with `/bin/sh` and the PATH of the user's shell. Running the command in an
 /// interactive shell instead would mix its startup files' complaints into every error.
 package struct ShellLauncher: CommandLauncher {
-    var shell = URL(fileURLWithPath: ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh")
-    var locateApp: @Sendable (String) -> URL? = EditorPreset.locate
+    var shell: URL
+    /// Finds an installed app by bundle id; without one, only editors' shell commands are used.
+    var locateApp: @Sendable (String) -> URL?
     private let searchPath = LoginShellPath()
+
+    package init(
+        shell: URL = URL(
+            fileURLWithPath: ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"),
+        locateApp: @escaping @Sendable (String) -> URL? = { _ in nil }
+    ) {
+        self.shell = shell
+        self.locateApp = locateApp
+    }
 
     package func run(_ commandLine: String) async throws {
         let path = await searchPath.value(shell: shell)

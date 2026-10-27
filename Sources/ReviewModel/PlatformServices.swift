@@ -9,6 +9,8 @@ public protocol PlatformServices: Sendable {
     func open(_ url: URL)
     func reveal(_ file: URL)
     func notify(_ notification: SeamNotification)
+    /// The `seam` command shipped with the app, for the agent prompt; nil without one.
+    var bundledCommand: URL? { get }
 }
 
 /// One notification (SPEC §7.10). Clicking it opens `url`, a `seam://open` link.
@@ -29,4 +31,5 @@ public struct NoPlatform: PlatformServices {
     public func open(_ url: URL) {}
     public func reveal(_ file: URL) {}
     public func notify(_ notification: SeamNotification) {}
+    public var bundledCommand: URL? { nil }
 }

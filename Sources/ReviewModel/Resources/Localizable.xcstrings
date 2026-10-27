@@ -33,9 +33,6 @@
         }
       }
     },
-    "%@ already exists and isn't Seam's. Remove it and try again." : {
-
-    },
     "%@ in %@" : {
       "localizations" : {
         "en" : {
@@ -522,9 +519,6 @@
 
     },
     "These threads were saved by a newer version of Seam. Update Seam to change them." : {
-
-    },
-    "This copy of Seam doesn't include the seam command. Build it with make app or make install." : {
 
     },
     "Thread #%@ no longer exists." : {

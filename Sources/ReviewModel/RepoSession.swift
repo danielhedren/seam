@@ -401,7 +401,7 @@ package final class RepoSession {
         else { return }
         let command = command ?? services.settings.editor
         let path = review.worktree.path.appending(path: location.0).path
-        guard FileManager.default.fileExists(atPath: path) else {
+        guard services.fileSystem.fileExists(URL(fileURLWithPath: path)) else {
             review.report(
                 .editorFailed(String(localized: "\(location.0) no longer exists.", bundle: .module))
             )

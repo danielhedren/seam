@@ -67,7 +67,7 @@ package final class RepoThreads {
 
     func start(watching watcher: any FileWatcher) async {
         let directory = store.store.directory
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        await store.prepare()
         let file = store.store.file(for: repository).lastPathComponent
         let events = watcher.events(for: [directory])
         watchTask = Task { [weak self] in

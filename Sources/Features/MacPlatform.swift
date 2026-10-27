@@ -14,6 +14,13 @@ public struct MacPlatform: PlatformServices {
 
     public func reveal(_ file: URL) { NSWorkspace.shared.activateFileViewerSelecting([file]) }
 
+    public var bundledCommand: URL? { Bundle.main.url(forResource: "seam", withExtension: nil) }
+
+    /// An installed app by bundle id, for editors' presets and their bundled tools.
+    @Sendable public nonisolated static func locateApp(_ bundleID: String) -> URL? {
+        NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+    }
+
     /// Clicked, the notification's `seam://` URL comes back through `SeamAppDelegate`.
     public func notify(_ notification: SeamNotification) {
         let content = UNMutableNotificationContent()

@@ -4,7 +4,7 @@ import SeamCore
 import TestSupport
 import Testing
 
-@testable import ReviewModel
+@testable import Features
 
 @Suite(.timeLimit(.minutes(1))) struct CommandLineToolTests {
     /// Any file stands in for the command; install only links to it.

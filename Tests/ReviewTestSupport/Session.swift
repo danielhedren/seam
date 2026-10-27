@@ -462,6 +462,7 @@ package final class RecordingPlatform: PlatformServices {
     package func open(_ url: URL) { opened.append(url) }
     package func reveal(_ file: URL) { revealed.append(file) }
     package func notify(_ notification: SeamNotification) { notified.append(notification) }
+    package var bundledCommand: URL? { nil }
 }
 
 extension RepoSession {

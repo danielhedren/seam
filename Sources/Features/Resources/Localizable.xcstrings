@@ -17,6 +17,9 @@
         }
       }
     },
+    "%@ already exists and isn't Seam's. Remove it and try again." : {
+
+    },
     "%@ is not in a git repository." : {
 
     },
@@ -641,6 +644,9 @@
 
     },
     "The worktree's directory is missing" : {
+
+    },
+    "This copy of Seam doesn't include the seam command. Build it with make app or make install." : {
 
     },
     "This worktree's directory is missing. If it was deleted, “git worktree prune” takes it off the list." : {

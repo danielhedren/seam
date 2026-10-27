@@ -43,7 +43,11 @@ public final class AppSettings {
 
     private let defaults: UserDefaults
 
-    public init(defaults: UserDefaults = .standard) {
+    /// `locateApp` finds an installed app by bundle id, so the editor setting starts at one the
+    /// reader has.
+    public init(
+        defaults: UserDefaults = .standard, locateApp: (String) -> URL? = { _ in nil }
+    ) {
         self.defaults = defaults
         func value<Value>(_ key: String, _ fallback: Value) -> Value {
             defaults.object(forKey: "seam." + key) as? Value ?? fallback
@@ -51,7 +55,8 @@ public final class AppSettings {
         defaultBase = value("defaultBase", "")
         ignoredRefs = value("ignoredRefs", DetectionSettings().ignoredRefs.map(\.pattern))
         generatedGlobs = value("generatedGlobs", DiffOptions.defaultGeneratedGlobs.map(\.pattern))
-        editorTemplate = value("editorTemplate", EditorCommand.installedDefault())
+        editorTemplate = value(
+            "editorTemplate", EditorCommand.installedDefault(locate: locateApp))
         fontName = value("fontName", "")
         fontSize = value("fontSize", 12)
         tabWidth = value("tabWidth", 4)

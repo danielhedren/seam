@@ -230,7 +230,7 @@ extension RepoSession {
             onGitHub: open.count { $0.source == .gitHub },
             failedChecks: review.pullRequest?.state == .open
                 ? review.pullRequest?.checks.failed ?? 0 : 0,
-            command: Bundle.main.url(forResource: "seam", withExtension: nil))
+            command: services.platform.bundledCommand)
         services.platform.copy(prompt)
         promptCopied?.cancel()
         let clock = services.clock
