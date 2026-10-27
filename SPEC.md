@@ -724,7 +724,9 @@ background unless Settings says otherwise (§12).
   on GitHub, in the conversation or on lines (several in one read make one notification); a
   pull request became ready to merge (open, not a draft, no check running, and GitHub's merge
   button green, which a failed optional check doesn't stop); and it merged or closed. Each kind
-  can be turned off; the pull request kinds need pull requests shown (§7.8).
+  can be turned off; the pull request kinds need pull requests shown (§7.8). Checks are news
+  when a read finds them finished after one found them running on the same commit, so a run
+  that starts and ends between two reads posts nothing.
 - **What's news:** what changed between two looks at what Seam shows, per worktree. A worktree
   seen for the first time, a pull request's first read and Seam's threads before the author's
   git email is known are a state, not news, so opening a repo posts nothing. The author's own
