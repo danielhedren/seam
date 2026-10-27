@@ -19,31 +19,26 @@ struct FileList: View {
                 case .files:
                     // With the worktree list hidden, its row's PR marker would be out of sight;
                     // it wins over the line totals and then the viewed count when space is short.
-                    if !session.showsWorktreeList, let pullRequest = review.pullRequest {
-                        let badge = PullRequestBadge(
-                            pullRequest: pullRequest, unpushed: review.unpushedCount,
+                    // Every view of the column shrinks the same way, so switching views doesn't
+                    // change the column's width.
+                    let badge = (session.showsWorktreeList ? nil : review.pullRequest).map {
+                        PullRequestBadge(
+                            pullRequest: $0, unpushed: review.unpushedCount,
                             read: review.pullRequests?.saved.read
                         )
                         .fixedSize()
-                        ViewThatFits(in: .horizontal) {
+                    }
+                    ViewThatFits(in: .horizontal) {
+                        ForEach([Totals.all, .withoutLines, .filesOnly], id: \.self) { shown in
                             HStack {
-                                totals(.all)
-                                Spacer(minLength: 4)
-                                badge
-                            }
-                            HStack {
-                                totals(.withoutLines)
-                                Spacer(minLength: 4)
-                                badge
-                            }
-                            HStack {
-                                totals(.filesOnly)
-                                Spacer(minLength: 4)
-                                badge
+                                totals(shown)
+                                if let badge {
+                                    Spacer(minLength: 4)
+                                    badge
+                                }
                             }
                         }
-                    } else {
-                        totals(.all)
+                        badge
                     }
                 case .search: SearchSummary(review: review)
                 case .threads: ThreadsSummary(session: session, review: review)

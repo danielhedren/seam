@@ -948,6 +948,9 @@ written down here.
   collapsing, resizing and the sidebar toggle all behave natively. `⌘\` is the one custom
   shortcut on top of that. The file list can't be hidden: macOS's three-column split view
   ignores `.detailOnly` and its middle column doesn't collapse.
+  The file list's column is at least 200 points wide, and each of its views (Files, Search,
+  Threads) fits that by dropping what its header can spare, so switching views never changes
+  the column's width.
 - Toolbar in the unified style, holding only: view mode, reload, and Threads (§7.3.2).
   The diff gets the rest of the window. The toolbar's background is solid across every column,
   so the top of the window reads as one bar.

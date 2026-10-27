@@ -43,6 +43,35 @@ import Testing
         window.close()
     }
 
+    /// The file list's column is never narrower than 200 points, so no view of it may need
+    /// more: one that did would widen the column when picked and leave it wider after.
+    @Test func everyViewOfTheFileListFitsTheColumnsNarrowestWidth() async throws {
+        let repo = try await FixtureRepo()
+        let tree = try await repo.worktree("feature", branch: "feature", from: "origin/main")
+        try await repo.commit("src/Order.cs", "class Order {}\n", "Add the order", in: tree)
+        try repo.write("notes.md", "# Notes\n", in: tree)
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        session.select(tree.path)
+        await session.settled()
+        let review = try #require(session.selected)
+        for navigator in [Navigator.files, .search, .threads] {
+            review.navigator = navigator
+            let controller = NSHostingController(
+                rootView: FileList(
+                    session: session, review: review,
+                    filterFocus: FocusState<Bool>().projectedValue))
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 300, height: 400), styleMask: [.titled],
+                backing: .buffered, defer: false)
+            window.contentViewController = controller
+            settleLayout()
+            let narrowest = controller.sizeThatFits(in: CGSize(width: 0, height: 400)).width
+            #expect(narrowest <= 200, "\(navigator)")
+        }
+        session.close()
+    }
+
     @Test func aRepoWindowOpensInTheFrameItsRepoLastHad() throws {
         let requests = OpenRequests(defaults: try scratchDefaults())
         let saved = try onScreen(width: 1100, height: 700)
