@@ -105,7 +105,7 @@ let package = Package(
         .testTarget(
             name: "DiffViewTests",
             dependencies: [
-                "DiffView", "DiffModel", "SeamCore", "GitKit",
+                "DiffView", "DiffModel", "SeamCore", "GitKit", "TestSupport",
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
             ],
             exclude: ["__Snapshots__"], swiftSettings: strict),

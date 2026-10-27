@@ -60,6 +60,6 @@ struct DetectionBenchmarkTests {
         _ = try await detector.detect(in: feature)
         let elapsed = try await clock.measure { _ = try await detector.detect(in: feature) }
 
-        #expect(elapsed < .milliseconds(150), "detection took \(elapsed)")
+        #expect(elapsed < budget(.milliseconds(150)), "detection took \(elapsed)")
     }
 }

@@ -28,7 +28,7 @@ import Testing
 
         #expect(review.diff?.files.map(\.diff.path) == ["README.md"])
         if ProcessInfo.processInfo.environment["SEAM_BENCH"] != nil {
-            #expect(elapsed < .seconds(1), "reload took \(elapsed)")
+            #expect(elapsed < budget(.seconds(1)), "reload took \(elapsed)")
         }
         session.close()
     }

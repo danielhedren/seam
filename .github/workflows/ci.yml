@@ -50,6 +50,9 @@ jobs:
         run: make app
       - name: Performance budgets (SPEC §8.7)
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        # Budgets are for a real Mac; the shared runner measured about twice as slow.
+        env:
+          SEAM_BENCH_SLACK: "2.5"
         run: |
           SEAM_BENCH=1 swift test -c release -Xswiftc -enable-testing --filter 'Budget|Benchmark'
           SEAM_BENCH=1 swift test -c release -Xswiftc -enable-testing --filter LiveReload

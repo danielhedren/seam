@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import GitKit
 import SeamCore
+import TestSupport
 import Testing
 
 @testable import DiffModel
@@ -70,7 +71,7 @@ struct RenderingBudgetTests {
             view.layoutSubtreeIfNeeded()
             render(view)
         }
-        #expect(elapsed < .milliseconds(500), "first paint took \(elapsed)")
+        #expect(elapsed < budget(.milliseconds(500)), "first paint took \(elapsed)")
     }
 
     @Test(arguments: [DiffLayoutMode.unified, .split])
@@ -97,7 +98,8 @@ struct RenderingBudgetTests {
         frames.sort()
         let median = frames[frames.count / 2]
         let worst = frames[frames.count * 95 / 100]
-        #expect(worst < .milliseconds(8), "\(mode): median \(median), 95th percentile \(worst)")
+        #expect(
+            worst < budget(.milliseconds(8)), "\(mode): median \(median), 95th percentile \(worst)")
     }
 
     /// `v` collapses the file it marks, so this is the cost of a keypress.
@@ -114,6 +116,7 @@ struct RenderingBudgetTests {
             times.append(clock.measure { view.show(shown, position: .keep) })
         }
         times.sort()
-        #expect(times[times.count / 2] < .milliseconds(8), "median \(times[times.count / 2])")
+        #expect(
+            times[times.count / 2] < budget(.milliseconds(8)), "median \(times[times.count / 2])")
     }
 }

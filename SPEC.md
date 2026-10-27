@@ -1063,7 +1063,8 @@ Rules:
   `make check`. On GitHub, Actions runs `make check` and `make app` on macOS and builds and tests
   the portable targets on Linux for every push to `main` and every pull request; the
   performance budgets run nightly on the macOS runner, whose timings vary too much to gate a
-  push. The macOS runner is pinned to the major the snapshot references were recorded on.
+  push. That runner is about twice as slow as a Mac, so it allows 2.5 times each budget
+  (`SEAM_BENCH_SLACK`) and still fails on a real regression. The macOS runner is pinned to the major the snapshot references were recorded on.
 
 **Commits:** Conventional Commits (`feat:`, `fix:`, `test:`, …), each one building and passing
 `make check`.

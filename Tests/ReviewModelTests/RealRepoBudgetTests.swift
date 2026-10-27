@@ -2,6 +2,7 @@ import Foundation
 import GitKit
 import ReviewTestSupport
 import SeamCore
+import TestSupport
 import Testing
 
 @testable import ReviewModel
@@ -40,7 +41,8 @@ struct RealRepoBudgetTests {
 
         #expect(session.reviews.allSatisfy { $0.worktree.isMissing || $0.activity != nil })
         #expect(
-            open < .seconds(1), "worktree list took \(open) for \(session.reviews.count) worktrees")
-        #expect(switching < .milliseconds(200), "switching took \(switching)")
+            open < budget(.seconds(1)),
+            "worktree list took \(open) for \(session.reviews.count) worktrees")
+        #expect(switching < budget(.milliseconds(200)), "switching took \(switching)")
     }
 }
