@@ -161,8 +161,8 @@ import Testing
     }
 
     /// The open thread belongs to its worktree: after switching, Review › Resolve and Delete
-    /// can't act on a thread that's no longer shown.
-    @Test func switchingWorktreesClosesTheOpenThread() async throws {
+    /// can't act on a thread that's no longer shown, and switching back opens it again.
+    @Test func eachWorktreeKeepsItsOpenThreadAcrossASwitch() async throws {
         let repo = try await FixtureRepo()
         let tree = try await repo.worktree("a", branch: "a", from: "origin/main")
         try repo.write("a.txt", "one\n")
@@ -171,12 +171,77 @@ import Testing
         let anchor = try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1))
         session.draft = ThreadDraft(worktree: reviewed.id, anchor: anchor)
         await session.post("Why one?")
-        #expect(session.selectedThreadID != nil)
+        let id = try #require(session.selectedThreadID)
+        let resolve = try #require(CommandCatalog.all.first { $0.id == "resolve-thread" })
 
         session.select(tree.path)
+        let other = try #require(session.selected)
+        await other.loaded()
         #expect(session.selectedThreadID == nil)
-        let resolve = try #require(CommandCatalog.all.first { $0.id == "resolve-thread" })
+        #expect(session.openThreadMarker(for: other) == nil)
         #expect(!resolve.isEnabled(session))
+
+        session.select(reviewed.id)
+        await reviewed.loaded()
+        #expect(session.selectedThreadID == id)
+        #expect(session.openThreadMarker(for: reviewed)?.id == id)
+        #expect(resolve.isEnabled(session))
+        session.close()
+    }
+
+    /// A thread the diff couldn't show is read in the panel, so coming back to its worktree
+    /// shows the panel again even if it was put away elsewhere.
+    @Test func comingBackToAThreadTheDiffCantShowShowsThePanel() async throws {
+        let repo = try await FixtureRepo()
+        let tree = try await repo.worktree("a", branch: "a", from: "origin/main")
+        try repo.write("a.txt", "one\n")
+        let (session, review, _) = await threadSession(repo)
+        let reviewed = try #require(review)
+        session.draft = ThreadDraft(
+            worktree: reviewed.id,
+            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
+        await session.post("Why one?")
+        session.noteOpenThreadHidden(true)
+        #expect(session.showsThreadPanel)
+
+        session.select(tree.path)
+        session.showsThreadPanel = false
+        session.select(reviewed.id)
+        #expect(session.showsThreadPanel)
+        session.close()
+    }
+
+    /// The Inbox opens an agent's question in its own worktree; the thread open where the reader
+    /// was stays open there, and each comes back with its worktree.
+    @Test func theInboxOpensAThreadInAnotherWorktreeAndLeavesThisOnesOpen() async throws {
+        let repo = try await FixtureRepo()
+        let feature = try await repo.worktree("feature", branch: "feature", from: "origin/main")
+        try repo.write("a.txt", "one\n")
+        try repo.write("b.txt", "one\ntwo\n", in: feature)
+        let (session, review, store) = await threadSession(repo)
+        let reviewed = try #require(review)
+        session.draft = ThreadDraft(
+            worktree: reviewed.id,
+            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
+        await session.post("Why one?")
+        let mine = try #require(session.selectedThreadID)
+        let repository = try #require(session.repository)
+        let asked = try store.update(repository) { threads throws(ThreadError) in
+            try ThreadRules.open(
+                &threads, worktree: feature.path,
+                anchor: ThreadAnchor(path: "b.txt", side: .new, lines: 2...2, text: ["two"]),
+                author: "claude", body: "Should two stay?", now: .now)
+        }
+        await session.threads?.load()
+
+        await session.open(try #require(session.inbox.first))
+        #expect(session.selectedID == feature.path)
+        #expect(session.selectedThreadID == asked.id)
+
+        session.select(reviewed.id)
+        #expect(session.selectedThreadID == mine)
+        session.select(feature.path)
+        #expect(session.selectedThreadID == asked.id)
         session.close()
     }
 
@@ -305,10 +370,42 @@ import Testing
         session.draft?.body = "Half a thought"
 
         session.select(other.path)
+        let shown = try #require(session.selected)
+        #expect(session.draft == nil)
+        #expect(session.draftMarker(for: shown) == nil)
         session.select(reviewed.id)
 
         #expect(session.draft?.worktree == reviewed.id)
         #expect(session.draft?.body == "Half a thought")
+        #expect(session.draftMarker(for: reviewed)?.lines == 1...1)
+    }
+
+    /// Writing in a second worktree leaves the first one's draft where it was.
+    @Test func eachWorktreeKeepsItsOwnDraft() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\n")
+        let other = try await repo.worktree("other", branch: "other", from: "origin/main")
+        try repo.write("b.txt", "two\n", in: other)
+        let (session, review, _) = await threadSession(repo)
+        let reviewed = try #require(review)
+        session.draft = ThreadDraft(
+            worktree: reviewed.id,
+            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)),
+            body: "About a")
+
+        session.select(other.path)
+        let shown = try #require(session.selected)
+        await shown.loaded()
+        session.draft = ThreadDraft(
+            worktree: shown.id,
+            anchor: try #require(shown.anchor(path: "b.txt", side: .new, lines: 1...1)),
+            body: "About b")
+
+        session.select(reviewed.id)
+        #expect(session.draft?.body == "About a")
+        session.select(shown.id)
+        #expect(session.draft?.body == "About b")
+        session.close()
     }
 
     @Test func anAgentsReplyArrivesWithoutAReload() async throws {

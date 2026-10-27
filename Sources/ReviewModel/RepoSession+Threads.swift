@@ -11,9 +11,36 @@ package struct ThreadDraft: Equatable {
     package var body = ""
 }
 
+/// One worktree's thread UI: the thread open in its diff and the draft it's writing.
+struct ThreadSelection: Equatable {
+    var openID: String?
+    /// The open thread's lines are hidden in a gap, so it shows in the panel instead.
+    var isHidden = false
+    var draft: ThreadDraft?
+}
+
 /// Review threads from the reader's side: writing, answering, resolving, and handing them to an
 /// agent (SPEC §7.7).
 extension RepoSession {
+    /// The thread open in the selected worktree's diff, and selected in the panel (SPEC §7.7).
+    package var selectedThreadID: String? {
+        get { selectedThreads.openID }
+        set { selectedThreads.openID = newValue }
+    }
+
+    package var draft: ThreadDraft? {
+        get { selectedThreads.draft }
+        set { selectedThreads.draft = newValue }
+    }
+
+    private var selectedThreads: ThreadSelection {
+        get { selectedID.flatMap { threadSelections[$0] } ?? ThreadSelection() }
+        set {
+            guard let selectedID else { return }
+            threadSelections[selectedID] = newValue
+        }
+    }
+
     /// `c`: a draft on the selected lines, or the one being read, written in the diff.
     package func comment() {
         guard let review = selected, let target = diff.commentTarget,
@@ -26,7 +53,9 @@ extension RepoSession {
     /// Where the diff opens the composer: the draft, when it's on the worktree shown and no
     /// thread is open over it.
     package func draftMarker(for review: WorktreeReview) -> DraftMarker? {
-        guard let draft, draft.worktree == review.id, selectedThreadID == nil else { return nil }
+        guard let selection = threadSelections[review.id], let draft = selection.draft,
+            selection.openID == nil
+        else { return nil }
         return DraftMarker(
             path: draft.anchor.path, side: draft.anchor.side, lines: draft.anchor.lines)
     }
@@ -45,8 +74,9 @@ extension RepoSession {
             let thread = await threads.open(
                 worktree: draft.worktree, anchor: draft.anchor, body: body, isNote: asNote)
         else { return }
-        self.draft = nil
-        selectedThreadID = thread.id
+        // The reader may have switched worktrees while it saved.
+        threadSelections[draft.worktree, default: ThreadSelection()].draft = nil
+        threadSelections[draft.worktree]?.openID = thread.id
     }
 
     package func reply(to id: String, _ body: String) async -> Bool {
@@ -109,7 +139,7 @@ extension RepoSession {
 
     /// The diff found no row for the open thread; the panel is where it can be read.
     package func noteOpenThreadHidden(_ hidden: Bool) {
-        guard hidden != openThreadIsHidden else { return }
+        guard hidden != selectedThreads.isHidden else { return }
         // Collapsing its file (`x`, or marking it viewed) puts the thread away with it.
         if hidden, let review = selected, let id = selectedThreadID,
             let placed = review.placedThreads.first(where: { $0.id == id }),
@@ -118,13 +148,13 @@ extension RepoSession {
             closeThread()
             return
         }
-        openThreadIsHidden = hidden
+        selectedThreads.isHidden = hidden
         if hidden { showsThreadPanel = true }
     }
 
     /// What the diff opens: the selected thread, which shows even when resolved ones are hidden.
     package func openThreadMarker(for review: WorktreeReview) -> ThreadMarker? {
-        guard let id = selectedThreadID else { return nil }
+        guard let id = threadSelections[review.id]?.openID else { return nil }
         return review.marker(for: id)
     }
 
@@ -146,7 +176,9 @@ extension RepoSession {
         guard capabilities(of: id).contains(.delete), let threads,
             let (thread, index) = await threads.delete(id: id)
         else { return }
-        if selectedThreadID == id { selectedThreadID = nil }
+        for (worktree, selection) in threadSelections where selection.openID == id {
+            threadSelections[worktree]?.openID = nil
+        }
         let name = String(localized: "Delete Thread", bundle: .module)
         // Redo has to be registered while the undo runs, so only the store write waits.
         undoManager?.registerUndo(withTarget: self) { session in
@@ -159,7 +191,8 @@ extension RepoSession {
                 session.undoManager?.setActionName(name)
                 session.restoringThreads = Task {
                     await threads.restore(thread, at: index)
-                    session.selectedThreadID = thread.id
+                    session.threadSelections[thread.worktree, default: ThreadSelection()]
+                        .openID = thread.id
                 }
             }
         }

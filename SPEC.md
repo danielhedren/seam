@@ -542,9 +542,11 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   the reply box, and "⌘↩ Reply ⎋ Close". Escape in the card, `t` again, or Escape in
   the diff with nothing selected closes it back to its row; collapsing its file, or marking it
   viewed, closes it too. One thread is open at a time. Opening
-  one while writing sets the draft aside, text and all, until the thread closes; switching
-  worktrees closes it. Opening a thread opens its collapsed file, and a resolved thread
-  stays while it's open. Its row is as tall as the conversation at the column's width.
+  one while writing sets the draft aside, text and all, until the thread closes. Each worktree
+  keeps its own open thread and draft: switching away and back opens the same thread and keeps
+  the draft's text, and no other worktree shows them. Opening a thread opens its collapsed
+  file, and a resolved thread stays while it's open. Its row is as tall as the conversation
+  at the column's width.
 - **The thread panel** (an inspector on the right, `⌥⌘0`) is the overview: the worktree's
   threads by file, open ones first, each showing its latest comment. Above them, Awaiting You
   lists Seam's open threads whose latest comment isn't the reader's (an agent's answer or
