@@ -22,12 +22,12 @@ jobs:
       # outlast their one-minute limits waiting for git.
       SWT_EXPERIMENTAL_MAXIMUM_PARALLELIZATION_WIDTH: 4
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Toolchain
         run: |
           xcodebuild -version
           swift --version
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .build
           # The tree-sitter grammars are the slow part of a cold build.
@@ -40,7 +40,7 @@ jobs:
         run: |
           mkdir -p snapshot-failures
           cp -R "$TMPDIR"/*SnapshotTests snapshot-failures/ 2>/dev/null || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: snapshot-failures
@@ -63,8 +63,8 @@ jobs:
     container: swift:6.4-noble
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v6
         with:
           path: .build
           key: linux-build-${{ hashFiles('Package.resolved', 'Package.swift', 'Vendor/**') }}
