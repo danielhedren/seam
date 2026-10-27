@@ -484,6 +484,9 @@
     "Write something first." : {
 
     },
+    "approved" : {
+
+    },
     "checks failed" : {
 
     },
@@ -496,6 +499,15 @@
           }
         }
       }
+    },
+    "requested changes" : {
+
+    },
+    "review dismissed" : {
+
+    },
+    "reviewed" : {
+
     },
     "the base" : {
 

@@ -10,6 +10,7 @@ import SeamCore
 @Observable
 package final class PullRequestThreads {
     package private(set) var threads: [ReviewThread] = []
+    package private(set) var conversations: [String: PullRequestConversation] = [:]
     /// Bumped when the threads change, so placements are worked out again only then.
     private(set) var version = 0
     /// Settings can turn pull requests, and with them their threads, off.
@@ -41,6 +42,10 @@ package final class PullRequestThreads {
 
     package func threads(in worktree: String) -> [ReviewThread] {
         isShown() ? threads.filter { $0.worktree == worktree } : []
+    }
+
+    package func conversation(in worktree: String) -> PullRequestConversation? {
+        isShown() ? conversations[worktree] : nil
     }
 
     /// Shows what the file holds, and again whenever another window writes it.
@@ -99,18 +104,21 @@ package final class PullRequestThreads {
         let answers = Dictionary(
             (try? await RepoPullRequests.concurrently(numbers) { number in
                 await Result { () async throws(GitHubError) in
-                    try await client.reviewThreads(number, in: repo)
+                    try await client.discussion(number, in: repo)
                 }
             }) ?? [], uniquingKeysWith: { first, _ in first })
         for job in jobs {
             guard !isStopped, let answer = answers[job.pullRequest.number] else { continue }
             switch answer {
-            case .success(let threads):
+            case .success(let discussion):
                 read[job.worktree] = (job.pullRequest, Stopwatch(clock))
                 await save(
                     GitHubThreads.threads(
-                        from: threads, worktree: job.worktree, repo: repo,
+                        from: discussion.threads, worktree: job.worktree, repo: repo,
                         pullRequest: job.pullRequest.number),
+                    conversation: PullRequestConversation(
+                        repo: repo, pullRequest: job.pullRequest.number,
+                        items: discussion.conversation, viewer: discussion.viewer),
                     worktree: job.worktree)
             case .failure(let error):
                 logger.info("review threads unread: \(String(describing: error), privacy: .public)")
@@ -119,20 +127,28 @@ package final class PullRequestThreads {
     }
 
     private func load() async {
-        guard let saved = try? await store.gitHubThreads(for: repository).threads else { return }
-        show(saved)
+        guard let saved = try? await store.gitHubThreads(for: repository) else { return }
+        show(saved.threads, conversations: saved.conversations)
     }
 
-    /// Replaces a worktree's threads with a new read, kept for `seam` too.
-    private func save(_ new: [ReviewThread], worktree: String) async {
-        guard !(new.isEmpty && !threads.contains(where: { $0.worktree == worktree })) else {
-            return
-        }
+    /// Replaces a worktree's threads and conversation with a new read, kept for `seam` too.
+    private func save(
+        _ new: [ReviewThread], conversation: PullRequestConversation? = nil, worktree: String
+    ) async {
+        guard
+            !(new.isEmpty && conversation == nil
+                && !threads.contains(where: { $0.worktree == worktree })
+                && conversations[worktree] == nil)
+        else { return }
         let result = await Result { () async throws(ThreadError) in
-            try await store.saveGitHubThreads(new, worktree: worktree, read: .now, for: repository)
+            try await store.saveGitHubThreads(
+                new, conversation: conversation, worktree: worktree, read: .now, for: repository)
         }
         switch result {
-        case .success(let stored): show(threads.filter { $0.worktree != worktree } + stored)
+        case .success(let stored):
+            var conversations = conversations
+            conversations[worktree] = conversation
+            show(threads.filter { $0.worktree != worktree } + stored, conversations: conversations)
         case .failure(let error):
             logger.error("pull request threads: \(String(describing: error), privacy: .public)")
         }
@@ -143,13 +159,15 @@ package final class PullRequestThreads {
             try await store.pruneGitHubThreads(keeping: worktrees, for: repository)
         }
         switch result {
-        case .success(let kept): show(kept)
+        case .success(let kept):
+            show(kept, conversations: conversations.filter { worktrees.contains($0.key) })
         case .failure(let error):
             logger.error("pull request threads: \(String(describing: error), privacy: .public)")
         }
     }
 
-    private func show(_ new: [ReviewThread]) {
+    private func show(_ new: [ReviewThread], conversations: [String: PullRequestConversation]) {
+        if conversations != self.conversations { self.conversations = conversations }
         guard new != threads else { return }
         threads = new
         version += 1

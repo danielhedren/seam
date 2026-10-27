@@ -28,9 +28,11 @@ public actor ThreadStoreAccess {
     }
 
     public func saveGitHubThreads(
-        _ threads: [ReviewThread], worktree: String, read: Date, for repository: Repository
+        _ threads: [ReviewThread], conversation: PullRequestConversation? = nil,
+        worktree: String, read: Date, for repository: Repository
     ) throws(ThreadError) -> [ReviewThread] {
-        try store.saveGitHubThreads(threads, worktree: worktree, read: read, for: repository)
+        try store.saveGitHubThreads(
+            threads, conversation: conversation, worktree: worktree, read: read, for: repository)
     }
 
     public func pruneGitHubThreads(keeping worktrees: Set<String>, for repository: Repository)

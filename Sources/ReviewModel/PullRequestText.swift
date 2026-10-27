@@ -65,4 +65,15 @@ package enum PullRequestText {
         }
         return lines.joined(separator: "\n")
     }
+
+    /// What a review decided, as the conversation shows it beside the reviewer; nil for a comment.
+    package static func verdict(_ kind: GitHubConversationItem.Kind) -> String? {
+        switch kind {
+        case .comment: nil
+        case .approved: String(localized: "approved", bundle: .module)
+        case .changesRequested: String(localized: "requested changes", bundle: .module)
+        case .commented: String(localized: "reviewed", bundle: .module)
+        case .dismissed: String(localized: "review dismissed", bundle: .module)
+        }
+    }
 }

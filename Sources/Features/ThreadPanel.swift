@@ -15,7 +15,7 @@ struct ThreadPanel: View {
         VStack(spacing: 0) {
             header(placed)
             Divider()
-            if placed.isEmpty {
+            if placed.isEmpty && review.conversation == nil {
                 ContentUnavailableView(
                     String(localized: "No threads", bundle: .module),
                     systemImage: "text.bubble",
@@ -46,6 +46,10 @@ struct ThreadPanel: View {
                             session: session, placed: placed,
                             isSelected: session.selectedThreadID == placed.id, showsPath: true)
                     }
+                }
+                if let conversation = review.conversation, !conversation.items.isEmpty {
+                    ConversationSection(
+                        session: session, review: review, conversation: conversation)
                 }
                 ForEach(groups(placed.filter { !waiting.contains($0.id) }), id: \.path) { group in
                     Text(group.path).font(.caption.weight(.semibold))

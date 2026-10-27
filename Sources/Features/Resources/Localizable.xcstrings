@@ -26,6 +26,9 @@
     "%lld awaiting you" : {
 
     },
+    "%lld earlier" : {
+
+    },
     "%lld more lines" : {
 
     },
@@ -141,6 +144,9 @@
 
     },
     "Context lines" : {
+
+    },
+    "Conversation on #%@" : {
 
     },
     "Copy" : {

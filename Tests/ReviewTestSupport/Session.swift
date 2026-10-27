@@ -267,6 +267,8 @@ package final class FakeGitHub: GitHubClient, Sendable {
         var held: [CheckedContinuation<Void, Never>] = []
         var watchers: [(count: Int, resume: @Sendable () -> Void)] = []
         var threads: [Int: [GitHubReviewThread]] = [:]
+        var conversations: [Int: [GitHubConversationItem]] = [:]
+        var viewer: String?
         var threadReads: [Int] = []
         var threadError: GitHubError?
     }
@@ -277,8 +279,15 @@ package final class FakeGitHub: GitHubClient, Sendable {
     /// The PRs whose review threads were read, in order; kept apart from `calls`.
     package var threadReads: [Int] { state.withLock { $0.threadReads } }
 
-    package func answer(threads: [GitHubReviewThread], for number: Int) {
-        state.withLock { $0.threads[number] = threads }
+    package func answer(
+        threads: [GitHubReviewThread], conversation: [GitHubConversationItem] = [],
+        viewer: String? = nil, for number: Int
+    ) {
+        state.withLock {
+            $0.threads[number] = threads
+            $0.conversations[number] = conversation
+            $0.viewer = viewer
+        }
     }
 
     package func failThreads(_ error: GitHubError?) {
@@ -379,15 +388,20 @@ package final class FakeGitHub: GitHubClient, Sendable {
         return state.withLock { $0.byHead[branch] }
     }
 
-    package func reviewThreads(_ number: Int, in repo: GitHubRepo) async throws(GitHubError)
-        -> [GitHubReviewThread]
+    package func discussion(_ number: Int, in repo: GitHubRepo) async throws(GitHubError)
+        -> GitHubDiscussion
     {
-        let (threads, error) = state.withLock { state in
+        let (discussion, error) = state.withLock { state in
             state.threadReads.append(number)
-            return (state.threads[number] ?? [], state.threadError)
+            return (
+                GitHubDiscussion(
+                    threads: state.threads[number] ?? [],
+                    conversation: state.conversations[number] ?? [], viewer: state.viewer),
+                state.threadError
+            )
         }
         if let error { throw error }
-        return threads
+        return discussion
     }
 }
 

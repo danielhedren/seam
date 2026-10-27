@@ -33,7 +33,8 @@ struct Seam: AsyncParsableCommand {
             CommandGroup(
                 name: "Review threads",
                 subcommands: [
-                    Threads.self, ShowThread.self, Wait.self, Comment.self, Reply.self,
+                    Threads.self, ShowThread.self, Conversation.self, Wait.self, Comment.self,
+                    Reply.self,
                     Resolve.self, Reopen.self, Delete.self,
                 ])
         ],
@@ -162,19 +163,19 @@ struct Threads: AsyncParsableCommand {
                 threads.map {
                     ThreadOutput($0, readAt: read[$0.worktree], placement: placement(of: $0))
                 })
-        } else if threads.isEmpty {
-            print(
+            return
+        }
+        var parts = threads.map {
+            ThreadText.format(
+                $0, showsWorktree: repo, read: read[$0.worktree], placement: placement(of: $0))
+        }
+        if threads.isEmpty {
+            parts.append(
                 since.map { "No threads changed since \(ThreadTime.string($0))." }
                     ?? (all ? "No threads." : "No open threads."))
-        } else {
-            print(
-                threads.map {
-                    ThreadText.format(
-                        $0, showsWorktree: repo, read: read[$0.worktree],
-                        placement: placement(of: $0))
-                }
-                .joined(separator: "\n\n"))
         }
+        parts += try conversations(repository, worktree: repo ? nil : worktree.path, since: since)
+        print(parts.joined(separator: "\n\n"))
     }
 }
 
@@ -478,6 +479,63 @@ private func allThreads(_ repository: Repository) throws(ThreadError)
     let store = threadStore()
     let github = try store.gitHubThreads(for: repository)
     return (try store.threads(for: repository) + github.threads, github.read)
+}
+
+/// The pull request conversations the app read last, as text: one worktree's, or with `nil`
+/// every worktree's, each naming its worktree.
+private func conversations(_ repository: Repository, worktree: String?, since: Date?)
+    throws(ThreadError) -> [String]
+{
+    let github = try threadStore().gitHubThreads(for: repository)
+    return github.conversations.sorted { $0.key < $1.key }
+        .filter { worktree == nil || $0.key == worktree }
+        .compactMap { key, conversation in
+            ThreadText.format(
+                conversation, showsWorktree: worktree == nil ? key : nil, since: since,
+                read: github.read[key])
+        }
+}
+
+struct Conversation: AsyncParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Show this worktree's pull request conversation.",
+        discussion: """
+            The comments on the pull request that aren't on lines, and its reviews' verdicts, \
+            oldest first, as the app last read them from GitHub. `seam threads` prints it too.
+            """)
+
+    @OptionGroup var options: ThreadOptions
+    @OptionGroup(visibility: .hidden) var signature: Signature
+    @Option(help: sinceHelp, transform: parseTime) var since: Date?
+    @Flag(help: jsonHelp) var json = false
+
+    private struct Output: Encodable {
+        var conversation: PullRequestConversation
+        var replyCommand: String
+        var readAt: Date?
+    }
+
+    func run() async throws {
+        let (repository, worktree) = try await options.worktree()
+        let github = try threadStore().gitHubThreads(for: repository)
+        guard var conversation = github.conversations[worktree.path] else {
+            print("No pull request conversation has been read for this worktree.")
+            return
+        }
+        conversation.items = conversation.items.filter { item in
+            since.map { item.created >= $0 } ?? true
+        }
+        if json {
+            try printJSON(
+                Output(
+                    conversation: conversation, replyCommand: conversation.gitHubReply,
+                    readAt: github.read[worktree.path]))
+        } else {
+            print(
+                ThreadText.format(conversation, read: github.read[worktree.path])
+                    ?? "Nothing in the conversation\(since == nil ? "" : " since then").")
+        }
+    }
 }
 
 /// GitHub's threads are read-only here: the error says how to answer one with gh instead.

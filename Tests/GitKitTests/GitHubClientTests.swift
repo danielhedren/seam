@@ -264,7 +264,7 @@ import Testing
         try Data(text.utf8).write(to: gh)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: gh.path)
 
-        let threads = try await client().reviewThreads(12, in: repo)
+        let threads = try await client().discussion(12, in: repo).threads
 
         #expect(threads.map(\.id) == ["T1", "T2"])
         #expect(threads.first?.lines == 3...3)
@@ -277,9 +277,72 @@ import Testing
         #expect(log.contains("-F number=12 -f owner=owner -f name=app -f after=C1\n"))
     }
 
+    /// The conversation and the viewer come with the first page only; later pages are threads.
+    @Test func theFirstPageAlsoReadsTheConversationAndWhoGhReadsAs() async throws {
+        let first = Self.threadsPage(["T1"], next: "C1")
+        let second = Self.threadsPage(["T2"], next: nil)
+        let text = """
+            #!/bin/sh
+            printf '%s\\n' "$*" >> '\(log.path)'
+            case "$*" in
+            *after=C1*) cat <<'SEAM_EOF'
+            \(second)
+            SEAM_EOF
+            ;;
+            *) cat <<'SEAM_EOF'
+            \(first)
+            SEAM_EOF
+            ;;
+            esac
+            """
+        try Data(text.utf8).write(to: gh)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: gh.path)
+
+        _ = try await client().discussion(12, in: repo)
+
+        let calls = String(decoding: try Data(contentsOf: log), as: UTF8.self)
+            .components(separatedBy: "api graphql --hostname github.com -f query=").dropFirst()
+        #expect(calls.count == 2)
+        #expect(calls.first?.contains("viewer { login }") == true)
+        #expect(calls.first?.contains("reviews(last: 100)") == true)
+        #expect(calls.last?.contains("viewer") == false)
+        #expect(calls.last?.contains("reviews(") == false)
+    }
+
+    /// Reviews say what they decided; a plain "commented" one without words only wraps line
+    /// comments, which are threads, and a pending one is only its author's.
+    @Test func theConversationIsCommentsAndReviewVerdictsOldestFirst() throws {
+        let json = """
+            {"data":{"viewer":{"login":"me"},"repository":{"pullRequest":{
+              "comments":{"nodes":[
+                {"databaseId":5,"author":{"login":"octocat"},"body":"Looks close.",
+                 "createdAt":"2026-10-23T12:00:00Z","url":"c5"}]},
+              "reviews":{"nodes":[
+                {"databaseId":9,"author":{"login":"hubot"},"body":"","state":"APPROVED",
+                 "submittedAt":"2026-10-23T13:00:00Z","url":"r9"},
+                {"databaseId":8,"author":{"login":"hubot"},"body":"Fix the name.",
+                 "state":"CHANGES_REQUESTED","submittedAt":"2026-10-23T11:00:00Z","url":"r8"},
+                {"databaseId":7,"author":{"login":"hubot"},"body":"","state":"COMMENTED",
+                 "submittedAt":"2026-10-23T10:00:00Z","url":"r7"},
+                {"databaseId":6,"author":{"login":"me"},"body":"","state":"PENDING",
+                 "submittedAt":null,"url":"r6"}]},
+              "reviewThreads":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[]}}}}}
+            """
+        let answer = try ReviewThreadQuery.decode(
+            ReviewThreadQuery.ThreadsAnswer.self, Data(json.utf8))
+        let items = try #require(answer.data.repository?.pullRequest).conversation
+        #expect(answer.data.viewer?.login == "me")
+        #expect(items.map(\.id) == [8, 5, 9])
+        #expect(items.map(\.kind) == [.changesRequested, .comment, .approved])
+        #expect(items.first?.body == "Fix the name.")
+    }
+
     /// ADR 0006: the queries gh runs can read, never write.
     @Test func theFixedQueriesHaveNoMutation() {
-        for query in [ReviewThreadQuery.threads, ReviewThreadQuery.moreComments] {
+        for query in [
+            ReviewThreadQuery.firstThreads, ReviewThreadQuery.threads,
+            ReviewThreadQuery.moreComments,
+        ] {
             #expect(!query.lowercased().contains("mutation"))
             #expect(query.hasPrefix("query("))
         }

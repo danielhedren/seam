@@ -175,4 +175,38 @@ struct SeamCommandTests {
         #expect(refused.status == 1)
         #expect(refused.errors.contains("repos/o/a/pulls/12/comments/7/replies"))
     }
+
+    /// The pull request's conversation shows after the threads, with the command that answers
+    /// it, and alone as `seam conversation` (SPEC §7.9).
+    @Test func thePullRequestConversationIsListedWithTheCommandThatAnswersIt() async throws {
+        let repo = try await fixture()
+        let repository = try await RepositoryService(git: repo.git).open(repo.main).0
+        let created = Date(timeIntervalSince1970: 1_761_220_800)
+        let conversation = PullRequestConversation(
+            repo: GitHubRepo(host: "github.com", owner: "o", name: "a"), pullRequest: 12,
+            items: [
+                GitHubConversationItem(
+                    id: 8, kind: .changesRequested, author: "hubot", body: "Rename it.",
+                    created: created, url: "r8"),
+                GitHubConversationItem(
+                    id: 9, kind: .approved, author: "hubot", body: "",
+                    created: created + 60, url: "r9"),
+            ])
+        try ThreadStore(directory: store).saveGitHubThreads(
+            [], conversation: conversation, worktree: repo.main.path, read: .now,
+            for: repository)
+
+        let listed = try await seam(["threads"], in: repo.main)
+        #expect(
+            listed.output.contains("No open threads.\n\nConversation on GitHub pull request #12"))
+        #expect(listed.output.contains("gh pr comment 12 -R github.com/o/a --body-file reply.md"))
+        #expect(listed.output.contains("  hubot requested changes · "))
+        #expect(listed.output.contains("    Rename it.\n  hubot approved · "))
+        let json = try await seam(["conversation", "--json"], in: repo.main)
+        let object = try #require(
+            try JSONSerialization.jsonObject(with: Data(json.output.utf8)) as? [String: Any])
+        #expect((object["replyCommand"] as? String)?.hasPrefix("gh pr comment 12") == true)
+        let items = (object["conversation"] as? [String: Any])?["items"] as? [[String: Any]]
+        #expect(items?.map { $0["kind"] as? String } == ["changesRequested", "approved"])
+    }
 }

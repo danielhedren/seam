@@ -53,7 +53,8 @@ struct RealGitHubTests {
         let repo = try #require(session.pullRequests?.repo)
         var threads: [String] = []
         for (review, pullRequest) in shown {
-            let read = try await services.github.client.reviewThreads(pullRequest.number, in: repo)
+            let read = try await services.github.client.discussion(pullRequest.number, in: repo)
+                .threads
             let placed = review.placedThreads.filter { $0.thread.source == .gitHub }
             threads.append(
                 "#\(pullRequest.number) threads=\(read.count) "

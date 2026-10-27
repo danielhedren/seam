@@ -28,3 +28,6 @@ host passed as `--hostname`, prompts off, run outside any repository.
   prompt, not Seam's.
 - Calling the REST API's review comments endpoint was rejected: it has no resolved state and no
   thread grouping, so threads would have to be rebuilt from `in_reply_to_id`.
+- M9: the first page's query also reads the PR's latest 100 conversation comments and reviews,
+  and the viewer's login, so the conversation costs no second call. It is still a fixed query
+  without a mutation.

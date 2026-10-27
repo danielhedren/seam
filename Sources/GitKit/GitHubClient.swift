@@ -21,9 +21,9 @@ public protocol GitHubClient: Sendable {
         -> PullRequest?
     /// One pull request with its reviews and checks.
     func pullRequest(_ number: Int, in repo: GitHubRepo) async throws(GitHubError) -> PullRequest
-    /// Every review thread of a pull request, with all their comments.
-    func reviewThreads(_ number: Int, in repo: GitHubRepo) async throws(GitHubError)
-        -> [GitHubReviewThread]
+    /// Every review thread of a pull request with all their comments, and its conversation.
+    func discussion(_ number: Int, in repo: GitHubRepo) async throws(GitHubError)
+        -> GitHubDiscussion
 }
 
 /// Runs the user's own `gh`. Every call names its repo with `-R` and runs outside any
@@ -94,10 +94,10 @@ public struct CLIGitHubClient: GitHubClient {
         }
     }
 
-    public func reviewThreads(_ number: Int, in repo: GitHubRepo) async throws(GitHubError)
-        -> [GitHubReviewThread]
+    public func discussion(_ number: Int, in repo: GitHubRepo) async throws(GitHubError)
+        -> GitHubDiscussion
     {
-        var threads: [GitHubReviewThread] = []
+        var discussion = GitHubDiscussion(threads: [])
         var after: String?
         repeat {
             var arguments = [
@@ -105,10 +105,15 @@ public struct CLIGitHubClient: GitHubClient {
             ]
             if let after { arguments += ["-f", "after=\(after)"] }
             let answer = try await graphQL(
-                ReviewThreadQuery.threads, arguments, on: repo.host,
-                as: ReviewThreadQuery.ThreadsAnswer.self)
-            guard let page = answer.data.repository?.pullRequest?.reviewThreads else {
+                after == nil ? ReviewThreadQuery.firstThreads : ReviewThreadQuery.threads,
+                arguments, on: repo.host, as: ReviewThreadQuery.ThreadsAnswer.self)
+            guard let pullRequest = answer.data.repository?.pullRequest else {
                 throw .failed("pull request #\(number) not found in \(repo.slug)")
+            }
+            let page = pullRequest.reviewThreads
+            if after == nil {
+                discussion.viewer = answer.data.viewer?.login
+                discussion.conversation = pullRequest.conversation
             }
             for node in page.nodes {
                 var thread = node.thread
@@ -122,11 +127,11 @@ public struct CLIGitHubClient: GitHubClient {
                     thread.comments += page.nodes.map(\.comment)
                     comments = page.pageInfo
                 }
-                threads.append(thread)
+                discussion.threads.append(thread)
             }
             after = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : nil
         } while after != nil
-        return threads
+        return discussion
     }
 
     /// Runs one of the fixed queries (ADR 0006); variables go as fields, never into the query.

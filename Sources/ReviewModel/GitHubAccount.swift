@@ -105,8 +105,8 @@ package struct NoGitHub: GitHubClient {
         throw .notInstalled
     }
 
-    package func reviewThreads(_ number: Int, in repo: GitHubRepo) throws(GitHubError)
-        -> [GitHubReviewThread]
+    package func discussion(_ number: Int, in repo: GitHubRepo) throws(GitHubError)
+        -> GitHubDiscussion
     {
         throw .notInstalled
     }

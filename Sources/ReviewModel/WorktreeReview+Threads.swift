@@ -20,6 +20,11 @@ package final class ThreadPlacementCache {
 }
 
 extension WorktreeReview {
+    /// The pull request's conversation as last read; nil without a PR, or with PRs off.
+    package var conversation: PullRequestConversation? {
+        pullRequestThreads?.conversation(in: id)
+    }
+
     /// Seam's threads and the pull request's, this worktree's.
     var allThreads: [ReviewThread] {
         (threads?.threads(in: id) ?? []) + (pullRequestThreads?.threads(in: id) ?? [])

@@ -58,6 +58,48 @@ public enum ThreadText {
         return text.joined(separator: "\n")
     }
 
+    /// A pull request's conversation (SPEC §7.9): its comments and reviews' verdicts, oldest
+    /// first, with the command that answers it. Nil when `since` leaves nothing.
+    public static func format(
+        _ conversation: PullRequestConversation, showsWorktree worktree: String? = nil,
+        since: Date? = nil, read: Date? = nil, now: Date = .now, timeZone: TimeZone = .current
+    ) -> String? {
+        let items = conversation.items.filter { item in since.map { item.created >= $0 } ?? true }
+        guard !items.isEmpty else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssXXXXX"
+        formatter.timeZone = timeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        let when = read.map { " at \(formatter.string(from: $0))" } ?? ""
+        var text = [
+            "Conversation on GitHub pull request #\(conversation.pullRequest)"
+                + (worktree.map { "  in \($0)" } ?? ""),
+            "  Read from \(conversation.repo.slug)\(when). Seam can't answer it; write your reply to reply.md, then run:",
+            "    \(conversation.gitHubReply)",
+        ]
+        if let read, now.timeIntervalSince(read) > staleAfter {
+            text.append(
+                "  This may be out of date: Seam reads the pull request again only while it's open."
+            )
+        }
+        for item in items {
+            let verdict =
+                switch item.kind {
+                case .comment: ""
+                case .approved: " approved"
+                case .changesRequested: " requested changes"
+                case .commented: " reviewed"
+                case .dismissed: "'s review was dismissed"
+                }
+            text.append("  \(item.author)\(verdict) · \(formatter.string(from: item.created))")
+            if !item.body.isEmpty {
+                text += item.body.split(separator: "\n", omittingEmptySubsequences: false)
+                    .map { "    " + $0 }
+            }
+        }
+        return text.joined(separator: "\n")
+    }
+
     /// A pull request read longer ago than this is flagged: the app reads it every few minutes.
     static let staleAfter: TimeInterval = 15 * 60
 

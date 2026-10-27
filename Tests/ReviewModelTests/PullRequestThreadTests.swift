@@ -105,6 +105,33 @@ import Testing
         session.close()
     }
 
+    /// The conversation comes with the threads' read, and goes when pull requests are off.
+    @Test func thePullRequestsConversationIsReadWithItsThreads() async throws {
+        let (repo, feature) = try await fixture()
+        github.answer(open: [Self.pullRequest()])
+        let comment = GitHubConversationItem(
+            id: 5, author: "octocat", body: "Looks close.",
+            created: Date(timeIntervalSince1970: 1_792_756_800), url: "c5")
+        github.answer(threads: [], conversation: [comment], viewer: "me", for: 12)
+        let session = await open(repo, selecting: feature)
+
+        let conversation = try #require(try review(session, feature).conversation)
+        #expect(conversation.items == [comment])
+        #expect(conversation.pullRequest == 12)
+        #expect(conversation.viewer == "me")
+        #expect(try review(session, repo.main).conversation == nil)
+        let repository = try #require(session.repository)
+        #expect(
+            try threadStore.gitHubThreads(for: repository).conversations[feature.path]
+                == conversation)
+
+        session.settings.showsPullRequests = false
+        #expect(try review(session, feature).conversation == nil)
+        await session.refreshPullRequests()
+        #expect(try threadStore.gitHubThreads(for: repository).conversations.isEmpty)
+        session.close()
+    }
+
     @Test func threadsAreReadAgainWhenThePullRequestChangesAndOnReload() async throws {
         let (repo, feature) = try await fixture()
         github.answer(open: [Self.pullRequest()])

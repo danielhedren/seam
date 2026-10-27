@@ -73,14 +73,17 @@ public struct ThreadStore: Sendable {
 
     public func gitHubThreads(for repository: Repository) throws(ThreadError) -> GitHubThreadFile {
         let contents = try contents(of: gitHubFile(for: repository))
-        return GitHubThreadFile(threads: contents?.threads ?? [], read: contents?.read ?? [:])
+        return GitHubThreadFile(
+            threads: contents?.threads ?? [], read: contents?.read ?? [:],
+            conversations: contents?.conversations ?? [:])
     }
 
-    /// Replaces one worktree's pull request threads with a newer read, and returns them as
-    /// stored.
+    /// Replaces one worktree's pull request threads and conversation with a newer read, and
+    /// returns the threads as stored.
     @discardableResult
     public func saveGitHubThreads(
-        _ threads: [ReviewThread], worktree: String, read: Date, for repository: Repository
+        _ threads: [ReviewThread], conversation: PullRequestConversation? = nil,
+        worktree: String, read: Date, for repository: Repository
     ) throws(ThreadError) -> [ReviewThread] {
         let url = gitHubFile(for: repository)
         return try locked(url) { () throws(ThreadError) in
@@ -91,7 +94,10 @@ public struct ThreadStore: Sendable {
                 threads, previous: all.filter { $0.worktree == worktree }, now: read)
             var times = contents?.read ?? [:]
             times[worktree] = read
-            try write(others + stamped, read: times, to: url)
+            var conversations = contents?.conversations ?? [:]
+            conversations[worktree] = conversation
+            try write(
+                others + stamped, read: times, conversations: conversations.nilIfEmpty, to: url)
             return stamped
         }
     }
@@ -107,8 +113,12 @@ public struct ThreadStore: Sendable {
             guard let contents = try contents(of: url) else { return [] }
             let kept = contents.threads.filter { worktrees.contains($0.worktree) }
             let read = (contents.read ?? [:]).filter { worktrees.contains($0.key) }
-            if kept.count != contents.threads.count || read.count != (contents.read ?? [:]).count {
-                try write(kept, read: read, to: url)
+            let all = contents.conversations ?? [:]
+            let conversations = all.filter { worktrees.contains($0.key) }
+            if kept.count != contents.threads.count || read.count != (contents.read ?? [:]).count
+                || conversations.count != all.count
+            {
+                try write(kept, read: read, conversations: conversations.nilIfEmpty, to: url)
             }
             return kept
         }
@@ -119,6 +129,8 @@ public struct ThreadStore: Sendable {
         var threads: [ReviewThread]
         /// When each worktree's pull request threads were read, in the GitHub file.
         var read: [String: Date]?
+        /// Each worktree's pull request conversation, in the GitHub file.
+        var conversations: [String: PullRequestConversation]?
     }
 
     private func read(_ url: URL) throws(ThreadError) -> [ReviewThread] {
@@ -142,7 +154,8 @@ public struct ThreadStore: Sendable {
     }
 
     private func write(
-        _ threads: [ReviewThread], read: [String: Date]? = nil, to url: URL
+        _ threads: [ReviewThread], read: [String: Date]? = nil,
+        conversations: [String: PullRequestConversation]? = nil, to url: URL
     ) throws(ThreadError) {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = ThreadTime.encoding
@@ -151,7 +164,9 @@ public struct ThreadStore: Sendable {
             .appending(path: ".\(url.lastPathComponent).\(UUID().uuidString)")
         do {
             let data = try encoder.encode(
-                Contents(version: Self.formatVersion, threads: threads, read: read))
+                Contents(
+                    version: Self.formatVersion, threads: threads, read: read,
+                    conversations: conversations))
             try data.write(to: temporary)
         } catch {
             throw .unwritable(error.localizedDescription)
@@ -164,10 +179,16 @@ public struct ThreadStore: Sendable {
     }
 }
 
-/// The GitHub file's contents: the threads, and when each worktree's were read.
+/// The GitHub file's contents: the threads, when each worktree's were read, and each
+/// worktree's conversation.
 public struct GitHubThreadFile: Equatable, Sendable {
     public var threads: [ReviewThread]
     public var read: [String: Date]
+    public var conversations: [String: PullRequestConversation] = [:]
+}
+
+extension Dictionary {
+    fileprivate var nilIfEmpty: Self? { isEmpty ? nil : self }
 }
 
 /// Thread times in ISO 8601 with milliseconds, because `seam wait --since` compares against

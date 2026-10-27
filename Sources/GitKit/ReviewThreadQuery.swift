@@ -63,21 +63,37 @@ enum ReviewThreadQuery {
         nodes { databaseId author { login } body createdAt url diffHunk originalCommit { oid } }
         """
 
-    static let threads = """
-        query($owner: String!, $name: String!, $number: Int!, $after: String) {
-          repository(owner: $owner, name: $name) {
-            pullRequest(number: $number) {
-              reviewThreads(first: 100, after: $after) {
-                pageInfo { hasNextPage endCursor }
-                nodes {
-                  id isResolved path diffSide startDiffSide originalLine originalStartLine subjectType
-                  comments(first: 100) { \(comments) }
+    /// The first page also reads the conversation and who gh reads as.
+    static let firstThreads = threads(conversation: true)
+    static let threads = threads(conversation: false)
+
+    private static func threads(conversation: Bool) -> String {
+        let extra =
+            conversation
+            ? """
+            comments(last: 100) { nodes { databaseId author { login } body createdAt url } }
+            reviews(last: 100) {
+              nodes { databaseId author { login } body state submittedAt url }
+            }
+            """ : ""
+        return """
+            query($owner: String!, $name: String!, $number: Int!, $after: String) {
+              \(conversation ? "viewer { login }" : "")
+              repository(owner: $owner, name: $name) {
+                pullRequest(number: $number) {
+                  \(extra)
+                  reviewThreads(first: 100, after: $after) {
+                    pageInfo { hasNextPage endCursor }
+                    nodes {
+                      id isResolved path diffSide startDiffSide originalLine originalStartLine subjectType
+                      comments(first: 100) { \(comments) }
+                    }
+                  }
                 }
               }
             }
-          }
-        }
-        """
+            """
+    }
 
     /// The rest of one thread's comments, past its first hundred.
     static let moreComments = """
@@ -143,10 +159,64 @@ enum ReviewThreadQuery {
         }
     }
 
+    struct ConversationComment: Decodable {
+        var databaseId: Int
+        var author: Comment.Author?
+        var body: String
+        var createdAt: Date
+        var url: String
+
+        var item: GitHubConversationItem {
+            GitHubConversationItem(
+                id: databaseId, author: author?.login ?? "ghost", body: body, created: createdAt,
+                url: url)
+        }
+    }
+
+    struct Review: Decodable {
+        var databaseId: Int
+        var author: Comment.Author?
+        var body: String
+        var state: String
+        var submittedAt: Date?
+        var url: String
+
+        /// Nil for a pending review, which only its author sees, and for a plain "commented"
+        /// one: that's the wrapper of line comments, which show as threads.
+        var item: GitHubConversationItem? {
+            let kind: GitHubConversationItem.Kind
+            switch state {
+            case "APPROVED": kind = .approved
+            case "CHANGES_REQUESTED": kind = .changesRequested
+            case "DISMISSED": kind = .dismissed
+            case "COMMENTED" where !body.isEmpty: kind = .commented
+            default: return nil
+            }
+            guard let submittedAt else { return nil }
+            return GitHubConversationItem(
+                id: databaseId, kind: kind, author: author?.login ?? "ghost", body: body,
+                created: submittedAt, url: url)
+        }
+    }
+
     struct ThreadsAnswer: Decodable {
-        struct Data: Decodable { var repository: Repository? }
+        struct Data: Decodable {
+            var viewer: Comment.Author?
+            var repository: Repository?
+        }
         struct Repository: Decodable { var pullRequest: PullRequest? }
-        struct PullRequest: Decodable { var reviewThreads: Page<Thread> }
+        struct PullRequest: Decodable {
+            var reviewThreads: Page<Thread>
+            var comments: Nodes<ConversationComment>?
+            var reviews: Nodes<Review>?
+
+            /// Oldest first.
+            var conversation: [GitHubConversationItem] {
+                ((comments?.nodes ?? []).map(\.item) + (reviews?.nodes ?? []).compactMap(\.item))
+                    .sorted { $0.created < $1.created }
+            }
+        }
+        struct Nodes<Node: Decodable>: Decodable { var nodes: [Node] }
         var data: Data
     }
 

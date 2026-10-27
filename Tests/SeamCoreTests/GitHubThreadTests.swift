@@ -137,6 +137,45 @@ private func gitHubThread(
         #expect(store.gitHubFile(for: repository).lastPathComponent.hasSuffix(".github.json"))
     }
 
+    /// The conversation is kept per worktree beside its threads, and goes with them.
+    @Test func eachWorktreesConversationIsKeptBesideItsThreads() throws {
+        let directory = try TemporaryDirectory()
+        let store = ThreadStore(directory: directory.url)
+        let repository = Repository(
+            commonDirectory: URL(fileURLWithPath: "/r/app/.git"),
+            anchor: URL(fileURLWithPath: "/r/app"))
+        let comment = GitHubConversationItem(
+            id: 5, author: "octocat", body: "Looks close.", created: start, url: "c5")
+        let conversation = PullRequestConversation(
+            repo: repo, pullRequest: 12, items: [comment], viewer: "me")
+        try store.saveGitHubThreads(
+            [], conversation: conversation, worktree: "/a", read: start, for: repository)
+        try store.saveGitHubThreads(
+            [], conversation: PullRequestConversation(repo: repo, pullRequest: 13, items: []),
+            worktree: "/b", read: start, for: repository)
+
+        #expect(try store.gitHubThreads(for: repository).conversations["/a"] == conversation)
+        try store.pruneGitHubThreads(keeping: ["/b"], for: repository)
+        #expect(try store.gitHubThreads(for: repository).conversations.keys.sorted() == ["/b"])
+        try store.saveGitHubThreads([], worktree: "/b", read: start, for: repository)
+        #expect(try store.gitHubThreads(for: repository).conversations.isEmpty)
+    }
+
+    /// A file written before conversations were kept still reads.
+    @Test func aGitHubFileWithoutConversationsReads() throws {
+        let directory = try TemporaryDirectory()
+        let store = ThreadStore(directory: directory.url)
+        let repository = Repository(
+            commonDirectory: URL(fileURLWithPath: "/r/app/.git"),
+            anchor: URL(fileURLWithPath: "/r/app"))
+        try Data(#"{"version":1,"threads":[],"read":{"/a":"2026-10-23T12:00:00.000Z"}}"#.utf8)
+            .write(to: store.gitHubFile(for: repository))
+
+        let saved = try store.gitHubThreads(for: repository)
+        #expect(saved.read.keys.sorted() == ["/a"])
+        #expect(saved.conversations.isEmpty)
+    }
+
     /// What the app read an hour ago may have changed on GitHub; the agent is told.
     @Test func aPullRequestReadLongAgoIsFlaggedAsPossiblyStale() throws {
         let thread = try #require(
