@@ -123,6 +123,22 @@ import Testing
         #expect(read.checks.failed == 1)
         #expect(read.ci == nil)
     }
+
+    /// Ready to merge: open, not a draft, no check still running, and GitHub's merge button
+    /// green, a failed optional check included.
+    @Test(arguments: [
+        (PullRequest.MergeState.clean, false, 0, true), (.unstable, false, 0, true),
+        (.hasHooks, false, 0, true), (.blocked, false, 0, false), (.behind, false, 0, false),
+        (.dirty, false, 0, false), (.clean, true, 0, false), (.clean, false, 1, false),
+    ])
+    func readyToMergeFollowsGitHubsMergeState(
+        state: PullRequest.MergeState, draft: Bool, pending: Int, ready: Bool
+    ) throws {
+        var pullRequest = try #require(try decode(pullRequest(draft: draft)).first)
+        pullRequest.mergeState = state
+        pullRequest.checks.pending = pending
+        #expect(pullRequest.isReadyToMerge == ready)
+    }
 }
 
 /// The real client against a stand-in `gh` that records how it was run.
@@ -211,11 +227,12 @@ import Testing
                 "headRefName":"feature","headRefOid":"abc","headRepositoryOwner":{"login":"owner"},
                 "baseRefName":"main","reviewDecision":null,"latestReviews":[{"state":"APPROVED"}],
                 "statusCheckRollup":[{"status":"COMPLETED","conclusion":"FAILURE"}],
-                "updatedAt":"2026-10-23T12:00:00Z"}
+                "mergeStateStatus":"BLOCKED","updatedAt":"2026-10-23T12:00:00Z"}
                 """)
         let found = try await client().pullRequest(3, in: repo)
         #expect(found.review == .approved)
         #expect(found.checks.failed == 1)
+        #expect(found.mergeState == .blocked)
         #expect(
             try logged.first
                 == "pr view 3 -R github.com/owner/app --json "

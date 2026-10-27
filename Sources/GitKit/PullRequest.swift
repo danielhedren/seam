@@ -62,6 +62,11 @@ public struct PullRequest: Codable, Equatable, Sendable {
         case none, commented, changesRequested, approved
     }
 
+    /// GitHub's `mergeStateStatus`: whether the merge button is green, and if not why.
+    public enum MergeState: String, Codable, Sendable {
+        case clean, hasHooks, unstable, blocked, behind, dirty, draft, unknown
+    }
+
     public struct Checks: Codable, Equatable, Sendable {
         public var passed = 0
         public var failed = 0
@@ -92,13 +97,17 @@ public struct PullRequest: Codable, Equatable, Sendable {
     public var base: String
     public var review: Review
     public var checks: Checks
+    /// Read with the reviews and checks; nil until then.
+    public var mergeState: MergeState?
     public var updated: Date
 
     public init(
         number: Int, title: String, url: String, state: State, isDraft: Bool = false,
         head: String, headOwner: String, headCommit: String, base: String,
-        review: Review = .none, checks: Checks = Checks(), updated: Date
+        review: Review = .none, checks: Checks = Checks(), mergeState: MergeState? = nil,
+        updated: Date
     ) {
+        self.mergeState = mergeState
         self.number = number
         self.title = title
         self.url = url
@@ -147,6 +156,13 @@ extension PullRequest {
     }
 
     public var ciFailed: Bool { ci == .failed }
+
+    /// Open, not a draft, and GitHub would merge it now: reviews and required checks are in and
+    /// nothing conflicts. Whether a non-required check failed (`unstable`) is the author's call.
+    public var isReadyToMerge: Bool {
+        guard state == .open, !isDraft, checks.pending == 0 else { return false }
+        return mergeState == .clean || mergeState == .hasHooks || mergeState == .unstable
+    }
 }
 
 /// `gh pr list --json` output (gh's GraphQL names), turned into `PullRequest`.
@@ -171,7 +187,9 @@ struct GHPullRequest: Decodable {
         "headRepositoryOwner", "baseRefName", "updatedAt",
     ]
     static let detailFields =
-        summaryFields + ["reviewDecision", "latestReviews", "statusCheckRollup"]
+        summaryFields + [
+            "reviewDecision", "latestReviews", "statusCheckRollup", "mergeStateStatus",
+        ]
 
     var number: Int
     var title: String
@@ -185,6 +203,7 @@ struct GHPullRequest: Decodable {
     var reviewDecision: String?
     var latestReviews: [LatestReview]?
     var statusCheckRollup: [Check]?
+    var mergeStateStatus: String?
     var updatedAt: Date
 
     static func decode(_ data: Data) throws -> [PullRequest] {
@@ -207,7 +226,21 @@ struct GHPullRequest: Decodable {
             state: PullRequest.State(rawValue: state.lowercased()) ?? .open, isDraft: isDraft,
             head: headRefName, headOwner: headRepositoryOwner?.login ?? "",
             headCommit: headRefOid, base: baseRefName, review: review, checks: checks,
-            updated: updatedAt)
+            mergeState: mergeState, updated: updatedAt)
+    }
+
+    private var mergeState: PullRequest.MergeState? {
+        switch mergeStateStatus {
+        case "CLEAN": .clean
+        case "HAS_HOOKS": .hasHooks
+        case "UNSTABLE": .unstable
+        case "BLOCKED": .blocked
+        case "BEHIND": .behind
+        case "DIRTY": .dirty
+        case "DRAFT": .draft
+        case nil: nil
+        default: .unknown
+        }
     }
 
     private var review: PullRequest.Review {

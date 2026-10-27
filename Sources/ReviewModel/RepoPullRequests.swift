@@ -281,6 +281,7 @@ package final class RepoPullRequests {
                 if let last = previous[branch], last.number == pullRequest.number {
                     pullRequest.review = last.review
                     pullRequest.checks = last.checks
+                    pullRequest.mergeState = last.mergeState
                 }
                 result.byBranch[branch] = pullRequest
                 jobs.append(.details(branch, pullRequest.number))
