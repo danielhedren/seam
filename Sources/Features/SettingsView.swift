@@ -114,7 +114,7 @@ struct NotificationSettings: View {
                 Text("Notify me when", bundle: .module)
             } footer: {
                 Text(
-                    "Pull request notifications need pull requests shown (GitHub settings); while one is on, Seam reads them every five minutes in the background, every minute while checks run.",
+                    "Pull request notifications need Show pull requests on, under GitHub. While one is on, Seam reads pull requests every 5 minutes in the background, and every minute while checks run.",
                     bundle: .module
                 )
                 .settingsFootnote()
