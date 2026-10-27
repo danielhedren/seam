@@ -89,7 +89,7 @@ enum NotificationText {
         case .agent(let threadID, let author, let text):
             thread = threadID
             id = "agent-\(threadID)"
-            body = String(localized: "\(author): \(text)", bundle: .module)
+            body = String(localized: "\(author): \(plain(text))", bundle: .module)
         case .checksFailed(let pullRequest):
             id = "checks-\(pullRequest.number)-\(pullRequest.headCommit)"
             body = String(
@@ -104,13 +104,13 @@ enum NotificationText {
             id = "review-\(item.key)"
             let verdict = PullRequestText.verdict(item.kind) ?? ""
             body =
-                item.body.isEmpty
+                plain(item.body).isEmpty
                 ? String(
                     localized: "\(item.author) \(verdict) #\(String(pullRequest.number))",
                     bundle: .module)
                 : String(
                     localized:
-                        "\(item.author) \(verdict) #\(String(pullRequest.number)): \(item.body)",
+                        "\(item.author) \(verdict) #\(String(pullRequest.number)): \(plain(item.body))",
                     bundle: .module)
         case .comments(let pullRequest, let comments):
             thread = comments.first?.thread
@@ -119,7 +119,7 @@ enum NotificationText {
                 if comments.count == 1, let first = comments.first {
                     String(
                         localized:
-                            "\(first.author) on #\(String(pullRequest.number)): \(first.body)",
+                            "\(first.author) on #\(String(pullRequest.number)): \(plain(first.body))",
                         bundle: .module)
                 } else {
                     String(
@@ -141,5 +141,21 @@ enum NotificationText {
         return SeamNotification(
             id: "\(review.id)|\(id)", group: review.id, title: title, body: body,
             url: SeamURL(path: review.id, thread: thread).url)
+    }
+
+    /// A comment's Markdown as one line of plain text: a notification shows a line or two and
+    /// draws no Markdown, and bots' comments open with HTML comments and headings.
+    nonisolated static func plain(_ markdown: String) -> String {
+        var text = markdown.replacing(/<!--[\s\S]*?-->/, with: "")
+            .replacing(
+                /<\/?(?i:details|summary|br|p|div|span|sub|sup|b|i|a|img)\b[^>]*>/, with: " ")
+        text = text.split(separator: "\n", omittingEmptySubsequences: false).map { line in
+            line.replacing(
+                /^\s*(?:`{3,}.*|~{3,}.*|#{1,6}\s+|>\s?|[-*+]\s+(?:\[[ xX]\]\s+)?|\d+[.)]\s+)/,
+                with: "")
+        }.joined(separator: " ")
+        text = text.replacing(/!?\[([^\]]*)\]\([^)]*\)/) { String($0.output.1) }
+            .replacing(/\*\*|~~|`/, with: "")
+        return text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 }

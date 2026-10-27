@@ -32,10 +32,10 @@ import Testing
             watcher.send([store.file(for: repository).path])
         }
 
-        try agentReplies("Because.")
+        try agentReplies("**Because** of `Count()`;\nsee [the docs](https://example.com).")
         await until { platform.notified.count == 1 }
         #expect(platform.notified.first?.title == "main")
-        #expect(platform.notified.first?.body == "claude: Because.")
+        #expect(platform.notified.first?.body == "claude: Because of Count(); see the docs.")
         #expect(platform.notified.first?.url == SeamURL(path: reviewed.id, thread: id).url)
 
         /// Once the notifier has looked at the answer, so a setting flipped next can't reach it.
@@ -53,7 +53,10 @@ import Testing
         session.settings.notifications.insert(.agent)
         try agentReplies("Again.")
         await until { platform.notified.count == 2 }
-        #expect(platform.notified.map(\.body) == ["claude: Because.", "claude: Again."])
+        #expect(
+            platform.notified.map(\.body) == [
+                "claude: Because of Count(); see the docs.", "claude: Again.",
+            ])
         session.close()
     }
 
@@ -205,5 +208,24 @@ import Testing
         }
         #expect(platform.notified.isEmpty)
         second.close()
+    }
+
+    /// A notification draws no Markdown, so a comment's is taken off and its lines joined.
+    @Test func aNotificationSaysACommentInPlainText() {
+        #expect(
+            NotificationText.plain(
+                """
+                <!-- walkthrough -->
+                ## Summary
+
+                - Adds `Count()` and **fixes** the [total](https://example.com/a).
+                > quoted
+                ```swift
+                let x = 1
+                ```
+                <details><summary>More</summary>2 more</details>
+                """) == "Summary Adds Count() and fixes the total. quoted let x = 1 More 2 more")
+        #expect(
+            NotificationText.plain("#12 is ready; __init__ * 2") == "#12 is ready; __init__ * 2")
     }
 }

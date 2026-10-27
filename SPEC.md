@@ -734,7 +734,8 @@ background unless Settings says otherwise (§12).
   git email is known are a state, not news, so opening a repo posts nothing. The author's own
   words, in Seam or on GitHub (gh's login), are never news.
 - **Looks:** the title is the worktree's branch; the text says what happened ("claude: Done in
-  a.txt:3", "Checks failed on #12 Count the lines", "#12 is ready to merge"). A worktree's
+  a.txt:3", "Checks failed on #12 Count the lines", "#12 is ready to merge"). A comment's
+  Markdown is shown as plain text on one line, without HTML comments. A worktree's
   notifications stack together, and a newer one about the same thread or PR replaces the older.
 - **Clicking** opens the repo's window on the worktree, with the thread open when it's about
   one (`seam://open?path=…&thread=…`, §13).
