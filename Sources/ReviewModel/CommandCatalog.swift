@@ -108,6 +108,10 @@ package enum CommandCatalog {
             shortcut: .single("w"), isOn: { $0.selected?.wraps == true },
             run: { $0.toggleWrap() }),
         SeamCommand(
+            id: "carriage-returns", title: localized("Show Carriage Returns"), menu: .view,
+            section: 2, shortcut: .none, isOn: { $0.settings.showsCarriageReturns },
+            run: { $0.settings.showsCarriageReturns.toggle() }),
+        SeamCommand(
             id: "flat-files", title: localized("Files as Flat List"), menu: .view, section: 2,
             shortcut: .none, isOn: { $0.selected?.flatFileList == true },
             run: { $0.selected?.flatFileList.toggle() }),

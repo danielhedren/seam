@@ -24,6 +24,7 @@ struct DiffRepresentable: NSViewRepresentable {
             var contentsVersion: Int
             var syntaxVersion: Int
             var wraps: Bool
+            var showsReturns: Bool
             var viewed: ViewedMarks
             var expansions: [String: [Int: GapExpansion]]
             var draft: DraftMarker?
@@ -78,7 +79,8 @@ struct DiffRepresentable: NSViewRepresentable {
             resolvedMarks: review.hiddenResolvedMarkers, sinceViewed: review.sinceViewed,
             mode: review.mode,
             collapsed: review.collapsed, contentsVersion: review.contentsVersion,
-            syntaxVersion: review.syntaxVersion, wraps: review.wraps, viewed: review.viewed,
+            syntaxVersion: review.syntaxVersion, wraps: review.wraps,
+            showsReturns: session.settings.showsCarriageReturns, viewed: review.viewed,
             expansions: review.expansions, draft: session.draftMarker(for: review),
             openThread: session.openThreadMarker(for: review))
         guard shown != context.coordinator.shown else { return }

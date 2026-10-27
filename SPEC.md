@@ -410,6 +410,8 @@ work starts in one list rather than a click per worktree.
   file, which a click doesn't. The chevron and checkbox are drawn at the text's height. A path too long
   for the pane is shortened in the middle, so the counts and checkbox stay in view.
 - Syntax highlighting (§8.4).
+- A CRLF file's lines look like any other's: the CR at a line's end isn't drawn. View › Show
+  Carriage Returns draws it as ␍ in every worktree, and is remembered; off by default.
 - **Word-level highlights within changed lines:** pair removed and added lines inside a hunk by
   similarity, then highlight the changed tokens. Unpaired lines get no word highlights.
 - Marking a file viewed collapses it (a setting, on by default); unmarking, undoing or a later
@@ -1094,6 +1096,7 @@ Seam writes nothing inside the repository or `.git`.
 - Font and size (default: SF Mono 12). Tab width (default 4, or `.editorconfig` if present).
 - View mode (unified or side by side), whitespace mode, and number of context lines.
 - Show pull requests (default on; §7.8).
+- Show carriage returns (View menu; default off; §7.4).
 - Notifications: a switch per kind, all on by default, and whether to post while Seam is in
   front (default off; §7.10).
 

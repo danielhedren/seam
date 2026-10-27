@@ -26,6 +26,11 @@ public final class AppSettings {
         didSet { save(showsResolvedThreads, "showsResolvedThreads") }
     }
 
+    /// View › Show Carriage Returns: a CRLF line's CR drawn as ␍; off, CRLF and LF look alike.
+    package var showsCarriageReturns: Bool {
+        didSet { save(showsCarriageReturns, "showsCarriageReturns") }
+    }
+
     /// Pull request markers through gh (SPEC §7.8), on wherever gh is installed.
     package var showsPullRequests: Bool { didSet { save(showsPullRequests, "showsPullRequests") } }
 
@@ -56,6 +61,7 @@ public final class AppSettings {
         collapsesViewed = value("collapsesViewed", true)
         showsResolvedThreads = value("showsResolvedThreads", false)
         showsPullRequests = value("showsPullRequests", true)
+        showsCarriageReturns = value("showsCarriageReturns", false)
         notifications = Set(
             value("notifications", NotificationKind.allCases.map(\.rawValue))
                 .compactMap(NotificationKind.init))

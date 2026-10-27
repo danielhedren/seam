@@ -40,7 +40,9 @@ package enum DiffRowBuilder {
         let lines =
             file.diff.newPath == nil ? nil : fileContents?.new.map(TextLines.split)
         let fileExpansions = content.expansions[file.diff.path] ?? [:]
-        let lookup = SyntaxLookup(syntax: content.syntax[file.diff.path], tabWidth: tabWidth)
+        let lookup = SyntaxLookup(
+            syntax: content.syntax[file.diff.path], tabWidth: tabWidth,
+            showsReturns: content.showsReturns)
         var next = (old: 1, new: 1)
         /// The rows for a gap, or nil when the file's text isn't loaded.
         @discardableResult
@@ -64,7 +66,9 @@ package enum DiffRowBuilder {
                 .hunkHeader(
                     file: index, hunk: hunkIndex,
                     style(header(hunk, lookup.syntax), above: above, isFirst: hunkIndex == 0)))
-            let texts = hunk.lines.map { TabStops.expand($0.text, width: tabWidth) }
+            let texts = hunk.lines.map {
+                TabStops.expand($0.text, width: tabWidth, showsReturns: content.showsReturns)
+            }
             let highlights = wordHighlights(hunk.lines, texts)
             let oldSyntax = hunk.lines.map { lookup.old($0.oldNumber, raw: $0.text) }
             let newSyntax = hunk.lines.map { lookup.new($0.newNumber, raw: $0.text) }

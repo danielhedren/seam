@@ -1,8 +1,11 @@
-/// Display columns for raw line text: tabs advance to the next stop, a CR shows as one visible
-/// marker. Everything that maps raw offsets to columns goes through here.
+/// Display columns for raw line text: tabs advance to the next stop, and a CRLF line's CR is
+/// dropped, or shown as one visible marker when asked. Everything that maps raw offsets to
+/// columns goes through here.
 package enum TabStops {
-    static func expand(_ text: String, width: Int) -> String {
+    static func expand(_ text: String, width: Int, showsReturns: Bool = false) -> String {
         guard text.contains("\t") || text.hasSuffix("\r") else { return text }
+        // The CR is a line's last character, so dropping it moves no column before it.
+        let text = showsReturns || !text.hasSuffix("\r") ? text : String(text.dropLast())
         var result = ""
         var column = 0
         for character in text {

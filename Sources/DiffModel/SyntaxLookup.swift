@@ -4,6 +4,7 @@ import SeamCore
 package struct SyntaxLookup {
     package var syntax: FileSyntax?
     var tabWidth: Int
+    var showsReturns = false
 
     package func old(_ number: Int?, raw: String) -> [SyntaxSpan] {
         spans(syntax?.old, number, raw)

@@ -502,6 +502,7 @@ package final class WorktreeReview: Identifiable {
         }.map { content in
             var content = content
             content.resolvedMarks = hiddenResolvedMarkers
+            content.showsReturns = services.settings.showsCarriageReturns
             return showingSinceViewed(content)
         }
     }

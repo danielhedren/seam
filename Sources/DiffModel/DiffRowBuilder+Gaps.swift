@@ -33,7 +33,8 @@ extension DiffRowBuilder {
         func context(_ numbers: Range<Int>) -> [DiffRow] {
             numbers.map { number in
                 let raw = String(lines[number - 1])
-                let text = TabStops.expand(raw, width: lookup.tabWidth)
+                let text = TabStops.expand(
+                    raw, width: lookup.tabWidth, showsReturns: lookup.showsReturns)
                 let old = number + oldOffset
                 let syntax = lookup.new(number, raw: raw)
                 return switch mode {

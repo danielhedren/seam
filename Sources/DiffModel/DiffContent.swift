@@ -32,6 +32,8 @@ public struct DiffContent: Equatable, Sendable {
     public var openThread: String?
     /// Files shown as their change since viewed, labelled so in their headers (SPEC §7.4).
     public var sinceViewed: Set<String>
+    /// View › Show Carriage Returns: a CRLF line's CR drawn as ␍ (SPEC §7.4).
+    public var showsReturns = false
 
     public init(
         review: ReviewDiff, mode: DiffLayoutMode = .unified, collapsed: Set<String> = [],
