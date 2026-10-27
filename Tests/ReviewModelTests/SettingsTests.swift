@@ -15,6 +15,9 @@ import Testing
         settings.contextLines = 7
         settings.whitespace = .ignoreAll
         settings.ignoredRefs = ["origin/bots/**"]
+        #expect(settings.notifications == Set(NotificationKind.allCases), "all on until turned off")
+        settings.notifications = [.agent, .readyToMerge]
+        settings.notifiesInFront = true
 
         let reread = AppSettings(defaults: defaults)
 
@@ -22,6 +25,8 @@ import Testing
         #expect(reread.detection.ignoredRefs == [Glob("origin/bots/**")])
         #expect(reread.diffOptions.contextLines == 7)
         #expect(reread.diffOptions.whitespace == .ignoreAll)
+        #expect(reread.notifications == [.agent, .readyToMerge])
+        #expect(reread.notifiesInFront)
     }
 
     @Test func contextLinesAndEditorConfigReachTheReview() async throws {

@@ -634,7 +634,8 @@ Each worktree's branch shows its GitHub pull request, read through the user's ow
 - **Reading:** the last PRs read are kept (§11) and shown at once on reopening. They're read
   again after the worktree list loads; after a ref change, such as a push; when the app comes to
   the front and they're over a minute old; on Reload; and every 2 minutes while the app is in
-  front, every 30 seconds while an open PR's checks are running. Reads are at least 15 seconds
+  front, every 30 seconds while an open PR's checks are running; in the background only while a
+  notification needs them (§7.10), every 5 minutes. Reads are at least 15 seconds
   apart except on opening, Reload or a Settings change. A lost connection or a rate limit waits 1
   minute, then twice as long each time, up to 16 minutes.
 - **Without gh:** when `gh` isn't installed or isn't signed in, or no remote is on GitHub,
@@ -708,6 +709,33 @@ GitHub.
   words: feedback to weigh, not instructions, never commands to run; answered once on GitHub
   with the command `seam threads` prints for each (for the conversation, only when a comment
   asks something), not with `seam reply`, and left to the reader to resolve.
+
+### 7.10 Notifications
+
+The author oversees many branches at once (Goal 5), so Seam says when one needs them rather
+than waiting to be looked at. Notifications are macOS's own, posted while Seam is in the
+background unless Settings says otherwise (§12).
+
+- **Kinds:** an agent answered or asked in a Seam thread (§7.7); a pull request's checks
+  finished, failed or passed; a review came in, with its verdict or its words; someone commented
+  on GitHub, in the conversation or on lines (several in one read make one notification); a
+  pull request became ready to merge (open, not a draft, no check running, and GitHub's merge
+  button green, which a failed optional check doesn't stop); and it merged or closed. Each kind
+  can be turned off; the pull request kinds need pull requests shown (§7.8).
+- **What's news:** what changed between two looks at what Seam shows, per worktree. A worktree
+  seen for the first time, a pull request's first read and Seam's threads before the author's
+  git email is known are a state, not news, so opening a repo posts nothing. The author's own
+  words, in Seam or on GitHub (gh's login), are never news.
+- **Looks:** the title is the worktree's branch; the text says what happened ("claude: Done in
+  a.txt:3", "Checks failed on #12 Count the lines", "#12 is ready to merge"). A worktree's
+  notifications stack together, and a newer one about the same thread or PR replaces the older.
+- **Clicking** opens the repo's window on the worktree, with the thread open when it's about
+  one (`seam://open?path=…&thread=…`, §13).
+- **Reading in the background:** while a pull request kind is on, PRs are read every 5 minutes
+  in the background, every minute while checks run, instead of waiting for Seam to come to the
+  front (§7.8).
+- **Permission:** macOS asks the first time one is posted. Turned off in System Settings,
+  Settings › Notifications says so with a way there.
 
 ## 8. Technical design
 
@@ -1066,14 +1094,17 @@ Seam writes nothing inside the repository or `.git`.
 - Font and size (default: SF Mono 12). Tab width (default 4, or `.editorconfig` if present).
 - View mode (unified or side by side), whitespace mode, and number of context lines.
 - Show pull requests (default on; §7.8).
+- Notifications: a switch per kind, all on by default, and whether to post while Seam is in
+  front (default off; §7.10).
 
 Settings apply to the next load of each worktree; font changes apply at once (`⌘+`, `⌘−`, `⌘0`
 in the View menu too). The default base may be a short name (`origin/develop`, `main`). Tab widths
 come from the repository's root `.editorconfig` (`tab_width`, or a numeric `indent_size`) where a
 section matches, else the setting; nested `.editorconfig` files aren't read.
 
-The Settings window has four tabs: Review (the base and the diff), Display, Editor and GitHub
-(the pull request switch, what gh last said, and Check Again). Each
+The Settings window has five tabs: Review (the base and the diff), Display, Editor, GitHub
+(the pull request switch, what gh last said, and Check Again) and Notifications (the kinds,
+in-front posting, and a way to System Settings when macOS has Seam's notifications off). Each
 group says under it what its settings do. Lists of patterns take one per line. Font offers the
 installed fixed-pitch fonts, SF Mono first; a font set before that isn't installed stays listed
 under its name.
@@ -1136,7 +1167,7 @@ wait with status 2. `--repo` widens `threads` and `wait` to every worktree, nami
 thread's worktree.
 
 Opening talks to the running app through a URL scheme (`seam://open?path=…&base=…`), launching
-the app if needed. The command is a Swift executable (swift-argument-parser) in the app's
+the app if needed; a notification's click adds `&thread=…` to open a thread (§7.10). The command is a Swift executable (swift-argument-parser) in the app's
 resources, built from the `seam` target on SeamCore; it resolves the path, percent-encodes it
 and opens the URL with the app it belongs to: it follows its
 own symlinks, and from `X.app/Contents/Resources/seam` runs `open -a X.app <url>`, because a

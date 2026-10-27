@@ -32,6 +32,7 @@ public struct MacPlatform: PlatformServices {
     /// Asks the first time; while that question is unanswered the system can refuse, so it's
     /// asked again next time rather than taken as a no.
     static func mayNotify() async -> Bool {
+        guard isApp else { return false }
         let center = UNUserNotificationCenter.current()
         switch await center.notificationSettings().authorizationStatus {
         case .authorized, .provisional, .ephemeral: return true
@@ -41,4 +42,14 @@ public struct MacPlatform: PlatformServices {
         @unknown default: return false
         }
     }
+
+    /// Whether macOS has notifications off for Seam, which only System Settings can undo.
+    static func notificationsDenied() async -> Bool {
+        guard isApp else { return false }
+        return await UNUserNotificationCenter.current().notificationSettings()
+            .authorizationStatus == .denied
+    }
+
+    /// The notification center throws outside an app bundle, as in tests.
+    private static var isApp: Bool { Bundle.main.bundleURL.pathExtension == "app" }
 }

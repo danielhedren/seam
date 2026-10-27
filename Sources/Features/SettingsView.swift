@@ -32,6 +32,13 @@ struct SettingsView: View {
                         String(localized: "GitHub", bundle: .module),
                         systemImage: "arrow.triangle.pull")
                 }
+            NotificationSettings(settings: settings)
+                .frame(width: 520, height: 420)
+                .tabItem {
+                    Label(
+                        String(localized: "Notifications", bundle: .module),
+                        systemImage: "bell.badge")
+                }
         }
         .formStyle(.grouped)
     }
@@ -88,6 +95,79 @@ struct ReviewSettings: View {
                 .settingsFootnote()
             }
         }
+    }
+}
+
+/// What notifications are about (SPEC §7.10), one switch per kind.
+struct NotificationSettings: View {
+    @Bindable var settings: AppSettings
+    @State private var denied = false
+
+    var body: some View {
+        Form {
+            Section {
+                ForEach(NotificationKind.allCases, id: \.self) { kind in
+                    Toggle(Self.title(kind), isOn: isOn(kind))
+                        .disabled(kind.needsPullRequests && !settings.showsPullRequests)
+                }
+            } header: {
+                Text("Notify me when", bundle: .module)
+            } footer: {
+                Text(
+                    "Pull request notifications need pull requests shown (GitHub settings); while one is on, Seam reads them every five minutes in the background, every minute while checks run.",
+                    bundle: .module
+                )
+                .settingsFootnote()
+            }
+            Section {
+                Toggle(
+                    String(localized: "Also while Seam is in front", bundle: .module),
+                    isOn: $settings.notifiesInFront)
+                if denied {
+                    LabeledContent {
+                        Button(String(localized: "Open System Settings", bundle: .module)) {
+                            Self.openSystemSettings()
+                        }
+                    } label: {
+                        Text("Notifications are off for Seam in System Settings.", bundle: .module)
+                    }
+                }
+            }
+        }
+        .task { denied = await MacPlatform.notificationsDenied() }
+    }
+
+    private func isOn(_ kind: NotificationKind) -> Binding<Bool> {
+        Binding(
+            get: { settings.notifications.contains(kind) },
+            set: { on in
+                if on {
+                    settings.notifications.insert(kind)
+                } else {
+                    settings.notifications.remove(kind)
+                }
+            })
+    }
+
+    static func title(_ kind: NotificationKind) -> String {
+        switch kind {
+        case .agent: String(localized: "An agent answers or asks", bundle: .module)
+        case .checks: String(localized: "A pull request's checks finish", bundle: .module)
+        case .review: String(localized: "A review comes in", bundle: .module)
+        case .comment: String(localized: "Someone comments on GitHub", bundle: .module)
+        case .readyToMerge: String(localized: "A pull request is ready to merge", bundle: .module)
+        case .closed: String(localized: "A pull request merges or closes", bundle: .module)
+        }
+    }
+
+    private static func openSystemSettings() {
+        let id = Bundle.main.bundleIdentifier ?? ""
+        guard
+            let url = URL(
+                string:
+                    "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(id)")
+        else { return }
+        NSWorkspace.shared.open(url)
     }
 }
 

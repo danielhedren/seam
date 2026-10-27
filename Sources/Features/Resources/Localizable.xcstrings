@@ -58,6 +58,18 @@
         }
       }
     },
+    "A pull request is ready to merge" : {
+
+    },
+    "A pull request merges or closes" : {
+
+    },
+    "A pull request's checks finish" : {
+
+    },
+    "A review comes in" : {
+
+    },
     "Agents' answers and questions, and failed checks, show here from every worktree." : {
 
     },
@@ -65,6 +77,12 @@
 
     },
     "All threads resolved" : {
+
+    },
+    "Also while Seam is in front" : {
+
+    },
+    "An agent answers or asks" : {
 
     },
     "Automatic" : {
@@ -412,6 +430,15 @@
     "Nothing in the diff matches “%@”." : {
 
     },
+    "Notifications" : {
+
+    },
+    "Notifications are off for Seam in System Settings." : {
+
+    },
+    "Notify me when" : {
+
+    },
     "Old line %@" : {
 
     },
@@ -431,6 +458,9 @@
 
     },
     "Open Repository…" : {
+
+    },
+    "Open System Settings" : {
 
     },
     "Open in Editor" : {
@@ -477,6 +507,9 @@
           }
         }
       }
+    },
+    "Pull request notifications need pull requests shown (GitHub settings); while one is on, Seam reads them every five minutes in the background, every minute while checks run." : {
+
     },
     "Reading pull requests with gh" : {
 
@@ -587,6 +620,9 @@
 
     },
     "Size" : {
+
+    },
+    "Someone comments on GitHub" : {
 
     },
     "Sort By" : {

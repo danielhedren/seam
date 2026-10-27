@@ -194,6 +194,8 @@ import Testing
         let (repo, feature) = try await fixture()
         github.answer(open: [fakePullRequest(12)])
         let session = await open(repo, selecting: feature)
+        // No notification needs pull requests.
+        session.settings.notifications = [.agent]
 
         session.noteActivation(false)
         await clock.sleepers(3)
@@ -208,6 +210,25 @@ import Testing
         session.noteActivation(true)
         await session.pullRequests?.idle()
         #expect(refreshes(session) == 2, "fresh data isn't read again")
+        session.close()
+    }
+
+    /// A notification that needs pull requests keeps them read in the background, every five
+    /// minutes (SPEC §7.10).
+    @Test func pullRequestNotificationsKeepThemReadInTheBackground() async throws {
+        let (repo, feature) = try await fixture()
+        github.answer(open: [fakePullRequest(12)])
+        let session = await open(repo, selecting: feature)
+
+        session.noteActivation(false)
+        // The poller's first sleep began in front.
+        try await advance(session, by: .seconds(120), once: 3, toRefresh: 2)
+        await clock.sleepers(1)
+        clock.advance(by: .seconds(299))
+        await clock.sleepers(1)
+        #expect(refreshes(session) == 2)
+        clock.advance(by: .seconds(1))
+        await until { session.pullRequests?.refreshes == 3 }
         session.close()
     }
 

@@ -34,6 +34,9 @@ package final class RepoPullRequests {
     static let freshness = Duration.seconds(60)
     static let firstBackoff = Duration.seconds(60)
     static let longestBackoff = Duration.seconds(960)
+    /// In the background, only while a notification needs them (SPEC §7.10).
+    static let backgroundInterval = Duration.seconds(300)
+    static let backgroundChecksInterval = Duration.seconds(60)
 
     package private(set) var saved = SavedPullRequests()
     package private(set) var status = Status.unknown
@@ -43,6 +46,9 @@ package final class RepoPullRequests {
     private(set) var refreshes = 0
     /// Set by the window; polling skips while the app is in the background.
     var appIsActive = true
+    /// Whether a notification kind that needs pull requests is on, so they're read in the
+    /// background too.
+    @ObservationIgnored var readsInBackground: @MainActor () -> Bool = { false }
     /// Runs after every refresh, so the session can save what was read.
     @ObservationIgnored var onUpdate: (() -> Void)?
     /// Runs after every read that worked, with what was read and where from.
@@ -177,7 +183,7 @@ package final class RepoPullRequests {
         poller = Task { [weak self] in
             while let interval = self?.nextPoll {
                 do { try await clock.sleep(for: interval) } catch { return }
-                guard let self, self.appIsActive else { continue }
+                guard let self, self.appIsActive || self.readsInBackground() else { continue }
                 self.request(.poll)
                 // The next wait depends on what this read finds.
                 await self.idle()
@@ -189,6 +195,9 @@ package final class RepoPullRequests {
         guard !isStopped else { return nil }
         if let backoff { return backoff }
         let checking = saved.byBranch.values.contains { $0.state == .open && $0.checks.pending > 0 }
+        if !appIsActive, readsInBackground() {
+            return checking ? Self.backgroundChecksInterval : Self.backgroundInterval
+        }
         return checking ? Self.pendingChecksInterval : Self.pollInterval
     }
 

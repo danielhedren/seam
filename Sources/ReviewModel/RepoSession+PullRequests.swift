@@ -14,6 +14,10 @@ extension RepoSession {
             )
             await pullRequestThreads?.reconcile(saved, repo: repo, worktrees: worktrees)
         }
+        pullRequests.readsInBackground = { [settings] in
+            settings.showsPullRequests
+                && settings.notifications.contains(where: \.needsPullRequests)
+        }
         pullRequests.onUpdate = { [weak self, weak pullRequests] in
             guard let self, let pullRequests else { return }
             self.notePullRequests(pullRequests.saved)
