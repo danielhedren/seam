@@ -11,26 +11,7 @@ struct DiffRepresentable: NSViewRepresentable {
     let review: WorktreeReview
 
     final class Coordinator {
-        struct Shown: Equatable {
-            var id: String
-            var version: Int
-            var range: Int
-            var narrowing: Narrowing
-            var threads: [String: [ThreadMarker]]
-            var resolvedMarks: [String: [ThreadMarker]]
-            var sinceViewed: [String: String]
-            var mode: DiffLayoutMode
-            var collapsed: Set<String>
-            var contentsVersion: Int
-            var syntaxVersion: Int
-            var wraps: Bool
-            var showsReturns: Bool
-            var viewed: ViewedMarks
-            var expansions: [String: [Int: GapExpansion]]
-            var draft: DraftMarker?
-            var openThread: ThreadMarker?
-        }
-        var shown: Shown?
+        var shown: DiffShown?
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -73,20 +54,11 @@ struct DiffRepresentable: NSViewRepresentable {
         view.isStale = review.showsProgress
         view.setFont(session.settings.font)
         defer { view.search(session.diffQuery) }
-        let shown = Coordinator.Shown(
-            id: review.id, version: review.diffVersion, range: review.shownRangeVersion,
-            narrowing: review.narrowing, threads: review.threadMarkers,
-            resolvedMarks: review.hiddenResolvedMarkers, sinceViewed: review.sinceViewed,
-            mode: review.mode,
-            collapsed: review.collapsed, contentsVersion: review.contentsVersion,
-            syntaxVersion: review.syntaxVersion, wraps: review.wraps,
-            showsReturns: session.settings.showsCarriageReturns, viewed: review.viewed,
-            expansions: review.expansions, draft: session.draftMarker(for: review),
-            openThread: session.openThreadMarker(for: review))
+        let shown = session.diffShown(for: review)
         guard shown != context.coordinator.shown else { return }
         let previous = context.coordinator.shown
         // The view itself rebuilds only what a collapse or viewed toggle changes.
-        guard var content = review.content else {
+        guard let update = session.diffUpdate(for: review, after: previous) else {
             // Not loaded yet, or the worktree's directory went missing: show nothing stale.
             if previous != nil {
                 view.show(
@@ -96,26 +68,7 @@ struct DiffRepresentable: NSViewRepresentable {
             }
             return
         }
-        let position: DiffScrollView.Position =
-            if previous?.id == review.id {
-                previous?.range == shown.range && previous?.narrowing == shown.narrowing
-                    ? .keep : .top
-            } else if let anchor = review.savedAnchor {
-                .anchor(anchor)
-            } else {
-                .top
-            }
-        content.draft = shown.draft
-        if let open = shown.openThread {
-            let path = review.placedThreads.first { $0.id == open.id }?.thread.anchor.path ?? ""
-            // A resolved thread shows while it's open, even with resolved threads hidden.
-            if content.threads[path]?.contains(where: { $0.id == open.id }) != true {
-                content.threads[path, default: []].append(open)
-            }
-            content.resolvedMarks[path]?.removeAll { $0.id == open.id }
-            content.openThread = open.id
-        }
-        view.show(content, position: position)
+        view.show(update.content, position: update.position)
         context.coordinator.shown = shown
     }
 }

@@ -6,13 +6,7 @@ import SeamCore
 /// navigation. Features drives it through `show` and the move methods.
 @MainActor
 public final class DiffScrollView: NSScrollView {
-    public enum Position: Equatable {
-        /// Keep the reader on the same file and line across a reload (SPEC §8.6).
-        case keep
-        case top
-        case anchor(ScrollAnchor)
-        case file(String)
-    }
+    public typealias Position = DiffPosition
 
     public var onToggleCollapse: ((String) -> Void)? {
         didSet { canvas.onToggleCollapse = onToggleCollapse }
