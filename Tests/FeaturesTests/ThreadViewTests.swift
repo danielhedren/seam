@@ -181,9 +181,9 @@ import Testing
         #expect(session.selectedThreadID == nil)
     }
 
-    /// A collapsed thread is the open card's title and latest comment: clicking it opens the
-    /// card, and clicking the open card's title collapses it again.
-    @Test func clickingACollapsedCardOpensItAndItsTitleCollapsesIt() async throws {
+    /// A collapsed thread is the open card's title and latest comment: clicking its title opens
+    /// the card, and clicking the open card's title collapses it again.
+    @Test func aThreadsTitleOpensAndCollapsesItsCard() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\n")
         let (session, review, _) = await threadSession(repo)
@@ -209,19 +209,23 @@ import Testing
                     timestamp: 0, windowNumber: card.window.windowNumber, context: nil,
                     eventNumber: 0, clickCount: 1, pressure: 1))
         }
+        let title = try #require(canvas.collapsedTitleFrame(row: row))
+        let comment = NSPoint(x: title.minX + 4, y: title.maxY + 12)
+        canvas.mouseDown(with: try event(.leftMouseDown, comment, in: canvas))
+        await card.settle()
+        #expect(session.selectedThreadID == nil, "only the title opens it, as only it closes it")
         canvas.mouseDown(
-            with: try event(
-                .leftMouseDown, NSPoint(x: 200, y: canvas.layout.top(of: row) + 20), in: canvas))
-        #expect(await card.wait { session.selectedThreadID == id }, "the click opens it")
+            with: try event(.leftMouseDown, NSPoint(x: title.midX, y: title.midY), in: canvas))
+        #expect(await card.wait { session.selectedThreadID == id }, "the title opens it")
         let host = try #require(card.host)
         // SwiftUI only takes clicks in a window on screen; this one is invisible.
         card.window.alphaValue = 0
         card.window.orderFrontRegardless()
         defer { card.window.orderOut(nil) }
         await card.settle()
-        let title = NSPoint(x: 40, y: host.isFlipped ? 12 : host.bounds.height - 12)
+        let openTitle = NSPoint(x: 40, y: host.isFlipped ? 12 : host.bounds.height - 12)
         for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
-            card.window.sendEvent(try event(type, title, in: host))
+            card.window.sendEvent(try event(type, openTitle, in: host))
         }
         #expect(await card.wait { session.selectedThreadID == nil }, "its title collapses it")
         #expect(card.host == nil)

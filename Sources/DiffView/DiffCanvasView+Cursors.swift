@@ -2,7 +2,7 @@ import AppKit
 import DiffModel
 
 /// Pointer shapes: an I-beam over selectable text, a pointing hand over what a click acts on
-/// (file headers, gap controls, thread rows), as in a web diff or Xcode's comparison view.
+/// (file headers, gap controls, a closed thread's title), as in a web diff or Xcode's comparison view.
 extension DiffCanvasView {
     enum CursorKind: Equatable {
         case text
@@ -23,7 +23,7 @@ extension DiffCanvasView {
             case .fileHeader:
                 regions.append((chromeRect(ofRow: index), .control))
             case .thread:
-                regions.append((row, .control))
+                if let title = collapsedTitleFrame(row: index) { regions.append((title, .control)) }
             case .gap(_, let gap):
                 for (columns, _) in DiffRowBuilder.gapLabel(gap).controls {
                     regions.append(

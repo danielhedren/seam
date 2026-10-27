@@ -44,6 +44,10 @@ final class DiffCanvasView: NSView {
     }
     private(set) var hasFocus = false
     var onRelayout: (() -> Void)?
+    /// GitHub's mark, which Features has, for a collapsed GitHub thread's title.
+    var gitHubMark: NSImage? {
+        didSet { needsDisplay = true }
+    }
     var onToggleCollapse: ((String) -> Void)?
     var onFocusChange: ((Bool) -> Void)?
     var onExpand: ((String, Int, ExpandDirection) -> Void)?
@@ -335,48 +339,6 @@ final class DiffCanvasView: NSView {
             }
         }
         updateCardView()
-    }
-
-    /// The open card collapsed to its title and the latest comment, in the same frame, font
-    /// and margins (`DiffCanvasView+Card.swift`, `ThreadCardView`), so opening it changes only
-    /// how much it shows. Side by side it spans both columns; the gutter mark says which side.
-    private func drawCollapsedCard(
-        _ marker: ThreadMarker, row: Int, palette: DiffPalette, context: CGContext
-    ) {
-        drawCardFrame(
-            row: row, source: marker.source, isNote: marker.isNote, palette: palette,
-            context: context)
-        // The card view's margin plus its own horizontal padding.
-        let inner = draftFrame(row: row).insetBy(dx: DiffCardMetrics.margin + 7, dy: 0)
-        let textHeight = layout.metrics.lineHeight - 4
-        let top = draftFrame(row: row).minY + DiffCardMetrics.margin
-        let bold = NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask)
-        func line(_ text: String, _ font: NSFont, _ color: RGB) -> CTLine {
-            CTLineCreateWithAttributedString(
-                NSAttributedString(
-                    string: text, attributes: [.font: font, .foregroundColor: color.nsColor]))
-        }
-        func draw(_ parts: [CTLine], truncation: CTLineTruncationType, y: Double) {
-            var pen = inner.minX
-            var room = inner.width
-            for (index, part) in parts.enumerated() {
-                let width = CTLineGetTypographicBounds(part, nil, nil, nil)
-                let shown =
-                    width <= room || index < parts.count - 1
-                    ? part
-                    : CTLineCreateTruncatedLine(
-                        part, max(room, 1), truncation, line("…", font, palette.text)) ?? part
-                context.textPosition = CGPoint(x: pen, y: y + font.ascender)
-                CTLineDraw(shown, context)
-                pen += width
-                room -= width
-            }
-        }
-        draw([line(marker.title, font, palette.gutterText)], truncation: .middle, y: top)
-        let body = marker.isResolved ? palette.gutterText : palette.text
-        draw(
-            [line(marker.latestAuthor + " ", bold, body), line(marker.latest, font, body)],
-            truncation: .end, y: top + textHeight + 6)
     }
 
     /// A bar at the left of the gutter beside a thread's lines, on the side the thread is on;

@@ -272,6 +272,30 @@ struct DiffSnapshotTests {
         assertSnapshot(of: view, as: .image2x, named: "split-thread-\(Self.os)")
     }
 
+    /// A closed GitHub thread's title carries GitHub's mark, as the open card's does.
+    @Test func aClosedGitHubThreadCarriesGitHubsMark() throws {
+        let view = DiffScrollView.forSnapshot()
+        view.appearance = NSAppearance(named: .aqua)
+        view.increaseContrastOverride = false
+        view.frame = NSRect(x: 0, y: 0, width: 600, height: 200)
+        let svg = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .appending(path: "../../Sources/Features/Resources/Octicons/mark-github.svg")
+        let mark = try #require(NSImage(contentsOf: svg))
+        mark.isTemplate = true
+        view.gitHubMark = mark
+        let marker = ThreadMarker(
+            id: "g", side: .new, lines: 9...9, latestAuthor: "octocat",
+            latest: "Should this be a Decimal?", commentCount: 1, isResolved: false,
+            source: .gitHub, title: "GitHub thread on line 9 · #12 · 1 comment")
+        view.show(
+            DiffContent(
+                review: Self.review, collapsed: ["Legacy.txt"], syntax: Self.syntax,
+                threads: ["Sources/Order.swift": [marker]]),
+            position: .top)
+        view.layoutSubtreeIfNeeded()
+        assertSnapshot(of: view, as: .image2x, named: "github-thread-\(Self.os)")
+    }
+
     @Test func collapsedFileShowsOnlyItsHeader() {
         let view = view(.unified, .aqua, collapsed: ["Sources/Order.swift"])
         assertSnapshot(of: view, as: .image2x, named: "collapsed-\(Self.os)")

@@ -532,7 +532,7 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   behaves the same in both view modes. A side-by-side selection takes its rows from the column
   it was made in.
 - **In the diff:** a commented range gets a marker in the gutter and, after its last line, the
-  thread's card collapsed: the open card's frame, font and title, and one more line with the
+  thread's card collapsed: the open card's frame, font and title (with GitHub's mark on GitHub's), and one more line with the
   latest comment's author in bold and its first line. Opening it only shows more, so a thread
   can't be taken for code while scrolling and doesn't change look when opened. A tick in the
   same colour down the diff's right edge marks where each thread is, over the scroller, so
@@ -540,7 +540,7 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   since it's prose, not code; the gutter mark keeps to its side. A title too long for the
   width is shortened in the middle, a comment at its end. Resolved threads show only the gutter marker, a hollow grey bar,
   unless Review › Show Resolved Threads is on; `t` on their lines opens them.
-- **Reading and answering in the diff:** clicking a collapsed card, `t` on its lines, or picking it
+- **Reading and answering in the diff:** clicking a collapsed card's title, `t` on its lines, or picking it
   in the panel opens it in place of its collapsed card, in the same card as the composer (one view for
   both, so they can't look different): a title with its lines, comment count and status,
   Resolve or Reopen and Delete beside it, every comment (author in bold, age, Markdown body),

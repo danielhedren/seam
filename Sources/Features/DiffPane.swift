@@ -18,6 +18,7 @@ struct DiffRepresentable: NSViewRepresentable {
 
     func makeNSView(context: Context) -> DiffScrollView {
         let view = DiffScrollView()
+        view.gitHubMark = Octicon.mark.nsImage
         view.keyBindings = CommandCatalog.diffKeyBindings
         session.diff.view = view
         view.onToggleCollapse = { [session] path in session.toggleCollapsed(path) }

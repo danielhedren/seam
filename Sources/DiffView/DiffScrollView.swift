@@ -51,6 +51,12 @@ public final class DiffScrollView: NSScrollView {
     /// The file at the top of the view, for the file list to follow.
     public var onCurrentFileChange: ((String?) -> Void)?
 
+    /// GitHub's mark, for a closed GitHub thread's title as the open card shows it.
+    public var gitHubMark: NSImage? {
+        get { canvas.gitHubMark }
+        set { canvas.gitHubMark = newValue }
+    }
+
     public var isStale: Bool {
         get { canvas.isStale }
         set { canvas.isStale = newValue }

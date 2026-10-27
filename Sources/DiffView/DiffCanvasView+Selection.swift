@@ -37,7 +37,9 @@ extension DiffCanvasView {
             }
             return
         case .thread(_, let marker):
-            onOpenThread?(marker.id)
+            if collapsedTitleFrame(row: position.row)?.contains(point) == true {
+                onOpenThread?(marker.id)
+            }
             return
         case .gap(let file, let gap):
             let column = Int(
