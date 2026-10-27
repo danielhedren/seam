@@ -161,6 +161,35 @@ private func gitHubThread(
         #expect(try store.gitHubThreads(for: repository).conversations.isEmpty)
     }
 
+    /// One refresh's reads go in one write: the worktrees named are replaced, an empty read
+    /// clears one, and the rest stay.
+    @Test func severalWorktreesReadsAreSavedTogether() throws {
+        let directory = try TemporaryDirectory()
+        let store = ThreadStore(directory: directory.url)
+        let repository = Repository(
+            commonDirectory: URL(fileURLWithPath: "/r/app/.git"),
+            anchor: URL(fileURLWithPath: "/r/app"))
+        func threads(_ worktree: String, _ id: Int) -> [ReviewThread] {
+            GitHubThreads.threads(
+                from: [gitHubThread("PRRT_\(id)", comments: [id])], worktree: worktree,
+                repo: repo, pullRequest: 12)
+        }
+        try store.saveGitHubReads(
+            [
+                "/a": GitHubRead(threads: threads("/a", 1)),
+                "/b": GitHubRead(threads: threads("/b", 2)),
+                "/c": GitHubRead(threads: threads("/c", 3)),
+            ], read: start, for: repository)
+        let later = start.addingTimeInterval(60)
+        let stored = try store.saveGitHubReads(
+            ["/a": GitHubRead(threads: threads("/a", 4)), "/b": GitHubRead(threads: [])],
+            read: later, for: repository)
+
+        #expect(Set(stored.map(\.id)) == ["gh-3", "gh-4"])
+        let saved = try store.gitHubThreads(for: repository)
+        #expect(saved.read == ["/a": later, "/b": later, "/c": start])
+    }
+
     /// A file written before conversations were kept still reads.
     @Test func aGitHubFileWithoutConversationsReads() throws {
         let directory = try TemporaryDirectory()

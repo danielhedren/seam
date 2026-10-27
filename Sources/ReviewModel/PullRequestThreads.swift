@@ -89,10 +89,16 @@ package final class PullRequestThreads {
     ) async {
         await keep(only: Set(worktrees.keys))
         var jobs: [(worktree: String, pullRequest: PullRequest)] = []
+        // Every worktree's outcome goes into one write of the file.
+        var reads: [String: GitHubRead] = [:]
         for (worktree, branch) in worktrees.sorted(by: { $0.key < $1.key }) {
             guard let branch, let pullRequest = saved.byBranch[branch] else {
                 read[worktree] = nil
-                await save([], worktree: worktree)
+                if threads.contains(where: { $0.worktree == worktree })
+                    || conversations[worktree] != nil
+                {
+                    reads[worktree] = GitHubRead(threads: [])
+                }
                 continue
             }
             if let last = read[worktree], last.pullRequest.number == pullRequest.number,
@@ -120,18 +126,19 @@ package final class PullRequestThreads {
             switch answer {
             case .success(let discussion):
                 read[job.worktree] = (job.pullRequest, Stopwatch(clock))
-                await save(
-                    GitHubThreads.threads(
+                reads[job.worktree] = GitHubRead(
+                    threads: GitHubThreads.threads(
                         from: discussion.threads, worktree: job.worktree, repo: repo,
                         pullRequest: job.pullRequest.number),
                     conversation: PullRequestConversation(
                         repo: repo, pullRequest: job.pullRequest.number,
-                        items: discussion.conversation, viewer: discussion.viewer),
-                    worktree: job.worktree)
+                        items: discussion.conversation, viewer: discussion.viewer))
             case .failure(let error):
                 logger.info("review threads unread: \(String(describing: error), privacy: .public)")
             }
         }
+        guard !isStopped, isShown() else { return }
+        await save(reads)
     }
 
     private func load() async {
@@ -139,24 +146,17 @@ package final class PullRequestThreads {
         show(saved.threads, conversations: saved.conversations)
     }
 
-    /// Replaces a worktree's threads and conversation with a new read, kept for `seam` too.
-    private func save(
-        _ new: [ReviewThread], conversation: PullRequestConversation? = nil, worktree: String
-    ) async {
-        guard
-            !(new.isEmpty && conversation == nil
-                && !threads.contains(where: { $0.worktree == worktree })
-                && conversations[worktree] == nil)
-        else { return }
+    /// Replaces worktrees' threads and conversations with a new read, kept for `seam` too.
+    private func save(_ reads: [String: GitHubRead]) async {
+        guard !reads.isEmpty else { return }
         let result = await Result { () async throws(ThreadError) in
-            try await store.saveGitHubThreads(
-                new, conversation: conversation, worktree: worktree, read: .now, for: repository)
+            try await store.saveGitHubReads(reads, read: .now, for: repository)
         }
         switch result {
         case .success(let stored):
             var conversations = conversations
-            conversations[worktree] = conversation
-            show(threads.filter { $0.worktree != worktree } + stored, conversations: conversations)
+            for (worktree, read) in reads { conversations[worktree] = read.conversation }
+            show(stored, conversations: conversations)
         case .failure(let error):
             logger.error("pull request threads: \(String(describing: error), privacy: .public)")
         }

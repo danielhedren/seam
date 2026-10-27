@@ -85,20 +85,32 @@ public struct ThreadStore: Sendable {
         _ threads: [ReviewThread], conversation: PullRequestConversation? = nil,
         worktree: String, read: Date, for repository: Repository
     ) throws(ThreadError) -> [ReviewThread] {
+        try saveGitHubReads(
+            [worktree: GitHubRead(threads: threads, conversation: conversation)], read: read,
+            for: repository)
+    }
+
+    /// Several worktrees' reads in one write, so one refresh rewrites the file, and wakes its
+    /// watchers, once. Returns every thread the file holds afterwards.
+    @discardableResult
+    public func saveGitHubReads(
+        _ reads: [String: GitHubRead], read: Date, for repository: Repository
+    ) throws(ThreadError) -> [ReviewThread] {
         let url = gitHubFile(for: repository)
         return try locked(url) { () throws(ThreadError) in
             let contents = try contents(of: url)
             let all = contents?.threads ?? []
-            let others = all.filter { $0.worktree != worktree }
-            let stamped = GitHubThreads.stamped(
-                threads, previous: all.filter { $0.worktree == worktree }, now: read)
+            var kept = all.filter { reads[$0.worktree] == nil }
             var times = contents?.read ?? [:]
-            times[worktree] = read
             var conversations = contents?.conversations ?? [:]
-            conversations[worktree] = conversation
-            try write(
-                others + stamped, read: times, conversations: conversations.nilIfEmpty, to: url)
-            return stamped
+            for (worktree, new) in reads.sorted(by: { $0.key < $1.key }) {
+                kept += GitHubThreads.stamped(
+                    new.threads, previous: all.filter { $0.worktree == worktree }, now: read)
+                times[worktree] = read
+                conversations[worktree] = new.conversation
+            }
+            try write(kept, read: times, conversations: conversations.nilIfEmpty, to: url)
+            return kept
         }
     }
 
@@ -176,6 +188,17 @@ public struct ThreadStore: Sendable {
             try? FileManager.default.removeItem(at: temporary)
             throw .unwritable(message)
         }
+    }
+}
+
+/// One worktree's read of its pull request: its review threads and its conversation.
+public struct GitHubRead: Equatable, Sendable {
+    public var threads: [ReviewThread]
+    public var conversation: PullRequestConversation?
+
+    public init(threads: [ReviewThread], conversation: PullRequestConversation? = nil) {
+        self.threads = threads
+        self.conversation = conversation
     }
 }
 
