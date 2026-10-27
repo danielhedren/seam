@@ -144,8 +144,8 @@ package enum CommandCatalog {
                 shortcut: .command("p", [.command, .shift]), isEnabled: { _ in true },
                 run: { $0.showsPalette = true }),
             SeamCommand(
-                id: "inbox", title: localized("Show Inbox"), menu: .go, section: 0,
-                shortcut: .command("i", [.command, .shift]), run: { $0.showInbox() }),
+                id: "threads", title: localized("Show Threads"), menu: .go, section: 0,
+                shortcut: .command("i", [.command, .shift]), run: { $0.showsThreads = true }),
             SeamCommand(
                 id: "next-inbox", title: localized("Next Awaiting You"), menu: .go, section: 0,
                 shortcut: .command("]", [.command, .option]),
@@ -374,11 +374,6 @@ package enum CommandCatalog {
             section: 5, shortcut: .none, isEnabled: { $0.selectedGitHubThread != nil },
             run: { session in session.selectedGitHubThread.map(session.openOnGitHub) }),
         SeamCommand(
-            id: "thread-panel", title: localized("Show Threads"), menu: .review, section: 6,
-            shortcut: .command("0", [.command, .option]),
-            currentTitle: { $0.showsThreadPanel ? localized("Hide Threads") : nil },
-            run: { $0.showsThreadPanel.toggle() }),
-        SeamCommand(
             id: "resolved-threads", title: localized("Show Resolved Threads"), menu: .review,
             section: 6, shortcut: .none, isOn: { $0.settings.showsResolvedThreads },
             run: { $0.settings.showsResolvedThreads.toggle() }),
@@ -394,7 +389,6 @@ package enum CommandCatalog {
 }
 
 extension RepoSession {
-    /// The thread the panel shows.
     /// The open thread, when it's one of Seam's own: GitHub's can't be resolved or deleted.
     fileprivate var selectedThread: ReviewThread? {
         selectedThreadID.flatMap { id in threads?.threads.first { $0.id == id } }

@@ -25,7 +25,7 @@ public struct PlacedThread: Equatable, Identifiable, Sendable {
 
     public var id: String { thread.id }
 
-    /// The diff has a row for it, so it opens there rather than in the panel.
+    /// The diff shows it on its lines, rather than under its file's header or above the files.
     public var isInDiff: Bool { if case .lines = placement { true } else { false } }
 }
 

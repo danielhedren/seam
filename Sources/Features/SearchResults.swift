@@ -4,11 +4,11 @@ import ReviewModel
 import SeamCore
 import SwiftUI
 
-/// Files or Search, at the start of the file list's header (SPEC §7.3.1).
+/// Files, Search or Threads, at the start of the file list's header (SPEC §7.3.1).
 struct NavigatorPicker: View {
     @Bindable var review: WorktreeReview
-    /// The tray fills while something awaits the reader, so it's seen from Files or Search.
-    var inboxHasItems = false
+    /// The bubble fills while something awaits the reader, so it's seen from Files or Search.
+    var awaitsReader = false
 
     var body: some View {
         HStack(spacing: 2) {
@@ -21,9 +21,9 @@ struct NavigatorPicker: View {
                 help: CommandCatalog.help(
                     String(localized: "Search in Review", bundle: .module), command: "search"))
             button(
-                .inbox, systemImage: inboxHasItems ? "tray.full" : "tray",
+                .threads, systemImage: awaitsReader ? "text.bubble.fill" : "text.bubble",
                 help: CommandCatalog.help(
-                    String(localized: "Inbox", bundle: .module), command: "inbox"))
+                    String(localized: "Threads", bundle: .module), command: "threads"))
         }
     }
 

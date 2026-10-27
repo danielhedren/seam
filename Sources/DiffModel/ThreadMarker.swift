@@ -16,13 +16,17 @@ public struct ThreadMarker: Equatable, Sendable {
     public var isNote: Bool
     /// The card's title, which the collapsed card shows too.
     public var title: String
+    /// False for a thread the diff has no lines for (outdated, or on the whole file): its card
+    /// goes under its file's header.
+    public var isOnLines: Bool
 
     public init(
         id: String, side: ThreadAnchor.Side, lines: ClosedRange<Int>, latestAuthor: String,
         latest: String, commentCount: Int, isResolved: Bool, source: ThreadSource = .seam,
-        isNote: Bool = false, title: String = ""
+        isNote: Bool = false, title: String = "", isOnLines: Bool = true
     ) {
         self.title = title
+        self.isOnLines = isOnLines
         self.source = source
         self.isNote = isNote
         self.id = id

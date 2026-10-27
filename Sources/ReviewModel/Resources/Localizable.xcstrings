@@ -224,6 +224,16 @@
     "Committed changes only" : {
 
     },
+    "Conversation on #%@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Conversation on #%1$@ · %2$@"
+          }
+        }
+      }
+    },
     "Copy Branch Name" : {
 
     },
@@ -290,9 +300,6 @@
     "First %@ matches" : {
 
     },
-    "From a later commit" : {
-
-    },
     "Generated" : {
 
     },
@@ -315,9 +322,6 @@
 
     },
     "Hide Sidebar" : {
-
-    },
-    "Hide Threads" : {
 
     },
     "Hide Whitespace Changes" : {
@@ -401,9 +405,6 @@
     "Not a git repository. Choose another folder." : {
 
     },
-    "Not in this diff" : {
-
-    },
     "Note on line %@" : {
 
     },
@@ -426,9 +427,6 @@
 
     },
     "Open in Editor" : {
-
-    },
-    "Outdated" : {
 
     },
     "Outside the file list" : {
@@ -495,9 +493,6 @@
 
     },
     "Show Full Diff" : {
-
-    },
-    "Show Inbox" : {
 
     },
     "Show Resolved Threads" : {
@@ -590,6 +585,9 @@
     "checks failed" : {
 
     },
+    "from a later commit" : {
+
+    },
     "git %@ failed: %@" : {
       "localizations" : {
         "en" : {
@@ -599,6 +597,12 @@
           }
         }
       }
+    },
+    "not in this diff" : {
+
+    },
+    "outdated" : {
+
     },
     "requested changes" : {
 

@@ -6,7 +6,7 @@ import SeamCore
 import SwiftUI
 
 /// The diff's one card (SPEC §7.7), for writing a new thread and for reading and answering one:
-/// the same layout either way, and as the panel's, so they can't look different. In the diff's
+/// the same layout either way, so they can't look different. In the diff's
 /// font, on the amber frame the canvas draws.
 struct ThreadCardView: View {
     let session: RepoSession
@@ -26,22 +26,28 @@ struct ThreadCardView: View {
                 onSubmit: { Task { await session.submitDraft() } },
                 onSubmitNote: { Task { await session.submitDraft(asNote: true) } },
                 onDismiss: { session.draft = nil })
+        case .thread(WorktreeReview.conversationID):
+            if let review = session.selected, let conversation = review.conversation {
+                ConversationCard(session: session, review: review, conversation: conversation)
+                    .padding(.horizontal, 7)
+            }
         case .thread(let id):
+            let title = session.selected?.marker(for: id)?.title ?? ""
             if let placed = session.selected?.placedThreads.first(where: { $0.id == id }),
                 !placed.thread.capabilities.contains(.reply)
             {
                 // Read-only (SPEC §7.9): no reply box, and the one action is GitHub's page.
                 layout(
-                    title: placed.thread.cardTitle(placement: placed.placement),
-                    thread: placed.thread, text: nil, placeholder: "",
+                    title: title, thread: placed.thread, showsQuote: !placed.isInDiff,
+                    text: nil, placeholder: "",
                     submit: String(localized: "Open on GitHub", bundle: .module),
                     dismiss: String(localized: "Close", bundle: .module),
                     onSubmit: { session.openOnGitHub(placed.thread) },
                     onDismiss: { session.closeThread() }, onTitle: { session.closeThread() })
             } else if let placed = session.selected?.placedThreads.first(where: { $0.id == id }) {
                 layout(
-                    title: placed.thread.cardTitle(placement: placed.placement),
-                    thread: placed.thread, text: $reply,
+                    title: title, thread: placed.thread, showsQuote: !placed.isInDiff,
+                    text: $reply,
                     placeholder: String(localized: "Write a reply…", bundle: .module),
                     submit: String(localized: "Reply", bundle: .module),
                     dismiss: String(localized: "Close", bundle: .module),
@@ -52,14 +58,16 @@ struct ThreadCardView: View {
     }
 
     private func layout(
-        title: String, thread: ReviewThread?, text: Binding<String>?, placeholder: String,
+        title: String, thread: ReviewThread?, showsQuote: Bool = false, text: Binding<String>?,
+        placeholder: String,
         submit: String, dismiss: String, onSubmit: @escaping () -> Void,
         onSubmitNote: (() -> Void)? = nil, onDismiss: @escaping () -> Void,
         onTitle: (() -> Void)? = nil
     ) -> some View {
         ThreadCardLayout(
             session: session, font: session.settings.font, title: title, thread: thread,
-            text: text, placeholder: placeholder, submit: submit, dismiss: dismiss,
+            showsQuote: showsQuote, text: text, placeholder: placeholder, submit: submit,
+            dismiss: dismiss,
             takesFocus: thread == nil, onSubmit: onSubmit, onSubmitNote: onSubmitNote,
             onDismiss: onDismiss, onTitle: onTitle
         )
@@ -86,16 +94,15 @@ struct ThreadCardView: View {
     }
 }
 
-/// A thread laid out the one way, in the diff's card and in the panel (SPEC §7.7): a title with
+/// A thread laid out the one way, written or read (SPEC §7.7): a title with
 /// the thread's actions at the right, its comments, a text box without a background of its own,
-/// and the keys as hints at the bottom, which are also buttons. Only the font differs.
+/// and the keys as hints at the bottom, which are also buttons.
 struct ThreadCardLayout: View {
     let session: RepoSession
     let font: NSFont
-    /// Nil in the panel, where the thread's summary row above says it and has the actions.
     var title: String?
     let thread: ReviewThread?
-    /// The panel quotes the lines; the diff's card sits under them.
+    /// A card off its lines quotes them; one on them sits under them.
     var showsQuote = false
     let text: Binding<String>?
     let placeholder: String

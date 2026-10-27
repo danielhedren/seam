@@ -6,11 +6,11 @@ extension PlacedThread {
     package var location: String? {
         switch placement {
         case .lines: nil
-        case .outdated: String(localized: "Outdated", bundle: .module)
-        case .later: String(localized: "From a later commit", bundle: .module)
+        case .outdated: String(localized: "outdated", bundle: .module)
+        case .later: String(localized: "from a later commit", bundle: .module)
         case .notShown:
             thread.github?.onFile == true
-                ? nil : String(localized: "Not in this diff", bundle: .module)
+                ? nil : String(localized: "not in this diff", bundle: .module)
         }
     }
 }

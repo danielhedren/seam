@@ -27,6 +27,9 @@ public struct DiffContent: Equatable, Sendable {
     public var threads: [String: [ThreadMarker]]
     /// Resolved threads while they're hidden: no row, only a hollow mark on their lines.
     public var resolvedMarks: [String: [ThreadMarker]] = [:]
+    /// Cards above the first file, for what has no file in the diff: the pull request's
+    /// conversation and threads on files the diff doesn't show.
+    public var preamble: [ThreadMarker] = []
     public var draft: DraftMarker?
     /// The thread open in the diff, by id: its row shows the whole conversation.
     public var openThread: String?

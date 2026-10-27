@@ -53,16 +53,29 @@ private func texts(_ rows: [DiffRow]) -> [String] {
         #expect(after("old") == (mode == .unified ? "two" : "two a"))
     }
 
-    @Test func aThreadOnLinesNotShownGetsNoRow() {
-        let threads = ["a.txt": [marker("far", .new, 40...41)]]
-        let rows = DiffRowBuilder.rows(for: DiffContent(review: review(), threads: threads))
-        #expect(!texts(rows).contains("[far]"))
-        let collapsed = DiffRowBuilder.rows(
-            for: DiffContent(
-                review: review(), collapsed: ["a.txt"],
-                threads: ["a.txt": [marker("x", .new, 1...1)]]
-            ))
-        #expect(collapsed.count == 1)
+    /// No thread goes missing from the diff: one on hidden lines goes where they would be, one
+    /// without lines (outdated, on the whole file) under its file's header, and one on a file
+    /// the diff doesn't show above the first file. A collapsed file shows only its header.
+    @Test func everyThreadHasARowUnlessItsFileIsCollapsed() {
+        var outdated = marker("outdated", .new, 2...2)
+        outdated.isOnLines = false
+        var content = DiffContent(
+            review: review(),
+            threads: [
+                "a.txt": [marker("far", .new, 40...41), outdated, marker("one", .new, 1...1)]
+            ])
+        content.preamble = [marker("elsewhere", .new, 1...1)]
+        let rows = DiffRowBuilder.rows(for: content)
+        #expect(
+            texts(rows) == [
+                "[elsewhere]", "[outdated]", "one", "[one]", "two", "two a", "two b", "three",
+                "[far]",
+            ])
+        #expect(rows.first == .thread(file: DiffRow.preamble, content.preamble[0]))
+        #expect(rows[1] == .fileHeader(file: 0))
+
+        content.collapsed = ["a.txt"]
+        #expect(DiffRowBuilder.rows(for: content).count == 2)
     }
 
     @Test func linesInsideARangeAreMarkedOnTheirSide() {

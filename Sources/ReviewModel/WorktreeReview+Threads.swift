@@ -143,8 +143,10 @@ extension WorktreeReview {
         let key = placementCache.key + [showsResolved ? 1 : 0]
         if placementCache.markersKey == key { return placementCache.markers }
         var markers: [String: [ThreadMarker]] = [:]
-        for placed in placedThreads where showsResolved || !placed.thread.isResolved {
-            guard let marker = Self.marker(placed) else { continue }
+        let paths = diffPaths
+        for placed in placedThreads
+        where paths.contains(placed.path) && (showsResolved || !placed.thread.isResolved) {
+            guard let marker = Self.marker(placed, inDiff: paths) else { continue }
             markers[placed.path, default: []].append(marker)
         }
         placementCache.markersKey = key
@@ -157,36 +159,83 @@ extension WorktreeReview {
     package var hiddenResolvedMarkers: [String: [ThreadMarker]] {
         guard !services.settings.showsResolvedThreads else { return [:] }
         var markers: [String: [ThreadMarker]] = [:]
-        for placed in placedThreads where placed.thread.isResolved {
-            guard let marker = Self.marker(placed) else { continue }
+        let paths = diffPaths
+        for placed in placedThreads where placed.thread.isResolved && placed.isInDiff {
+            guard let marker = Self.marker(placed, inDiff: paths) else { continue }
             markers[placed.path, default: []].append(marker)
         }
         return markers
     }
 
-    func marker(for id: String) -> ThreadMarker? {
-        placedThreads.first { $0.id == id }.flatMap(Self.marker)
+    /// The id of the pull request conversation's card, which opens like a thread's.
+    package static let conversationID = "conversation"
+
+    /// The cards above the first file (SPEC §7.7): the pull request's conversation, then
+    /// threads on files the diff doesn't show, each naming its file.
+    package var preambleMarkers: [ThreadMarker] {
+        let showsResolved = services.settings.showsResolvedThreads
+        let paths = diffPaths
+        let threads = placedThreads.filter { placed in
+            !paths.contains(placed.path) && (showsResolved || !placed.thread.isResolved)
+        }
+        return [conversationMarker].compactMap { $0 }
+            + threads.compactMap { Self.marker($0, inDiff: paths) }
     }
 
-    private static func marker(_ placed: PlacedThread) -> ThreadMarker? {
-        guard case .lines(let lines) = placed.placement, let latest = placed.thread.comments.last
-        else { return nil }
-        // The diff draws plain text: the Markdown's words, not its asterisks and backticks.
-        // Foundation on Linux can't parse Markdown, so there the text stays as written.
-        #if canImport(Darwin)
-            let plain =
-                (try? AttributedString(markdown: latest.body)).map { String($0.characters) }
-                ?? latest.body
-        #else
-            let plain = latest.body
-        #endif
-        let firstLine = plain.prefix { !$0.isNewline }
+    package func marker(for id: String) -> ThreadMarker? {
+        if id == Self.conversationID { return conversationMarker }
+        return placedThreads.first { $0.id == id }.flatMap { Self.marker($0, inDiff: diffPaths) }
+    }
+
+    private var diffPaths: Set<String> { Set(diff?.files.map(\.diff.path) ?? []) }
+
+    private var conversationMarker: ThreadMarker? {
+        guard let conversation, let latest = conversation.items.last else { return nil }
+        let verdict = PullRequestText.verdict(latest.kind).map { "\($0) " } ?? ""
+        return ThreadMarker(
+            id: Self.conversationID, side: .new, lines: 1...1, latestAuthor: latest.author,
+            latest: verdict + Self.firstLine(latest.body),
+            commentCount: conversation.items.count, isResolved: false, source: .gitHub,
+            title: String(
+                localized:
+                    "Conversation on #\(String(conversation.pullRequest)) · \(Counted.comments(conversation.items.count))",
+                bundle: .module),
+            isOnLines: false)
+    }
+
+    /// A thread's card: on its lines, under its file's header when the diff has no lines for
+    /// it, or above the first file, naming the file, when the diff doesn't show the file.
+    private static func marker(_ placed: PlacedThread, inDiff paths: Set<String>)
+        -> ThreadMarker?
+    {
+        guard let latest = placed.thread.comments.last else { return nil }
+        var lines = placed.thread.anchor.lines
+        var title = placed.thread.cardTitle(placement: placed.placement)
+        if case .lines(let now) = placed.placement {
+            lines = now
+        } else {
+            if let location = placed.location { title += " · \(location)" }
+            if !paths.contains(placed.path) { title = "\(placed.path) · \(title)" }
+        }
         return ThreadMarker(
             id: placed.id, side: placed.thread.anchor.side, lines: lines,
-            latestAuthor: latest.author, latest: String(firstLine.prefix(120)),
+            latestAuthor: latest.author, latest: firstLine(latest.body),
             commentCount: placed.thread.comments.count, isResolved: placed.thread.isResolved,
-            source: placed.thread.source, isNote: placed.thread.isNote,
-            title: placed.thread.cardTitle(placement: placed.placement))
+            source: placed.thread.source, isNote: placed.thread.isNote, title: title,
+            isOnLines: placed.isInDiff)
+    }
+
+    /// The diff draws plain text: the Markdown's words, not its asterisks and backticks.
+    /// Foundation on Linux can't parse Markdown, so there the text stays as written.
+    private static func firstLine(_ markdown: String) -> String {
+        #if canImport(Darwin)
+            let plain =
+                (try? AttributedString(markdown: markdown)).map { String($0.characters) }
+                ?? markdown
+        #else
+            let plain = markdown
+        #endif
+        return String(plain.prefix { !$0.isNewline }.prefix(120))
     }
 
     /// The anchor `c` would comment on, with the lines' text from the file as it is.

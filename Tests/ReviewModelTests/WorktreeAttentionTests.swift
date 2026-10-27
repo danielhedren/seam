@@ -70,10 +70,10 @@ struct WorktreeAttentionTests {
     }
 }
 
-/// The Inbox navigator (SPEC §7.3.2): what awaits the reader across worktrees, opened in place.
+/// Threads' Awaiting You (SPEC §7.3.2): what awaits the reader across worktrees, opened in place.
 @MainActor
 @Suite(.timeLimit(.minutes(1)))
-struct InboxTests {
+struct AwaitingYouTests {
     /// The main worktree selected, and an agent's question in `feature`, as `seam comment` leaves it.
     private func asked() async throws -> (RepoSession, FixtureRepo, URL, String) {
         let repo = try await FixtureRepo()
@@ -94,18 +94,18 @@ struct InboxTests {
         return (session, repo, feature, thread.id)
     }
 
-    @Test func anAgentsQuestionInAnotherWorktreeOpensFromTheInbox() async throws {
+    @Test func anAgentsQuestionInAnotherWorktreeOpensFromThreads() async throws {
         let (session, repo, feature, id) = try await asked()
         #expect(session.selectedID == repo.main.path)
-        try command("inbox").run(session)
-        #expect(session.selected?.navigator == .inbox)
+        try command("threads").run(session)
+        #expect(session.selected?.navigator == .threads)
         #expect(session.inbox.map(\.id) == [id])
 
         try command("next-inbox").run(session)
         await until { session.selectedThreadID == id }
         #expect(session.selectedID == feature.path)
-        // The Inbox stays in view in the worktree it opened.
-        #expect(session.selected?.navigator == .inbox)
+        // Threads stays in view in the worktree it opened.
+        #expect(session.selected?.navigator == .threads)
         #expect(session.selected?.placedThreads.first?.isInDiff == true)
     }
 
@@ -113,7 +113,7 @@ struct InboxTests {
         #expect(PullRequestText.checksFailed(2530) == "#2530 checks failed")
     }
 
-    @Test func answeringTakesItOutOfTheInbox() async throws {
+    @Test func answeringTakesItOutOfAwaitingYou() async throws {
         // The fixture is kept: releasing it deletes its folder, and the store's file name with it.
         let (session, repo, feature, id) = try await asked()
         defer { _ = repo }

@@ -5,7 +5,11 @@ import SeamCore
 package enum DiffRowBuilder {
     /// Files without loaded `contents` get no gap rows, sizes or previews.
     package static func rows(for content: DiffContent) -> [DiffRow] {
-        var rows: [DiffRow] = []
+        var rows: [DiffRow] = content.preamble.map { marker in
+            marker.id == content.openThread
+                ? .openThread(file: DiffRow.preamble, marker)
+                : .thread(file: DiffRow.preamble, marker)
+        }
         rows.reserveCapacity(content.review.files.reduce(0) { $0 + $1.diff.hunks.count * 8 + 1 })
         for index in content.review.files.indices {
             rows += self.rows(forFile: index, in: content)
@@ -16,6 +20,7 @@ package enum DiffRowBuilder {
     /// One file's rows, from its header on; lets a collapse rebuild only that file.
     package static func rows(forFile index: Int, in content: DiffContent) -> [DiffRow] {
         let path = content.review.files[index].diff.path
+        guard !content.collapsed.contains(path) else { return fileRows(index, in: content) }
         let rows = insertingThreads(
             content.threads[path] ?? [], into: fileRows(index, in: content), file: index,
             open: content.openThread)

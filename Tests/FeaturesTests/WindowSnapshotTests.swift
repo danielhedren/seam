@@ -163,7 +163,9 @@ struct WindowSnapshotTests {
         }
     }
 
-    @Test func threadPanelBesideTheDiff() async throws {
+    /// Threads in the file list's column beside the diff, with one open in the diff and one on
+    /// a file the diff doesn't show, whose card goes above the first file.
+    @Test func threadsBesideTheDiff() async throws {
         let (session, _) = try await session()
         let review = try #require(session.selected)
         let repository = try #require(session.repository)
@@ -187,23 +189,34 @@ struct WindowSnapshotTests {
                     path: "notes.md", side: .new, lines: 1...1, text: ["# Notes"]),
                 author: "claude", body: "Add a line on what changed.",
                 now: Self.fixtureEpoch.addingTimeInterval(2400), newID: ids)
+            _ = try ThreadRules.open(
+                &threads, worktree: review.id,
+                anchor: ThreadAnchor(
+                    path: "README.md", side: .new, lines: 4...4, text: ["## Install"]),
+                author: "you", body: "Say how to install it.",
+                now: Self.fixtureEpoch.addingTimeInterval(2700), newID: ids)
         }
         await session.threads?.load()
-        session.selectedThreadID = review.placedThreads.first?.id
+        review.navigator = .threads
+        session.selectedThreadID =
+            review.placedThreads.first { $0.thread.anchor.path == "src/Order.cs" }?.id
         let panes = HStack(spacing: 0) {
-            DiffPane(session: session, review: review)
+            FileList(
+                session: session, review: review, filterFocus: FocusState<Bool>().projectedValue
+            )
+            .frame(width: 300)
             Divider()
-            ThreadPanel(session: session, review: review).frame(width: 340)
+            DiffPane(session: session, review: review)
         }
         for (appearance, name) in Self.appearances {
             check(
-                of: try render(panes, size: CGSize(width: 1100, height: 520), appearance),
+                of: try render(panes, size: CGSize(width: 1100, height: 620), appearance),
                 as: .image(precision: 0.99, perceptualPrecision: 0.98),
                 named: "threads-\(name)-\(Self.os)")
         }
     }
 
-    @Test func theInboxAcrossWorktrees() async throws {
+    @Test func threadsAwaitingTheReader() async throws {
         let (session, _) = try await session()
         let review = try #require(session.selected)
         let repository = try #require(session.repository)
@@ -218,7 +231,7 @@ struct WindowSnapshotTests {
                 now: Self.fixtureEpoch.addingTimeInterval(1800), newID: { "0000000b" })
         }
         await session.threads?.load()
-        review.navigator = .inbox
+        review.navigator = .threads
         let view = FileList(
             session: session, review: review, filterFocus: FocusState<Bool>().projectedValue
         )
@@ -227,7 +240,7 @@ struct WindowSnapshotTests {
             check(
                 of: try render(view, size: CGSize(width: 300, height: 200), appearance),
                 as: .image(precision: 0.99, perceptualPrecision: 0.98),
-                named: "inbox-\(name)-\(Self.os)")
+                named: "awaiting-\(name)-\(Self.os)")
         }
     }
 

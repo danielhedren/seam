@@ -48,9 +48,9 @@ import Testing
         session.close()
     }
 
-    /// The thread panel shows the conversation, and a later read redraws it as a fresh panel
+    /// Threads shows the conversation, and a later read redraws it as a fresh list
     /// would; with pull requests off it's gone.
-    @Test func theThreadPanelShowsTheConversationAndFollowsANewRead() async throws {
+    @Test func threadsShowsTheConversationAndFollowsANewRead() async throws {
         let repo = try await FixtureRepo()
         let feature = try await repo.worktree("feature", branch: "feature", from: "origin/main")
         try await repo.commit("a.txt", "a\n", "Add a", in: feature)
@@ -71,9 +71,9 @@ import Testing
         await session.settled()
         let review = try #require(session.selected)
         await until { review.conversation != nil }
-        let panel = PanelWindow(session: session, review: review)
+        let panel = ThreadsWindow(session: session, review: review)
         await panel.settle()
-        let empty = PanelWindow(session: session, review: try #require(session.reviews.first))
+        let empty = ThreadsWindow(session: session, review: try #require(session.reviews.first))
         await empty.settle()
         let first = try panel.png()
         #expect(first != (try empty.png()), "the conversation shows")
@@ -82,10 +82,23 @@ import Testing
         session.reload()
         await until { review.conversation?.items.count == 2 }
         await panel.settle()
-        let fresh = PanelWindow(session: session, review: review)
+        let fresh = ThreadsWindow(session: session, review: review)
         await fresh.settle()
         #expect(try panel.png() == fresh.png())
         #expect(try panel.png() != first)
+
+        // Picking it opens its card above the first file, every entry in it.
+        let card = CardWindow(session: session, review: review)
+        await card.settle()
+        await session.pick(thread: WorktreeReview.conversationID)
+        #expect(await card.wait { card.host != nil })
+        #expect(
+            session.diffUpdate(for: review, after: nil)?.content.preamble.first?.id
+                == WorktreeReview.conversationID)
+        let height = try #require(card.host).frame.height
+        session.closeThread()
+        #expect(await card.wait { card.host == nil })
+        #expect(height > 100, "both entries show")
         session.close()
     }
 }

@@ -136,10 +136,6 @@ struct RepoWindow: View {
         case .open:
             if let review = session.selected {
                 DiffPane(session: session, review: review)
-                    .inspector(isPresented: Bindable(session).showsThreadPanel) {
-                        ThreadPanel(session: session, review: review)
-                            .inspectorColumnWidth(min: 280, ideal: 340, max: 560)
-                    }
             } else {
                 ContentUnavailableView(
                     String(localized: "No worktree selected", bundle: .module),
@@ -149,7 +145,7 @@ struct RepoWindow: View {
     }
 }
 
-/// View mode, reload and the thread panel; the diff gets the rest of the window (SPEC §9). Disabled rather
+/// View mode, reload and Threads; the diff gets the rest of the window (SPEC §9). Disabled rather
 /// than left out without a worktree, so the toolbar keeps its items.
 struct ReviewToolbar: ToolbarContent {
     let session: RepoSession
@@ -173,17 +169,14 @@ struct ReviewToolbar: ToolbarContent {
             .disabled(review == nil)
         }
         ToolbarItem {
-            // On while the panel shows, like Xcode's inspector buttons.
-            Toggle(isOn: Bindable(session).showsThreadPanel) {
+            // On while the file list's column shows Threads; off goes back to Files.
+            Toggle(isOn: Bindable(session).showsThreads) {
                 Label(String(localized: "Threads", bundle: .module), systemImage: "text.bubble")
             }
             .badge(review?.openThreadCount ?? 0)
             .help(
                 CommandCatalog.help(
-                    session.showsThreadPanel
-                        ? String(localized: "Hide Threads", bundle: .module)
-                        : String(localized: "Show Threads", bundle: .module),
-                    command: "thread-panel")
+                    String(localized: "Show Threads", bundle: .module), command: "threads")
             )
             .disabled(review == nil)
         }

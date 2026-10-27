@@ -2,7 +2,7 @@ import Foundation
 import GitKit
 
 /// A worktree's pull request conversation as last read (SPEC §7.9): kept in the GitHub file for
-/// `seam`, shown in the thread panel.
+/// `seam`, shown as a card above the diff's first file.
 public struct PullRequestConversation: Codable, Equatable, Sendable {
     public var repo: GitHubRepo
     public var pullRequest: Int

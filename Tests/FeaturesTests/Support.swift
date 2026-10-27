@@ -71,16 +71,16 @@ struct CardWindow {
     }
 }
 
-/// The thread panel in a window that's never shown.
+/// The Threads navigator in a window that's never shown.
 @MainActor
-struct PanelWindow {
+struct ThreadsWindow {
     let window: NSWindow
 
     init(session: RepoSession, review: WorktreeReview) {
         window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 360, height: 420), styleMask: [.titled],
             backing: .buffered, defer: false)
-        window.contentView = NSHostingView(rootView: ThreadPanel(session: session, review: review))
+        window.contentView = NSHostingView(rootView: ThreadsList(session: session, review: review))
     }
 
     func settle() async {

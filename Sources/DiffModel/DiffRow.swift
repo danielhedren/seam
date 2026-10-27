@@ -41,6 +41,9 @@ package enum HunkHeaderStyle: Equatable, Sendable {
 }
 
 package enum DiffRow: Equatable, Sendable {
+    /// The file index of the cards above the first file, which belong to none.
+    package static let preamble = -1
+
     case fileHeader(file: Int)
     case hunkHeader(file: Int, hunk: Int, HunkHeaderStyle)
     case line(file: Int, UnifiedLine)

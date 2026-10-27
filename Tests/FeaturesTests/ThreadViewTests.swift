@@ -47,7 +47,6 @@ import Testing
         session.comment()
 
         let draft = try #require(session.draft)
-        #expect(!session.showsThreadPanel)
         #expect(
             session.draftMarker(for: reviewed)
                 == DraftMarker(path: "a.txt", side: .new, lines: draft.anchor.lines))
@@ -61,8 +60,8 @@ import Testing
     }
 
     /// Resolving an agent's answer from Awaiting You moves it to its file's group, where it must
-    /// show as resolved: the panel then looks as one freshly opened on the same threads does.
-    @Test func resolvingAThreadAwaitingYouShowsItResolvedInThePanel() async throws {
+    /// show as resolved: the list then looks as one freshly opened on the same threads does.
+    @Test func resolvingAThreadAwaitingYouShowsItResolvedInThreads() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\n")
         let (session, review, store) = await threadSession(repo)
@@ -78,20 +77,19 @@ import Testing
         await session.threads?.load()
         #expect(reviewed.awaitingReply.map(\.id) == [id])
 
-        let panel = PanelWindow(session: session, review: reviewed)
+        let panel = ThreadsWindow(session: session, review: reviewed)
         await panel.settle()
         await session.setResolved(true, thread: id)
         await panel.settle()
         #expect(reviewed.awaitingReply.isEmpty)
 
-        let fresh = PanelWindow(session: session, review: reviewed)
+        let fresh = ThreadsWindow(session: session, review: reviewed)
         await fresh.settle()
         #expect(try panel.png() == fresh.png())
     }
 
-    /// Marking the file viewed collapses it, which folds its open thread away with it: the panel
-    /// is for threads the diff can't show, not ones the reader just put away.
-    @Test func markingAFileViewedClosesItsOpenThreadWithoutShowingThePanel() async throws {
+    /// Marking the file viewed collapses it, which folds its open thread away with it.
+    @Test func markingAFileViewedClosesItsOpenThread() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\n")
         let (session, review, _) = await threadSession(repo)
@@ -108,7 +106,6 @@ import Testing
         await card.settle()
         #expect(reviewed.collapsed == ["a.txt"])
         #expect(session.selectedThreadID == nil)
-        #expect(!session.showsThreadPanel)
     }
 
     /// The diff pane the app shows, in a window that's never on screen, driven by keys as the

@@ -14,7 +14,7 @@ struct FileList: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                NavigatorPicker(review: review, inboxHasItems: !session.inbox.isEmpty)
+                NavigatorPicker(review: review, awaitsReader: !session.inbox.isEmpty)
                 switch review.navigator {
                 case .files:
                     // With the worktree list hidden, its row's PR marker would be out of sight;
@@ -46,18 +46,14 @@ struct FileList: View {
                         totals(.all)
                     }
                 case .search: SearchSummary(review: review)
-                case .inbox: InboxSummary(session: session)
+                case .threads: ThreadsSummary(session: session, review: review)
                 }
                 Spacer()
-                Toggle(isOn: $review.flatFileList) {
-                    Image(systemName: "list.bullet.indent")
+                if review.navigator == .threads {
+                    CopyPromptButton(session: session)
+                } else {
+                    flatListToggle
                 }
-                .toggleStyle(.button)
-                .buttonStyle(.borderless)
-                .help(
-                    review.flatFileList
-                        ? String(localized: "Show as Tree", bundle: .module)
-                        : String(localized: "Show as Flat List", bundle: .module))
             }
             .font(.callout.monospacedDigit())
             .padding(.horizontal, 10)
@@ -99,13 +95,25 @@ struct FileList: View {
             case .files: files
             case .search:
                 SearchResults(session: session, review: review, fieldFocus: filterFocus)
-            case .inbox: InboxList(session: session)
+            case .threads: ThreadsList(session: session, review: review)
             }
         }
     }
 
     private enum Totals {
         case all, withoutLines, filesOnly
+    }
+
+    private var flatListToggle: some View {
+        Toggle(isOn: $review.flatFileList) {
+            Image(systemName: "list.bullet.indent")
+        }
+        .toggleStyle(.button)
+        .buttonStyle(.borderless)
+        .help(
+            review.flatFileList
+                ? String(localized: "Show as Tree", bundle: .module)
+                : String(localized: "Show as Flat List", bundle: .module))
     }
 
     @ViewBuilder private func totals(_ shown: Totals) -> some View {

@@ -27,7 +27,7 @@ extension CommandCatalog {
     /// File › New Window and Open Repository, which the File menu builds itself.
     static let newWindow = KeyboardShortcut("n")
     static let openRepository = KeyboardShortcut("o")
-    /// Sends what's typed in the thread panel's reply box.
+    /// Sends what's typed in a card's text box.
     static let send = KeyboardShortcut(.return, modifiers: .command)
     /// Posts a new thread's text as a note, asking no answer.
     static let sendNote = KeyboardShortcut(.return, modifiers: [.command, .option])

@@ -26,9 +26,6 @@
     "%lld awaiting you" : {
 
     },
-    "%lld earlier" : {
-
-    },
     "%lld more lines" : {
 
     },
@@ -70,9 +67,6 @@
     "A review comes in" : {
 
     },
-    "Agents' answers and questions, and failed checks, show here from every worktree." : {
-
-    },
     "All GitHub threads resolved" : {
 
     },
@@ -91,7 +85,7 @@
     "Automatic tries origin/HEAD, then origin/main, then main. Refs matching a pattern, one per line, are never picked as a worktree's parent." : {
 
     },
-    "Awaiting you (%lld)" : {
+    "Awaiting you" : {
 
     },
     "Base" : {
@@ -164,9 +158,6 @@
     "Context lines" : {
 
     },
-    "Conversation on #%@" : {
-
-    },
     "Copy" : {
 
     },
@@ -177,9 +168,6 @@
 
     },
     "Copy Path" : {
-
-    },
-    "Copy Prompt for Agent" : {
 
     },
     "Copy Pull Request URL" : {
@@ -278,16 +266,10 @@
     "Hide Missing Worktrees" : {
 
     },
-    "Hide Threads" : {
-
-    },
     "Ignore all whitespace" : {
 
     },
     "Ignore changes in amount" : {
-
-    },
-    "Inbox" : {
 
     },
     "Install Command Line Tool…" : {
@@ -372,9 +354,6 @@
 
     },
     "Note" : {
-
-    },
-    "Nothing awaits you" : {
 
     },
     "Nothing in the diff matches “%@”." : {
@@ -530,7 +509,7 @@
     "Select a worktree" : {
 
     },
-    "Select lines in the diff and press C to comment." : {
+    "Select lines in the diff and press C to comment. Agents' answers and questions, and failed checks, show here from every worktree." : {
 
     },
     "Show All" : {

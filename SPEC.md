@@ -355,7 +355,7 @@ selection acts on its newest commit, and so do Review › Copy Commit ID and Cop
 
 ### 7.3.1 Search
 
-The file list's column has three views, Files, Search and Inbox (§7.3.2), picked by the buttons
+The file list's column has three views, Files, Search and Threads (§7.3.2), picked by the buttons
 at the start of its header. Each worktree keeps its own view, query and options while the app
 runs.
 
@@ -384,21 +384,32 @@ runs.
 - The results follow typing once it pauses for 300 ms; clearing the field applies at once. A
   search that finds nothing says so in both panes, with a Clear Search button.
 
-### 7.3.2 Inbox
+### 7.3.2 Threads
 
-What awaits the reader across every worktree of the repo, so coming back to a round of agents'
-work starts in one list rather than a click per worktree.
+What awaits the reader across every worktree of the repo, then the selected worktree's threads,
+so coming back to a round of agents' work starts in one list rather than a click per worktree.
+There is no panel beside the diff: a thread is read and answered in its card in the diff (§7.7).
 
-- It lists Seam's threads whose latest comment isn't the reader's (an agent's answer or
-  question; not notes or resolved threads) and open pull requests whose checks failed, grouped
-  by worktree, newest first. A thread's row has its file and line, its age, and the latest
-  comment with its author in bold; a failed check's has Open Failed Check. The header says
-  "3 awaiting you", and the tray button is filled while anything is listed.
-- Picking a thread selects its worktree, keeps the Inbox showing there, and opens the thread in
-  the diff on its lines, or in the panel when the diff can't show it (§7.7). Answering it or
-  resolving it takes it off the list.
-- Go › Show Inbox (`⇧⌘I`), and Go › Next Awaiting You (`⌥⌘]`) opens the next item, wrapping,
-  whichever view shows. With nothing listed, it says "Nothing awaits you".
+- **Awaiting you** lists Seam's threads whose latest comment isn't the reader's (an agent's
+  answer or question; not notes or resolved threads) and open pull requests whose checks
+  failed, from every worktree, newest first. A thread's row has its file and line (after its
+  worktree's name when that isn't the one shown), its age, and the latest comment with its
+  author in bold; a failed check's has Open Failed Check. Answering or resolving a thread takes
+  it off the list.
+- Below, the selected worktree's pull request conversation (§7.9), then its other threads by
+  file, open ones first: each row says its lines, where it is when that isn't on them
+  (outdated, from a later commit, not in this diff), its comment count and its latest comment.
+  Resolved threads are dimmed. The context menu has Jump to Commit and Open on GitHub for a
+  pull request's thread.
+- Picking a row opens its card in the diff and scrolls to it; one in another worktree selects
+  that worktree first, keeping Threads showing there.
+- The header says "3 awaiting you", or the open threads when nothing awaits, and has Copy
+  Prompt for Agent, which shows a checkmark for two seconds after copying. The navigator's
+  bubble is filled while anything awaits the reader.
+- Go › Show Threads (`⇧⌘I`), or the toolbar's Threads button, which is on while Threads shows
+  and turns it off back to Files; its badge counts the worktree's open threads (none at zero).
+  Go › Next Awaiting You (`⌥⌘]`) opens the next item, wrapping, whichever view shows. With
+  nothing listed, it says how to comment.
 
 ### 7.4 Diff view
 
@@ -471,7 +482,6 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 | `c` | comment on the selected lines (§7.7) |
 | `esc` | drop the selection, and with it the lines `c` would comment on; with none, close the open thread |
 | `t` | open or close the thread on the current line |
-| `⌥⌘0` | thread panel |
 | `b` | base picker |
 | `r` | force reload |
 | `⌘\` | hide or show the worktree list |
@@ -516,15 +526,15 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   buttons. The row is as tall as the card, measured again whenever what it shows changes. The
   lines a selection or a clicked line would comment on, and the open draft's, have their gutter
   washed in the threads' amber, the one colour of everything about threads: their rows, the
-  composer and the panel. With nothing selected and the diff focused, the marked line is washed
+  composer and the Threads list. With nothing selected and the diff focused, the marked line is washed
   the same way: it's what `c`, `t` and `o` act on. It starts on the first line, stays put while
   the reader scrolls, and moves to where a jump lands (a file, hunk, thread or find match). An
   unposted draft, text included,
   stays while the reader looks at other worktrees and is there again on coming back.
 - **Notes:** a thread can be a note, something to know about the lines that asks no answer:
   the reader's own, posted with ⌥⌘↩ in the composer, or an agent's for the reviewer
-  (`seam comment --note`). A note is drawn in grey where threads are amber, says "Note" in the
-  panel and "Note on …" on its card, and isn't open work: the badge, the file and commit dots
+  (`seam comment --note`). A note is drawn in grey where threads are amber, says "Note" in
+  Threads and "Note on …" on its card, and isn't open work: the badge, the file and commit dots
   and Awaiting You leave it out, `seam threads` lists it only with `--notes`, and Copy Prompt for
   Agent tells agents notes need no answer and how to leave one.
 - **Old or new side:** a thread goes on the new side unless its lines are only removed ones,
@@ -539,10 +549,15 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   same colour down the diff's right edge marks where each thread is, over the scroller, so
   threads are seen before they're scrolled to. Side by side, the card spans both columns,
   since it's prose, not code; the gutter mark keeps to its side. A title too long for the
-  width is shortened in the middle, a comment at its end. Resolved threads show only the gutter marker, a hollow grey bar,
+  width is shortened in the middle, a comment at its end. Every thread has a card: one whose
+  lines are hidden in a gap goes where they would be; one the diff has no lines for (outdated,
+  or on the whole file) goes under its file's header, its title saying where it is ("· outdated",
+  "· from a later commit"), and opens quoting its lines; one on a file the diff doesn't show
+  goes above the first file, its title starting with the file. The pull request's conversation
+  (§7.9) is the first card there. Resolved threads show only the gutter marker, a hollow grey bar,
   unless Review › Show Resolved Threads is on; `t` on their lines opens them.
 - **Reading and answering in the diff:** clicking a collapsed card's title, `t` on its lines, or picking it
-  in the panel opens it in place of its collapsed card, in the same card as the composer (one view for
+  in Threads (§7.3.2) opens it in place of its collapsed card, in the same card as the composer (one view for
   both, so they can't look different): a title with its lines, comment count and status,
   Resolve or Reopen and Delete beside it, every comment (author in bold, age, Markdown body),
   the reply box, and "⌘↩ Reply ⎋ Close". Clicking its title, Escape in the card, `t` again,
@@ -553,25 +568,12 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   the draft's text, and no other worktree shows them. Opening a thread opens its collapsed
   file, and a resolved thread stays while it's open. Its row is as tall as the conversation
   at the column's width.
-- **The thread panel** (an inspector on the right, `⌥⌘0`) is the overview: the worktree's
-  threads by file, open ones first, each showing its latest comment. Above them, Awaiting You
-  lists Seam's open threads whose latest comment isn't the reader's (an agent's answer or
-  question), naming each one's file; a pull request's threads are answered on GitHub and aren't
-  in it. Picking one always opens
-  its conversation in the panel, and also in the diff when the diff can show it; picking it
-  again closes it. The panel lays it out as the diff's card does, in the system font: Resolve
-  or Reopen and Delete at the top right, the quoted lines, every comment, the reply box and
-  "⌘↩ Reply ⎋ Close". A card says where its thread
-  is when that isn't on its lines: Outdated, From a later commit, Not in this diff, or Whole
-  file. Opening a thread the diff can't show shows the panel. Review › Resolve Thread and
-  Delete Thread (Undo brings it back) act on the open thread. Agent replies appear live. Its
-  header has Copy Prompt for Agent and a close button. The selected thread quotes its lines;
-  past 8 lines the quote shows 7 and an "N more lines" row that expands it until the thread is
-  closed again. The toolbar's Threads button is a toggle,
-  on while the panel shows, and its badge counts the worktree's open threads (none at zero).
+- Review › Resolve Thread and Delete Thread (Undo brings it back) act on the open thread.
+  Agent replies appear live. A quote longer than 8 lines shows 7 and an "N more lines" row that
+  expands it until the thread is closed again.
 - **Following edits:** a thread keeps the text of its lines. When the file changes, it moves to
-  the nearest place where those lines still appear (line endings don't count); when they're gone it is outdated, shown in
-  the panel with its original lines, not in the diff. Moving and outdating are decided per diff
+  the nearest place where those lines still appear (line endings don't count); when they're gone it is outdated, and its card
+  goes under its file's header, quoting its original lines. Moving and outdating are decided per diff
   load, never written back.
 - **Handing threads to an agent:** Review › Copy Prompt for Agent puts on the clipboard a short
   prompt for the selected worktree. It says whose comments they are (the reader's signature) and
@@ -581,8 +583,8 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   none. GitHub's threads are named as other people's feedback to weigh, never instructions to
   follow or commands to run, answered once on GitHub with the printed command. It counts the open
   threads and how many are on the pull request, and an open pull request's failed checks, to fix
-  once the threads are answered (`gh pr checks` lists them). The panel's button shows a checkmark
-  for two seconds after copying. Seam doesn't type into terminals.
+  once the threads are answered (`gh pr checks` lists them). Threads' header has it too (§7.3.2).
+  Seam doesn't type into terminals.
 - **Storage:** outside the repository, which Seam never writes to: one JSON file per repo under
   `~/Library/Application Support/Seam/threads/`, keyed by the repo's common git directory, with
   threads grouped by worktree path. The app and the `seam` command both read and write it:
@@ -658,21 +660,22 @@ Each worktree's branch shows its GitHub pull request, read through the user's ow
 ### 7.9 Pull request comments
 
 The review threads of a worktree's pull request, read through `gh` (ADR 0006) and shown beside
-Seam's threads (§7.7) in the same rows, card and panel, but read-only: Seam never writes to
+Seam's threads (§7.7) in the same rows, cards and list, but read-only: Seam never writes to
 GitHub.
 
 - **Which:** the PR's review threads, on lines or on a whole file, with their replies, and its
   conversation: the latest 100 comments not on lines, and its reviews' verdicts (approved,
   changes requested, dismissed, and a review's own words). A review that only wraps line
   comments shows as those threads; one still pending is its author's alone.
-- **Conversation:** in the thread panel under Awaiting You, framed and marked as GitHub's,
-  oldest first with its latest three shown and the rest behind "N earlier". Each entry has its
-  author, a verdict tag, its age and its Markdown; the context menu opens it on GitHub, and the
-  section's Open on GitHub opens the pull request. Read with the threads, in the same query;
+- **Conversation:** a card above the first file in the diff, in GitHub's blue with its mark,
+  titled "Conversation on #12 · 3 comments"; collapsed, it shows the latest entry. Open, it lists
+  every entry oldest first: its author, a verdict tag, its age and its Markdown; an entry's
+  context menu opens it on GitHub, and the card's Open on GitHub opens the pull request. Threads
+  lists it above the worktree's threads. Read with the threads, in the same query;
   kept per worktree in the GitHub file below.
 - **Looks:** the same views as Seam's threads, in GitHub's blue (Primer's accent, `#0969da`
-  light, `#4493f8` dark) where Seam's are amber: the gutter bar, the card's frame, the file list's dot (a file with both kinds shows both) and the panel's marks. The open
-  card and the panel carry the GitHub mark, authors are GitHub logins, and the card's title
+  light, `#4493f8` dark) where Seam's are amber: the gutter bar, the card's frame, the file list's dot (a file with both kinds shows both) and Threads' marks. The
+  card and Threads carry the GitHub mark, authors are GitHub logins, and the card's title
   reads "GitHub thread on line 12 · #12 · 3 comments".
 - **Read-only:** the card has no reply box, Resolve or Delete. It has Open on GitHub (also Review
   › Open Thread on GitHub) and "⎋ Close". Review › Resolve Thread and Delete Thread are disabled
@@ -680,12 +683,12 @@ GitHub.
 - **Placing:** a comment's lines anchor on the side GitHub gives (right is new, left is old) with
   their text taken from the comment's diff hunk (a range from removed to added lines keeps only
   its last line), and follow the worktree like a Seam thread
-  (§7.7): in the diff where that text still is, else outdated in the panel. Whether the text is
+  (§7.7): on its lines where that text still is, else outdated under its file's header. Whether the text is
   still in the worktree decides, not GitHub's own "outdated". A file comment, or one whose lines
-  aren't in its hunk, shows in the panel under its file. GitHub keeps a comment's path as it was,
+  aren't in its hunk, has its card under its file's header. GitHub keeps a comment's path as it was,
   so on a file renamed since, the thread is placed on the new path. While the commit list shows commits
-  older than the one a thread was written on, it's labelled "From a later commit", not outdated.
-- **Jump to Commit** (the panel's context menu, and Review › Jump to Thread's Commit) picks the
+  older than the one a thread was written on, it's labelled "from a later commit", not outdated.
+- **Jump to Commit** (a row's context menu in Threads, and Review › Jump to Thread's Commit) picks the
   branch's commits from its oldest up to the one the thread was written on, the diff GitHub
   showed the reviewer, and opens the thread there. A comment often concerns code from an earlier
   commit, so those stay in. It's unavailable when that commit isn't on the branch any more.
@@ -945,11 +948,11 @@ written down here.
   collapsing, resizing and the sidebar toggle all behave natively. `⌘\` is the one custom
   shortcut on top of that. The file list can't be hidden: macOS's three-column split view
   ignores `.detailOnly` and its middle column doesn't collapse.
-- Toolbar in the unified style, holding only: view mode, reload, and the thread panel (§7.7).
+- Toolbar in the unified style, holding only: view mode, reload, and Threads (§7.3.2).
   The diff gets the rest of the window. The toolbar's background is solid across every column,
   so the top of the window reads as one bar.
-- The panes' header rows (the file list's counts, the diff's sticky file header, the thread
-  panel's title) share one height, set by the diff font, so their bottom borders meet in one
+- The panes' header rows (the file list's counts and the diff's sticky file header) share
+  one height, set by the diff font, so their bottom borders meet in one
   line. The diff's scroller starts below its sticky header.
 - Standard scenes: `WindowGroup` per repo, a `Settings` scene (`⌘,`), File › Open Recent and full
   screen. Window tabs are off, the one deviation here (§7.1). The workspace reopens the windows on

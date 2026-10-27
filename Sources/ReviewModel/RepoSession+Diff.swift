@@ -12,6 +12,7 @@ package struct DiffShown: Equatable {
     var narrowing: Narrowing
     var threads: [String: [ThreadMarker]]
     var resolvedMarks: [String: [ThreadMarker]]
+    var preamble: [ThreadMarker]
     var sinceViewed: [String: String]
     var mode: DiffLayoutMode
     var collapsed: Set<String>
@@ -30,7 +31,8 @@ extension RepoSession {
         DiffShown(
             id: review.id, version: review.diffVersion, range: review.shownRangeVersion,
             narrowing: review.narrowing, threads: review.threadMarkers,
-            resolvedMarks: review.hiddenResolvedMarkers, sinceViewed: review.sinceViewed,
+            resolvedMarks: review.hiddenResolvedMarkers, preamble: review.preambleMarkers,
+            sinceViewed: review.sinceViewed,
             mode: review.mode, collapsed: review.collapsed,
             contentsVersion: review.contentsVersion, syntaxVersion: review.syntaxVersion,
             wraps: review.wraps, showsReturns: settings.showsCarriageReturns,
@@ -56,12 +58,19 @@ extension RepoSession {
             }
         content.draft = shown.draft
         if let open = shown.openThread {
-            let path = review.placedThreads.first { $0.id == open.id }?.thread.anchor.path ?? ""
+            let path = review.placedThreads.first { $0.id == open.id }?.path
+            let isShown =
+                content.preamble.contains { $0.id == open.id }
+                || content.threads[path ?? ""]?.contains { $0.id == open.id } == true
             // A resolved thread shows while it's open, even with resolved threads hidden.
-            if content.threads[path]?.contains(where: { $0.id == open.id }) != true {
-                content.threads[path, default: []].append(open)
+            if !isShown {
+                if let path, content.review.files.contains(where: { $0.diff.path == path }) {
+                    content.threads[path, default: []].append(open)
+                } else {
+                    content.preamble.append(open)
+                }
             }
-            content.resolvedMarks[path]?.removeAll { $0.id == open.id }
+            if let path { content.resolvedMarks[path]?.removeAll { $0.id == open.id } }
             content.openThread = open.id
         }
         return (content, position)

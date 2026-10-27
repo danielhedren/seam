@@ -154,6 +154,10 @@ final class DiffCanvasView: NSView {
             for draft in [old.draft, new.draft] { if let draft { changed.insert(draft.path) } }
         }
         if old.openThread != new.openThread {
+            // The cards above the first file belong to none, so only a full rebuild moves them.
+            if new.preamble.contains(where: { [old.openThread, new.openThread].contains($0.id) }) {
+                return nil
+            }
             for (path, markers) in new.threads
             where markers.contains(where: { [old.openThread, new.openThread].contains($0.id) }) {
                 changed.insert(path)

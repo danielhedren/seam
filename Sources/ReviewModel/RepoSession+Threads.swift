@@ -14,15 +14,13 @@ package struct ThreadDraft: Equatable {
 /// One worktree's thread UI: the thread open in its diff and the draft it's writing.
 struct ThreadSelection: Equatable {
     var openID: String?
-    /// The open thread's lines are hidden in a gap, so it shows in the panel instead.
-    var isHidden = false
     var draft: ThreadDraft?
 }
 
 /// Review threads from the reader's side: writing, answering, resolving, and handing them to an
 /// agent (SPEC §7.7).
 extension RepoSession {
-    /// The thread open in the selected worktree's diff, and selected in the panel (SPEC §7.7).
+    /// The thread open in the selected worktree's diff, and selected in Threads (SPEC §7.7).
     package var selectedThreadID: String? {
         get { selectedThreads.openID }
         set { selectedThreads.openID = newValue }
@@ -120,16 +118,18 @@ extension RepoSession {
         services.platform.open(url)
     }
 
-    /// From the diff's thread row, `t`, or the panel: opens the thread in the diff, its file
-    /// expanded. A thread the diff can't show opens in the panel instead.
+    /// From the diff's card, `t`, or the Threads list: opens the thread's card in the diff, its
+    /// file expanded. The pull request's conversation opens the same way.
     package func openThread(_ id: String) {
-        guard let review = selected, let placed = review.placedThreads.first(where: { $0.id == id })
-        else { return }
+        guard let review = selected else { return }
+        if id == WorktreeReview.conversationID {
+            if review.conversation != nil { selectedThreadID = id }
+            return
+        }
+        guard let placed = review.placedThreads.first(where: { $0.id == id }) else { return }
         // The draft steps aside, text and all, until the thread closes.
         selectedThreadID = id
-        let path = placed.path
-        if placed.isInDiff, review.collapsed.contains(path) { review.toggleCollapsed(path) }
-        if !placed.isInDiff { showsThreadPanel = true }
+        if review.collapsed.contains(placed.path) { review.toggleCollapsed(placed.path) }
     }
 
     package func closeThread() {
@@ -137,19 +137,14 @@ extension RepoSession {
         diff.focus()
     }
 
-    /// The diff found no row for the open thread; the panel is where it can be read.
+    /// The diff found no row for the open thread: collapsing its file (`x`, or marking it
+    /// viewed) puts the thread away with it.
     package func noteOpenThreadHidden(_ hidden: Bool) {
-        guard hidden != selectedThreads.isHidden else { return }
-        // Collapsing its file (`x`, or marking it viewed) puts the thread away with it.
-        if hidden, let review = selected, let id = selectedThreadID,
+        guard hidden, let review = selected, let id = selectedThreadID,
             let placed = review.placedThreads.first(where: { $0.id == id }),
-            placed.isInDiff, review.collapsed.contains(placed.path)
-        {
-            closeThread()
-            return
-        }
-        selectedThreads.isHidden = hidden
-        if hidden { showsThreadPanel = true }
+            review.collapsed.contains(placed.path)
+        else { return }
+        closeThread()
     }
 
     /// What the diff opens: the selected thread, which shows even when resolved ones are hidden.
@@ -218,8 +213,8 @@ extension RepoSession {
     }
 
     /// Review › Copy Prompt for Agent: how the agent in the selected worktree reads and answers,
-    /// naming the reader's signature and one for the agent (SPEC §7.7). The panel's button shows
-    /// a checkmark for a moment after, so the reader knows it worked.
+    /// naming the reader's signature and one for the agent (SPEC §7.7). Threads' button shows a
+    /// checkmark for a moment after, so the reader knows it worked.
     package func copyAgentPrompt() async {
         guard let review = selected else { return }
         let reader = await threads?.reader(in: review.id).name ?? ReviewThread.reader

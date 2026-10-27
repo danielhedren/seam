@@ -121,6 +121,7 @@ package struct DiffLayout: Equatable, Sendable {
     }
 
     package func headerRow(ofFile file: Int) -> Int? {
+        guard file >= 0 else { return nil }
         var low = 0
         var high = rows.count
         while low < high {
@@ -158,7 +159,7 @@ package struct DiffLayout: Equatable, Sendable {
 
 extension DiffLayout {
     package func anchor(atY y: Double, paths: [String]) -> ScrollAnchor? {
-        guard let index = row(at: y), rows[index].file < paths.count else { return nil }
+        guard let index = row(at: y), paths.indices.contains(rows[index].file) else { return nil }
         let row = rows[index]
         let (line, isOld) = Self.lineNumber(row)
         return ScrollAnchor(

@@ -227,7 +227,7 @@ public final class DiffScrollView: NSScrollView {
     var currentFilePath: String? {
         guard let row = layout.row(at: visibleTop + headerHeight) else { return nil }
         let file = layout.rows[row].file
-        return file < canvas.paths.count ? canvas.paths[file] : nil
+        return canvas.paths.indices.contains(file) ? canvas.paths[file] : nil
     }
 
     public func focus() {

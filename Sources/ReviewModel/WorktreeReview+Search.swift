@@ -6,8 +6,8 @@ import SeamCore
 package enum Navigator: Equatable, Sendable {
     case files
     case search
-    /// What awaits the reader across every worktree (SPEC §7.3.2).
-    case inbox
+    /// What awaits the reader across every worktree, then this one's threads (SPEC §7.3.2).
+    case threads
 }
 
 package enum Narrowing: Equatable {

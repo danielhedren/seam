@@ -37,7 +37,6 @@ package final class RepoSession {
     private var rowRefreshPending = false
     /// The repo's pull requests, once it's open (SPEC §7.8).
     package private(set) var pullRequests: RepoPullRequests?
-    package var showsThreadPanel = false
     /// While set, the agent prompt was just copied.
     package var promptCopied: Task<Void, Never>?
     /// Each worktree's open thread and draft, kept while another is shown (SPEC §7.7).
@@ -276,12 +275,7 @@ package final class RepoSession {
         if let anchor = diff.anchor { selected?.savedAnchor = anchor }
         selected?.cancelLoading()
         selectedID = id
-        // The diff reports only a change in whether it can show the thread, so a hidden one
-        // comes back in the panel from here.
-        if selectedThreadID != nil, threadSelections[id]?.isHidden == true {
-            showsThreadPanel = true
-        }
-        // Known before the panel sorts threads by whose turn it is.
+        // Known before Threads sorts threads by whose turn it is.
         Task { [threads] in _ = await threads?.reader(in: id) }
         repoState.selectedWorktree = id
         persist()

@@ -6,7 +6,7 @@ import Testing
 
 @testable import ReviewModel
 
-/// The palette's, the switcher's and the panel's lists, ordered without a window.
+/// The palette's, the switcher's and Threads' lists, ordered without a window.
 @MainActor @Suite(.timeLimit(.minutes(1))) struct ListTests {
     @Test func paletteJumpsToWorktreesWithTheirShortcutsAndShowsWhatIsOn() async throws {
         let repo = try await FixtureRepo()
@@ -54,7 +54,7 @@ import Testing
         session.close()
     }
 
-    /// The panel's file groups leave out what Awaiting You already shows.
+    /// Threads' file groups leave out what Awaiting You already shows.
     @Test func threadGroupsFollowTheFilesAndLeaveOutTheExcluded() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\n")

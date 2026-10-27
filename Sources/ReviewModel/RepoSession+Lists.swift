@@ -74,7 +74,7 @@ extension RepoSession {
 }
 
 extension WorktreeReview {
-    /// The thread panel's threads by file, in the order they're placed, leaving out `excluded`
+    /// Threads' threads by file, in the order they're placed, leaving out `excluded`
     /// (those Awaiting You shows above them).
     package func threadGroups(excluding excluded: Set<String> = [])
         -> [(path: String, threads: [PlacedThread])]

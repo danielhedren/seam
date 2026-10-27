@@ -32,11 +32,12 @@ import Testing
         reviewed.reloadDiff()
         await reviewed.loaded()
         #expect(reviewed.placedThreads.map(\.placement) == [.outdated])
-        #expect(reviewed.content?.threads.isEmpty == true)
+        // Off its lines, its card goes under the file's header.
+        #expect(reviewed.content?.threads["a.txt"]?.map(\.isOnLines) == [false])
     }
 
     /// A thread that couldn't be saved says so above the diff, where the reader is, and keeps the
-    /// typed text; the panel needn't be open.
+    /// typed text.
     @Test func aThreadThatCantBeSavedSaysSoAboveTheDiffAndKeepsTheText() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\n")
@@ -54,7 +55,6 @@ import Testing
         session.draft = ThreadDraft(worktree: reviewed.id, anchor: anchor, body: "Why one?")
 
         await session.submitDraft()
-        #expect(session.showsThreadPanel == false)
         #expect(session.threadFailure != nil)
         #expect(session.draft?.body == "Why one?")
         session.dismissThreadFailure()
@@ -121,8 +121,8 @@ import Testing
         session.close()
     }
 
-    /// A panel card says where its thread is whenever that isn't on its lines in the diff.
-    @Test func aPanelCardSaysWhereItsThreadIsWhenNotOnItsLines() throws {
+    /// A card says where its thread is whenever that isn't on its lines in the diff.
+    @Test func aCardSaysWhereItsThreadIsWhenNotOnItsLines() throws {
         let thread = ReviewThread(
             id: "t", worktree: "/w",
             anchor: ThreadAnchor(path: "a", side: .new, lines: 1...1, text: ["x"]), author: "you",
@@ -131,9 +131,9 @@ import Testing
             PlacedThread(thread: thread, placement: placement).location
         }
         #expect(label(.lines(1...1)) == nil)
-        #expect(label(.outdated) == "Outdated")
-        #expect(label(.later) == "From a later commit")
-        #expect(label(.notShown) == "Not in this diff")
+        #expect(label(.outdated) == "outdated")
+        #expect(label(.later) == "from a later commit")
+        #expect(label(.notShown) == "not in this diff")
     }
 
     /// Glancing at another thread while writing doesn't lose what was typed: the draft steps
@@ -189,31 +189,36 @@ import Testing
         session.close()
     }
 
-    /// A thread the diff couldn't show is read in the panel, so coming back to its worktree
-    /// shows the panel again even if it was put away elsewhere.
-    @Test func comingBackToAThreadTheDiffCantShowShowsThePanel() async throws {
+    /// The diff has a card for every thread: one on a file it doesn't show goes above the first
+    /// file, naming the file, and opens there like any other.
+    @Test func aThreadOnAFileTheDiffDoesntShowOpensAboveTheFirstFile() async throws {
         let repo = try await FixtureRepo()
-        let tree = try await repo.worktree("a", branch: "a", from: "origin/main")
         try repo.write("a.txt", "one\n")
-        let (session, review, _) = await threadSession(repo)
+        let (session, review, store) = await threadSession(repo)
         let reviewed = try #require(review)
-        session.draft = ThreadDraft(
-            worktree: reviewed.id,
-            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
-        await session.post("Why one?")
-        session.noteOpenThreadHidden(true)
-        #expect(session.showsThreadPanel)
+        let elsewhere = ThreadAnchor(path: "gone.txt", side: .new, lines: 2...2, text: ["two"])
+        try store.update(try #require(session.repository)) { threads throws(ThreadError) in
+            _ = try ThreadRules.open(
+                &threads, worktree: reviewed.id, anchor: elsewhere, author: "you",
+                body: "Why was this removed?", now: .now)
+        }
+        await session.threads?.load()
+        let id = try #require(reviewed.placedThreads.first?.id)
+        #expect(
+            reviewed.preambleMarkers.map(\.title)
+                == ["gone.txt · Thread on line 2 · 1 comment · not in this diff"])
+        #expect(reviewed.threadMarkers.isEmpty)
 
-        session.select(tree.path)
-        session.showsThreadPanel = false
-        session.select(reviewed.id)
-        #expect(session.showsThreadPanel)
+        session.openThread(id)
+        let update = try #require(session.diffUpdate(for: reviewed, after: nil))
+        #expect(update.content.openThread == id)
+        #expect(update.content.preamble.map(\.id) == [id])
         session.close()
     }
 
-    /// The Inbox opens an agent's question in its own worktree; the thread open where the reader
+    /// Awaiting You opens an agent's question in its own worktree; the thread open where the reader
     /// was stays open there, and each comes back with its worktree.
-    @Test func theInboxOpensAThreadInAnotherWorktreeAndLeavesThisOnesOpen() async throws {
+    @Test func awaitingYouOpensAThreadInAnotherWorktreeAndLeavesThisOnesOpen() async throws {
         let repo = try await FixtureRepo()
         let feature = try await repo.worktree("feature", branch: "feature", from: "origin/main")
         try repo.write("a.txt", "one\n")
@@ -293,7 +298,8 @@ import Testing
         session.close()
     }
 
-    @Test func openingAThreadShowsItInTheDiffAndAnOutdatedOneInThePanel() async throws {
+    /// An outdated thread is read in the diff too: its card goes under its file's header.
+    @Test func openingAThreadShowsItInTheDiffOutdatedOrNot() async throws {
         let repo = try await FixtureRepo()
         try repo.write("a.txt", "one\ntwo\n")
         let (session, review, _) = await threadSession(repo)
@@ -308,7 +314,6 @@ import Testing
 
         session.openThread(id)
         #expect(session.selectedThreadID == id)
-        #expect(!session.showsThreadPanel, "the diff is where it's read")
         #expect(!reviewed.collapsed.contains("a.txt"), "its file opens for it")
         #expect(session.openThreadMarker(for: reviewed)?.id == id)
 
@@ -321,8 +326,10 @@ import Testing
         await reviewed.loaded()
         session.closeThread()
         session.openThread(id)
-        #expect(session.showsThreadPanel, "outdated, only the panel can show it")
-        #expect(session.openThreadMarker(for: reviewed) == nil)
+        let open = try #require(session.openThreadMarker(for: reviewed))
+        #expect(open.id == id)
+        #expect(!open.isOnLines)
+        #expect(open.title == "Thread on line 1 · 1 comment · resolved · outdated")
     }
 
     // Linux has no UndoManager, so undo does nothing there (SessionUndo).
