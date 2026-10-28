@@ -82,6 +82,27 @@ import Testing
         #expect(all.additions == 3)
     }
 
+    /// A deleted project leaves its build output untracked, with no `.gitignore` left to hide
+    /// it; the review and the row's totals leave it out, but keep a new source file.
+    @Test func untrackedBuildOutputIsLeftOut() async throws {
+        let repo = try await FixtureRepo()
+        let base = try await repo.sha("HEAD")
+        try repo.write("app/src/Api/obj/project.assets.json", "{\n}\n")
+        try repo.write("app/src/Api/bin/Debug/Api.dll.config", "x\n")
+        try repo.write("web/node_modules/a/index.js", "x\n")
+        try repo.write("app/src/New.cs", "class New {}\n")
+
+        let review = try await ReviewDiffBuilder(git: repo.git).build(
+            worktree: repo.main, base: base, scope: .all)
+        let activity = try await WorktreeActivityService(git: repo.git).activity(
+            of: repo.main, base: base)
+
+        #expect(review.files.map(\.diff.path) == ["app/src/New.cs"])
+        #expect(activity.uncommittedFiles == 1)
+        #expect(activity.changes == DiffStat(files: 1, additions: 1, deletions: 0))
+        #expect(!BuildOutput.contains("bin"), "a file named like a folder stays")
+    }
+
     @Test func untrackedFilesAreSynthesisedAsAdditions() async throws {
         let repo = try await FixtureRepo()
         try repo.write("text.txt", "one\ntwo")

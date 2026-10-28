@@ -77,7 +77,8 @@ public struct WorktreeActivityService: Sendable {
                     ["diff", "--shortstat", "--no-ext-diff", "--no-textconv", "-M", base, "--"],
                     in: worktree))
         }
-        let status = try StatusParser.parse(try await statusOutput.get())
+        var status = try StatusParser.parse(try await statusOutput.get())
+        status.entries.removeAll { $0.kind == .untracked && BuildOutput.contains($0.path) }
         let committed = try await headTime.get()
             .flatMap(TimeInterval.init).map(Date.init(timeIntervalSince1970:))
         var changes = try await shortstat.get()

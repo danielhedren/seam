@@ -196,6 +196,12 @@ diff has focus:
 | **Committed** | base → HEAD | |
 | **Uncommitted** | HEAD → working tree (+ untracked) | |
 
+Untracked files inside build-output folders (`bin`, `obj`, `node_modules`, `build`, `dist`,
+`out`, `target`, `.build`, `DerivedData`, `__pycache__`, `.gradle`, `.next`, `.nuxt`, `.venv`,
+`venv`) are left out of the diff and of a row's totals and `✎N`, even when no `.gitignore`
+covers them: deleting a project takes its `.gitignore` with it and leaves its build output
+behind. Tracked files in such folders still show.
+
 The commit list (§7.2.1) generalises the scopes: each scope is a run of its rows, and the reader
 can pick any other run instead, such as only the latest commit. A picked run diffs from its oldest
 commit's first parent to its newest commit, or to the working tree when the run includes

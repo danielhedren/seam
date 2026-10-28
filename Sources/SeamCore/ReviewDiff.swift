@@ -181,10 +181,9 @@ public struct ReviewDiffBuilder: Sendable {
     private func untrackedFiles(_ worktree: URL) async throws(GitError) -> [ReviewFile] {
         let output = try await git.run(
             ["ls-files", "--others", "--exclude-standard", "-z"], in: worktree)
-        return output.split(separator: 0).map { field in
-            let path = String(decoding: field, as: UTF8.self)
-            return untracked(path, at: worktree.appending(path: path))
-        }
+        return output.split(separator: 0).map { String(decoding: $0, as: UTF8.self) }
+            .filter { !BuildOutput.contains($0) }
+            .map { untracked($0, at: worktree.appending(path: $0)) }
     }
 
     /// The id git would give `data` as a blob. Computed here from bytes already read, so a file
