@@ -43,6 +43,9 @@ enum RowActions {
                 Action(title: localized("Copy Pull Request URL")) {
                     session.copyPullRequestURL(of: review)
                 },
+                Action(title: localized("Copy Pull Request Number")) {
+                    session.copyPullRequestNumber(of: review)
+                },
             ])
         }
         return groups

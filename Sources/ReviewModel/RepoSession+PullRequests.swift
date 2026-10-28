@@ -63,6 +63,12 @@ extension RepoSession {
         services.platform.copy(url)
     }
 
+    /// The bare number, as `gh pr` commands take it.
+    package func copyPullRequestNumber(of review: WorktreeReview) {
+        guard let number = review.pullRequest?.number else { return }
+        services.platform.copy(String(number))
+    }
+
     package func openFailedCheck(of review: WorktreeReview) {
         guard let pullRequest = review.pullRequest, pullRequest.ciFailed,
             let url = URL(string: pullRequest.checks.failedURL ?? pullRequest.url + "/checks")

@@ -501,7 +501,10 @@ import Testing
         github.answer(open: [fakePullRequest(12, checks: failed)])
         let session = await open(repo, selecting: feature)
 
-        for id in ["pull-request-open", "pull-request-copy", "pull-request-check"] {
+        for id in [
+            "pull-request-open", "pull-request-copy", "pull-request-copy-number",
+            "pull-request-check",
+        ] {
             #expect(try command(id).isEnabled(session), "\(id)")
         }
         try command("pull-request-open").run(session)
@@ -511,10 +514,15 @@ import Testing
                 == ["https://github.com/owner/app/pull/12", "https://ci/run/1"])
         session.copyPullRequestURL(of: try review(session, feature))
         #expect(session.platform?.copied.last == "https://github.com/owner/app/pull/12")
+        try command("pull-request-copy-number").run(session)
+        #expect(session.platform?.copied.last == "12")
 
         session.select(repo.main.path)
         await session.settled()
-        for id in ["pull-request-open", "pull-request-copy", "pull-request-check"] {
+        for id in [
+            "pull-request-open", "pull-request-copy", "pull-request-copy-number",
+            "pull-request-check",
+        ] {
             #expect(try !command(id).isEnabled(session), "\(id)")
         }
         session.close()

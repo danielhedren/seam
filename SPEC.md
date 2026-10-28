@@ -286,8 +286,8 @@ then idle ones, each group with the main worktree first and the rest most recent
 By recent change, or by name, the main worktree is pinned to the top. `⌘[`/`⌘]` follow the order. Worktrees whose directory is missing are listed dimmed, and can be hidden.
 
 A row's context menu has Open in Editor (the worktree's folder, §7.6), Reveal in Finder, Copy
-Path and Copy Branch Name (when it has a branch), Open Pull Request in Browser and Copy Pull
-Request URL (when it has one), then the list's Sort By and Hide Missing Worktrees. A missing worktree can only be copied. File › Open Worktree in Editor, Reveal Worktree
+Path and Copy Branch Name (when it has a branch), Open Pull Request in Browser, Copy Pull
+Request URL and Copy Pull Request Number (when it has one), then the list's Sort By and Hide Missing Worktrees. A missing worktree can only be copied. File › Open Worktree in Editor, Reveal Worktree
 in Finder, Copy Worktree Path and Copy Branch Name do the same for the selected worktree.
 
 Switching: `⌘1`…`⌘9` pick by position, `⌘[`/`⌘]` go to the previous or next worktree, and `⌘K`
@@ -652,8 +652,10 @@ Each worktree's branch shows its GitHub pull request, read through the user's ow
   request #12 merges into origin/release. Diff against origin/release instead?" with Keep Detected
   Base and Use origin/release, also in the Review menu. Keeping is remembered per worktree. It
   isn't shown while the stale-parent banner is, nor once a base is chosen.
-- **Commands:** File › Open Pull Request in Browser, Copy Pull Request URL, and Open Failed Check
-  in Browser (the first failed check's page) act on the selected worktree.
+- **Commands:** File › Open Pull Request in Browser, Copy Pull Request URL, Copy Pull Request
+  Number (the bare number, as `gh pr` takes it), and Open Failed Check in Browser (the first
+  failed check's page) act on the selected worktree. The worktree row's context menu has all
+  but the last.
 - **Reading:** the last PRs read are kept (§11) and shown at once on reopening. They're read
   again after the worktree list loads; after a ref change, such as a push; when the app comes to
   the front and they're over a minute old; on Reload; and every 2 minutes while the app is in

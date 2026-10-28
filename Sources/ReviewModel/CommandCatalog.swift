@@ -52,6 +52,11 @@ package enum CommandCatalog {
             section: 2, shortcut: .none, isEnabled: { $0.selected?.pullRequest != nil },
             run: { session in session.selected.map { session.copyPullRequestURL(of: $0) } }),
         SeamCommand(
+            id: "pull-request-copy-number", title: localized("Copy Pull Request Number"),
+            menu: .file, section: 2, shortcut: .none,
+            isEnabled: { $0.selected?.pullRequest != nil },
+            run: { session in session.selected.map { session.copyPullRequestNumber(of: $0) } }),
+        SeamCommand(
             id: "pull-request-check", title: localized("Open Failed Check in Browser"),
             menu: .file, section: 2, shortcut: .none,
             isEnabled: { $0.selected?.pullRequest?.ciFailed == true },

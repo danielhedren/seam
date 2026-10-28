@@ -44,7 +44,9 @@ import Testing
 
         let actions = RowActions.actions(for: review, in: session)
         #expect(
-            actions.last?.map(\.title) == ["Open Pull Request in Browser", "Copy Pull Request URL"])
+            actions.last?.map(\.title) == [
+                "Open Pull Request in Browser", "Copy Pull Request URL", "Copy Pull Request Number",
+            ])
         session.close()
     }
 
