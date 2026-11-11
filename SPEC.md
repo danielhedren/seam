@@ -44,6 +44,12 @@ That repo has 20 worktrees, several outside the repo directory (`~/Code/.worktre
    (an agent's question, failed checks, a review, a PR ready to merge), so one developer can
    oversee many parallel branches and the time from starting work to a merged PR shrinks.
    GitHub stays read-only (§3): Seam shows and tells; the author and their agents act.
+6. **Other people's pull requests too.** The repo's open pull requests that the reader didn't
+   write and hasn't checked out are listed under the worktrees, filtered to the ones worth a
+   look, and reviewed in the same diff as a worktree, full files included, without a checkout.
+7. **Less reading for the same review.** Seam says what a change does before the reader reads
+   it (which definitions changed, what moved, what is only a rename or comments) and moves
+   through the code by its definitions, not only by files and hunks.
 
 ## 3. Non-goals
 
@@ -64,6 +70,8 @@ That repo has 20 worktrees, several outside the repo directory (`~/Code/.worktre
 | **Parent** | The branch a worktree's branch was cut from, e.g. `origin/feat/a`. |
 | **Base** | The commit the diff starts from: `merge-base(parent, HEAD)`. |
 | **Review diff** | Base → working tree for one worktree (see §6). |
+| **Pull request review** | Merge base of a pull request's base branch and its head → its head, for an open PR with no worktree here (§7.2.2), read from Seam's own object store (§8.3.1). |
+| **Review** | A worktree's or a pull request's review diff, with its viewed state, threads and scroll position. |
 
 ## 5. Base detection
 
@@ -171,8 +179,11 @@ instead?" The suggestion is never applied by itself.
 
 ### 5.5 No git operations
 
-Seam reads whatever refs are local and runs no git operation that changes them: no fetch, pull or
-prune. Refs updated from a terminal reach every row through the watcher.
+Seam reads whatever refs are local and runs no git operation that changes the repository: no
+fetch, pull or prune into it. Refs updated from a terminal reach every row through the watcher.
+Base detection uses only those local refs. The one fetch Seam runs, of pull requests' heads and
+bases, goes into a bare repository of Seam's own outside the repo (§8.3.1, ADR 0008), and
+nothing it fetches reaches the repo's refs, objects or `FETCH_HEAD`.
 
 ## 6. The review diff
 
@@ -223,6 +234,22 @@ keeps the position.
   `.gitattributes` `linguist-generated`, plus user globs. Default globs: `**/Generated/**`,
   `**/*.g.cs`, `**/package-lock.json`, `**/*.lock`.
 
+### 6.4 Pull request reviews
+
+A pull request review (§7.2.2) has no working tree, so it has only committed changes:
+
+- **Range:** `merge-base(base branch, head)` → head, with the base branch and head as GitHub
+  has them now, both fetched into Seam's store (§8.3.1). That is the diff GitHub shows. Base
+  detection (§5) doesn't run: the pull request names its base, so stacked PRs come out right,
+  and local `origin/*` refs, however stale, don't matter.
+- **Same diff as a worktree:** the command, options and contents of §6.1 and §6.3, run with
+  `--git-dir` on the store, with both sides read as blobs. Attributes (generated files, binary,
+  `diff`) come from the head's tree (`git check-attr --source=<head>`), as does `.editorconfig`.
+- **Commit list:** the PR's commits, picked as in §6.2. There is no Uncommitted scope and no
+  Uncommitted changes row; `1` is All, `2` Committed (the same range), `3` does nothing.
+- **When the head moves** (a push or force-push), the next read fetches it and the review
+  reloads like a worktree after a change, keeping the scroll position.
+
 ## 7. UI
 
 ### 7.1 Window
@@ -235,7 +262,10 @@ keeps the position.
 │ feat-a             1h  │   M Options.cs    │  (side-by-side or unified diff)        │
 │ main                   │ ▾ contracts/…     │                                        │
 │ old-spike  stale parent│   M openapi.yaml  │                                        │
-├ Commits ───────────────┤ ▸ Generated (3)   │                                        │
+├ Pull requests ─────────┤ ▸ Generated (3)   │                                        │
+│ #2780 Slot preview  3h │                   │                                        │
+│ anna · review requested│                   │                                        │
+├ Commits ───────────────┤                   │                                        │
 │ Uncommitted changes    │                   │                                        │
 │ Remove the preview     │                   │                                        │
 │ Branched from feat/a   │                   │                                        │
@@ -243,7 +273,9 @@ keeps the position.
 ```
 
 - Three panes: worktrees | files | diff. `⌘\` and the toolbar's sidebar button hide or show the
-  worktree list. Pane widths are remembered.
+  worktree list. Pane widths are remembered. The sidebar stacks the worktree list, the pull
+  request list (§7.2.2) and the commit list, each split's height remembered; View › Show Pull
+  Requests hides or shows the middle one.
 - One window per repo, listing only that repo's worktrees. Opening another repo opens another
   window; ``⌘` `` and the Window menu move between them. Window tabs are off: with a sidebar, macOS
   puts the tab bar beside it, so the tab bar moves between tabs whose sidebars differ. A window's
@@ -332,6 +364,47 @@ switches and launches.
 A commit's context menu has Copy Commit ID (the full SHA), Copy Subject, Show Only This Commit
 and, while the diff covers less than everything, Show All Changes. Right-clicking inside a
 selection acts on its newest commit, and so do Review › Copy Commit ID and Copy Commit Subject.
+
+### 7.2.2 Pull request list
+
+Under the worktree list, the repo's open pull requests the reader might review: other people's,
+not checked out here. Read through `gh` like §7.8, so without `gh`, a login or a GitHub remote
+the list isn't there at all.
+
+- **Listed:** open PRs on the PR remote (§7.8), less the reader's own (gh's login), less any
+  whose head branch a worktree has checked out (that worktree's row already shows it), less what
+  the filters hide.
+- **A row:** `#2780` and the title, shortened at the end; the author's login and how long since
+  it was updated; a draft's octicon; `+/−` totals; "review requested" in orange words when
+  GitHub asks the reader for a review, directly or through one of their teams; and "new
+  commits" when its head moved since the reader marked any of its files viewed.
+- **Order:** review requested first, then most recently updated.
+- **Filters:** the list's header has a filter menu, also View › Pull Request Filters: Hide
+  Drafts, Hide Bots (logins ending `[bot]` and GitHub Apps), Only Review Requests, and Hidden
+  Authors and Hidden Labels, each a submenu of the authors and labels the open PRs have, with a
+  check on the hidden ones. A row's context menu has Hide Pull Requests by `<login>` and Hide
+  This Pull Request; a PR hidden by number stays hidden until it closes. Filters are per repo
+  (§11). The header says how many are listed and how many the filters hide ("12 · 28 hidden"),
+  and Show Hidden lists them dimmed until it's turned off.
+- **At most 100:** Seam reads up to 1000 open PRs; when more than 100 pass the filters, the 100
+  most recently updated are listed and the header says so ("100 most recent of 230").
+- **Selecting** a row opens its review in the file list and diff. The worktree and pull request
+  lists share one selection; `⌘[`/`⌘]` walk the worktrees, then the pull requests, and `⌘K`
+  matches PRs by number, title and author as well. `⌘1`…`⌘9` stay the worktrees. Each PR keeps
+  its own scroll position, selected file and commits, as a worktree does.
+- **Fetching:** the PRs listed are fetched into Seam's store in the background (§8.3.1) when the
+  list is read and a head has moved, so selecting one rarely waits. One that does shows
+  "Fetching #2780…" where the diff goes; a failure says why in a banner above the diff, with
+  Try Again and Open on GitHub, and the list stays as it was.
+- **Threads:** GitHub's review threads and conversation, read-only, exactly as on a worktree's PR
+  (§7.9), read when the PR is first selected and then by §7.9's rules while it's listed. Seam's
+  own threads need a worktree for an agent to answer in, so `c` and Review ›
+  Comment… are disabled on a pull request review, saying why in their tooltip.
+- **Commands:** File › Open Pull Request in Browser, Copy Pull Request URL and Copy Pull
+  Request Number act on the selected PR too; a row's context menu has them, the two Hide
+  commands, and Copy Worktree Command, which copies `git fetch origin pull/N/head:pr-N && git
+  worktree add ../pr-N pr-N` (with the PR remote's name) for checking it out by hand; Seam runs
+  nothing in the repo.
 
 ### 7.3 File list
 
@@ -427,6 +500,14 @@ There is no panel beside the diff: a thread is read and answered in its card in 
   place on every file. The checkbox's tooltip says that `v` also moves to the next unviewed
   file, which a click doesn't. The chevron and checkbox are drawn at the text's height. A path too long
   for the pane is shortened in the middle, so the counts and checkbox stay in view.
+- **Where you are:** while a file's header is stuck at the top, it names, in grey after the
+  path, the definitions around the line under it, outermost first (`DeliveryHandler › Handle`),
+  as hunk headers do; it changes as the reader scrolls. It shares the header's row: when the
+  row is short of room the definitions give way first, keeping the innermost, then the path.
+- **Trivial changes:** a file whose changes are all inside comments, or all whitespace, says
+  "comments only" or "whitespace only" in grey after its path, like "generated", from the
+  highlighter's comment spans on both sides. It's a label: the file isn't collapsed, sorted
+  elsewhere or marked viewed, since commented-out code is a comment too.
 - Syntax highlighting (§8.4).
 - A CRLF file's lines look like any other's: the CR at a line's end isn't drawn. View › Show
   Carriage Returns draws it as ␍ in every worktree, and is remembered; off by default.
@@ -442,8 +523,33 @@ There is no panel beside the diff: a thread is read and answered in its card in 
   takes no comments, shows no old-side threads and isn't highlighted. The copy is kept when the
   file is marked (§11); one Seam doesn't have is read from git if it was ever staged or
   committed, and otherwise a notice says it's gone.
+- **Since my last pass:** Review › Show Only Changes Since Viewed (`⌥⇧V`) does that for the
+  whole review: the diff and file list keep only the files changed since they were viewed, each
+  showing its change since viewed, and the file list's header says "Since viewed · 4 files";
+  files never marked viewed aren't in it, and the header says how many those are. Running it
+  again, or Show Full Diff, goes back. It is how a second round with an agent, or a pull request
+  pushed to since, is read.
 - **Expanding context:** each gap between hunks has controls for "↑ 20 lines", "↓ 20 lines" and
-  "all". These use the full file contents from the base and the working tree.
+  "all". These use the full file contents from the base and the working tree. Where the hunk
+  next to a gap is inside a definition the gap cuts (§8.4's definitions), a fourth control,
+  "whole `Handle`", opens the gap to that definition's first or last line, up to 300 lines;
+  past that it reads "↓ 300 lines of `Handle`".
+- **Outline:** each file's header can open a list of the definitions its change touches, under
+  the header: `+ ValidateOrder` added, `− LegacyParse` removed, `~ Handle` with "signature" when
+  its first line changed, else "body", and "40 → 180 lines" when its length changed by half or
+  more. A row scrolls to the definition. Definitions are matched across the sides by their
+  path of names, overloads by order. A collapsed file shows its outline in place of its hunks.
+  View › Show Outlines turns them on for every file (remembered); `⇧O` toggles the current
+  file's. Files in languages without definitions (§8.4) have none.
+- **Moved code:** a block of at least 4 lines that isn't only braces, blank lines or keywords,
+  removed in one place and added in another (in the same file or another), is drawn dimmed on
+  both ends with "Moved to `Orders.cs:120`" and "Moved from `Orders.cs:48`" bands that jump to
+  the other end. Whitespace doesn't count; lines changed inside a moved block keep their word
+  highlights, so only those draw the eye.
+- **Repeated edits:** when several hunks are each nothing but the same token replacement, a
+  band above the first file says "14 hunks in 9 files only change `userId` → `accountId`" with
+  Show, Collapse (those hunks become one line each) and Mark Files Viewed for the files whose
+  every hunk it explains. A hunk with anything else in it isn't counted.
 - Line numbers for both sides. Hunk names, gap controls and notices line up with the code: in
   side-by-side mode, with the left column's. Line wrapping is off by default (toggle `w`). Without wrapping,
   unified mode scrolls horizontally; split mode keeps each side at half the width and clips long
@@ -465,6 +571,29 @@ There is no panel beside the diff: a thread is read and answered in its card in 
   loaded): not above the first hunk, and not where a gap row already separates the hunks. Once a
   gap is fully expanded, the hunk below it has no header at all. The header rows stay in the row
   model at no height, so hunk navigation still stops at them.
+- **Change ruler:** the diff's right edge, where thread ticks are (§7.7), also marks every hunk
+  with a short grey bar, and dims those of viewed files, so the reader sees where the change is
+  and how much is left. Thread ticks stay on top and keep their colour; marks closer than 2 pt
+  merge.
+
+### 7.4.1 Moving by definitions
+
+- **Go to Symbol** (`⇧⌘O`, Go › Go to Symbol…): a fuzzy search over every definition in the
+  review's files, changed or not, each with its file and a `+ − ~` mark when the change touches
+  it; changed ones rank first. Return scrolls there, opening the gap around an unchanged one.
+  Until the files are parsed, a row says "Still reading 12 files…". Files in languages without
+  definitions are matched by name.
+- **Find Definition and Uses** (`⌘`-click an identifier, or Go › Find Definition and Uses with
+  the cursor on one): when a file in the review defines it, the diff jumps there. Either way a
+  card opens under the line, like a thread's, listing where else the name appears: in this
+  diff first ("6 in this diff"), then elsewhere in the worktree or the pull request's head ("3
+  elsewhere"), each with its line. A row in the diff jumps; one elsewhere shows its file's lines
+  around it read-only in the card. It's text, not meaning: names shorter than 4 characters
+  aren't looked up, and at most 200 places are listed.
+- **Back and Forward** (`⌃-`, `⌃⇧-`, Go › Back and Forward): every jump (a symbol, a
+  definition, an outline row, a moved block, a thread, a search result, a find match, a
+  file picked in the list) remembers where the reader was, per review. A place in a file the
+  diff no longer has is skipped.
 
 ### 7.5 Keyboard
 
@@ -479,6 +608,11 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 | `space` / `⇧space` | page down / up |
 | `v` | toggle viewed, then jump to the next unviewed file |
 | `⇧V` | show only what changed since the file was viewed, or the full diff again |
+| `⌥⇧V` | the same for the whole review: only files changed since viewed (§7.4) |
+| `⇧O` | open or close the current file's outline |
+| `⇧⌘O` | go to symbol (§7.4.1) |
+| `⌘`-click | find the identifier's definition and uses |
+| `⌃-` / `⌃⇧-` | back / forward to where a jump started |
 | `s` | side-by-side / unified |
 | `w` | wrap |
 | `1` `2` `3` | scope |
@@ -606,6 +740,13 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   threads and how many are on the pull request, and an open pull request's failed checks, to fix
   once the threads are answered (`gh pr checks` lists them). Threads' header has it too (§7.3.2).
   Seam doesn't type into terminals.
+- **Asking an agent to review:** Review › Copy Prompt for Reviewer Agent puts on the clipboard
+  a prompt for a second agent in the worktree: review the branch's change against the base Seam
+  shows (the base's SHA, and `git diff <base>` to read it), open a thread with `seam comment`
+  for each real problem, at most 10, the most serious first, and a note (`--note`) for anything
+  the reader should know that asks no change; leave existing threads alone. Its findings then
+  come in as the reviewer's threads, through Awaiting You and notifications like any agent's.
+  Worktrees only, since `seam` acts on the worktree it runs in.
 - **Storage:** outside the repository, which Seam never writes to: one JSON file per repo under
   `~/Library/Application Support/Seam/threads/`, keyed by the repo's common git directory, with
   threads grouped by worktree path. The app and the `seam` command both read and write it:
@@ -674,7 +815,10 @@ Each worktree's branch shows its GitHub pull request, read through the user's ow
   Check Again.
 - **Cost:** GitHub charges a query for every check and review it reaches, and the review
   decision takes it seconds over a hundred PRs, so a repo's open PRs are one `gh pr list`
-  without them (under a second); each worktree's open PR then gets one `gh pr view` for its
+  without them (under a second), which also carries what the pull request list (§7.2.2) needs:
+  author, labels, review requests, draft, `+/−`, head and base, up to 1000 PRs a read. Which teams
+  the reader is in is read once per launch (`gh api user/teams`, a fixed read like ADR 0006's),
+  so a review requested from a team counts. Each worktree's open PR then gets one `gh pr view` for its
   reviews and checks when it may have moved (updated, pushed, checks running, merge state
   unknown, or 10 minutes since; always on opening, Reload or a Settings change), and each branch with none open one `--head` lookup, repeated at most every
   10 minutes. Those run side by side, at most six at once. The open PRs show as soon as the list
@@ -754,16 +898,23 @@ background unless Settings says otherwise (§12).
   can be turned off; the pull request kinds need pull requests shown (§7.8). Checks are news
   when a read finds them finished after one found them running on the same commit, so a run
   that starts and ends between two reads posts nothing.
+- **Other people's pull requests** (§7.2.2), each kind its own switch: a review was requested
+  from the reader or one of their teams; a new pull request passed the list's filters; one the
+  reader has started reviewing (marked a file viewed) got new commits; and someone commented on
+  one the reader has opened in Seam. Only what the list shows counts, so a filter quiets its
+  PRs. The first read of a repo's pull requests is a state, as below.
 - **What's news:** what changed between two looks at what Seam shows, per worktree. A worktree
   seen for the first time, a pull request's first read and Seam's threads before the author's
   git email is known are a state, not news, so opening a repo posts nothing. The author's own
   words, in Seam or on GitHub (gh's login), are never news.
-- **Looks:** the title is the worktree's branch; the text says what happened ("claude: Done in
+- **Looks:** the title is the worktree's branch, or `#2780 Slot preview` for a listed pull
+  request; the text says what happened ("claude: Done in
   a.txt:3", "Checks failed on #12 Count the lines", "#12 is ready to merge"). A comment's
   Markdown is shown as plain text on one line, without HTML comments. A worktree's
   notifications stack together, and a newer one about the same thread or PR replaces the older.
 - **Clicking** opens the repo's window on the worktree, with the thread open when it's about
-  one (`seam://open?path=…&thread=…`, §13).
+  one (`seam://open?path=…&thread=…`, §13), or on the pull request's review
+  (`seam://open?path=…&pr=2780`).
 - **Reading in the background:** while a pull request kind is on, PRs are read every 5 minutes
   in the background, every minute while checks run, instead of waiting for Seam to come to the
   front (§7.8).
@@ -831,9 +982,13 @@ seam-debug (M1)       ─ SeamCore
 ```
 
 - **State management:** observable models (`@Observable`), the pattern Apple recommends for
-  SwiftUI. One `RepoSession` (`@MainActor`) per window owns the worktree list, selection, and one
-  `WorktreeReview` per worktree. Views read the models and send intents as method calls. Data
-  flows one way: services → models → views.
+  SwiftUI. One `RepoSession` (`@MainActor`) per window owns the worktree list, the pull request
+  list, the selection, and one review per worktree and per selected pull request. A review is
+  the state every review shares (diff, contents, viewed marks, threads, scroll position) over a
+  source that says where its range comes from: a worktree (directory, detected base, all three
+  scopes, status) or a pull request (the store, its base branch and head, committed scope only).
+  Views read the models and send intents as method calls. Data flows one way: services → models
+  → views.
   - Rejected: TCA. It adds a large dependency and longer compile times, which a single-developer
     app with one main screen doesn't benefit from.
 - **Concurrency:** structured concurrency throughout. Long-lived work runs in actors:
@@ -844,7 +999,7 @@ seam-debug (M1)       ─ SeamCore
   Results arrive on the main actor. Each selection change cancels the task tree for the previous
   selection. Nothing blocks the main thread on I/O.
 - **Dependency injection:** protocol seams passed in through initialisers: `GitClient`,
-  `GitHubClient`, `FileSystem`, `FileWatcher`, `Clock`, `Store`, and `PlatformServices` for the
+  `GitHubClient`, `PullRequestStore` (§8.3.1), `FileSystem`, `FileWatcher`, `Clock`, `Store`, and `PlatformServices` for the
   pasteboard, browser and file manager (ADR 0007). No singletons, no DI framework. Tests and SwiftUI
   previews use in-memory fakes.
 - **Errors:** typed domain errors (`GitError`, `DetectionError`, …) as `throws(E)` where the set is
@@ -884,6 +1039,38 @@ seam-debug (M1)       ─ SeamCore
   `GH_PROMPT_DISABLED=1`, and drops `GH_REPO` and `GH_HOST`, so gh can't pick a remote, prompt, or
   write to `.git/config`. gh is found on the login shell's PATH, then in Homebrew's folders. Exit
   status 4 means signed out; rate limits and lost connections are told by gh's message.
+- **Finding uses** (§7.4.1): `git grep -n -w -F -z -I --no-color --full-name`, with the
+  `grep.*` settings that change its output pinned by `-c`, on the worktree's files, or on the
+  head commit in the store for a pull request.
+
+### 8.3.1 Pull request store (ADR 0008)
+
+Pull request reviews (§6.4) need the PR's commits, which the repo usually has only in part.
+Seam fetches them into a store of its own, never into the repo:
+
+- **The store** is a bare repository at `~/Library/Application Support/Seam/<repo-id>/pulls.git`
+  whose `objects/info/alternates` names the repo's object directory, so the objects the repo
+  already has (most of them: on a real repo 80 of 97 open PR heads) are read from there and
+  only the rest are stored. Seam creates it on the first fetch and may delete it at any time.
+- **One fetch** brings every listed PR's head and every base branch they name:
+  `git --git-dir=<store> fetch --no-tags --no-write-fetch-head <url>
+  +refs/pull/N/head:refs/seam/pull/N … +refs/heads/<base>:refs/seam/base/<base> …`, only when a
+  read finds a head or base the store doesn't have. Measured on 97 open PRs: 2.2 s from cold,
+  about 1 s with nothing new, 1.5 MB stored. Fetching the bases matters: diffed against the
+  repo's own `origin/main`, 8 hours stale, 9 of 97 PRs showed the wrong files.
+- **Transport:** https to the PR remote's host, signed in with gh's credentials
+  (`-c credential.helper= -c 'credential.helper=!<gh> auth git-credential'`), with
+  `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_NOSYSTEM` cleared so no `insteadOf` turns it back into ssh
+  and no helper prompts; `GIT_TERMINAL_PROMPT=0`. The repo's ssh setup isn't usable from
+  another git directory: a repo's own `core.sshCommand` picking a key, for one, is in the repo's
+  config, which the store doesn't read.
+- **Reads** are the same `GitClient` commands as a worktree's, with `--git-dir` on the store.
+  `PullRequestStore` is its own protocol with only `fetch` and the store's location, so the
+  test guard that the repo is only read keeps holding.
+- **Gone objects:** a `git gc` in the repo can drop objects the store borrowed. A read that finds
+  one missing deletes the store and fetches again, once, before it reports an error.
+- **Clean-up:** refs of closed PRs are deleted at the next fetch, and the store is repacked
+  (`git gc --prune=now` on the store) when it passes 200 MB.
 
 ### 8.4 Syntax highlighting
 
@@ -891,6 +1078,10 @@ seam-debug (M1)       ─ SeamCore
   TypeScript/TSX, JavaScript, JSON, YAML, Markdown, XML (csproj/props), Rust, TOML, Dockerfile,
   PHP.
   Other files show uncoloured; each grammar costs up to several MB of app size.
+- **Definitions** (hunk names §7.4, where you are, outlines, whole-definition gaps, Go to Symbol)
+  come from the same parse, for C#, TypeScript/TSX, JavaScript, Rust and PHP: each definition's
+  name, kind, lines and the line its body starts on. They are worked out with the highlights and
+  published in the same batches, so they cost no second parse and no extra redraw.
 - Parse the **whole** old and new files, then map the highlights onto diff lines. Highlighting a
   single hunk gets multi-line strings and comments wrong.
 - Highlighting runs off the main thread and is cached by language and content hash, which covers
@@ -957,6 +1148,11 @@ Measured on a real repository (347 refs, 20 worktrees):
 | Switching worktrees → first diff paint (≤ 5k diff lines) | ≤ 200 ms |
 | First paint for a 20k-line diff | ≤ 500 ms (highlighting may arrive later) |
 | Scrolling | no dropped frames at 120 Hz on a 20k-line diff |
+| Pull request list read, 100 open PRs (§7.2.2) | ≤ 2 s, listed rows shown from the last read meanwhile |
+| Store fetch, every listed PR's head and base (§8.3.1) | ≤ 5 s in the background; never on the main actor |
+| Selecting a fetched pull request → first diff paint (≤ 5k lines) | ≤ 200 ms, as a worktree |
+| Outline, moved code and repeated edits for a 20k-line diff | ≤ 300 ms after highlighting, off the main actor |
+| Go to Symbol, results per keystroke | ≤ 16 ms over 10k definitions |
 | Idle CPU with 20 watched worktrees | ~0 |
 
 ## 9. UI/UX conventions
@@ -1112,6 +1308,13 @@ Rules:
     and the file is marked "changed since viewed".
   - `viewed/<blob id>`: the text of each text file when it was marked viewed, for Show Changes
     Since Viewed (§7.4). Copies no mark refers to are removed when the state is next read.
+  - Per pull request review, keyed by its number: viewed marks (as above, the new side's blob
+    id, so a force-push shows as changed since viewed), scroll anchor, selected file, the head
+    last viewed (for "new commits", §7.2.2) and outline toggles. A PR that closed drops out at
+    the next read.
+  - The pull request list's filters (§7.2.2): hidden authors, labels and PR numbers, Hide
+    Drafts, Hide Bots, Only Review Requests.
+- `<repo-id>/pulls.git`: the pull request store (§8.3.1), a cache Seam may delete.
 - Settings live in `UserDefaults`.
 
 `state.json` is written as soon as anything in it changes, moving to another file included,
@@ -1120,7 +1323,7 @@ it. A worktree no longer listed drops out of the file. A file that can't be read
 `state.json.unreadable` rather than overwritten, and a banner above the diff says so; one that
 can't be written says why the same way.
 
-Seam writes nothing inside the repository or `.git`.
+Seam writes nothing inside the repository or `.git`; the store only reads the repo's objects.
 
 ## 12. Settings
 
@@ -1130,7 +1333,9 @@ Seam writes nothing inside the repository or `.git`.
 - Editor command template (§7.6).
 - Font and size (default: SF Mono 12). Tab width (default 4, or `.editorconfig` if present).
 - View mode (unified or side by side), whitespace mode, and number of context lines.
-- Show pull requests (default on; §7.8).
+- Show pull requests (default on; §7.8), and the pull request list (View menu; default on;
+  §7.2.2).
+- Outlines on every file (View menu; default off; §7.4).
 - Show carriage returns (View menu; default off; §7.4).
 - Notifications: a switch per kind, all on by default, and whether to post while Seam is in
   front (default off; §7.10).
@@ -1205,7 +1410,8 @@ wait with status 2. `--repo` widens `threads` and `wait` to every worktree, nami
 thread's worktree.
 
 Opening talks to the running app through a URL scheme (`seam://open?path=…&base=…`), launching
-the app if needed; a notification's click adds `&thread=…` to open a thread (§7.10). The command is a Swift executable (swift-argument-parser) in the app's
+the app if needed; a notification's click adds `&thread=…` to open a thread, or `&pr=…` to open
+a pull request's review (§7.10). The command is a Swift executable (swift-argument-parser) in the app's
 resources, built from the `seam` target on SeamCore; it resolves the path, percent-encodes it
 and opens the URL with the app it belongs to: it follows its
 own symlinks, and from `X.app/Contents/Resources/seam` runs `open -a X.app <url>`, because a
@@ -1321,6 +1527,36 @@ in the background, more slowly, only while a kind that needs them is on.
 agent finds it with `seam threads`, each notification kind fires once per event from a session
 test with fakes, and turning a kind off stops it.
 
+**M10 — Pull request list (§7.2.2, §7.10).** The sidebar's third list: other people's open pull
+requests, with the filters, the 100-most-recent limit, team review requests, the row and header
+commands, Copy Worktree Command, and the four notification kinds for listed PRs. Selecting a
+row opens it in the browser until M11.
+*Done when:* on a repo with 100 open PRs the list reads within the §8.7 budget at the existing
+polling rate (the added fields measured for GitHub's points before they're committed to), each
+filter hides what it says and survives a relaunch, a PR checked out in a worktree leaves the
+list, and every notification kind fires once per event from a session test with fakes.
+
+**M11 — Reviewing pull requests (§6.4, §8.3.1, ADR 0008).** The pull request store and its
+fetch; reviews split into shared state and a source, a pull request a source beside a worktree;
+the PR's review with its commits, GitHub's threads and conversation, viewed marks per PR, and
+"new commits"; Show Only Changes Since Viewed for the whole review (§7.4).
+*Done when:* selecting a listed PR shows GitHub's files for it with full context expansion and
+highlighting, a force-push on GitHub marks the files it changed as changed since viewed after the
+next read, the repo's refs, objects and `FETCH_HEAD` are unchanged by any of it (a test checks),
+and a store emptied behind Seam's back is rebuilt on the next read.
+
+**M12 — Moving by definitions (§7.4, §7.4.1).** Back and Forward first, then where you are in the
+sticky header, whole-definition gaps, the change ruler, outlines, Go to Symbol, and Find
+Definition and Uses.
+*Done when:* each works on a worktree and on a pull request review, Back returns from every kind
+of jump, and the §8.7 budgets hold on the 20k-line diff.
+
+**M13 — Reading less (§7.4, §7.7).** Trivial-change labels, moved code, repeated edits and Copy
+Prompt for Reviewer Agent.
+*Done when:* a fixture of moved methods, a fixture of a rename across files and one of
+comment-only changes are each labelled as such and nothing else is; the budgets hold on the
+20k-line diff.
+
 ## 15. Risks
 
 | Risk | Mitigation |
@@ -1332,7 +1568,19 @@ test with fakes, and turning a kind off stops it.
 
 ## 16. Open questions
 
-None.
+- Writing on a pull request review: Seam threads there need somewhere for an answer to go, and
+  posting to GitHub would end §3's read-only rule. Wanted later; not designed.
+- Definitions for Swift, Python and Go: no grammar is vendored for them, so their files have no
+  highlighting and none of §7.4.1. Not planned now.
+- A definition index of the whole worktree or PR head, rather than the review's files plus
+  `git grep`: only if Find Definition and Uses proves too coarse.
+
+Decided (2026-11-11): other people's open pull requests are listed under the worktrees and
+reviewed from a store Seam fetches into (ADR 0008), measured against `gh pr diff`, which gives
+no full files or commits and refuses diffs over 20,000 lines. GitHub's threads only on them for
+now. Navigation by definitions (M12) and reading aids (M13) follow; a "worth a look" list of
+suspicious changes (deleted tests, suppressions) was considered and dropped, as was a per-file
+risk score.
 
 Decided (2026-10-23): the next layout work is worktree rows that say what needs the reader
 (replies, failed checks), grouped by attention, and an Inbox navigator listing what awaits the
