@@ -227,6 +227,16 @@ extension DiffLayout {
         return row
     }
 
+    /// The definitions around the first line at or after `row` in its file, outermost first:
+    /// where the reader is, for the sticky header (SPEC §7.4).
+    package func definitions(around row: Int, syntax: FileSyntax?) -> [String] {
+        guard let syntax, rows.indices.contains(row) else { return [] }
+        let (number, isOld) = Self.lineNumber(rows[numberedRow(atOrAfter: row)])
+        guard let number else { return [] }
+        return SyntaxScope.names(
+            around: number - 1, in: isOld ? syntax.oldScopes : syntax.newScopes)
+    }
+
     private static func lineNumber(_ row: DiffRow) -> (Int?, Bool) {
         switch row {
         case .line(_, let line):

@@ -166,6 +166,7 @@ final class DiffCanvasView: NSView {
         return new.review.files.indices.filter { changed.contains(new.review.files[$0].diff.path) }
     }
 
+    var syntax: [String: FileSyntax] { shown?.syntax ?? [:] }
     var shownDraft: DraftMarker? { shown?.draft }
     var shownOpenThread: String? { shown?.openThread }
 
