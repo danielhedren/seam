@@ -17,6 +17,8 @@ final class OpenRequests {
         var base: String?
         /// From a notification: the thread to open once the worktree shows.
         var thread: String?
+        /// From a notification: a listed pull request to open (SPEC §7.2.2).
+        var pullRequest: Int?
     }
 
     var pending: [String: Request] = [:]
@@ -267,7 +269,8 @@ struct WindowRoot: View {
                 URL(fileURLWithPath: request.path, isDirectory: true))
         else { return false }
         requests.pending[resolved.main.path] = .init(
-            worktree: resolved.worktree.path, base: request.base, thread: request.thread)
+            worktree: resolved.worktree.path, base: request.base, thread: request.thread,
+            pullRequest: request.pullRequest)
         switch OpenRoute.decide(
             repo: resolved.main.path, shown: url?.path, open: requests.openWindows)
         {

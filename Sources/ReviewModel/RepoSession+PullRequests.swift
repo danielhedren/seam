@@ -14,6 +14,7 @@ extension RepoSession {
             )
             await pullRequestThreads?.reconcile(saved, repo: repo, worktrees: worktrees)
         }
+        pullRequests.listsOthers = { [settings] in settings.showsPullRequestList }
         pullRequests.readsInBackground = { [settings] in
             settings.showsPullRequests
                 && settings.notifications.contains(where: \.needsPullRequests)

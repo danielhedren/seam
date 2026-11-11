@@ -36,6 +36,9 @@
         }
       }
     },
+    "%@ asks you to review" : {
+
+    },
     "%@ in %@" : {
       "localizations" : {
         "en" : {
@@ -321,7 +324,16 @@
     "Go to %@" : {
 
     },
+    "Hide Bots' Pull Requests" : {
+
+    },
+    "Hide Draft Pull Requests" : {
+
+    },
     "Hide Missing Worktrees" : {
+
+    },
+    "Hide Pull Requests" : {
 
     },
     "Hide Sidebar" : {
@@ -364,6 +376,9 @@
 
     },
     "Merged" : {
+
+    },
+    "New pull request by %@" : {
 
     },
     "Next Awaiting You" : {
@@ -412,6 +427,9 @@
 
     },
     "Nothing in the diff matches “%@”." : {
+
+    },
+    "Only Pull Requests Asking for Me" : {
 
     },
     "Open Failed Check in Browser" : {
@@ -496,6 +514,12 @@
 
     },
     "Show Full Diff" : {
+
+    },
+    "Show Hidden Pull Requests" : {
+
+    },
+    "Show Pull Requests" : {
 
     },
     "Show Resolved Threads" : {

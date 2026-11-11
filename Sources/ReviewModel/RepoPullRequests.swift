@@ -40,8 +40,9 @@ package final class RepoPullRequests {
 
     package private(set) var saved = SavedPullRequests()
     package private(set) var status = Status.unknown
-    /// Where the PRs were last read from.
+    /// Where the PRs were last read from, and that remote's name here.
     private(set) var repo: GitHubRepo?
+    package private(set) var remote: String?
     /// Counts finished refreshes, for tests to wait on.
     private(set) var refreshes = 0
     /// Whether a read worked since the session opened; what was kept from before isn't news.
@@ -60,6 +61,8 @@ package final class RepoPullRequests {
     private let directory: URL
     /// The branches to look up: every worktree's, and every local parent's.
     private let branches: @MainActor () -> [String]
+    /// Whether the pull request list shows, so the whole list and review requests are kept.
+    @ObservationIgnored var listsOthers: @MainActor () -> Bool = { false }
     private var pending = false
     /// A forced trigger is waiting: the next read asks for every open PR's details.
     private var pendingIsForced = false
@@ -244,6 +247,7 @@ package final class RepoPullRequests {
                 return false
             }
             repo = targets.repo
+            remote = targets.remote
             let read = try await read(targets, refs: refs, forced: forced)
             guard !isStopped else { return true }
             saved = read
@@ -289,11 +293,23 @@ package final class RepoPullRequests {
         async throws(GitHubError) -> SavedPullRequests
     {
         let client = services.github.client
+        let lists = listsOthers()
+        let repo = targets.repo
+        // Beside the open list, not after it: each takes about a second.
+        let requests = Task {
+            await Result { () async throws(GitHubError) -> Set<Int>? in
+                lists ? try await client.reviewRequests(in: repo) : nil
+            }
+        }
+        defer { requests.cancel() }
         let open = try await client.openPullRequests(in: targets.repo)
+        let reviewRequests = try await requests.value.get()
+        let viewer = lists ? try await services.github.viewer(on: repo.host) : nil
         // The default branch is what PRs merge into, not a head worth asking about.
         let wanted = Set(branches()).subtracting([refs.defaultBranch(of: targets.remote) ?? "main"])
         let previous = saved.byBranch
-        var result = SavedPullRequests(read: .now)
+        var result = SavedPullRequests(
+            read: .now, open: lists ? open : nil, reviewRequests: reviewRequests, viewer: viewer)
         var jobs: [Job] = []
         for branch in wanted.sorted() {
             if var pullRequest = targets.pullRequest(for: branch, in: open) {
@@ -320,7 +336,6 @@ package final class RepoPullRequests {
         if !jobs.isEmpty {
             await finish(result, targets, refs)
         }
-        let repo = targets.repo
         let done = try await Self.concurrently(jobs) { job throws(GitHubError) -> PullRequest? in
             switch job {
             case .lookUp(let branch):

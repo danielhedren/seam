@@ -45,6 +45,8 @@ package final class RepoSession {
     package private(set) var selectedID: String?
     package var sort = WorktreeSort.attention
     package var hidesMissing = false
+    /// The pull request list also shows what its filters hide, dimmed (SPEC §7.2.2).
+    package var showsHiddenPullRequests = false
     package var diffHasFocus = false
     package var fileListHasFocus = false
     package var showsSwitcher = false
@@ -494,8 +496,22 @@ package final class RepoSession {
     }
 
     func notePullRequests(_ saved: SavedPullRequests) {
-        repoState.pullRequests = saved.byBranch.isEmpty ? nil : saved
+        repoState.pullRequests = saved.byBranch.isEmpty && saved.open == nil ? nil : saved
+        // A PR hidden by hand stays hidden until it closes.
+        if let open = saved.open, var filter = repoState.pullRequestFilter {
+            filter.hiddenNumbers.formIntersection(open.map(\.number))
+            repoState.pullRequestFilter = filter.isEmpty ? nil : filter
+        }
         persist()
+    }
+
+    /// What the pull request list hides (SPEC §7.2.2), saved with the repo's state.
+    package var pullRequestFilter: PullRequestFilter {
+        get { repoState.pullRequestFilter ?? PullRequestFilter() }
+        set {
+            repoState.pullRequestFilter = newValue.isEmpty ? nil : newValue
+            persist()
+        }
     }
 
     package func dismissStateProblem() {

@@ -14,8 +14,12 @@ public enum GitHubError: Error, Equatable, Sendable {
 public protocol GitHubClient: Sendable {
     /// The hosts gh has an account for.
     func hosts() async throws(GitHubError) -> [String]
+    /// The login gh signs in with on `host`, its active account there; nil without one.
+    func viewer(on host: String) async throws(GitHubError) -> String?
     /// The repo's open pull requests, without their reviews and checks.
     func openPullRequests(in repo: GitHubRepo) async throws(GitHubError) -> [PullRequest]
+    /// The open pull requests that ask the viewer for a review, directly or through a team.
+    func reviewRequests(in repo: GitHubRepo) async throws(GitHubError) -> Set<Int>
     /// The newest pull request from `branch` in any state, without its reviews and checks.
     func latestPullRequest(from branch: String, in repo: GitHubRepo) async throws(GitHubError)
         -> PullRequest?
@@ -57,21 +61,52 @@ public struct CLIGitHubClient: GitHubClient {
     }
 
     public func hosts() async throws(GitHubError) -> [String] {
+        try await accounts().filter { !$0.value.isEmpty }.keys.sorted()
+    }
+
+    public func viewer(on host: String) async throws(GitHubError) -> String? {
+        try await accounts()[host.lowercased()]?.first { $0.active == true }?.login
+    }
+
+    private struct Account: Decodable {
+        var login: String?
+        var active: Bool?
+    }
+
+    /// Reads gh's own config, so it costs no call to GitHub.
+    private func accounts() async throws(GitHubError) -> [String: [Account]] {
         struct Status: Decodable { var hosts: [String: [Account]] }
-        struct Account: Decodable {}
         let output = try await run(["auth", "status", "--json", "hosts", "--no-refresh"])
         do {
-            return try JSONDecoder().decode(Status.self, from: output).hosts
-                .filter { !$0.value.isEmpty }.keys.sorted()
+            let hosts = try JSONDecoder().decode(Status.self, from: output).hosts
+            return Dictionary(hosts.map { ($0.key.lowercased(), $0.value) }) { $0 + $1 }
         } catch {
             throw .failed("unexpected gh auth status output")
         }
     }
 
+    /// Up to 1000, for the pull request list (SPEC §7.2.2); the cheap fields page quickly.
     public func openPullRequests(in repo: GitHubRepo) async throws(GitHubError)
         -> [PullRequest]
     {
-        try await pullRequests(repo, ["--state", "open", "--limit", "100"])
+        try await pullRequests(repo, ["--state", "open", "--limit", "1000"])
+    }
+
+    /// GitHub's search counts team requests for `review-requested`; asking each PR for its
+    /// `reviewRequests` instead costs the list a second more.
+    public func reviewRequests(in repo: GitHubRepo) async throws(GitHubError) -> Set<Int> {
+        struct Number: Decodable { var number: Int }
+        let output = try await run(
+            [
+                "pr", "list", "-R", repo.slug, "--state", "open", "--limit", "1000", "--search",
+                "review-requested:@me", "--json", "number",
+            ])
+        do {
+            return Set(try JSONDecoder().decode([Number].self, from: output).map(\.number))
+        } catch {
+            logger.error("unreadable gh pr list output: \(error)")
+            throw .failed("unexpected gh pr list output")
+        }
     }
 
     public func latestPullRequest(from branch: String, in repo: GitHubRepo)

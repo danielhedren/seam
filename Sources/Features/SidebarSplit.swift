@@ -1,14 +1,23 @@
 import ReviewModel
 import SwiftUI
 
-/// The worktree list above the commit list. `VSplitView` lays its panes out again whenever the
+/// One of the sidebar's lists above another. `VSplitView` lays its panes out again whenever the
 /// bottom one is replaced, which every worktree switch does, so the divider is drawn here and
-/// its position remembered.
+/// its position remembered under `key`.
 struct SidebarSplit<Top: View, Bottom: View>: View {
     @ViewBuilder let top: Top
     @ViewBuilder let bottom: Bottom
-    @AppStorage("seam.commitListHeight") private var bottomHeight = 240.0
+    @AppStorage private var bottomHeight: Double
     @State private var dragStart: Double?
+
+    init(
+        key: String, height: Double = 240, @ViewBuilder top: () -> Top,
+        @ViewBuilder bottom: () -> Bottom
+    ) {
+        self.top = top()
+        self.bottom = bottom()
+        _bottomHeight = AppStorage(wrappedValue: height, key)
+    }
 
     private static var minimumHeight: Double { 80 }
 

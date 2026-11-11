@@ -19,6 +19,8 @@ public final class GitHubAccount {
     /// Bumped by Settings › Check Again; every window refreshes when it changes.
     package private(set) var retries = 0
     private var accountHosts: Set<String>?
+    /// gh's active login per host; it changes only when the user switches accounts.
+    private var viewers: [String: String] = [:]
     @ObservationIgnored private let onRetry: @Sendable () async -> Void
 
     init(client: any GitHubClient, onRetry: @escaping @Sendable () async -> Void = {}) {
@@ -50,12 +52,22 @@ public final class GitHubAccount {
         return known.union(hosts.intersection(accountHosts ?? []))
     }
 
+    /// Whose pull requests are the reader's own (SPEC §7.2.2). Asked once per host; a host
+    /// without an active account isn't kept, so the next read asks again.
+    func viewer(on host: String) async throws(GitHubError) -> String? {
+        if let viewer = viewers[host] { return viewer }
+        let viewer = try await client.viewer(on: host)
+        if let viewer { viewers[host] = viewer }
+        return viewer
+    }
+
     package func note(_ error: GitHubError?) {
         status = error.map(Status.failed) ?? .ready
     }
 
     package func checkAgain() {
         accountHosts = nil
+        viewers = [:]
         status = .unknown
         Task {
             await onRetry()
@@ -90,7 +102,13 @@ package actor GHLocator {
 package struct NoGitHub: GitHubClient {
     package func hosts() throws(GitHubError) -> [String] { throw .notInstalled }
 
+    package func viewer(on host: String) throws(GitHubError) -> String? { throw .notInstalled }
+
     package func openPullRequests(in repo: GitHubRepo) throws(GitHubError) -> [PullRequest] {
+        throw .notInstalled
+    }
+
+    package func reviewRequests(in repo: GitHubRepo) throws(GitHubError) -> Set<Int> {
         throw .notInstalled
     }
 

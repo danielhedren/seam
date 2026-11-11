@@ -17,8 +17,21 @@
     "%@ already exists and isn't Seam's. Remove it and try again." : {
 
     },
+    "%@ hidden" : {
+
+    },
     "%@ is not in a git repository." : {
 
+    },
+    "%@ most recent of %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ most recent of %2$@"
+          }
+        }
+      }
     },
     "%@ now opens Seam. Make sure ~/.local/bin is on your PATH." : {
 
@@ -54,6 +67,9 @@
           }
         }
       }
+    },
+    "A pull request is opened that the list shows" : {
+
     },
     "A pull request is ready to merge" : {
 
@@ -185,6 +201,9 @@
     "Copy Subject" : {
 
     },
+    "Copy Worktree Command" : {
+
+    },
     "Copy a prompt telling the agent to answer these threads" : {
 
     },
@@ -230,6 +249,9 @@
     "Done" : {
 
     },
+    "Draft" : {
+
+    },
     "Edit › Find" : {
 
     },
@@ -246,6 +268,9 @@
 
     },
     "Filter" : {
+
+    },
+    "Filter pull requests" : {
 
     },
     "Find in diff" : {
@@ -269,7 +294,25 @@
     "Go" : {
 
     },
+    "Hidden Authors" : {
+
+    },
+    "Hidden Labels" : {
+
+    },
+    "Hide Bots" : {
+
+    },
+    "Hide Drafts" : {
+
+    },
     "Hide Missing Worktrees" : {
+
+    },
+    "Hide Pull Requests by %@" : {
+
+    },
+    "Hide This Pull Request" : {
 
     },
     "Ignore all whitespace" : {
@@ -347,6 +390,12 @@
     "No matching shortcuts" : {
 
     },
+    "No one else's pull requests are open." : {
+
+    },
+    "No pull requests match the filters." : {
+
+    },
     "No results" : {
 
     },
@@ -378,6 +427,9 @@
 
     },
     "Older commits not shown" : {
+
+    },
+    "Only Review Requests" : {
 
     },
     "Open" : {
@@ -431,6 +483,9 @@
       }
     },
     "Previous match" : {
+
+    },
+    "Pull Requests" : {
 
     },
     "Pull request #%@ merges into %@. Diff against %@ instead?" : {
@@ -533,6 +588,9 @@
     "Show Full Diff" : {
 
     },
+    "Show Hidden" : {
+
+    },
     "Show Only This Commit" : {
 
     },
@@ -561,6 +619,9 @@
 
     },
     "Size" : {
+
+    },
+    "Someone asks you to review their pull request" : {
 
     },
     "Someone comments on GitHub" : {
@@ -660,6 +721,9 @@
 
     },
     "prunable" : {
+
+    },
+    "review requested" : {
 
     },
     "stale parent" : {

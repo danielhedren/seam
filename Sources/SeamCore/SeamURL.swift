@@ -1,17 +1,22 @@
 import Foundation
 
-/// The `seam://open?path=…&base=…&thread=…` contract between the `seam` command, notifications
-/// and the app (SPEC §13).
+/// The `seam://open?path=…&base=…&thread=…&pr=…` contract between the `seam` command,
+/// notifications and the app (SPEC §13).
 public struct SeamURL: Equatable, Sendable {
     public var path: String
     public var base: String?
     /// A thread to open once the worktree shows.
     public var thread: String?
+    /// A pull request in the repo's list to open (SPEC §7.2.2).
+    public var pullRequest: Int?
 
-    public init(path: String, base: String? = nil, thread: String? = nil) {
+    public init(
+        path: String, base: String? = nil, thread: String? = nil, pullRequest: Int? = nil
+    ) {
         self.path = path
         self.base = base
         self.thread = thread
+        self.pullRequest = pullRequest
     }
 
     public init?(_ url: URL) {
@@ -22,6 +27,7 @@ public struct SeamURL: Equatable, Sendable {
         self.path = path
         base = items.first { $0.name == "base" }?.value.flatMap { $0.isEmpty ? nil : $0 }
         thread = items.first { $0.name == "thread" }?.value.flatMap { $0.isEmpty ? nil : $0 }
+        pullRequest = items.first { $0.name == "pr" }?.value.flatMap { Int($0) }
     }
 
     public var url: URL? {
@@ -32,6 +38,7 @@ public struct SeamURL: Equatable, Sendable {
             [URLQueryItem(name: "path", value: path)]
             + (base.map { [URLQueryItem(name: "base", value: $0)] } ?? [])
             + (thread.map { [URLQueryItem(name: "thread", value: $0)] } ?? [])
+            + (pullRequest.map { [URLQueryItem(name: "pr", value: String($0))] } ?? [])
         return components.url
     }
 }

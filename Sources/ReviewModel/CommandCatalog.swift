@@ -94,6 +94,34 @@ package enum CommandCatalog {
             currentTitle: { $0.showsWorktreeList ? nil : localized("Show Sidebar") },
             run: { $0.showsWorktreeList.toggle() }),
         SeamCommand(
+            id: "toggle-pull-requests", title: localized("Hide Pull Requests"), menu: .view,
+            section: 0, shortcut: .none, isEnabled: { $0.settings.showsPullRequests },
+            currentTitle: {
+                $0.settings.showsPullRequestList ? nil : localized("Show Pull Requests")
+            },
+            run: { $0.settings.showsPullRequestList.toggle() }),
+        SeamCommand(
+            id: "pull-requests-drafts", title: localized("Hide Draft Pull Requests"),
+            menu: .view, section: 0, shortcut: .none,
+            isEnabled: { $0.showsPullRequestList }, isOn: { $0.pullRequestFilter.hidesDrafts },
+            run: { $0.pullRequestFilter.hidesDrafts.toggle() }),
+        SeamCommand(
+            id: "pull-requests-bots", title: localized("Hide Bots' Pull Requests"), menu: .view,
+            section: 0, shortcut: .none,
+            isEnabled: { $0.showsPullRequestList }, isOn: { $0.pullRequestFilter.hidesBots },
+            run: { $0.pullRequestFilter.hidesBots.toggle() }),
+        SeamCommand(
+            id: "pull-requests-requested", title: localized("Only Pull Requests Asking for Me"),
+            menu: .view, section: 0, shortcut: .none,
+            isEnabled: { $0.showsPullRequestList },
+            isOn: { $0.pullRequestFilter.onlyReviewRequests },
+            run: { $0.pullRequestFilter.onlyReviewRequests.toggle() }),
+        SeamCommand(
+            id: "pull-requests-hidden", title: localized("Show Hidden Pull Requests"),
+            menu: .view, section: 0, shortcut: .none,
+            isEnabled: { $0.showsPullRequestList }, isOn: { $0.showsHiddenPullRequests },
+            run: { $0.showsHiddenPullRequests.toggle() }),
+        SeamCommand(
             id: "bigger", title: localized("Make Text Bigger"), menu: .view, section: 1,
             shortcut: .command("="), isEnabled: { _ in true },
             run: { $0.settings.adjustFontSize(by: 1) }),

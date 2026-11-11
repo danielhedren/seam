@@ -375,17 +375,19 @@ the list isn't there at all.
   whose head branch a worktree has checked out (that worktree's row already shows it), less what
   the filters hide.
 - **A row:** `#2780` and the title, shortened at the end; the author's login and how long since
-  it was updated; a draft's octicon; `+/−` totals; "review requested" in orange words when
+  it was updated; a draft's octicon; `+/−` totals once it's in the store (§8.3.1, counted
+  there: GitHub's own take seconds over a hundred PRs); "review requested" in orange words when
   GitHub asks the reader for a review, directly or through one of their teams; and "new
   commits" when its head moved since the reader marked any of its files viewed.
 - **Order:** review requested first, then most recently updated.
-- **Filters:** the list's header has a filter menu, also View › Pull Request Filters: Hide
-  Drafts, Hide Bots (logins ending `[bot]` and GitHub Apps), Only Review Requests, and Hidden
-  Authors and Hidden Labels, each a submenu of the authors and labels the open PRs have, with a
-  check on the hidden ones. A row's context menu has Hide Pull Requests by `<login>` and Hide
+- **Filters:** the list's header has a filter menu: Hide Drafts, Hide Bots (logins ending
+  `[bot]` and GitHub Apps), Only Review Requests, Hidden Authors and Hidden Labels, each a
+  submenu of the authors and labels the open PRs have, with a check on the hidden ones, then
+  Show Hidden and Show All (every filter off). The View menu has the three switches and Show
+  Hidden Pull Requests too. A row's context menu has Hide Pull Requests by `<login>` and Hide
   This Pull Request; a PR hidden by number stays hidden until it closes. Filters are per repo
   (§11). The header says how many are listed and how many the filters hide ("12 · 28 hidden"),
-  and Show Hidden lists them dimmed until it's turned off.
+  and Show Hidden lists them dimmed, after the rest, until it's turned off.
 - **At most 100:** Seam reads up to 1000 open PRs; when more than 100 pass the filters, the 100
   most recently updated are listed and the header says so ("100 most recent of 230").
 - **Selecting** a row opens its review in the file list and diff. The worktree and pull request
@@ -816,9 +818,11 @@ Each worktree's branch shows its GitHub pull request, read through the user's ow
 - **Cost:** GitHub charges a query for every check and review it reaches, and the review
   decision takes it seconds over a hundred PRs, so a repo's open PRs are one `gh pr list`
   without them (under a second), which also carries what the pull request list (§7.2.2) needs:
-  author, labels, review requests, draft, `+/−`, head and base, up to 1000 PRs a read. Which teams
-  the reader is in is read once per launch (`gh api user/teams`, a fixed read like ADR 0006's),
-  so a review requested from a team counts. Each worktree's open PR then gets one `gh pr view` for its
+  author, labels, draft, head and base, up to 1000 PRs a read. Beside it, a second list
+  searches `review-requested:@me`, which GitHub answers for the reader and their teams alike
+  (about a second); asking every PR for its review requests instead costs the list a second
+  more. The reader's login is gh's active account for the host (`gh auth status`), no call to
+  GitHub. Measured on 97 open PRs. Each worktree's open PR then gets one `gh pr view` for its
   reviews and checks when it may have moved (updated, pushed, checks running, merge state
   unknown, or 10 minutes since; always on opening, Reload or a Settings change), and each branch with none open one `--head` lookup, repeated at most every
   10 minutes. Those run side by side, at most six at once. The open PRs show as soon as the list
@@ -1529,8 +1533,8 @@ test with fakes, and turning a kind off stops it.
 
 **M10 — Pull request list (§7.2.2, §7.10).** The sidebar's third list: other people's open pull
 requests, with the filters, the 100-most-recent limit, team review requests, the row and header
-commands, Copy Worktree Command, and the four notification kinds for listed PRs. Selecting a
-row opens it in the browser until M11.
+commands, Copy Worktree Command, and the notifications for a review requested and a new pull
+request. Selecting a row, or clicking its notification, opens it in the browser until M11.
 *Done when:* on a repo with 100 open PRs the list reads within the §8.7 budget at the existing
 polling rate (the added fields measured for GitHub's points before they're committed to), each
 filter hides what it says and survives a relaunch, a PR checked out in a worktree leaves the
@@ -1539,7 +1543,8 @@ list, and every notification kind fires once per event from a session test with 
 **M11 — Reviewing pull requests (§6.4, §8.3.1, ADR 0008).** The pull request store and its
 fetch; reviews split into shared state and a source, a pull request a source beside a worktree;
 the PR's review with its commits, GitHub's threads and conversation, viewed marks per PR, and
-"new commits"; Show Only Changes Since Viewed for the whole review (§7.4).
+"new commits", with its notification and that of a comment on a PR opened in Seam; `+/−` on
+the rows; Show Only Changes Since Viewed for the whole review (§7.4).
 *Done when:* selecting a listed PR shows GitHub's files for it with full context expansion and
 highlighting, a force-push on GitHub marks the files it changed as changed since viewed after the
 next read, the repo's refs, objects and `FETCH_HEAD` are unchanged by any of it (a test checks),

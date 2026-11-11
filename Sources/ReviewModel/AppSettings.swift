@@ -33,10 +33,18 @@ public final class AppSettings {
 
     /// Pull request markers through gh (SPEC §7.8), on wherever gh is installed.
     package var showsPullRequests: Bool { didSet { save(showsPullRequests, "showsPullRequests") } }
+    /// View › Show Pull Requests: other people's open PRs under the worktrees (SPEC §7.2.2).
+    package var showsPullRequestList: Bool {
+        didSet { save(showsPullRequestList, "showsPullRequestList") }
+    }
 
-    /// What notifications are about (SPEC §7.10); every kind is on until turned off.
+    /// What notifications are about (SPEC §7.10); every kind is on until turned off. Saved as
+    /// the kinds turned off, so a kind added later starts on.
     package var notifications: Set<NotificationKind> {
-        didSet { save(notifications.map(\.rawValue).sorted(), "notifications") }
+        didSet {
+            let off = Set(NotificationKind.allCases).subtracting(notifications)
+            save(off.map(\.rawValue).sorted(), "notificationsOff")
+        }
     }
     /// Off, notifications wait until Seam isn't the app in front.
     package var notifiesInFront: Bool { didSet { save(notifiesInFront, "notifiesInFront") } }
@@ -66,10 +74,20 @@ public final class AppSettings {
         collapsesViewed = value("collapsesViewed", true)
         showsResolvedThreads = value("showsResolvedThreads", false)
         showsPullRequests = value("showsPullRequests", true)
+        showsPullRequestList = value("showsPullRequestList", true)
         showsCarriageReturns = value("showsCarriageReturns", false)
-        notifications = Set(
-            value("notifications", NotificationKind.allCases.map(\.rawValue))
-                .compactMap(NotificationKind.init))
+        // Up to 0.4 `notifications` saved the kinds on, and only these six existed.
+        let firstKinds: [NotificationKind] = [
+            .agent, .checks, .review, .comment, .readyToMerge, .closed,
+        ]
+        let wereOn = (value("notifications", [String]()) as [String])
+            .compactMap(NotificationKind.init)
+        let wasSaved = defaults.object(forKey: "seam.notifications") != nil
+        let off = value(
+            "notificationsOff",
+            wasSaved ? firstKinds.filter { !wereOn.contains($0) }.map(\.rawValue) : [])
+        notifications = Set(NotificationKind.allCases)
+            .subtracting(off.compactMap(NotificationKind.init))
         notifiesInFront = value("notifiesInFront", false)
     }
 

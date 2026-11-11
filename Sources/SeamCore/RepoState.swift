@@ -43,6 +43,8 @@ public struct RepoState: Codable, Equatable, Sendable {
     public var selectedWorktree: String?
     /// The last pull requests read, shown at once on reopen (SPEC §7.8).
     public var pullRequests: SavedPullRequests?
+    /// What the pull request list hides (SPEC §7.2.2).
+    public var pullRequestFilter: PullRequestFilter?
 
     public init() {}
 }
@@ -54,15 +56,25 @@ public struct SavedPullRequests: Codable, Equatable, Sendable {
     public var baseRefs: [String: String] = [:]
     public var unpushed: [String: Int] = [:]
     public var read: Date?
+    /// Every open pull request, for the pull request list (SPEC §7.2.2); nil before one was read.
+    public var open: [PullRequest]?
+    /// The open ones asking the reader for a review.
+    public var reviewRequests: Set<Int>?
+    /// The reader's login, gh's active account.
+    public var viewer: String?
 
     public init(
         byBranch: [String: PullRequest] = [:], baseRefs: [String: String] = [:],
-        unpushed: [String: Int] = [:], read: Date? = nil
+        unpushed: [String: Int] = [:], read: Date? = nil, open: [PullRequest]? = nil,
+        reviewRequests: Set<Int>? = nil, viewer: String? = nil
     ) {
         self.byBranch = byBranch
         self.baseRefs = baseRefs
         self.unpushed = unpushed
         self.read = read
+        self.open = open
+        self.reviewRequests = reviewRequests
+        self.viewer = viewer
     }
 }
 

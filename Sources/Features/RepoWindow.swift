@@ -46,6 +46,9 @@ struct RepoWindow: View {
             .onChange(of: session.settings.showsPullRequests) {
                 Task { await session.refreshPullRequests() }
             }
+            .onChange(of: session.settings.showsPullRequestList) {
+                Task { await session.refreshPullRequests() }
+            }
             .onChange(of: session.services.github.retries) {
                 Task { await session.refreshPullRequests() }
             }
@@ -70,6 +73,10 @@ struct RepoWindow: View {
 
     private func handle(_ request: OpenRequests.Request?) async {
         guard let request else { return }
+        if let number = request.pullRequest {
+            session.openListedPullRequest(number)
+            return
+        }
         await session.handle(worktree: request.worktree, base: request.base, thread: request.thread)
     }
 
@@ -84,8 +91,16 @@ struct RepoWindow: View {
     /// toolbar that appears once the repo opens grows the titlebar and moves the content down.
     private var content: some View {
         NavigationSplitView(columnVisibility: columnVisibility) {
-            SidebarSplit {
-                WorktreeList(session: session)
+            SidebarSplit(key: "seam.commitListHeight") {
+                if session.showsPullRequestList {
+                    SidebarSplit(key: "seam.pullRequestListHeight", height: 200) {
+                        WorktreeList(session: session)
+                    } bottom: {
+                        PullRequestList(session: session)
+                    }
+                } else {
+                    WorktreeList(session: session)
+                }
             } bottom: {
                 if let review = session.selected {
                     CommitList(session: session, review: review)

@@ -269,6 +269,10 @@ package final class FakeGitHub: GitHubClient, Sendable {
         var threads: [Int: [GitHubReviewThread]] = [:]
         var conversations: [Int: [GitHubConversationItem]] = [:]
         var viewer: String?
+        /// The login gh signs in with, for the pull request list.
+        var login: String? = "me"
+        var reviewRequests: Set<Int> = []
+        var requestReads = 0
         var threadReads: [Int] = []
         var threadError: GitHubError?
         var holdsThreads = false
@@ -322,6 +326,16 @@ package final class FakeGitHub: GitHubClient, Sendable {
     package func failThreads(_ error: GitHubError?) {
         state.withLock { $0.threadError = error }
     }
+    /// Review-request searches, kept apart from `calls` like thread reads.
+    package var requestReads: Int { state.withLock { $0.requestReads } }
+
+    package func answer(reviewRequests: Set<Int>, login: String? = "me") {
+        state.withLock {
+            $0.reviewRequests = reviewRequests
+            $0.login = login
+        }
+    }
+
     /// Reads of the repo's open list: one per refresh that reached gh.
     package var reads: Int { calls.count { $0.hasPrefix("open ") } }
 
@@ -385,6 +399,20 @@ package final class FakeGitHub: GitHubClient, Sendable {
     package func hosts() async throws(GitHubError) -> [String] {
         try await call("hosts")
         return ["github.com"]
+    }
+
+    package func viewer(on host: String) async throws(GitHubError) -> String? {
+        if let error = state.withLock({ $0.error }) { throw error }
+        return state.withLock { $0.login }
+    }
+
+    package func reviewRequests(in repo: GitHubRepo) async throws(GitHubError) -> Set<Int> {
+        let (requests, error) = state.withLock { state in
+            state.requestReads += 1
+            return (state.reviewRequests, state.error)
+        }
+        if let error { throw error }
+        return requests
     }
 
     /// Without reviews and checks, like gh's list: they come from `pullRequest(_:in:)`.

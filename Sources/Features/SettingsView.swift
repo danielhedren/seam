@@ -157,6 +157,10 @@ struct NotificationSettings: View {
         case .comment: String(localized: "Someone comments on GitHub", bundle: .module)
         case .readyToMerge: String(localized: "A pull request is ready to merge", bundle: .module)
         case .closed: String(localized: "A pull request merges or closes", bundle: .module)
+        case .reviewRequested:
+            String(localized: "Someone asks you to review their pull request", bundle: .module)
+        case .newPullRequest:
+            String(localized: "A pull request is opened that the list shows", bundle: .module)
         }
     }
 

@@ -100,13 +100,20 @@ public struct PullRequest: Codable, Equatable, Sendable {
     /// Read with the reviews and checks; nil until then.
     public var mergeState: MergeState?
     public var updated: Date
+    /// The author's login; empty when gh didn't say.
+    public var author: String
+    public var authorIsBot: Bool
+    public var labels: [String]
 
     public init(
         number: Int, title: String, url: String, state: State, isDraft: Bool = false,
         head: String, headOwner: String, headCommit: String, base: String,
         review: Review = .none, checks: Checks = Checks(), mergeState: MergeState? = nil,
-        updated: Date
+        updated: Date, author: String = "", authorIsBot: Bool = false, labels: [String] = []
     ) {
+        self.author = author
+        self.authorIsBot = authorIsBot
+        self.labels = labels
         self.mergeState = mergeState
         self.number = number
         self.title = title
@@ -124,6 +131,28 @@ public struct PullRequest: Codable, Equatable, Sendable {
 }
 
 extension PullRequest {
+    /// State files written before the author and labels were read lack them.
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            number: try values.decode(Int.self, forKey: .number),
+            title: try values.decode(String.self, forKey: .title),
+            url: try values.decode(String.self, forKey: .url),
+            state: try values.decode(State.self, forKey: .state),
+            isDraft: try values.decode(Bool.self, forKey: .isDraft),
+            head: try values.decode(String.self, forKey: .head),
+            headOwner: try values.decode(String.self, forKey: .headOwner),
+            headCommit: try values.decode(String.self, forKey: .headCommit),
+            base: try values.decode(String.self, forKey: .base),
+            review: try values.decode(Review.self, forKey: .review),
+            checks: try values.decode(Checks.self, forKey: .checks),
+            mergeState: try values.decodeIfPresent(MergeState.self, forKey: .mergeState),
+            updated: try values.decode(Date.self, forKey: .updated),
+            author: try values.decodeIfPresent(String.self, forKey: .author) ?? "",
+            authorIsBot: try values.decodeIfPresent(Bool.self, forKey: .authorIsBot) ?? false,
+            labels: try values.decodeIfPresent([String].self, forKey: .labels) ?? [])
+    }
+
     /// The row's marker (SPEC §7.8): one state, the review's only while the PR is open.
     public enum Marker: Equatable, Sendable {
         case draft, waitingForReview, reviewed, approved, merged, closed
@@ -168,6 +197,16 @@ extension PullRequest {
 /// `gh pr list --json` output (gh's GraphQL names), turned into `PullRequest`.
 struct GHPullRequest: Decodable {
     struct Owner: Decodable { var login: String }
+    struct Author: Decodable {
+        var login: String
+        var isBot: Bool?
+
+        enum CodingKeys: String, CodingKey {
+            case login
+            case isBot = "is_bot"
+        }
+    }
+    struct Label: Decodable { var name: String }
     struct LatestReview: Decodable { var state: String }
     /// A CheckRun (`status`, `conclusion`, `detailsUrl`) or a StatusContext (`state`,
     /// `targetUrl`).
@@ -181,10 +220,11 @@ struct GHPullRequest: Decodable {
 
     /// Cheap enough for a repo's whole list. GitHub charges for every check and review a query
     /// reaches, and `reviewDecision` takes it seconds over a hundred PRs, so those are read per
-    /// PR (`detailFields`).
+    /// PR (`detailFields`). The author and labels cost nothing measurable; `additions`,
+    /// `deletions` and `reviewRequests` add seconds, so they're left out (SPEC §7.8).
     static let summaryFields = [
         "number", "title", "url", "state", "isDraft", "headRefName", "headRefOid",
-        "headRepositoryOwner", "baseRefName", "updatedAt",
+        "headRepositoryOwner", "baseRefName", "updatedAt", "author", "labels",
     ]
     static let detailFields =
         summaryFields + [
@@ -205,6 +245,8 @@ struct GHPullRequest: Decodable {
     var statusCheckRollup: [Check]?
     var mergeStateStatus: String?
     var updatedAt: Date
+    var author: Author?
+    var labels: [Label]?
 
     static func decode(_ data: Data) throws -> [PullRequest] {
         try decoder.decode([GHPullRequest].self, from: data).map(\.pullRequest)
@@ -226,7 +268,8 @@ struct GHPullRequest: Decodable {
             state: PullRequest.State(rawValue: state.lowercased()) ?? .open, isDraft: isDraft,
             head: headRefName, headOwner: headRepositoryOwner?.login ?? "",
             headCommit: headRefOid, base: baseRefName, review: review, checks: checks,
-            mergeState: mergeState, updated: updatedAt)
+            mergeState: mergeState, updated: updatedAt, author: author?.login ?? "",
+            authorIsBot: author?.isBot ?? false, labels: (labels ?? []).map(\.name))
     }
 
     private var mergeState: PullRequest.MergeState? {

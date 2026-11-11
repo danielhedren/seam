@@ -23,6 +23,10 @@ extension RepoSession {
         let settings = settings
         guard settings.notifiesInFront || !isAppActive else { return }
         for event in events where settings.notifications.contains(event.kind) {
+            if let listed = NotificationText.listed(event, repo: directory.path) {
+                services.platform.notify(listed)
+                continue
+            }
             guard let review = reviews.first(where: { $0.id == event.worktree }) else { continue }
             services.platform.notify(NotificationText.notification(event, in: review))
         }
@@ -66,7 +70,7 @@ extension RepoSession {
             }
             worktrees[review.id] = entry
         }
-        return NotificationSnapshot(worktrees: worktrees)
+        return NotificationSnapshot(worktrees: worktrees, listed: listedSnapshot)
     }
 
     private func learnReader(in worktree: String) {
@@ -137,10 +141,36 @@ enum NotificationText {
         case .closed(let pullRequest):
             id = "closed-\(pullRequest.number)"
             body = String(localized: "#\(String(pullRequest.number)) was closed", bundle: .module)
+        // Posted through `listed(_:repo:)`, not about a worktree.
+        case .reviewRequested(let pullRequest), .newPullRequest(let pullRequest):
+            id = "pr-\(pullRequest.number)"
+            body = pullRequest.title
         }
         return SeamNotification(
             id: "\(review.id)|\(id)", group: review.id, title: title, body: body,
             url: SeamURL(path: review.id, thread: thread).url)
+    }
+
+    /// News about a listed pull request: titled with it, and stacked per repo. Nil for news
+    /// about a worktree.
+    static func listed(_ event: NotificationEvent, repo: String) -> SeamNotification? {
+        let pullRequest: PullRequest
+        let body: String
+        switch event.what {
+        case .reviewRequested(let requested):
+            pullRequest = requested
+            body = String(
+                localized: "\(requested.author) asks you to review", bundle: .module)
+        case .newPullRequest(let opened):
+            pullRequest = opened
+            body = String(localized: "New pull request by \(opened.author)", bundle: .module)
+        default:
+            return nil
+        }
+        let number = String(pullRequest.number)
+        return SeamNotification(
+            id: "\(repo)|pr-\(number)", group: repo, title: "#\(number) \(pullRequest.title)",
+            body: body, url: SeamURL(path: repo, pullRequest: pullRequest.number).url)
     }
 
     /// A comment's Markdown as one line of plain text: a notification shows a line or two and

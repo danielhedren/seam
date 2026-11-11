@@ -58,6 +58,30 @@ import Testing
         #expect(read.marker == .waitingForReview)
     }
 
+    @Test func theAuthorAndLabelsAreRead() throws {
+        let json = pullRequest().replacingOccurrences(
+            of: #""updatedAt""#,
+            with:
+                #""author":{"login":"app/dependabot","is_bot":true},"labels":[{"name":"deps"},{"name":"ci"}],"updatedAt""#
+        )
+        let read = try #require(try decode(json).first)
+        #expect(read.author == "app/dependabot")
+        #expect(read.authorIsBot)
+        #expect(read.labels == ["deps", "ci"])
+    }
+
+    /// State files from before the author and labels were read must still load (SPEC §11).
+    @Test func aPullRequestSavedWithoutAnAuthorStillLoads() throws {
+        let saved = PullRequest(
+            number: 12, title: "t", url: "u", state: .open, head: "feature", headOwner: "owner",
+            headCommit: "abc", base: "main", updated: Date(timeIntervalSince1970: 0))
+        var object = try #require(
+            try JSONSerialization.jsonObject(with: JSONEncoder().encode(saved)) as? [String: Any])
+        for key in ["author", "authorIsBot", "labels"] { object[key] = nil }
+        let old = try JSONSerialization.data(withJSONObject: object)
+        #expect(try JSONDecoder().decode(PullRequest.self, from: old) == saved)
+    }
+
     @Test func reviewsFollowGitHubsDecisionElseTheLatestReviews() throws {
         func review(_ decision: String, _ reviews: [String]) throws -> PullRequest.Review? {
             try decode(pullRequest(decision: decision, reviews: reviews)).first?.review
@@ -201,12 +225,35 @@ import Testing
         let lines = try logged
         #expect(
             lines.first
-                == "pr list -R github.com/owner/app --state open --limit 100 --json "
+                == "pr list -R github.com/owner/app --state open --limit 1000 --json "
                 + GHPullRequest.summaryFields.joined(separator: ","))
         #expect(lines.dropFirst().first == "prompt=1 repo=unset")
         let real = try #require(realpath(folder.path, nil))
         defer { free(real) }
         #expect(lines.last == String(cString: real))
+    }
+
+    /// GitHub's search counts a review asked of one of the reader's teams.
+    @Test func reviewRequestsAreSearchedForTheReader() async throws {
+        try script(output: #"[{"number":3},{"number":9}]"#)
+        let found = try await client().reviewRequests(in: repo)
+        #expect(found == [3, 9])
+        #expect(
+            try logged.first
+                == "pr list -R github.com/owner/app --state open --limit 1000 --search "
+                + "review-requested:@me --json number")
+    }
+
+    @Test func theViewerIsGhsActiveAccountOnTheHost() async throws {
+        try script(
+            output: """
+                {"hosts":{"github.com":[
+                  {"login":"work","active":true,"host":"github.com"},
+                  {"login":"home","active":false,"host":"github.com"}]}}
+                """)
+        #expect(try await client().viewer(on: "github.com") == "work")
+        #expect(try await client().viewer(on: "ghe.example.com") == nil)
+        #expect(try logged.first == "auth status --json hosts --no-refresh")
     }
 
     @Test func aBranchsLatestPullRequestIsAskedForByItsHead() async throws {

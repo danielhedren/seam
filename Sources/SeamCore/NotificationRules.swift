@@ -4,6 +4,8 @@ import GitKit
 /// What a notification can be about (SPEC §7.10); each can be turned off in Settings.
 public enum NotificationKind: String, CaseIterable, Codable, Sendable {
     case agent, checks, review, comment, readyToMerge, closed
+    /// Other people's pull requests, from the pull request list (SPEC §7.2.2).
+    case reviewRequested, newPullRequest
 
     /// The kinds that need pull requests read, in the background too.
     public var needsPullRequests: Bool { self != .agent }
@@ -24,6 +26,9 @@ public struct NotificationEvent: Equatable, Sendable {
         case readyToMerge(PullRequest)
         case merged(PullRequest)
         case closed(PullRequest)
+        /// About a pull request in the list, not a worktree's (SPEC §7.2.2).
+        case reviewRequested(PullRequest)
+        case newPullRequest(PullRequest)
     }
 
     public struct Comment: Equatable, Sendable {
@@ -38,6 +43,7 @@ public struct NotificationEvent: Equatable, Sendable {
         }
     }
 
+    /// The worktree's path; empty for a listed pull request's news.
     public var worktree: String
     public var what: What
 
@@ -49,6 +55,8 @@ public struct NotificationEvent: Equatable, Sendable {
         case .comments: .comment
         case .readyToMerge: .readyToMerge
         case .merged, .closed: .closed
+        case .reviewRequested: .reviewRequested
+        case .newPullRequest: .newPullRequest
         }
     }
 }
@@ -86,10 +94,29 @@ public struct NotificationSnapshot: Equatable, Sendable {
         }
     }
 
-    public var worktrees: [String: Worktree]
+    /// The pull request list as last read this session; nil before that, so the first read
+    /// is a state.
+    public struct Listed: Equatable, Sendable {
+        /// Every open PR the list could show, hidden ones included, so a filter turned off
+        /// doesn't make old PRs news.
+        public var known: Set<Int>
+        /// The rows the list shows.
+        public var shown: [Int: PullRequest]
+        public var reviewRequests: Set<Int>
 
-    public init(worktrees: [String: Worktree] = [:]) {
+        public init(known: Set<Int>, shown: [Int: PullRequest], reviewRequests: Set<Int>) {
+            self.known = known
+            self.shown = shown
+            self.reviewRequests = reviewRequests
+        }
+    }
+
+    public var worktrees: [String: Worktree]
+    public var listed: Listed?
+
+    public init(worktrees: [String: Worktree] = [:], listed: Listed? = nil) {
         self.worktrees = worktrees
+        self.listed = listed
     }
 }
 
@@ -108,6 +135,26 @@ public enum NotificationRules {
             // A worktree seen for the first time has no news, only a state.
             guard let before = old.worktrees[path] else { return [] }
             return events(before, now).map { NotificationEvent(worktree: path, what: $0) }
+        } + listedEvents(from: old.listed, to: new.listed)
+    }
+
+    /// Only what the list shows is news: a filter quiets its PRs. A new PR asking for a review
+    /// says that, once.
+    private static func listedEvents(
+        from before: NotificationSnapshot.Listed?, to now: NotificationSnapshot.Listed?
+    ) -> [NotificationEvent] {
+        guard let before, let now else { return [] }
+        return now.shown.values.sorted { $0.number < $1.number }.compactMap { pullRequest in
+            let number = pullRequest.number
+            let what: NotificationEvent.What? =
+                if now.reviewRequests.contains(number), !before.reviewRequests.contains(number) {
+                    .reviewRequested(pullRequest)
+                } else if !before.known.contains(number) {
+                    .newPullRequest(pullRequest)
+                } else {
+                    nil
+                }
+            return what.map { NotificationEvent(worktree: "", what: $0) }
         }
     }
 
