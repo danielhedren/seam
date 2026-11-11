@@ -287,6 +287,12 @@ public final class DiffScrollView: NSScrollView {
         setMark(anchor)
     }
 
+    public func scroll(to anchor: ScrollAnchor) {
+        restore(anchor)
+        jumpedTop = visibleTop
+        markReading()
+    }
+
     /// Next or previous file header, relative to the file under the sticky header.
     public func moveFile(by delta: Int) {
         let target =

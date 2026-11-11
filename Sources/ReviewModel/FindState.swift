@@ -8,10 +8,11 @@ package final class FindState {
     package var isShown = false
     /// Searches whenever it changes, typed or filled in from a selection before the bar exists.
     package var query = "" {
-        didSet { if query != oldValue { onQueryChange?() } }
+        didSet { if query != oldValue { onQueryChange?(oldValue.isEmpty) } }
     }
-    /// The session decides what the diff highlights: this query, or the search's.
-    @ObservationIgnored var onQueryChange: (() -> Void)?
+    /// The session decides what the diff highlights: this query, or the search's. `started`
+    /// when there was no query before, so the first match is a jump to come back from.
+    @ObservationIgnored var onQueryChange: ((_ started: Bool) -> Void)?
     package var result: (current: Int?, total: Int) = (nil, 0)
     /// Bumped by Edit › Find while the bar is already open, to focus its field again.
     package private(set) var focusRequests = 0

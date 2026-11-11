@@ -41,6 +41,8 @@ package final class RepoSession {
     package var promptCopied: Task<Void, Never>?
     /// Each worktree's open thread and draft, kept while another is shown (SPEC §7.7).
     var threadSelections: [String: ThreadSelection] = [:]
+    /// Where each worktree's jumps started, for Back and Forward (SPEC §7.4.1).
+    var jumpHistories: [String: JumpHistory] = [:]
     package private(set) var reviews: [WorktreeReview] = []
     package private(set) var selectedID: String?
     package var sort = WorktreeSort.attention
@@ -91,7 +93,11 @@ package final class RepoSession {
         let diff = DiffController()
         self.diff = diff
         find = FindState(diff: diff)
-        find.onQueryChange = { [weak self] in self?.refreshDiffQuery() }
+        find.onQueryChange = { [weak self] started in
+            if started { self?.recordJump() }
+            self?.refreshDiffQuery()
+        }
+        diff.willJump = { [weak self] in self?.recordJump() }
     }
 
     package var settings: AppSettings { services.settings }
@@ -242,6 +248,7 @@ package final class RepoSession {
         }
         let ids = Set(reviews.map(\.id))
         threadSelections = threadSelections.filter { ids.contains($0.key) }
+        jumpHistories = jumpHistories.filter { ids.contains($0.key) }
     }
 
     /// Detection and counts for every row, at most eight at a time: dozens of simultaneous git

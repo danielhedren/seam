@@ -242,6 +242,14 @@ package enum CommandCatalog {
             SeamCommand(
                 id: "page-up", title: localized("Page Up"), menu: .go, section: 2,
                 shortcut: .single(.space, .shift), run: { $0.diff.page(by: -1) }),
+            SeamCommand(
+                id: "back", title: localized("Back"), menu: .go, section: 3,
+                shortcut: .command("-", .control), isEnabled: { $0.canGoBack },
+                run: { $0.goBack() }),
+            SeamCommand(
+                id: "forward", title: localized("Forward"), menu: .go, section: 3,
+                shortcut: .command("-", [.control, .shift]), isEnabled: { $0.canGoForward },
+                run: { $0.goForward() }),
         ]
 
     static let review: [SeamCommand] = [
