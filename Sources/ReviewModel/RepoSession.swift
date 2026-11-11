@@ -72,6 +72,8 @@ package final class RepoSession {
     package internal(set) var lastSnapshot = NotificationSnapshot()
     /// Whether Seam is the app in front; notifications wait for the background unless asked.
     @ObservationIgnored var isAppActive = true
+    /// Off while the repo opens: restoring the last selection isn't the reader opening it.
+    @ObservationIgnored var notesOpens = false
     private var rowsTask: Task<Void, Never>?
     private var reloadTask: Task<Void, Never>?
     /// The recent repos going to Spotlight; tests wait on it.
@@ -284,6 +286,7 @@ package final class RepoSession {
         repoState.selectedWorktree = id
         persist()
         review.reloadDiff()
+        noteOpened(.worktree(id))
     }
 
     /// `⌘1`…`⌘9`: the worktree at that position in the list.
@@ -652,6 +655,7 @@ package final class RepoSession {
         if let anchor = diff.anchor { selected?.savedAnchor = anchor }
         persist()
         isClosed = true
+        services.dockBadge.set(0, for: directory.path, on: services.platform)
         monitorTask?.cancel()
         monitorTask = nil
         threads?.stop()
@@ -670,6 +674,8 @@ package final class RepoSession {
     /// really got selected.
     package func handle(worktree: String, base: String?, thread: String? = nil) async {
         if !reviews.contains(where: { $0.id == worktree }) { await relistWorktrees() }
+        // Asked for by name, a worktree already showing counts as opened too.
+        if selectedID == worktree { noteOpened(.worktree(worktree)) }
         select(worktree)
         guard selectedID == worktree else { return }
         if let base { await setTypedBase(base) }

@@ -147,11 +147,12 @@ package final class GatedGit: GitClient, Sendable {
 package func services(
     _ git: any GitClient, clock: any Clock<Duration> = ManualClock(),
     store: any StateStore = MemoryStore(), watcher: any FileWatcher = SilentWatcher(),
-    threads: ThreadStore = scratchThreadStore(), github: GitHubAccount = .none()
+    threads: ThreadStore = scratchThreadStore(), github: GitHubAccount = .none(),
+    platform: RecordingPlatform? = nil
 ) -> SeamServices {
     SeamServices(
         git: ReadOnlyGit(git), watcher: watcher, clock: clock, store: store, threads: threads,
-        settings: testSettings(), github: github, platform: RecordingPlatform())
+        settings: testSettings(), github: github, platform: platform ?? RecordingPlatform())
 }
 
 /// Never the real store: that holds the reader's threads.
@@ -485,11 +486,24 @@ package final class RecordingPlatform: PlatformServices {
     package private(set) var opened: [URL] = []
     package private(set) var revealed: [URL] = []
     package private(set) var notified: [SeamNotification] = []
+    /// What Notification Center shows: what was posted and not removed since.
+    package private(set) var delivered: Set<String> = []
+    package private(set) var removed: [String] = []
+    package private(set) var badges: [Int] = []
 
     package func copy(_ text: String) { copied.append(text) }
     package func open(_ url: URL) { opened.append(url) }
     package func reveal(_ file: URL) { revealed.append(file) }
-    package func notify(_ notification: SeamNotification) { notified.append(notification) }
+    package func notify(_ notification: SeamNotification) {
+        notified.append(notification)
+        delivered.insert(notification.id)
+    }
+    package func removeNotifications(_ ids: [String]) {
+        removed += ids
+        delivered.subtract(ids)
+    }
+    package func deliveredNotificationIDs() async -> Set<String> { delivered }
+    package func setBadge(_ count: Int) { badges.append(count) }
     package var bundledCommand: URL? { nil }
 }
 
