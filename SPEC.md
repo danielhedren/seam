@@ -1555,12 +1555,16 @@ sticky header, whole-definition gaps, the change ruler, outlines, Go to Symbol, 
 Definition and Uses.
 *Done when:* each works on a worktree and on a pull request review, Back returns from every kind
 of jump, and the §8.7 budgets hold on the 20k-line diff.
+*Built so far:* Back and Forward (on worktrees, for the jumps that exist: a file picked in the
+list, a thread, a search result, a find match) and where you are. *Not built yet:*
+whole-definition gaps, the change ruler, outlines, Go to Symbol, Find Definition and Uses.
 
 **M13 — Reading less (§7.4, §7.7).** Trivial-change labels, moved code, repeated edits and Copy
 Prompt for Reviewer Agent.
 *Done when:* a fixture of moved methods, a fixture of a rename across files and one of
 comment-only changes are each labelled as such and nothing else is; the budgets hold on the
 20k-line diff.
+*Not built yet:* any of it.
 
 ## 15. Risks
 
