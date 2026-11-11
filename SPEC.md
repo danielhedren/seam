@@ -283,6 +283,8 @@ A pull request review (§7.2.2) has no working tree, so it has only committed ch
   show it, because macOS 26's toolbar title takes clicks without moving the window, which left a
   spot in the bar that wouldn't drag. The worktree list's header names the repo instead. File ›
   New Window (⌘N) opens the welcome screen.
+- Every window's toolbar ends in the notification bell (§7.10), which is about the whole app
+  rather than the window's repo.
 - The welcome screen says what Seam does, offers Open Repository… (⌘O, or Return), and lists
   the recent repos by name and location, newest first, as many as fit; File › Open Recent has
   them all. A folder dropped on any window opens like `seam <folder>`; the welcome screen
@@ -632,6 +634,8 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 | `⌘F` / `⌘G` / `⇧⌘G` | find in the diff, next / previous match (`⌘F` filters while the file list has focus) |
 | `⇧⌘F` | search the review's diff (§7.3.1) |
 | `⇧⌘P` | command palette (every action) |
+| `⇧⌘N` | show notifications (§7.10) |
+| `⌥⌘N` | next unread notification |
 
 ### 7.6 Open in editor
 
@@ -924,6 +928,28 @@ background unless Settings says otherwise (§12).
   front (§7.8).
 - **Permission:** macOS asks the first time one is posted. Turned off in System Settings,
   Settings › Notifications says so with a way there.
+- **Clearing up:** opening in Seam what a notification is about takes it out of Notification
+  Center: opening the thread for an agent's answer, selecting the worktree for its pull
+  request's news, and opening a listed pull request for news of it. Selecting is the act: news
+  of the worktree already showing stays until it's clicked or the worktree is picked again.
+- **The bell** keeps the news, one log for the whole app, shared by every window and repo. Every
+  event of a kind that's on is logged, also while Seam is in front; only the banner waits for
+  the background. A toolbar button at the right of every window, the welcome window's too,
+  shows the unread count as a badge. Its popover (View › Show Notifications, `⇧⌘N`) lists the
+  entries newest first: title, text and age, an unread one with a dot and in bold. Clicking an
+  entry opens what it's about, as clicking its notification does. The header has Mark All as
+  Read; with no entries the popover says what will show there.
+- **Read** means the reader has seen the news, not dealt with it (that's Awaiting You, §7.3.2).
+  An entry is read once the reader clicks it in the bell, clicks its notification in
+  Notification Center, opens what it's about in Seam (as under Clearing up), or uses Mark All
+  as Read. Opening the popover marks nothing. Marking an entry read takes its notification out
+  of Notification Center; clearing a notification there doesn't mark its entry read (§16).
+  Newer news with the same id replaces the entry and is unread again.
+- Go › Next Unread Notification (`⌥⌘N`) opens the newest unread entry; Go › Mark All
+  Notifications as Read has no key.
+- **The Dock icon** is badged with the unread count across all repos, none at zero, unless
+  Settings turns it off (§12). The badge needs no notification permission.
+- The log keeps the newest 200 entries of the last 30 days, across launches (§11).
 
 ## 8. Technical design
 
@@ -1172,7 +1198,8 @@ written down here.
   The file list's column is at least 200 points wide, and each of its views (Files, Search,
   Threads) fits that by dropping what its header can spare, so switching views never changes
   the column's width.
-- Toolbar in the unified style, holding only: view mode, reload, and Threads (§7.3.2).
+- Toolbar in the unified style, holding only: view mode, reload, Threads (§7.3.2) and, last
+  and apart from them, the notification bell (§7.10).
   The diff gets the rest of the window. The toolbar's background is solid across every column,
   so the top of the window reads as one bar.
 - The panes' header rows (the file list's counts and the diff's sticky file header) share
@@ -1319,13 +1346,16 @@ Rules:
   - The pull request list's filters (§7.2.2): hidden authors, labels and PR numbers, Hide
     Drafts, Hide Bots, Only Review Requests.
 - `<repo-id>/pulls.git`: the pull request store (§8.3.1), a cache Seam may delete.
+- `events.json`: the notification log (§7.10), for every repo: each entry's id, group, title,
+  text, `seam://` URL and date, whether it's read, and whether a notification was posted for it.
 - Settings live in `UserDefaults`.
 
 `state.json` is written as soon as anything in it changes, moving to another file included,
 since nothing runs on ⌘Q; changes made while a write is under way go out in one more write after
 it. A worktree no longer listed drops out of the file. A file that can't be read is moved aside as
 `state.json.unreadable` rather than overwritten, and a banner above the diff says so; one that
-can't be written says why the same way.
+can't be written says why the same way. `events.json` is written and guarded likewise
+(`events.json.unreadable`), its banner showing in every repo's window.
 
 Seam writes nothing inside the repository or `.git`; the store only reads the repo's objects.
 
@@ -1341,8 +1371,8 @@ Seam writes nothing inside the repository or `.git`; the store only reads the re
   §7.2.2).
 - Outlines on every file (View menu; default off; §7.4).
 - Show carriage returns (View menu; default off; §7.4).
-- Notifications: a switch per kind, all on by default, and whether to post while Seam is in
-  front (default off; §7.10).
+- Notifications: a switch per kind, all on by default, whether to post while Seam is in
+  front (default off; §7.10), and whether the Dock icon shows the unread count (default on).
 
 Settings apply to the next load of each worktree; font changes apply at once (`⌘+`, `⌘−`, `⌘0`
 in the View menu too). The default base may be a short name (`origin/develop`, `main`). Tab widths
@@ -1351,7 +1381,8 @@ section matches, else the setting; nested `.editorconfig` files aren't read.
 
 The Settings window has five tabs: Review (the base and the diff), Display, Editor, GitHub
 (the pull request switch, what gh last said, and Check Again) and Notifications (the kinds,
-in-front posting, and a way to System Settings when macOS has Seam's notifications off). Each
+in-front posting, the Dock badge, and a way to System Settings when macOS has Seam's
+notifications off). Each
 group says under it what its settings do. Lists of patterns take one per line. Font offers the
 installed fixed-pitch fonts, SF Mono first; a font set before that isn't installed stays listed
 under its name.
@@ -1562,6 +1593,15 @@ Prompt for Reviewer Agent.
 comment-only changes are each labelled as such and nothing else is; the budgets hold on the
 20k-line diff.
 
+**M14 — Notification bell (§7.10).** First the clearing up: a notification leaves Notification
+Center when what it's about is opened in Seam, and the Dock icon counts what awaits the reader.
+Then the bell: the app-wide log in `events.json`, the toolbar button and its popover, read
+state, Show Notifications, Next Unread Notification and Mark All Notifications as Read, and the
+Dock badge counting unread entries instead, with its switch.
+*Done when:* an event while Seam is in front is logged without a banner, opening its thread
+marks it read and removes its notification, the badge follows the unread count, the log holds
+at 200 entries and survives a relaunch, each from a session test with fakes.
+
 ## 15. Risks
 
 | Risk | Mitigation |
@@ -1579,6 +1619,9 @@ comment-only changes are each labelled as such and nothing else is; the budgets 
   highlighting and none of §7.4.1. Not planned now.
 - A definition index of the whole worktree or PR head, rather than the review's files plus
   `git grep`: only if Find Definition and Uses proves too coarse.
+- Clearing a notification in Notification Center doesn't mark its bell entry read (§7.10):
+  whether macOS reports dismissals to an app without a notification category asking for them
+  is unverified. If it does, a dismissed notification could count as read.
 
 Decided (2026-11-11): other people's open pull requests are listed under the worktrees and
 reviewed from a store Seam fetches into (ADR 0008), measured against `gh pr diff`, which gives
