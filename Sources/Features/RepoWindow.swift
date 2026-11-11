@@ -91,16 +91,8 @@ struct RepoWindow: View {
     /// toolbar that appears once the repo opens grows the titlebar and moves the content down.
     private var content: some View {
         NavigationSplitView(columnVisibility: columnVisibility) {
-            SidebarSplit(key: "seam.commitListHeight") {
-                if session.showsPullRequestList {
-                    SidebarSplit(key: "seam.pullRequestListHeight", height: 200) {
-                        WorktreeList(session: session)
-                    } bottom: {
-                        PullRequestList(session: session)
-                    }
-                } else {
-                    WorktreeList(session: session)
-                }
+            SidebarSplit {
+                WorktreeList(session: session)
             } bottom: {
                 if let review = session.selected {
                     CommitList(session: session, review: review)

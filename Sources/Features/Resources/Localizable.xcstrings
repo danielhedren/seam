@@ -95,6 +95,9 @@
     "An agent answers or asks" : {
 
     },
+    "Authors" : {
+
+    },
     "Automatic" : {
 
     },
@@ -120,6 +123,9 @@
 
     },
     "Check Again" : {
+
+    },
+    "Check All" : {
 
     },
     "Checked when a repository on GitHub opens" : {
@@ -294,13 +300,10 @@
     "Go" : {
 
     },
-    "Hidden Authors" : {
-
-    },
-    "Hidden Labels" : {
-
-    },
     "Hide Bots" : {
+
+    },
+    "Hide Checked" : {
 
     },
     "Hide Drafts" : {
@@ -340,6 +343,9 @@
 
     },
     "Keyboard Shortcuts" : {
+
+    },
+    "Labels" : {
 
     },
     "Line %@" : {
@@ -591,6 +597,9 @@
     "Show Hidden" : {
 
     },
+    "Show Only Checked" : {
+
+    },
     "Show Only This Commit" : {
 
     },
@@ -652,6 +661,9 @@
 
     },
     "Threads" : {
+
+    },
+    "Uncheck All" : {
 
     },
     "Uncommitted changes" : {

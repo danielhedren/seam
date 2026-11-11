@@ -262,7 +262,7 @@ A pull request review (§7.2.2) has no working tree, so it has only committed ch
 │ feat-a             1h  │   M Options.cs    │  (side-by-side or unified diff)        │
 │ main                   │ ▾ contracts/…     │                                        │
 │ old-spike  stale parent│   M openapi.yaml  │                                        │
-├ Pull requests ─────────┤ ▸ Generated (3)   │                                        │
+│ Pull requests · 12   ≡ │ ▸ Generated (3)   │                                        │
 │ #2780 Slot preview  3h │                   │                                        │
 │ anna · review requested│                   │                                        │
 ├ Commits ───────────────┤                   │                                        │
@@ -273,9 +273,9 @@ A pull request review (§7.2.2) has no working tree, so it has only committed ch
 ```
 
 - Three panes: worktrees | files | diff. `⌘\` and the toolbar's sidebar button hide or show the
-  worktree list. Pane widths are remembered. The sidebar stacks the worktree list, the pull
-  request list (§7.2.2) and the commit list, each split's height remembered; View › Show Pull
-  Requests hides or shows the middle one.
+  worktree list. Pane widths are remembered. The sidebar holds the worktree list, whose pull
+  requests section (§7.2.2) follows the worktrees in the same scrolling list, above the commit
+  list; View › Show Pull Requests hides or shows that section.
 - One window per repo, listing only that repo's worktrees. Opening another repo opens another
   window; ``⌘` `` and the Window menu move between them. Window tabs are off: with a sidebar, macOS
   puts the tab bar beside it, so the tab bar moves between tabs whose sidebars differ. A window's
@@ -367,8 +367,8 @@ selection acts on its newest commit, and so do Review › Copy Commit ID and Cop
 
 ### 7.2.2 Pull request list
 
-Under the worktree list, the repo's open pull requests the reader might review: other people's,
-not checked out here. Read through `gh` like §7.8, so without `gh`, a login or a GitHub remote
+A section of the worktree list after the worktrees, scrolled to past them: the repo's open pull
+requests the reader might review, other people's, not checked out here. Read through `gh` like §7.8, so without `gh`, a login or a GitHub remote
 the list isn't there at all.
 
 - **Listed:** open PRs on the PR remote (§7.8), less the reader's own (gh's login), less any
@@ -380,10 +380,12 @@ the list isn't there at all.
   GitHub asks the reader for a review, directly or through one of their teams; and "new
   commits" when its head moved since the reader marked any of its files viewed.
 - **Order:** review requested first, then most recently updated.
-- **Filters:** the list's header has a filter menu: Hide Drafts, Hide Bots (logins ending
-  `[bot]` and GitHub Apps), Only Review Requests, Hidden Authors and Hidden Labels, each a
-  submenu of the authors and labels the open PRs have, with a check on the hidden ones, then
-  Show Hidden and Show All (every filter off). The View menu has the three switches and Show
+- **Filters:** the section's header has a filter menu: Hide Drafts, Hide Bots (logins ending
+  `[bot]` and GitHub Apps), Only Review Requests, then Authors and Labels, each a submenu of the
+  authors and labels the open PRs have. A submenu chooses Hide Checked or Show Only Checked
+  above its checkable entries, with Check All and Uncheck All below them, so keeping one label
+  is checking it and choosing Show Only Checked; Show Only with nothing checked shows none of
+  them. Then Show Hidden and Show All (every filter off). The View menu has the three switches and Show
   Hidden Pull Requests too. A row's context menu has Hide Pull Requests by `<login>` and Hide
   This Pull Request; a PR hidden by number stays hidden until it closes. Filters are per repo
   (§11). The header says how many are listed and how many the filters hide ("12 · 28 hidden"),
@@ -1316,8 +1318,9 @@ Rules:
     id, so a force-push shows as changed since viewed), scroll anchor, selected file, the head
     last viewed (for "new commits", §7.2.2) and outline toggles. A PR that closed drops out at
     the next read.
-  - The pull request list's filters (§7.2.2): hidden authors, labels and PR numbers, Hide
-    Drafts, Hide Bots, Only Review Requests.
+  - The pull request list's filters (§7.2.2): the checked authors and labels with whether they
+    are hidden or the only ones shown, the PRs hidden by number, Hide Drafts, Hide Bots, Only
+    Review Requests.
 - `<repo-id>/pulls.git`: the pull request store (§8.3.1), a cache Seam may delete.
 - Settings live in `UserDefaults`.
 
@@ -1531,8 +1534,8 @@ in the background, more slowly, only while a kind that needs them is on.
 agent finds it with `seam threads`, each notification kind fires once per event from a session
 test with fakes, and turning a kind off stops it.
 
-**M10 — Pull request list (§7.2.2, §7.10).** The sidebar's third list: other people's open pull
-requests, with the filters, the 100-most-recent limit, team review requests, the row and header
+**M10 — Pull request list (§7.2.2, §7.10).** A section of the worktree list after the
+worktrees: other people's open pull requests, with the filters, the 100-most-recent limit, team review requests, the row and header
 commands, Copy Worktree Command, and the notifications for a review requested and a new pull
 request. Selecting a row, or clicking its notification, opens it in the browser until M11.
 *Done when:* on a repo with 100 open PRs the list reads within the §8.7 budget at the existing

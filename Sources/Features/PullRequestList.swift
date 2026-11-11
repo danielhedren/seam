@@ -3,44 +3,38 @@ import ReviewModel
 import SeamCore
 import SwiftUI
 
-/// Other people's open pull requests, under the worktrees (SPEC §7.2.2). Until they can be
-/// reviewed here (M11), picking one opens it on GitHub.
-struct PullRequestList: View {
+/// Other people's open pull requests, a section of the worktree list after the worktrees (SPEC
+/// §7.2.2). Until they can be reviewed here (M11), picking one opens it on GitHub.
+struct PullRequestSection: View {
     let session: RepoSession
+
+    /// Rows are tagged in the worktree list's id space, apart from every worktree path.
+    static func tag(_ number: Int) -> String { "pr:\(number)" }
+
+    static func number(_ tag: String) -> Int? {
+        tag.hasPrefix("pr:") ? Int(tag.dropFirst(3)) : nil
+    }
 
     var body: some View {
         let listing = session.pullRequestListing
-        List(selection: Binding<Int?>(get: { nil }, set: { $0.map(session.openListedPullRequest) }))
-        {
-            Section {
-                ForEach(listing.rows) { row in
-                    PullRequestListRow(row: row).tag(row.id)
-                }
-            } header: {
-                HStack {
-                    Text(Self.header(listing)).lineLimit(1)
-                    Spacer(minLength: 4)
-                    PullRequestFilterMenu(session: session, listing: listing)
-                }
+        Section {
+            ForEach(listing.rows) { row in
+                PullRequestListRow(row: row).tag(Self.tag(row.id))
             }
-        }
-        .contextMenu(forSelectionType: Int.self) { numbers in
-            if numbers.count == 1, let number = numbers.first,
-                let row = listing.rows.first(where: { $0.id == number })
-            {
-                rowMenu(row.pullRequest)
-            }
-        }
-        .overlay {
             if listing.rows.isEmpty {
                 Text(Self.empty(listing)).font(.callout).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center).padding()
+                    .selectionDisabled()
+            }
+        } header: {
+            HStack {
+                Text(Self.header(listing)).lineLimit(1)
+                Spacer(minLength: 4)
+                PullRequestFilterMenu(session: session, listing: listing)
             }
         }
     }
 
-    @ViewBuilder private func rowMenu(_ pullRequest: PullRequest) -> some View {
-        let number = pullRequest.number
+    @ViewBuilder static func rowMenu(_ number: Int, in session: RepoSession) -> some View {
         Button(String(localized: "Open Pull Request in Browser", bundle: .module)) {
             session.openListedPullRequest(number)
         }
@@ -57,11 +51,11 @@ struct PullRequestList: View {
         Button(String(localized: "Hide This Pull Request", bundle: .module)) {
             session.hidePullRequest(number)
         }
-        if !pullRequest.author.isEmpty {
-            Button(
-                String(localized: "Hide Pull Requests by \(pullRequest.author)", bundle: .module)
-            ) {
-                session.setHides(author: pullRequest.author, true)
+        if let author = session.pullRequestListing.rows.first(where: { $0.id == number })?
+            .pullRequest.author, !author.isEmpty
+        {
+            Button(String(localized: "Hide Pull Requests by \(author)", bundle: .module)) {
+                session.hidePullRequests(by: author)
             }
         }
     }
@@ -135,7 +129,7 @@ struct PullRequestListRow: View {
 }
 
 /// The list's filters (SPEC §7.2.2): the switches, then every author and label the open PRs
-/// have, checked when hidden.
+/// have, the checked ones hidden or the only ones shown.
 struct PullRequestFilterMenu: View {
     let session: RepoSession
     let listing: PullRequestListing
@@ -148,18 +142,8 @@ struct PullRequestFilterMenu: View {
                 String(localized: "Only Review Requests", bundle: .module),
                 isOn: filter(\.onlyReviewRequests))
             Divider()
-            Menu(String(localized: "Hidden Authors", bundle: .module)) {
-                ForEach(listing.authors, id: \.self) { author in
-                    Toggle(author, isOn: hides(author: author))
-                }
-            }
-            .disabled(listing.authors.isEmpty)
-            Menu(String(localized: "Hidden Labels", bundle: .module)) {
-                ForEach(listing.labels, id: \.self) { label in
-                    Toggle(label, isOn: hides(label: label))
-                }
-            }
-            .disabled(listing.labels.isEmpty)
+            checked(String(localized: "Authors", bundle: .module), listing.authors, \.authors)
+            checked(String(localized: "Labels", bundle: .module), listing.labels, \.labels)
             Divider()
             Toggle(
                 String(localized: "Show Hidden", bundle: .module),
@@ -180,21 +164,54 @@ struct PullRequestFilterMenu: View {
         .help(String(localized: "Filter pull requests", bundle: .module))
     }
 
+    /// Show Only Checked with one checked is how the reader keeps a single label.
+    private func checked(
+        _ title: String, _ values: [String],
+        _ keyPath: WritableKeyPath<PullRequestFilter, PullRequestFilter.Checked>
+    ) -> some View {
+        Menu(title) {
+            Picker(selection: mode(keyPath)) {
+                Text("Hide Checked", bundle: .module).tag(PullRequestFilter.Checked.Mode.hide)
+                Text("Show Only Checked", bundle: .module)
+                    .tag(PullRequestFilter.Checked.Mode.showOnly)
+            } label: {
+                EmptyView()
+            }
+            .pickerStyle(.inline)
+            Divider()
+            ForEach(values, id: \.self) { value in
+                Toggle(value, isOn: isChecked(value, keyPath))
+            }
+            Divider()
+            Button(String(localized: "Check All", bundle: .module)) {
+                session.pullRequestFilter[keyPath: keyPath].values = Set(values)
+            }
+            Button(String(localized: "Uncheck All", bundle: .module)) {
+                session.pullRequestFilter[keyPath: keyPath].values = []
+            }
+        }
+        .disabled(values.isEmpty)
+    }
+
     private func filter(_ keyPath: WritableKeyPath<PullRequestFilter, Bool>) -> Binding<Bool> {
         Binding(
             get: { session.pullRequestFilter[keyPath: keyPath] },
             set: { session.pullRequestFilter[keyPath: keyPath] = $0 })
     }
 
-    private func hides(author: String) -> Binding<Bool> {
+    private func mode(_ keyPath: WritableKeyPath<PullRequestFilter, PullRequestFilter.Checked>)
+        -> Binding<PullRequestFilter.Checked.Mode>
+    {
         Binding(
-            get: { session.pullRequestFilter.hiddenAuthors.contains(author) },
-            set: { session.setHides(author: author, $0) })
+            get: { session.pullRequestFilter[keyPath: keyPath].mode },
+            set: { session.pullRequestFilter[keyPath: keyPath].mode = $0 })
     }
 
-    private func hides(label: String) -> Binding<Bool> {
+    private func isChecked(
+        _ value: String, _ keyPath: WritableKeyPath<PullRequestFilter, PullRequestFilter.Checked>
+    ) -> Binding<Bool> {
         Binding(
-            get: { session.pullRequestFilter.hiddenLabels.contains(label) },
-            set: { session.setHides(label: label, $0) })
+            get: { session.pullRequestFilter[keyPath: keyPath].values.contains(value) },
+            set: { session.setChecked(value, $0, in: keyPath) })
     }
 }

@@ -71,7 +71,7 @@ import Testing
         github.answer(open: others([20]) + others([21], by: "bob"))
         let first = await open(repo)
         first.pullRequestFilter.hidesDrafts = true
-        first.setHides(author: "bob", true)
+        first.hidePullRequests(by: "bob")
         #expect(first.pullRequestListing.rows.map(\.id) == [20])
         await first.settled()
         first.close()
@@ -80,7 +80,7 @@ import Testing
 
         #expect(
             session.pullRequestFilter
-                == PullRequestFilter(hidesDrafts: true, hiddenAuthors: ["bob"]))
+                == PullRequestFilter(hidesDrafts: true, authors: .init(.hide, ["bob"])))
         #expect(session.pullRequestListing.rows.map(\.id) == [20])
         #expect(session.pullRequestListing.hidden == 1)
         session.close()

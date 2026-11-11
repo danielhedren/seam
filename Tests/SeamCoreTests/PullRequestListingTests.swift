@@ -62,8 +62,11 @@ import Testing
         #expect(shown(.init(hidesDrafts: true)) == [2, 3, 4, 5, 6, 7])
         #expect(shown(.init(hidesBots: true)) == [1, 4, 5, 6, 7])
         #expect(shown(.init(onlyReviewRequests: true), requests: [6]) == [6])
-        #expect(shown(.init(hiddenAuthors: ["bob"])) == [1, 2, 3, 5, 6, 7])
-        #expect(shown(.init(hiddenLabels: ["ui"])) == [1, 2, 3, 4, 6, 7])
+        #expect(shown(.init(authors: .init(.hide, ["bob"]))) == [1, 2, 3, 5, 6, 7])
+        #expect(shown(.init(labels: .init(.hide, ["ui"]))) == [1, 2, 3, 4, 6, 7])
+        #expect(shown(.init(authors: .init(.showOnly, ["bob"]))) == [4])
+        #expect(shown(.init(labels: .init(.showOnly, ["ui"]))) == [5])
+        #expect(shown(.init(labels: .init(.showOnly, []))) == [], "nothing checked yet")
         #expect(shown(.init(hiddenNumbers: [7])) == [1, 2, 3, 4, 5, 6])
         #expect(listed(open, filter: .init(hidesBots: true)).hidden == 2)
     }
@@ -90,7 +93,7 @@ import Testing
     @Test func theFilterMenuOffersEveryAuthorAndLabelAndKeepsHiddenOnesThatLeft() {
         let listing = listed(
             [pullRequest(1, by: "bob", labels: ["ui"]), pullRequest(2, by: "anna")],
-            filter: .init(hiddenAuthors: ["carl"], hiddenLabels: ["old"]))
+            filter: .init(authors: .init(.hide, ["carl"]), labels: .init(.showOnly, ["old"])))
         #expect(listing.authors == ["anna", "bob", "carl"])
         #expect(listing.labels == ["old", "ui"])
     }
@@ -98,7 +101,10 @@ import Testing
     @Test func aFilterSavedBeforeAFieldExistedKeepsItsDefault() throws {
         let saved = Data(#"{"hidesDrafts":true,"hiddenAuthors":["bob"]}"#.utf8)
         let filter = try JSONDecoder().decode(PullRequestFilter.self, from: saved)
-        #expect(filter == PullRequestFilter(hidesDrafts: true, hiddenAuthors: ["bob"]))
+        #expect(filter == PullRequestFilter(hidesDrafts: true, authors: .init(.hide, ["bob"])))
+        let again = try JSONDecoder().decode(
+            PullRequestFilter.self, from: JSONEncoder().encode(filter))
+        #expect(again == filter)
     }
 }
 

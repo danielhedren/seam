@@ -6,7 +6,7 @@ struct WorktreeList: View {
     let session: RepoSession
 
     var body: some View {
-        List(selection: Binding(get: { session.selectedID }, set: { session.select($0) })) {
+        List(selection: Binding(get: { session.selectedID }, set: pick)) {
             Section {
                 ForEach(session.sortedReviews) { review in
                     WorktreeRow(review: review).tag(review.id)
@@ -15,9 +15,16 @@ struct WorktreeList: View {
                 Text(verbatim: session.repositoryName).lineLimit(1).truncationMode(.middle)
                     .help(session.directory.path)
             }
+            if session.showsPullRequestList {
+                PullRequestSection(session: session)
+            }
         }
         .contextMenu(forSelectionType: String.self) { ids in
-            if ids.count == 1, let review = session.reviews.first(where: { ids.contains($0.id) }) {
+            if ids.count == 1, let number = ids.first.flatMap(PullRequestSection.number) {
+                PullRequestSection.rowMenu(number, in: session)
+            } else if ids.count == 1,
+                let review = session.reviews.first(where: { ids.contains($0.id) })
+            {
                 ActionMenu(groups: RowActions.actions(for: review, in: session))
                 Divider()
             }
@@ -30,6 +37,15 @@ struct WorktreeList: View {
             Toggle(
                 String(localized: "Hide Missing Worktrees", bundle: .module),
                 isOn: Bindable(session).hidesMissing)
+        }
+    }
+
+    /// A pull request row opens on GitHub and leaves the worktree selected.
+    private func pick(_ id: String?) {
+        if let number = id.flatMap(PullRequestSection.number) {
+            session.openListedPullRequest(number)
+        } else {
+            session.select(id)
         }
     }
 }

@@ -76,19 +76,23 @@ extension RepoSession {
         pullRequestFilter.hiddenNumbers.insert(number)
     }
 
-    package func setHides(author: String, _ hides: Bool) {
-        if hides {
-            pullRequestFilter.hiddenAuthors.insert(author)
-        } else {
-            pullRequestFilter.hiddenAuthors.remove(author)
+    /// Hides one author's PRs, whichever way the authors filter works.
+    package func hidePullRequests(by author: String) {
+        switch pullRequestFilter.authors.mode {
+        case .hide: pullRequestFilter.authors.values.insert(author)
+        case .showOnly: pullRequestFilter.authors.values.remove(author)
         }
     }
 
-    package func setHides(label: String, _ hides: Bool) {
-        if hides {
-            pullRequestFilter.hiddenLabels.insert(label)
+    /// Checks or unchecks an author or label in the filter menu.
+    package func setChecked(
+        _ value: String, _ checked: Bool,
+        in keyPath: WritableKeyPath<PullRequestFilter, PullRequestFilter.Checked>
+    ) {
+        if checked {
+            pullRequestFilter[keyPath: keyPath].values.insert(value)
         } else {
-            pullRequestFilter.hiddenLabels.remove(label)
+            pullRequestFilter[keyPath: keyPath].values.remove(value)
         }
     }
 
