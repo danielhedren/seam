@@ -72,6 +72,21 @@ import Testing
                 == "refs/seam/pull/9")
     }
 
+    @Test func aStorePastItsSizeIsRepackedWithoutClosedPullRequests() async throws {
+        let origin = repo.origin.path
+        let small = CLIPullRequestStore(
+            directory: store.directory, objects: repo.main.appending(path: ".git/objects"),
+            remoteURL: { _ in origin }, repackAbove: 0)
+        let closed = try await repo.openPullRequest(8, file: "b.txt", "b\n")
+        try await repo.openPullRequest(9, file: "c.txt", "c\n")
+        try await small.fetch(pullRequests: [8, 9], bases: ["main"], from: gitHub)
+
+        try await small.fetch(pullRequests: [9], bases: ["main"], from: gitHub)
+
+        await #expect(throws: (any Error).self) { try await inStore("cat-file", "-e", closed) }
+        #expect(try await inStore("count-objects", "-v").contains("count: 0"))
+    }
+
     @Test func aResetStoreIsMadeAgainByTheNextFetch() async throws {
         let head = try await repo.openPullRequest(8, file: "b.txt", "b\n")
         try await store.fetch(pullRequests: [8], bases: [], from: gitHub)

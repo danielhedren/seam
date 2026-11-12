@@ -23,6 +23,8 @@ public struct CLIPullRequestStore: PullRequestStore {
     private let objects: URL
     private let remoteURL: @Sendable (GitHubRepo) -> String
     private let credentials: @Sendable () async -> URL?
+    /// Past this many bytes of its own objects the store is repacked, dropping closed PRs'.
+    private let repackAbove: Int
     private let environment: [String: String]
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "GitKit")
 
@@ -32,9 +34,11 @@ public struct CLIPullRequestStore: PullRequestStore {
         directory: URL, objects: URL,
         remoteURL: @escaping @Sendable (GitHubRepo) -> String = Self.httpsURL,
         credentials: @escaping @Sendable () async -> URL? = { nil },
+        repackAbove: Int = 200 * 1024 * 1024,
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) {
         self.directory = directory
+        self.repackAbove = repackAbove
         self.objects = objects
         self.remoteURL = remoteURL
         self.credentials = credentials
@@ -76,6 +80,20 @@ public struct CLIPullRequestStore: PullRequestStore {
                 "fetch", "--quiet", "--no-tags", "--no-write-fetch-head", "--no-auto-gc",
                 remoteURL(repo),
             ] + refspecs)
+        if size(of: directory.appending(path: "objects")) > repackAbove {
+            try await git(["gc", "--quiet", "--prune=now"])
+        }
+    }
+
+    /// What the store holds itself; the reader's objects, borrowed through alternates, aren't in it.
+    private func size(of folder: URL) -> Int {
+        let files = FileManager.default.enumerator(
+            at: folder, includingPropertiesForKeys: [.fileSizeKey])
+        var total = 0
+        while let file = files?.nextObject() as? URL {
+            total += (try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
+        }
+        return total
     }
 
     public func reset() async {

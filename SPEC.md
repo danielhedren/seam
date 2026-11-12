@@ -1592,11 +1592,10 @@ only when a head or base moved), reviews over a worktree or a pull request sourc
 listed PR or its notification opens its review with its commits, full contents and
 highlighting, viewed marks and places kept per PR, the commands that need a checkout
 disabled, a store missing objects rebuilt once, GitHub's threads and conversation on a PR
-review, `+/−` on the rows, "new commits" on a row, and attributes and `.editorconfig` read from
-the head. *Not built yet:* the "new commits" and comment notifications (they wait for M14's
-notification work), the "Fetching
-#N…" wording (a plain progress shows), clean-up of a store past 200 MB, and Show Only Changes
-Since Viewed for the whole review.
+review, `+/−` on the rows, "new commits" on a row, attributes and `.editorconfig` read from
+the head, "Fetching #N…", and repacking a store past 200 MB. *Not built yet:* the "new commits"
+and comment notifications (they wait for M14's notification work), and Show Only Changes Since
+Viewed for the whole review.
 
 **M12 — Moving by definitions (§7.4, §7.4.1).** Back and Forward first, then where you are in the
 sticky header, whole-definition gaps, the change ruler, outlines, Go to Symbol, and Find
