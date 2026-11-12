@@ -11,6 +11,9 @@ extension RepoSession {
             await self?.readPullRequestThreads(saved, repo: repo)
         }
         pullRequests.listsOthers = { [settings] in settings.showsPullRequestList }
+        pullRequests.readsInvolvement = { [weak self] in
+            self?.pullRequestFilter.onlyInvolvingMe == true
+        }
         pullRequests.readsInBackground = { [settings] in
             settings.showsPullRequests
                 && settings.notifications.contains(where: \.needsPullRequests)

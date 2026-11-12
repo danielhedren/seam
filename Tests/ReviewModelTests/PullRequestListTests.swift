@@ -66,6 +66,22 @@ import Testing
         session.close()
     }
 
+    /// Two searches a read, so they run only while the filter asks.
+    @Test func onlyInvolvingMeReadsWhatTheReaderIsInWhenTurnedOn() async throws {
+        let repo = try await fixture()
+        github.answer(open: others([20, 21, 22]))
+        github.answer(involving: [21])
+        let session = await open(repo)
+        #expect(github.involvementReads == 0)
+
+        session.pullRequestFilter.onlyInvolvingMe = true
+        await until { session.pullRequests?.saved.involving == [21] }
+
+        #expect(session.pullRequestListing.rows.map(\.id) == [21])
+        #expect(session.pullRequestListing.hidden == 2)
+        session.close()
+    }
+
     @Test func filtersAreKeptForTheRepoAcrossLaunches() async throws {
         let repo = try await fixture()
         github.answer(open: others([20]) + others([21], by: "bob"))

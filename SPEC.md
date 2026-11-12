@@ -384,7 +384,9 @@ the list isn't there at all.
   commits" when its head moved since the reader marked any of its files viewed.
 - **Order:** review requested first, then most recently updated.
 - **Filters:** the section's header has a filter menu: Hide Drafts, Hide Bots (logins ending
-  `[bot]` and GitHub Apps), Only Review Requests, then Authors and Labels, each a submenu of the
+  `[bot]` and GitHub Apps), Only Review Requests, Only Involving Me (those the reader commented
+  on, reviewed, was mentioned or assigned in, or is asked to review; GitHub's `involves:@me`
+  and `reviewed-by:@me` searches, read only while it's on), then Authors and Labels, each a submenu of the
   authors and labels the open PRs have. A submenu chooses Hide Checked or Show Only Checked
   above its checkable entries, with Check All and Uncheck All below them, so keeping one label
   is checking it and choosing Show Only Checked; Show Only with nothing checked shows none of
@@ -395,7 +397,9 @@ the list isn't there at all.
   and Show Hidden lists them dimmed, after the rest, until it's turned off.
 - **At most 100:** Seam reads up to 1000 open PRs; when more than 100 pass the filters, the 100
   most recently updated are listed and the header says so ("100 most recent of 230").
-- **Selecting** a row opens its review in the file list and diff. The worktree and pull request
+- **Selecting** a row opens its review in the file list and diff, and so does a notification's
+  click, also for a PR the filters hide, or one not read yet: Seam waits for the first read
+  and else asks gh for that PR. The worktree and pull request
   lists share one selection; `⌘[`/`⌘]` walk the worktrees, then the pull requests, and `⌘K`
   matches PRs by number, title and author as well. `⌘1`…`⌘9` stay the worktrees. Each PR keeps
   its own scroll position, selected file and commits, as a worktree does.
@@ -1334,7 +1338,7 @@ Rules:
     the next read.
   - The pull request list's filters (§7.2.2): the checked authors and labels with whether they
     are hidden or the only ones shown, the PRs hidden by number, Hide Drafts, Hide Bots, Only
-    Review Requests.
+    Review Requests, Only Involving Me.
 - `<repo-id>/pulls.git`: the pull request store (§8.3.1), a cache Seam may delete.
 - `events.json`: the notification log (§7.10), for every repo: each entry's id, group, title,
   text, `seam://` URL and date, whether it's read, and whether a notification was posted for it.

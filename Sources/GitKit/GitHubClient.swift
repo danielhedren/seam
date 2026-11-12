@@ -20,6 +20,8 @@ public protocol GitHubClient: Sendable {
     func openPullRequests(in repo: GitHubRepo) async throws(GitHubError) -> [PullRequest]
     /// The open pull requests that ask the viewer for a review, directly or through a team.
     func reviewRequests(in repo: GitHubRepo) async throws(GitHubError) -> Set<Int>
+    /// The open pull requests the viewer is in: commented on, reviewed, mentioned or assigned.
+    func involvement(in repo: GitHubRepo) async throws(GitHubError) -> Set<Int>
     /// The newest pull request from `branch` in any state, without its reviews and checks.
     func latestPullRequest(from branch: String, in repo: GitHubRepo) async throws(GitHubError)
         -> PullRequest?
@@ -95,11 +97,23 @@ public struct CLIGitHubClient: GitHubClient {
     /// GitHub's search counts team requests for `review-requested`; asking each PR for its
     /// `reviewRequests` instead costs the list a second more.
     public func reviewRequests(in repo: GitHubRepo) async throws(GitHubError) -> Set<Int> {
+        try await search("review-requested:@me", in: repo)
+    }
+
+    /// `involves` misses a review that only approved, so `reviewed-by` is asked as well.
+    public func involvement(in repo: GitHubRepo) async throws(GitHubError) -> Set<Int> {
+        try await search("involves:@me", in: repo)
+            .union(try await search("reviewed-by:@me", in: repo))
+    }
+
+    private func search(_ query: String, in repo: GitHubRepo) async throws(GitHubError)
+        -> Set<Int>
+    {
         struct Number: Decodable { var number: Int }
         let output = try await run(
             [
                 "pr", "list", "-R", repo.slug, "--state", "open", "--limit", "1000", "--search",
-                "review-requested:@me", "--json", "number",
+                query, "--json", "number",
             ])
         do {
             return Set(try JSONDecoder().decode([Number].self, from: output).map(\.number))

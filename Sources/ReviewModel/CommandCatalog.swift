@@ -125,6 +125,12 @@ package enum CommandCatalog {
             isOn: { $0.pullRequestFilter.onlyReviewRequests },
             run: { $0.pullRequestFilter.onlyReviewRequests.toggle() }),
         SeamCommand(
+            id: "pull-requests-involving", title: localized("Only Pull Requests Involving Me"),
+            menu: .view, section: 0, shortcut: .none,
+            isEnabled: { $0.showsPullRequestList },
+            isOn: { $0.pullRequestFilter.onlyInvolvingMe },
+            run: { $0.pullRequestFilter.onlyInvolvingMe.toggle() }),
+        SeamCommand(
             id: "pull-requests-hidden", title: localized("Show Hidden Pull Requests"),
             menu: .view, section: 0, shortcut: .none,
             isEnabled: { $0.showsPullRequestList }, isOn: { $0.showsHiddenPullRequests },

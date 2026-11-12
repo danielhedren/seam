@@ -114,6 +114,10 @@ package struct NoGitHub: GitHubClient {
         throw .notInstalled
     }
 
+    package func involvement(in repo: GitHubRepo) throws(GitHubError) -> Set<Int> {
+        throw .notInstalled
+    }
+
     package func latestPullRequest(from branch: String, in repo: GitHubRepo) throws(GitHubError)
         -> PullRequest?
     {

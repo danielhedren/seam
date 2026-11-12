@@ -244,6 +244,17 @@ import Testing
                 + "review-requested:@me --json number")
     }
 
+    /// `involves` misses a review that only approved.
+    @Test func involvementAlsoAsksWhatTheReaderReviewed() async throws {
+        try script(output: #"[{"number":4}]"#)
+        let found = try await client().involvement(in: repo)
+        #expect(found == [4])
+        #expect(
+            try logged.first
+                == "pr list -R github.com/owner/app --state open --limit 1000 --search "
+                + "reviewed-by:@me --json number")
+    }
+
     @Test func theViewerIsGhsActiveAccountOnTheHost() async throws {
         try script(
             output: """

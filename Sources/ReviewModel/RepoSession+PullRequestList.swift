@@ -15,7 +15,8 @@ extension RepoSession {
         return PullRequestListing(
             open: saved.open ?? [], viewer: saved.viewer,
             reviewRequests: saved.reviewRequests ?? [], checkedOut: checkedOutPullRequests,
-            filter: pullRequestFilter, showsHidden: showsHiddenPullRequests)
+            filter: pullRequestFilter, showsHidden: showsHiddenPullRequests,
+            involving: saved.involving ?? [])
     }
 
     /// The open PRs a worktree here has checked out; its row already shows them.

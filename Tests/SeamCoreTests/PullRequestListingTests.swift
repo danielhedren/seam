@@ -71,6 +71,15 @@ import Testing
         #expect(listed(open, filter: .init(hidesBots: true)).hidden == 2)
     }
 
+    @Test func onlyInvolvingMeKeepsWhatTheReaderIsInOrIsAskedToReview() {
+        let listing = PullRequestListing(
+            open: [pullRequest(1), pullRequest(2), pullRequest(3)], viewer: "me",
+            reviewRequests: [3], checkedOut: [], filter: .init(onlyInvolvingMe: true),
+            involving: [1])
+        #expect(listing.rows.map(\.id).sorted() == [1, 3])
+        #expect(listing.hidden == 1)
+    }
+
     @Test func showHiddenListsWhatTheFiltersHideAfterTheRest() {
         let listing = listed(
             [pullRequest(1, updated: 30, draft: true), pullRequest(2, updated: 10)],

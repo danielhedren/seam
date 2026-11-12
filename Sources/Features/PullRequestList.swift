@@ -167,6 +167,9 @@ struct PullRequestFilterMenu: View {
             Toggle(
                 String(localized: "Only Review Requests", bundle: .module),
                 isOn: filter(\.onlyReviewRequests))
+            Toggle(
+                String(localized: "Only Involving Me", bundle: .module),
+                isOn: filter(\.onlyInvolvingMe))
             Divider()
             checked(String(localized: "Authors", bundle: .module), listing.authors, \.authors)
             checked(String(localized: "Labels", bundle: .module), listing.labels, \.labels)

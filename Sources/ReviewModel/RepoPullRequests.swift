@@ -63,6 +63,8 @@ package final class RepoPullRequests {
     private let branches: @MainActor () -> [String]
     /// Whether the pull request list shows, so the whole list and review requests are kept.
     @ObservationIgnored var listsOthers: @MainActor () -> Bool = { false }
+    /// Whether a filter needs the PRs the reader is in, which cost two searches a read.
+    @ObservationIgnored var readsInvolvement: @MainActor () -> Bool = { false }
     private var pending = false
     /// A forced trigger is waiting: the next read asks for every open PR's details.
     private var pendingIsForced = false
@@ -70,6 +72,8 @@ package final class RepoPullRequests {
     private var detailsRead: [Int: Stopwatch] = [:]
     private var isRefreshing = false
     private var idleWaiters: [Int: CheckedContinuation<Void, Never>] = [:]
+    /// Waiting for the session's first answer from gh, whichever it is.
+    private var answerWaiters: [CheckedContinuation<Void, Never>] = []
     private var nextWaiter = 0
     private var pump: Task<Void, Never>?
     private var spacer: Task<Void, Never>?
@@ -172,7 +176,22 @@ package final class RepoPullRequests {
         for waiter in waiters { waiter.resume() }
     }
 
+    /// Returns once gh has answered this session, or at once if it has: a notification's click
+    /// can open the window before its pull requests are read.
+    func answered() async {
+        if case .failed = status { return }
+        guard !hasRead, !isStopped else { return }
+        await withCheckedContinuation { answerWaiters.append($0) }
+    }
+
+    private func wakeAnswerWaiters() {
+        let waiters = answerWaiters
+        answerWaiters = []
+        for waiter in waiters { waiter.resume() }
+    }
+
     func stop() {
+        wakeAnswerWaiters()
         isStopped = true
         for task in [pump, spacer, poller, fresh] { task?.cancel() }
         let waiters = idleWaiters.values
@@ -253,6 +272,7 @@ package final class RepoPullRequests {
             saved = read
             status = .ready
             hasRead = true
+            wakeAnswerWaiters()
             backoff = nil
             account.note(nil)
             markFresh()
@@ -262,6 +282,7 @@ package final class RepoPullRequests {
             guard !isStopped else { return true }
             logger.info("pull requests unavailable: \(String(describing: error), privacy: .public)")
             status = .failed(error)
+            wakeAnswerWaiters()
             account.note(error)
             if Self.isTransient(error) {
                 backoff = min((backoff ?? Self.firstBackoff / 2) * 2, Self.longestBackoff)
@@ -294,6 +315,7 @@ package final class RepoPullRequests {
     {
         let client = services.github.client
         let lists = listsOthers()
+        let involves = lists && readsInvolvement()
         let repo = targets.repo
         // Beside the open list, not after it: each takes about a second.
         let requests = Task {
@@ -302,14 +324,22 @@ package final class RepoPullRequests {
             }
         }
         defer { requests.cancel() }
+        let involvement = Task {
+            await Result { () async throws(GitHubError) -> Set<Int>? in
+                involves ? try await client.involvement(in: repo) : nil
+            }
+        }
+        defer { involvement.cancel() }
         let open = try await client.openPullRequests(in: targets.repo)
         let reviewRequests = try await requests.value.get()
+        let involving = try await involvement.value.get()
         let viewer = lists ? try await services.github.viewer(on: repo.host) : nil
         // The default branch is what PRs merge into, not a head worth asking about.
         let wanted = Set(branches()).subtracting([refs.defaultBranch(of: targets.remote) ?? "main"])
         let previous = saved.byBranch
         var result = SavedPullRequests(
             read: .now, open: lists ? open : nil, reviewRequests: reviewRequests, viewer: viewer)
+        result.involving = involving
         var jobs: [Job] = []
         for branch in wanted.sorted() {
             if var pullRequest = targets.pullRequest(for: branch, in: open) {

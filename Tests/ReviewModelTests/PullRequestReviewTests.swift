@@ -183,6 +183,45 @@ import Testing
         session.close()
     }
 
+    @Test func aPullRequestTheFiltersHideStillOpensFromItsNotification() async throws {
+        let (repo, _) = try await fixture()
+        let session = await open(repo)
+        session.pullRequestFilter.authors = .init(.hide, ["anna"])
+        #expect(session.pullRequestListing.rows.isEmpty)
+
+        let review = try await openReview(session, 8)
+
+        #expect(review.id == "pr:8")
+        #expect(review.diff?.files.map(\.diff.path) == ["b.txt"])
+        session.close()
+    }
+
+    /// A click on a notification can open the window before its pull requests are read.
+    @Test func aPullRequestOpensBeforeTheListHasBeenRead() async throws {
+        let (repo, _) = try await fixture()
+        github.hold("open")
+        var services = services(repo.git, store: store, github: GitHubAccount(client: github))
+        let origin = repo.origin.path
+        let storeDirectory = repo.directory.resolved.appending(path: "state/pulls.git")
+        services.pullRequestStore = { repository in
+            CLIPullRequestStore(
+                directory: storeDirectory,
+                objects: repository.commonDirectory.appending(path: "objects"),
+                remoteURL: { _ in origin })
+        }
+        let session = RepoSession(directory: repo.main, services: services)
+        await session.open()
+
+        session.openPullRequestReview(8)
+        github.release()
+        await until { session.selected?.id == "pr:8" }
+        let review = try #require(session.selected)
+        await review.loaded()
+
+        #expect(review.diff?.files.map(\.diff.path) == ["b.txt"])
+        session.close()
+    }
+
     @Test func aPullRequestReviewOffersNothingThatNeedsACheckout() async throws {
         let (repo, _) = try await fixture()
         let session = await open(repo)

@@ -85,6 +85,8 @@ public struct SavedPullRequests: Codable, Equatable, Sendable {
     public var open: [PullRequest]?
     /// The open ones asking the reader for a review.
     public var reviewRequests: Set<Int>?
+    /// The open ones the reader is in, read only while a filter asks for them.
+    public var involving: Set<Int>?
     /// The reader's login, gh's active account.
     public var viewer: String?
 

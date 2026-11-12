@@ -274,6 +274,8 @@ package final class FakeGitHub: GitHubClient, Sendable {
         var login: String? = "me"
         var reviewRequests: Set<Int> = []
         var requestReads = 0
+        var involving: Set<Int> = []
+        var involvementReads = 0
         var threadReads: [Int] = []
         var threadError: GitHubError?
         var holdsThreads = false
@@ -329,6 +331,21 @@ package final class FakeGitHub: GitHubClient, Sendable {
     }
     /// Review-request searches, kept apart from `calls` like thread reads.
     package var requestReads: Int { state.withLock { $0.requestReads } }
+
+    package var involvementReads: Int { state.withLock { $0.involvementReads } }
+
+    package func answer(involving: Set<Int>) {
+        state.withLock { $0.involving = involving }
+    }
+
+    package func involvement(in repo: GitHubRepo) async throws(GitHubError) -> Set<Int> {
+        let (involving, error) = state.withLock { state in
+            state.involvementReads += 1
+            return (state.involving, state.error)
+        }
+        if let error { throw error }
+        return involving
+    }
 
     package func answer(reviewRequests: Set<Int>, login: String? = "me") {
         state.withLock {

@@ -27,6 +27,9 @@ public struct PullRequestFilter: Codable, Equatable, Sendable {
     public var hidesDrafts = false
     public var hidesBots = false
     public var onlyReviewRequests = false
+    /// Only those the reader commented on, reviewed, was mentioned or assigned in, or is asked
+    /// to review.
+    public var onlyInvolvingMe = false
     public var authors = Checked()
     public var labels = Checked()
     /// Single PRs hidden by hand, until they close.
@@ -34,8 +37,10 @@ public struct PullRequestFilter: Codable, Equatable, Sendable {
 
     public init(
         hidesDrafts: Bool = false, hidesBots: Bool = false, onlyReviewRequests: Bool = false,
-        authors: Checked = Checked(), labels: Checked = Checked(), hiddenNumbers: Set<Int> = []
+        onlyInvolvingMe: Bool = false, authors: Checked = Checked(),
+        labels: Checked = Checked(), hiddenNumbers: Set<Int> = []
     ) {
+        self.onlyInvolvingMe = onlyInvolvingMe
         self.hidesDrafts = hidesDrafts
         self.hidesBots = hidesBots
         self.onlyReviewRequests = onlyReviewRequests
@@ -45,7 +50,8 @@ public struct PullRequestFilter: Codable, Equatable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case hidesDrafts, hidesBots, onlyReviewRequests, authors, labels, hiddenNumbers
+        case hidesDrafts, hidesBots, onlyReviewRequests, onlyInvolvingMe, authors, labels
+        case hiddenNumbers
         /// The first version saved only hidden authors and labels.
         case hiddenAuthors, hiddenLabels
     }
@@ -59,6 +65,7 @@ public struct PullRequestFilter: Codable, Equatable, Sendable {
         self.init(
             hidesDrafts: try value(.hidesDrafts, false), hidesBots: try value(.hidesBots, false),
             onlyReviewRequests: try value(.onlyReviewRequests, false),
+            onlyInvolvingMe: try value(.onlyInvolvingMe, false),
             authors: try value(.authors, Checked(.hide, try value(.hiddenAuthors, []))),
             labels: try value(.labels, Checked(.hide, try value(.hiddenLabels, []))),
             hiddenNumbers: try value(.hiddenNumbers, []))
@@ -69,6 +76,7 @@ public struct PullRequestFilter: Codable, Equatable, Sendable {
         try values.encode(hidesDrafts, forKey: .hidesDrafts)
         try values.encode(hidesBots, forKey: .hidesBots)
         try values.encode(onlyReviewRequests, forKey: .onlyReviewRequests)
+        try values.encode(onlyInvolvingMe, forKey: .onlyInvolvingMe)
         try values.encode(authors, forKey: .authors)
         try values.encode(labels, forKey: .labels)
         try values.encode(hiddenNumbers, forKey: .hiddenNumbers)
@@ -76,9 +84,11 @@ public struct PullRequestFilter: Codable, Equatable, Sendable {
 
     public var isEmpty: Bool { self == PullRequestFilter() }
 
-    func hides(_ pullRequest: PullRequest, isRequested: Bool) -> Bool {
+    func hides(_ pullRequest: PullRequest, isRequested: Bool, isInvolving: Bool) -> Bool {
         (hidesDrafts && pullRequest.isDraft) || (hidesBots && pullRequest.isFromBot)
-            || (onlyReviewRequests && !isRequested) || authors.hides([pullRequest.author])
+            || (onlyReviewRequests && !isRequested)
+            || (onlyInvolvingMe && !isInvolving && !isRequested)
+            || authors.hides([pullRequest.author])
             || labels.hides(pullRequest.labels) || hiddenNumbers.contains(pullRequest.number)
     }
 }
@@ -115,7 +125,7 @@ public struct PullRequestListing: Equatable, Sendable {
 
     public init(
         open: [PullRequest], viewer: String?, reviewRequests: Set<Int>, checkedOut: Set<Int>,
-        filter: PullRequestFilter, showsHidden: Bool = false
+        filter: PullRequestFilter, showsHidden: Bool = false, involving: Set<Int> = []
     ) {
         let candidates = open.filter { pullRequest in
             pullRequest.state == .open && !checkedOut.contains(pullRequest.number)
@@ -133,7 +143,9 @@ public struct PullRequestListing: Equatable, Sendable {
         var hiddenRows: [Row] = []
         for pullRequest in candidates {
             let requested = reviewRequests.contains(pullRequest.number)
-            let hides = filter.hides(pullRequest, isRequested: requested)
+            let hides = filter.hides(
+                pullRequest, isRequested: requested,
+                isInvolving: involving.contains(pullRequest.number))
             let row = Row(pullRequest: pullRequest, isReviewRequested: requested, isHidden: hides)
             if hides { hiddenRows.append(row) } else { shown.append(row) }
         }

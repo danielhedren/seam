@@ -4,13 +4,36 @@ import SeamCore
 
 /// Reviewing a listed pull request from Seam's store (SPEC §6.4, §7.2.2, §8.3.1).
 extension RepoSession {
-    /// Opens the PR's review; without a store to fetch it into, it opens on GitHub instead.
+    /// Opens the PR's review; without a store to fetch it into, it opens on GitHub instead. One
+    /// the list doesn't know yet, as on a notification's click before the first read, or not
+    /// at all, is looked up first.
     package func openPullRequestReview(_ number: Int) {
-        guard pullRequestStore != nil, let pullRequest = listedPullRequest(number) else {
-            openListedPullRequest(number)
+        if let pullRequest = listedPullRequest(number) {
+            open(pullRequest)
             return
         }
+        Task { [weak self] in
+            guard let pullRequests = self?.pullRequests else { return }
+            await pullRequests.answered()
+            guard let self else { return }
+            if let pullRequest = listedPullRequest(number) {
+                open(pullRequest)
+            } else if let repo = pullRequests.repo,
+                let pullRequest = try? await services.github.client.pullRequest(number, in: repo),
+                pullRequest.state == .open
+            {
+                open(pullRequest)
+            }
+        }
+    }
+
+    private func open(_ pullRequest: PullRequest) {
+        let number = pullRequest.number
         noteOpened(.pullRequest(repo: directory.path, number: number))
+        guard pullRequestStore != nil else {
+            if let url = URL(string: pullRequest.url) { services.platform.open(url) }
+            return
+        }
         let id = WorktreeReview.id(ofPullRequest: number)
         if !pullRequestReviews.contains(where: { $0.id == id }), let store = pullRequestStore {
             let review = WorktreeReview(

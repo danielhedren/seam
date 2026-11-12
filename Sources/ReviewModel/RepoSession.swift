@@ -558,8 +558,11 @@ package final class RepoSession {
     package var pullRequestFilter: PullRequestFilter {
         get { repoState.pullRequestFilter ?? PullRequestFilter() }
         set {
+            let readsInvolvement = newValue.onlyInvolvingMe && !pullRequestFilter.onlyInvolvingMe
             repoState.pullRequestFilter = newValue.isEmpty ? nil : newValue
             persist()
+            // Who the reader is in is read only while this filter asks for it.
+            if readsInvolvement { pullRequests?.request(.settings) }
         }
     }
 
