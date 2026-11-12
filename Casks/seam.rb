@@ -1,6 +1,6 @@
 cask "seam" do
-  version "0.4"
-  sha256 "8b52ec8fa6eea23265692aac5113b97960c00d458be4db265355f6acc67160c6"
+  version "0.5"
+  sha256 "52c93f0be21ae47f7689742261bae0bcfe6df869eb3579a133a164fc06d213bf"
 
   url "https://github.com/danielhedren/seam/releases/download/v#{version}/Seam-#{version}.zip"
   name "Seam"
