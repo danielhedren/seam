@@ -27,6 +27,7 @@ public struct CLIPullRequestStore: PullRequestStore {
     private let repackAbove: Int
     private let environment: [String: String]
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "GitKit")
+    private let signposter = OSSignposter(subsystem: "com.danielhedren.seam", category: "GitKit")
 
     /// `credentials` finds gh, whose `auth git-credential` signs the fetch in; without it the
     /// fetch runs unsigned, which public repos allow.
@@ -60,6 +61,8 @@ public struct CLIPullRequestStore: PullRequestStore {
     public func fetch(pullRequests: [Int], bases: [String], from repo: GitHubRepo)
         async throws(GitError)
     {
+        let interval = signposter.beginInterval("pullRequestFetch")
+        defer { signposter.endInterval("pullRequestFetch", interval) }
         try await prepare()
         try await dropRefs(keeping: Set(pullRequests))
         let refspecs =

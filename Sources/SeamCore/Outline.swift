@@ -113,15 +113,29 @@ public enum Outline {
         var paths: [[String]]
         var keys: [String]
         var index: [String: Int]
+        /// The innermost definition at each line, or -1.
+        private var innermostAt: [Int]
 
+        /// One pass in document order, keeping the definitions still open: a definition's
+        /// ancestors are exactly those around it.
         init(_ scopes: [SyntaxScope]) {
             self.scopes = scopes
-            paths = scopes.map { scope in
-                scopes.filter {
-                    $0.lines.lowerBound <= scope.lines.lowerBound
-                        && $0.lines.upperBound >= scope.lines.upperBound
-                }.map(\.name)
+            var open: [Int] = []
+            var paths: [[String]] = []
+            for scope in scopes {
+                while let last = open.last, !Self.contains(scopes[last], scope) {
+                    open.removeLast()
+                }
+                paths.append(open.map { scopes[$0].name } + [scope.name])
+                open.append(paths.count - 1)
             }
+            self.paths = paths
+            var innermostAt = Array(
+                repeating: -1, count: (scopes.map(\.lines.upperBound).max() ?? -1) + 1)
+            for (index, scope) in scopes.enumerated() {
+                for line in scope.lines { innermostAt[line] = index }
+            }
+            self.innermostAt = innermostAt
             var counts: [String: Int] = [:]
             keys = paths.map { path in
                 let joined = path.joined(separator: "\u{1F}")
@@ -134,7 +148,13 @@ public enum Outline {
 
         /// Scopes are in document order, so the last one around a line is the innermost.
         func innermost(_ line: Int) -> Int? {
-            scopes.lastIndex { $0.lines.contains(line) }
+            guard innermostAt.indices.contains(line), innermostAt[line] >= 0 else { return nil }
+            return innermostAt[line]
+        }
+
+        private static func contains(_ outer: SyntaxScope, _ inner: SyntaxScope) -> Bool {
+            outer.lines.lowerBound <= inner.lines.lowerBound
+                && outer.lines.upperBound >= inner.lines.upperBound
         }
 
         func outermostUnmatched(_ index: Int, isUnmatched: (Int) -> Bool) -> Int {

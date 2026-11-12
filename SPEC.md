@@ -1180,7 +1180,8 @@ Measured on a real repository (347 refs, 20 worktrees):
 | Pull request list read, 100 open PRs (§7.2.2) | ≤ 2 s, listed rows shown from the last read meanwhile |
 | Store fetch, every listed PR's head and base (§8.3.1) | ≤ 5 s in the background; never on the main actor |
 | Selecting a fetched pull request → first diff paint (≤ 5k lines) | ≤ 200 ms, as a worktree |
-| Outline, moved code and repeated edits for a 20k-line diff | ≤ 300 ms after highlighting, off the main actor |
+| Outlines | linear in a file's lines and definitions, once per diff and highlight pass, and only for files whose outline is open |
+| Moved code and repeated edits for a 20k-line diff (M13) | ≤ 300 ms after highlighting, off the main actor |
 | Idle CPU with 20 watched worktrees | ~0 |
 
 ## 9. UI/UX conventions
