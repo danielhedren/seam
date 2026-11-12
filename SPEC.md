@@ -583,24 +583,11 @@ There is no panel beside the diff: a thread is read and answered in its card in 
   and how much is left. Thread ticks stay on top and keep their colour; marks closer than 2 pt
   merge.
 
-### 7.4.1 Moving by definitions
+### 7.4.1 Moving through the review
 
-- **Go to Symbol** (`⇧⌘O`, Go › Go to Symbol…): a fuzzy search over every definition in the
-  review's files, changed or not, each with its file and a `+ − ~` mark when the change touches
-  it; changed ones rank first. Return scrolls there, opening the gap around an unchanged one.
-  Until the files are parsed, a row says "Still reading 12 files…". Files in languages without
-  definitions are matched by name.
-- **Find Definition and Uses** (`⌘`-click an identifier, or Go › Find Definition and Uses with
-  the cursor on one): when a file in the review defines it, the diff jumps there. Either way a
-  card opens under the line, like a thread's, listing where else the name appears: in this
-  diff first ("6 in this diff"), then elsewhere in the worktree or the pull request's head ("3
-  elsewhere"), each with its line. A row in the diff jumps; one elsewhere shows its file's lines
-  around it read-only in the card. It's text, not meaning: names shorter than 4 characters
-  aren't looked up, and at most 200 places are listed.
-- **Back and Forward** (`⌃-`, `⌃⇧-`, Go › Back and Forward): every jump (a symbol, a
-  definition, an outline row, a moved block, a thread, a search result, a find match, a
-  file picked in the list) remembers where the reader was, per review. A place in a file the
-  diff no longer has is skipped.
+- **Back and Forward** (`⌃-`, `⌃⇧-`, Go › Back and Forward): every jump (an outline row, a
+  moved block, a thread, a search result, a find match, a file picked in the list) remembers
+  where the reader was, per review. A place in a file the diff no longer has is skipped.
 
 ### 7.5 Keyboard
 
@@ -617,8 +604,6 @@ Every review action has a key. The defaults are vim-ish, like hunk:
 | `⇧V` | show only what changed since the file was viewed, or the full diff again |
 | `⌥⇧V` | the same for the whole review: only files changed since viewed (§7.4) |
 | `⇧O` | open or close the current file's outline |
-| `⇧⌘O` | go to symbol (§7.4.1) |
-| `⌘`-click | find the identifier's definition and uses |
 | `⌃-` / `⌃⇧-` | back / forward to where a jump started |
 | `s` | side-by-side / unified |
 | `w` | wrap |
@@ -1075,9 +1060,6 @@ seam-debug (M1)       ─ SeamCore
   `GH_PROMPT_DISABLED=1`, and drops `GH_REPO` and `GH_HOST`, so gh can't pick a remote, prompt, or
   write to `.git/config`. gh is found on the login shell's PATH, then in Homebrew's folders. Exit
   status 4 means signed out; rate limits and lost connections are told by gh's message.
-- **Finding uses** (§7.4.1): `git grep -n -w -F -z -I --no-color --full-name`, with the
-  `grep.*` settings that change its output pinned by `-c`, on the worktree's files, or on the
-  head commit in the store for a pull request.
 
 ### 8.3.1 Pull request store (ADR 0008)
 
@@ -1114,7 +1096,7 @@ Seam fetches them into a store of its own, never into the repo:
   TypeScript/TSX, JavaScript, JSON, YAML, Markdown, XML (csproj/props), Rust, TOML, Dockerfile,
   PHP.
   Other files show uncoloured; each grammar costs up to several MB of app size.
-- **Definitions** (hunk names §7.4, where you are, outlines, whole-definition gaps, Go to Symbol)
+- **Definitions** (hunk names §7.4, where you are, outlines, whole-definition gaps)
   come from the same parse, for C#, TypeScript/TSX, JavaScript, Rust and PHP: each definition's
   name, kind, lines and the line its body starts on. They are worked out with the highlights and
   published in the same batches, so they cost no second parse and no extra redraw.
@@ -1188,7 +1170,6 @@ Measured on a real repository (347 refs, 20 worktrees):
 | Store fetch, every listed PR's head and base (§8.3.1) | ≤ 5 s in the background; never on the main actor |
 | Selecting a fetched pull request → first diff paint (≤ 5k lines) | ≤ 200 ms, as a worktree |
 | Outline, moved code and repeated edits for a 20k-line diff | ≤ 300 ms after highlighting, off the main actor |
-| Go to Symbol, results per keystroke | ≤ 16 ms over 10k definitions |
 | Idle CPU with 20 watched worktrees | ~0 |
 
 ## 9. UI/UX conventions
@@ -1589,14 +1570,12 @@ next read, the repo's refs, objects and `FETCH_HEAD` are unchanged by any of it 
 and a store emptied behind Seam's back is rebuilt on the next read.
 *Status:* built.
 
-**M12 — Moving by definitions (§7.4, §7.4.1).** Back and Forward first, then where you are in the
-sticky header, whole-definition gaps, the change ruler, outlines, Go to Symbol, and Find
-Definition and Uses.
+**M12 — Reading by definitions (§7.4, §7.4.1).** Back and Forward, where you are in the sticky
+header, whole-definition gaps, the change ruler and outlines.
 *Done when:* each works on a worktree and on a pull request review, Back returns from every kind
 of jump, and the §8.7 budgets hold on the 20k-line diff.
-*Built so far:* Back and Forward (on worktrees, for the jumps that exist: a file picked in the
-list, a thread, a search result, a find match) and where you are. *Not built yet:*
-whole-definition gaps, the change ruler, outlines, Go to Symbol, Find Definition and Uses.
+*Built so far:* Back and Forward and where you are. *Not built yet:* whole-definition gaps,
+the change ruler and outlines.
 
 **M13 — Reading less (§7.4, §7.7).** Trivial-change labels, moved code, repeated edits and Copy
 Prompt for Reviewer Agent.
@@ -1630,12 +1609,15 @@ commands are off in the welcome window, as every command is there; its button wo
 - Writing on a pull request review: Seam threads there need somewhere for an answer to go, and
   posting to GitHub would end §3's read-only rule. Wanted later; not designed.
 - Definitions for Swift, Python and Go: no grammar is vendored for them, so their files have no
-  highlighting and none of §7.4.1. Not planned now.
-- A definition index of the whole worktree or PR head, rather than the review's files plus
-  `git grep`: only if Find Definition and Uses proves too coarse.
+  highlighting, hunk names, outlines or whole-definition gaps. Not planned now.
 - Clearing a notification in Notification Center doesn't mark its bell entry read (§7.10):
   whether macOS reports dismissals to an app without a notification category asking for them
   is unverified. If it does, a dismissed notification could count as read.
+
+Decided (2026-11-12): Seam stays a reviewer, not an editor: Go to Symbol and Find Definition
+and Uses were dropped from M12, as features that navigate the code base rather than the
+change. Whether a language server could add review facts (diagnostics a change introduces,
+callers of a changed signature) is being looked into separately.
 
 Decided (2026-11-11): other people's open pull requests are listed under the worktrees and
 reviewed from a store Seam fetches into (ADR 0008), measured against `gh pr diff`, which gives
