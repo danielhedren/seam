@@ -84,7 +84,9 @@ package actor JSONStateStore: StateStore {
     private func pruneSeen(keeping state: RepoState, for repository: Repository) {
         let directory = seenDirectory(for: repository)
         let marked = Set(
-            state.worktrees.values.flatMap { $0.viewed.map { Array($0.marks.values) } ?? [] })
+            (Array(state.worktrees.values) + Array(state.pullRequestReviews.values)).flatMap {
+                $0.viewed.map { Array($0.marks.values) } ?? []
+            })
         let kept = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
         for name in kept where !marked.contains(name) {
             try? FileManager.default.removeItem(at: directory.appending(path: name))
