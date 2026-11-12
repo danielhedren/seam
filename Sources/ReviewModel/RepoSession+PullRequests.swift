@@ -8,11 +8,7 @@ extension RepoSession {
             services: services, directory: repository.anchor, saved: savedPullRequests,
             branches: { [weak self] in self?.pullRequestBranches ?? [] })
         pullRequests.onRead = { [weak self] saved, repo in
-            guard let self else { return }
-            let worktrees = Dictionary(
-                reviews.map { ($0.id, $0.worktree.branch) }, uniquingKeysWith: { first, _ in first }
-            )
-            await pullRequestThreads?.reconcile(saved, repo: repo, worktrees: worktrees)
+            await self?.readPullRequestThreads(saved, repo: repo)
         }
         pullRequests.listsOthers = { [settings] in settings.showsPullRequestList }
         pullRequests.readsInBackground = { [settings] in
@@ -24,6 +20,19 @@ extension RepoSession {
             self.notePullRequests(pullRequests.saved)
         }
         setPullRequests(pullRequests)
+    }
+
+    /// GitHub's threads for every worktree's PR and every opened pull request review (SPEC §7.9).
+    func readPullRequestThreads(_ saved: SavedPullRequests, repo: GitHubRepo) async {
+        var targets = Dictionary(
+            reviews.map { review in
+                (review.id, review.worktree.branch.flatMap { saved.byBranch[$0] })
+            },
+            uniquingKeysWith: { first, _ in first })
+        for review in pullRequestReviews {
+            targets[review.id] = review.pullRequest
+        }
+        await pullRequestThreads?.reconcile(targets, repo: repo)
     }
 
     /// Every worktree's branch and every local parent's, whose merged PR marks it stale.

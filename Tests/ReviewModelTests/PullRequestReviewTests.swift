@@ -69,6 +69,30 @@ import Testing
         session.close()
     }
 
+    @Test func gitHubsThreadsOnThePullRequestShowOnItsReview() async throws {
+        let (repo, _) = try await fixture()
+        github.answer(
+            threads: [
+                GitHubReviewThread(
+                    id: "PRRT_1", path: "b.txt", isResolved: false, side: .right, lines: 1...1,
+                    comments: [
+                        .init(
+                            id: 7, author: "octocat", body: "Why b?", created: .distantPast,
+                            url: "https://github.com/owner/app/pull/8#discussion_r7",
+                            diffHunk: "@@ -0,0 +1 @@\n+b")
+                    ])
+            ], for: 8)
+        let session = await open(repo)
+
+        let review = try await openReview(session, 8)
+        await until { !review.placedThreads.isEmpty }
+
+        #expect(review.placedThreads.map(\.id) == ["gh-7"])
+        #expect(review.placedThreads.first?.placement == .lines(1...1))
+        #expect(github.threadReads == [8])
+        session.close()
+    }
+
     @Test func aPullRequestReviewOffersNothingThatNeedsACheckout() async throws {
         let (repo, _) = try await fixture()
         let session = await open(repo)

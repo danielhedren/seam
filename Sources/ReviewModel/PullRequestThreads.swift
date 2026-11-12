@@ -82,17 +82,16 @@ package final class PullRequestThreads {
         await keep(only: [])
     }
 
-    /// Brings the threads in line with a read of the PRs: every worktree's PR's threads are read
-    /// when the PR changed or 10 minutes passed; worktrees without one, and gone ones, lose theirs.
-    func reconcile(
-        _ saved: SavedPullRequests, repo: GitHubRepo, worktrees: [String: String?]
-    ) async {
-        await keep(only: Set(worktrees.keys))
+    /// Brings the threads in line with a read of the PRs: each review's PR's threads are read
+    /// when the PR changed or 10 minutes passed; reviews without one, and gone ones, lose theirs.
+    /// `reviews` maps a worktree's or a pull request review's id to its PR.
+    func reconcile(_ reviews: [String: PullRequest?], repo: GitHubRepo) async {
+        await keep(only: Set(reviews.keys))
         var jobs: [(worktree: String, pullRequest: PullRequest)] = []
-        // Every worktree's outcome goes into one write of the file.
+        // Every review's outcome goes into one write of the file.
         var reads: [String: GitHubRead] = [:]
-        for (worktree, branch) in worktrees.sorted(by: { $0.key < $1.key }) {
-            guard let branch, let pullRequest = saved.byBranch[branch] else {
+        for (worktree, found) in reviews.sorted(by: { $0.key < $1.key }) {
+            guard let pullRequest = found else {
                 read[worktree] = nil
                 if threads.contains(where: { $0.worktree == worktree })
                     || conversations[worktree] != nil

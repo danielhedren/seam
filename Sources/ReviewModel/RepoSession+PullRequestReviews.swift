@@ -16,11 +16,16 @@ extension RepoSession {
             let review = WorktreeReview(
                 pullRequest: pullRequest, store: store.directory, services: services)
             review.pullRequests = pullRequests
+            review.threads = threads
+            review.pullRequestThreads = pullRequestThreads
             review.restore(pullRequestReviewStates[String(number)], override: nil)
             review.fetch = { [weak self] again in
                 await self?.fetchListedPullRequests(again: again)
             }
             pullRequestReviews.append(review)
+            if let saved = pullRequests?.saved, let repo = pullRequests?.repo {
+                Task { [weak self] in await self?.readPullRequestThreads(saved, repo: repo) }
+            }
         }
         select(id)
     }
