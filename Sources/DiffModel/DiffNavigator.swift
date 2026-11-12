@@ -14,6 +14,8 @@ public protocol DiffNavigator: AnyObject {
     func page(by delta: Int)
     func scroll(toFile path: String)
     func scroll(toLine line: Int, inFile path: String, oldSide: Bool)
+    /// Puts the anchor's line back under the sticky header, where it was read from.
+    func scroll(to anchor: ScrollAnchor)
     func focus()
     func search(_ query: TextQuery)
     func showMatch(inFile path: String, line: Int, isOld: Bool, occurrence: Int)

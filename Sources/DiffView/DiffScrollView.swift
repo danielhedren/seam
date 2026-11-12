@@ -287,6 +287,12 @@ public final class DiffScrollView: NSScrollView {
         setMark(anchor)
     }
 
+    public func scroll(to anchor: ScrollAnchor) {
+        restore(anchor)
+        jumpedTop = visibleTop
+        markReading()
+    }
+
     /// Next or previous file header, relative to the file under the sticky header.
     public func moveFile(by delta: Int) {
         let target =
@@ -460,6 +466,16 @@ public final class DiffScrollView: NSScrollView {
         }
     }
 
+    /// Where the reader is: the definitions around the line under the sticky header.
+    private func stickyDefinitions(file: Int, path: String) -> [String] {
+        guard let row = layout.row(at: visibleTop + headerHeight), layout.rows[row].file == file
+        else { return [] }
+        return layout.definitions(around: row, syntax: canvas.syntax[path])
+    }
+
+    /// What the sticky header says of where the reader is; tests read it.
+    var shownDefinitions: [String] { sticky.isHidden ? [] : sticky.definitions }
+
     /// Shows the current file's header pinned at the top, pushed up by the next file's header.
     private func updateSticky() {
         let top = visibleTop
@@ -483,6 +499,7 @@ public final class DiffScrollView: NSScrollView {
         sticky.collapsed = canvas.collapsed.contains(reviewFile.diff.path)
         sticky.viewed = canvas.viewed[reviewFile.diff.path] ?? .unviewed
         sticky.sinceViewed = canvas.sinceViewed.contains(reviewFile.diff.path)
+        sticky.definitions = stickyDefinitions(file: file, path: reviewFile.diff.path)
         sticky.isHidden = false
     }
 }

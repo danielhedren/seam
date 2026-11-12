@@ -37,8 +37,8 @@ enum DiffHeaderDrawing {
     /// Controls are drawn at the text's height so they line up with it; the viewed checkbox
     /// sits at the right edge, in the same place on every file.
     static func layout(
-        _ file: ReviewFile, viewed: ViewedMarks.Status, sinceViewed: Bool = false, in rect: NSRect,
-        font: NSFont, palette: DiffPalette
+        _ file: ReviewFile, viewed: ViewedMarks.Status, sinceViewed: Bool = false,
+        definitions: [String] = [], in rect: NSRect, font: NSFont, palette: DiffPalette
     ) -> Layout {
         let bold = NSFontManager.shared.convert(font, toHaveTrait: .boldFontMask)
         let control = controlSize(font)
@@ -82,6 +82,10 @@ enum DiffHeaderDrawing {
         let countsWidth = counts.reduce(0) { $0 + width($1.0) + gap }
         let room = rect.maxX - 14 - viewedWidth - gap - countsWidth - x
         var titleLine = TextLine.make(title(file), font: bold)
+        // Where the reader is gives way before the path does: outer definitions first.
+        let place = (0..<definitions.count).lazy
+            .map { TextLine.make(definitions[$0...].joined(separator: " › "), font: font) }
+            .first { width(titleLine) + gap + width($0) <= room }
         if width(titleLine) > room,
             let truncated = CTLineCreateTruncatedLine(
                 titleLine, max(room, 0), .middle, TextLine.make("…", font: bold))
@@ -90,6 +94,10 @@ enum DiffHeaderDrawing {
         }
         pieces.append((titleLine, palette.text, x))
         x += width(titleLine) + gap
+        if let place {
+            pieces.append((place, palette.gutterText, x))
+            x += width(place) + gap
+        }
         for (line, color) in counts {
             pieces.append((line, color, x))
             x += width(line) + gap
@@ -113,8 +121,8 @@ enum DiffHeaderDrawing {
 
     static func draw(
         _ file: ReviewFile, collapsed: Bool, viewed: ViewedMarks.Status, sinceViewed: Bool = false,
-        in rect: NSRect, font: NSFont, palette: DiffPalette, context: CGContext,
-        topBorder: Bool = true
+        definitions: [String] = [], in rect: NSRect, font: NSFont, palette: DiffPalette,
+        context: CGContext, topBorder: Bool = true
     ) {
         context.setFillColor(palette.headerBackground.nsColor.cgColor)
         context.fill(rect)
@@ -125,7 +133,8 @@ enum DiffHeaderDrawing {
             context.fill(NSRect(x: rect.minX, y: rect.minY, width: rect.width, height: 1))
         }
         let layout = layout(
-            file, viewed: viewed, sinceViewed: sinceViewed, in: rect, font: font, palette: palette)
+            file, viewed: viewed, sinceViewed: sinceViewed, definitions: definitions, in: rect,
+            font: font, palette: palette)
         drawDisclosure(in: layout.disclosure, collapsed: collapsed, palette: palette, context)
         drawCheckbox(in: layout.checkbox, viewed, palette: palette, context)
         context.textMatrix = CGAffineTransform(scaleX: 1, y: -1)
@@ -221,6 +230,14 @@ final class DiffStickyHeaderView: NSView {
     var sinceViewed = false {
         didSet { if sinceViewed != oldValue { needsDisplay = true } }
     }
+    /// The definitions around the line under the header, outermost first (SPEC §7.4).
+    var definitions: [String] = [] {
+        didSet {
+            guard definitions != oldValue else { return }
+            needsDisplay = true
+            window?.invalidateCursorRects(for: self)
+        }
+    }
     var viewedHelp: ((ViewedMarks.Status) -> String)?
     var font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular) {
         didSet { if font != oldValue { needsDisplay = true } }
@@ -242,8 +259,8 @@ final class DiffStickyHeaderView: NSView {
         removeAllToolTips()
         guard let file, viewedHelp != nil else { return }
         let layout = DiffHeaderDrawing.layout(
-            file, viewed: viewed, sinceViewed: sinceViewed, in: bounds, font: font,
-            palette: palette)
+            file, viewed: viewed, sinceViewed: sinceViewed, definitions: definitions,
+            in: bounds, font: font, palette: palette)
         addToolTip(layout.viewedFrame, owner: self, userData: nil)
     }
 
@@ -254,16 +271,16 @@ final class DiffStickyHeaderView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         guard let file, let context = NSGraphicsContext.current?.cgContext else { return }
         DiffHeaderDrawing.draw(
-            file, collapsed: collapsed, viewed: viewed, sinceViewed: sinceViewed, in: bounds,
-            font: font, palette: palette, context: context)
+            file, collapsed: collapsed, viewed: viewed, sinceViewed: sinceViewed,
+            definitions: definitions, in: bounds, font: font, palette: palette, context: context)
     }
 
     override func mouseDown(with event: NSEvent) {
         guard let file else { return }
         let point = convert(event.locationInWindow, from: nil)
         let layout = DiffHeaderDrawing.layout(
-            file, viewed: viewed, sinceViewed: sinceViewed, in: bounds, font: font,
-            palette: palette)
+            file, viewed: viewed, sinceViewed: sinceViewed, definitions: definitions,
+            in: bounds, font: font, palette: palette)
         onClick?(layout.viewedFrame.contains(point))
     }
 }

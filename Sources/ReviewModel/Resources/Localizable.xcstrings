@@ -161,6 +161,9 @@
     "Approved" : {
 
     },
+    "Back" : {
+
+    },
     "Cancelled" : {
 
     },
@@ -304,6 +307,9 @@
 
     },
     "First %@ matches" : {
+
+    },
+    "Forward" : {
 
     },
     "Generated" : {
