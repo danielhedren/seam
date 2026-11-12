@@ -342,6 +342,9 @@
     "Invalid regular expression" : {
 
     },
+    "Involving Me" : {
+
+    },
     "Jump to Commit" : {
 
     },
@@ -453,12 +456,6 @@
     "Older commits not shown" : {
 
     },
-    "Only Involving Me" : {
-
-    },
-    "Only Review Requests" : {
-
-    },
     "Open" : {
 
     },
@@ -561,6 +558,9 @@
     "Review" : {
 
     },
+    "Review Requests" : {
+
+    },
     "Review each worktree against the branch it was cut from." : {
 
     },
@@ -619,6 +619,9 @@
 
     },
     "Show Notifications" : {
+
+    },
+    "Show Only" : {
 
     },
     "Show Only Checked" : {

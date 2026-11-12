@@ -384,9 +384,10 @@ the list isn't there at all.
   commits" when its head moved since the reader marked any of its files viewed.
 - **Order:** review requested first, then most recently updated.
 - **Filters:** the section's header has a filter menu: Hide Drafts, Hide Bots (logins ending
-  `[bot]` and GitHub Apps), Only Review Requests, Only Involving Me (those the reader commented
-  on, reviewed, was mentioned or assigned in, or is asked to review; GitHub's `involves:@me`
-  and `reviewed-by:@me` searches, read only while it's on), then Authors and Labels, each a submenu of the
+  `[bot]` and GitHub Apps), then under Show Only, Review Requests and Involving Me (those the
+  reader commented on, reviewed, or was mentioned or assigned in; GitHub's `involves:@me` and
+  `reviewed-by:@me` searches, read only while it's on). The Show Only switches add up: with
+  both on, a PR shows when it's either. Then Authors and Labels, each a submenu of the
   authors and labels the open PRs have. A submenu chooses Hide Checked or Show Only Checked
   above its checkable entries, with Check All and Uncheck All below them, so keeping one label
   is checking it and choosing Show Only Checked; Show Only with nothing checked shows none of

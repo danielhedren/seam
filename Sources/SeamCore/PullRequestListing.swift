@@ -26,9 +26,9 @@ public struct PullRequestFilter: Codable, Equatable, Sendable {
 
     public var hidesDrafts = false
     public var hidesBots = false
+    /// The "Show Only" switches: with any on, a PR stays when it's any of those checked.
     public var onlyReviewRequests = false
-    /// Only those the reader commented on, reviewed, was mentioned or assigned in, or is asked
-    /// to review.
+    /// Those the reader commented on, reviewed, or was mentioned or assigned in.
     public var onlyInvolvingMe = false
     public var authors = Checked()
     public var labels = Checked()
@@ -84,10 +84,16 @@ public struct PullRequestFilter: Codable, Equatable, Sendable {
 
     public var isEmpty: Bool { self == PullRequestFilter() }
 
+    /// The "Show Only" switches add up: requested or involving, not requested and involving.
+    private func isShownOnly(isRequested: Bool, isInvolving: Bool) -> Bool {
+        let checked = [(onlyReviewRequests, isRequested), (onlyInvolvingMe, isInvolving)]
+            .filter(\.0)
+        return checked.isEmpty || checked.contains { $0.1 }
+    }
+
     func hides(_ pullRequest: PullRequest, isRequested: Bool, isInvolving: Bool) -> Bool {
         (hidesDrafts && pullRequest.isDraft) || (hidesBots && pullRequest.isFromBot)
-            || (onlyReviewRequests && !isRequested)
-            || (onlyInvolvingMe && !isInvolving && !isRequested)
+            || !isShownOnly(isRequested: isRequested, isInvolving: isInvolving)
             || authors.hides([pullRequest.author])
             || labels.hides(pullRequest.labels) || hiddenNumbers.contains(pullRequest.number)
     }

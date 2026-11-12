@@ -71,13 +71,17 @@ import Testing
         #expect(listed(open, filter: .init(hidesBots: true)).hidden == 2)
     }
 
-    @Test func onlyInvolvingMeKeepsWhatTheReaderIsInOrIsAskedToReview() {
-        let listing = PullRequestListing(
-            open: [pullRequest(1), pullRequest(2), pullRequest(3)], viewer: "me",
-            reviewRequests: [3], checkedOut: [], filter: .init(onlyInvolvingMe: true),
-            involving: [1])
-        #expect(listing.rows.map(\.id).sorted() == [1, 3])
-        #expect(listing.hidden == 1)
+    /// Review requests or involving me, not requests that also involve me.
+    @Test func theShowOnlySwitchesAddUp() {
+        func shown(_ filter: PullRequestFilter) -> [Int] {
+            PullRequestListing(
+                open: [pullRequest(1), pullRequest(2), pullRequest(3)], viewer: "me",
+                reviewRequests: [3], checkedOut: [], filter: filter, involving: [1]
+            ).rows.map(\.id).sorted()
+        }
+        #expect(shown(.init(onlyInvolvingMe: true)) == [1])
+        #expect(shown(.init(onlyReviewRequests: true)) == [3])
+        #expect(shown(.init(onlyReviewRequests: true, onlyInvolvingMe: true)) == [1, 3])
     }
 
     @Test func showHiddenListsWhatTheFiltersHideAfterTheRest() {

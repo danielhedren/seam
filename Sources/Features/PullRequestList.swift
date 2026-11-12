@@ -164,12 +164,14 @@ struct PullRequestFilterMenu: View {
         Menu {
             Toggle(String(localized: "Hide Drafts", bundle: .module), isOn: filter(\.hidesDrafts))
             Toggle(String(localized: "Hide Bots", bundle: .module), isOn: filter(\.hidesBots))
-            Toggle(
-                String(localized: "Only Review Requests", bundle: .module),
-                isOn: filter(\.onlyReviewRequests))
-            Toggle(
-                String(localized: "Only Involving Me", bundle: .module),
-                isOn: filter(\.onlyInvolvingMe))
+            Section(String(localized: "Show Only", bundle: .module)) {
+                Toggle(
+                    String(localized: "Review Requests", bundle: .module),
+                    isOn: filter(\.onlyReviewRequests))
+                Toggle(
+                    String(localized: "Involving Me", bundle: .module),
+                    isOn: filter(\.onlyInvolvingMe))
+            }
             Divider()
             checked(String(localized: "Authors", bundle: .module), listing.authors, \.authors)
             checked(String(localized: "Labels", bundle: .module), listing.labels, \.labels)
