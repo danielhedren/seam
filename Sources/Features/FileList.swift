@@ -127,6 +127,20 @@ struct FileList: View {
                     .foregroundStyle(.secondary).lineLimit(1)
             }
         } else if let diff = review.diff {
+            if diff.leftOutBuildFiles > 0 {
+                // Said, since a new script in a folder named build or bin would otherwise vanish.
+                Text(
+                    String(
+                        localized: "\(String(diff.leftOutBuildFiles)) in build folders left out",
+                        bundle: .module)
+                )
+                .foregroundStyle(.secondary).lineLimit(1)
+                .help(
+                    String(
+                        localized:
+                            "Untracked files in folders such as bin, obj, build or node_modules aren't reviewed. Commit or add them to see them.",
+                        bundle: .module))
+            }
             Text(verbatim: Counted.files(diff.files.count)).fixedSize()
             if !diff.files.isEmpty {
                 if shown == .all {

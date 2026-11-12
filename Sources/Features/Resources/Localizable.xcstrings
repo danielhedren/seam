@@ -20,6 +20,9 @@
     "%@ hidden" : {
 
     },
+    "%@ in build folders left out" : {
+
+    },
     "%@ is not in a git repository." : {
 
     },
@@ -709,6 +712,9 @@
 
     },
     "Unified or side by side" : {
+
+    },
+    "Untracked files in folders such as bin, obj, build or node_modules aren't reviewed. Commit or add them to see them." : {
 
     },
     "Use" : {

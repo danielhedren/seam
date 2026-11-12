@@ -84,6 +84,8 @@ public struct ReviewFile: Equatable, Sendable {
 public struct ReviewDiff: Equatable, Sendable {
     public var scope: ReviewScope
     public var files: [ReviewFile]
+    /// Untracked files in build-output folders, left out of `files` (SPEC §6.2).
+    public var leftOutBuildFiles = 0
 
     public var additions: Int { files.reduce(0) { $0 + $1.diff.additions } }
     public var deletions: Int { files.reduce(0) { $0 + $1.diff.deletions } }
@@ -138,8 +140,11 @@ public struct ReviewDiffBuilder: Sendable {
             }
         let patch = try await git.run(options.arguments + range + ["--"], in: worktree)
         var files = try PatchParser.parse(patch).map { ReviewFile(diff: $0) }
+        var leftOut = 0
         if scope != .committed {
-            files += try await untrackedFiles(worktree)
+            let untracked = try await untrackedFiles(worktree)
+            files += untracked.files
+            leftOut = untracked.leftOut
         }
         let generated = try await generatedPaths(
             files.map(\.diff.path), globs: options.generatedGlobs, in: worktree,
@@ -151,7 +156,9 @@ public struct ReviewDiffBuilder: Sendable {
             lhs.isGenerated != rhs.isGenerated
                 ? !lhs.isGenerated : Self.precedesInTree(lhs.diff.path, rhs.diff.path)
         }
-        return ReviewDiff(scope: scope, files: files)
+        var diff = ReviewDiff(scope: scope, files: files)
+        diff.leftOutBuildFiles = leftOut
+        return diff
     }
 
     /// `.gitattributes` decides first: `linguist-generated` set marks a file, unset clears it
@@ -182,12 +189,16 @@ public struct ReviewDiffBuilder: Sendable {
             })
     }
 
-    private func untrackedFiles(_ worktree: URL) async throws(GitError) -> [ReviewFile] {
+    private func untrackedFiles(_ worktree: URL) async throws(GitError)
+        -> (files: [ReviewFile], leftOut: Int)
+    {
         let output = try await git.run(
             ["ls-files", "--others", "--exclude-standard", "-z"], in: worktree)
-        return output.split(separator: 0).map { String(decoding: $0, as: UTF8.self) }
-            .filter { !BuildOutput.contains($0) }
-            .map { untracked($0, at: worktree.appending(path: $0)) }
+        let paths = output.split(separator: 0).map { String(decoding: $0, as: UTF8.self) }
+        let kept = paths.filter { !BuildOutput.contains($0) }
+        return (
+            kept.map { untracked($0, at: worktree.appending(path: $0)) }, paths.count - kept.count
+        )
     }
 
     /// The id git would give `data` as a blob. Computed here from bytes already read, so a file

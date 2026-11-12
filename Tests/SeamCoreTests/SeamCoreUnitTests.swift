@@ -98,6 +98,7 @@ import Testing
             of: repo.main, base: base)
 
         #expect(review.files.map(\.diff.path) == ["app/src/New.cs"])
+        #expect(review.leftOutBuildFiles == 3, "said in the file list's header")
         #expect(activity.uncommittedFiles == 1)
         #expect(activity.changes == DiffStat(files: 1, additions: 1, deletions: 0))
         #expect(!BuildOutput.contains("bin"), "a file named like a folder stays")

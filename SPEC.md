@@ -193,7 +193,8 @@ For a worktree with base `M`:
 
 - **Tracked changes:** `git diff --no-ext-diff --no-color --histogram -M -C --find-renames <M>`.
   This includes committed, staged and unstaged changes.
-- **Untracked files:** `git ls-files --others --exclude-standard`, each shown as a full addition.
+- **Untracked files:** `git ls-files --others --exclude-standard`, each shown as a full addition,
+  except those in build-output folders (§6.2).
   Seam never runs `git add -N`, because it must not modify the index.
 
 ### 6.2 Scopes
@@ -211,7 +212,9 @@ Untracked files inside build-output folders (`bin`, `obj`, `node_modules`, `buil
 `out`, `target`, `.build`, `DerivedData`, `__pycache__`, `.gradle`, `.next`, `.nuxt`, `.venv`,
 `venv`) are left out of the diff and of a row's totals and `✎N`, even when no `.gitignore`
 covers them: deleting a project takes its `.gitignore` with it and leaves its build output
-behind. Tracked files in such folders still show.
+behind. Tracked files in such folders still show. So that a new file there (a `bin/deploy.sh`)
+isn't missed unseen, the file list's header says how many were left out ("3 in build folders
+left out"), its tooltip saying why.
 
 The commit list (§7.2.1) generalises the scopes: each scope is a run of its rows, and the reader
 can pick any other run instead, such as only the latest commit. A picked run diffs from its oldest
