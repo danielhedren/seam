@@ -87,4 +87,8 @@ public enum ExpandDirection: Equatable, Sendable {
     /// Reveal lines above the hunk below the gap.
     case up
     case all
+    /// Reveal this many lines below the hunk above, to the end of its definition.
+    case downTo(Int)
+    /// Reveal this many lines above the hunk below, to the start of its definition.
+    case upTo(Int)
 }

@@ -484,6 +484,8 @@ package final class WorktreeReview: Identifiable {
         case .down: expansion.top += DiffContent.expandStep
         case .up: expansion.bottom += DiffContent.expandStep
         case .all: expansion = .all
+        case .downTo(let lines): expansion.top = max(expansion.top, lines)
+        case .upTo(let lines): expansion.bottom = max(expansion.bottom, lines)
         }
         expansions[path, default: [:]][gap] = expansion
     }

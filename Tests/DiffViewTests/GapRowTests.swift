@@ -71,6 +71,38 @@ import Testing
         #expect(header([0: .all]) == .hidden)
     }
 
+    /// `Handle` spans lines 41–70 around the hunk at 47–54.
+    @Test func aGapOpensToTheWholeDefinitionItsHunkIsIn() {
+        let handle = [SyntaxScope(lines: 40...69, name: "Handle")]
+        let syntax = [path: FileSyntax(oldScopes: handle, newScopes: handle)]
+        func gaps(_ expansions: [Int: GapExpansion]) -> [GapRow] {
+            self.gaps(
+                DiffRowBuilder.rows(
+                    for: content.review, mode: .unified, contents: content.contents,
+                    expansions: expansions.isEmpty ? [:] : [path: expansions], syntax: syntax))
+        }
+
+        let closed = gaps([:])
+        #expect(closed.map(\.upToDefinition?.lines) == [6, nil])
+        #expect(closed.map(\.downToDefinition?.lines) == [nil, 16])
+        #expect(DiffRowBuilder.gapLabel(closed[1]).text.contains("↓ whole Handle"))
+        #expect(DiffRowBuilder.gapLabel(closed[1]).controls.map(\.1).contains(.downTo(16)))
+        // Once that much shows, the control has nothing left to open.
+        #expect(gaps([1: GapExpansion(top: 16)]).map(\.downToDefinition) == [nil, nil])
+    }
+
+    @Test func aLongDefinitionOpensThreeHundredLinesAtATime() {
+        let long = [SyntaxScope(lines: 0...600, name: "Process")]
+        let reach = DiffRowBuilder.downReach(2..<1000, shown: 0, hidden: 998, long)
+        #expect(reach == GapRow.Reach(name: "Process", lines: 300, isCapped: true))
+        #expect(
+            DiffRowBuilder.gapLabel(
+                GapRow(
+                    gap: 1, hidden: 998, canExpandDown: true, canExpandUp: false,
+                    downToDefinition: reach)
+            ).text.contains("↓ 300 lines of Process"))
+    }
+
     @Test func anUnnamedHeaderShowsOnlyWhereNothingElseMarksAJump() {
         let gapRow = DiffRow.gap(
             file: 0, GapRow(gap: 1, hidden: 5, canExpandDown: true, canExpandUp: true))

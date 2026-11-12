@@ -1,5 +1,6 @@
 import Foundation
 import GitKit
+import SeamCore
 
 /// Gaps between hunks: where they are, what they reveal, and their controls (SPEC §7.4).
 extension DiffRowBuilder {
@@ -55,14 +56,61 @@ extension DiffRowBuilder {
         var rows = context(range.lowerBound..<(range.lowerBound + top))
         let hidden = range.count - top - bottom
         if hidden > 0 {
+            let scopes = lookup.syntax?.newScopes ?? []
             rows.append(
                 .gap(
                     file: file,
-                    GapRow(gap: gap, hidden: hidden, canExpandDown: !isFirst, canExpandUp: !isLast))
+                    GapRow(
+                        gap: gap, hidden: hidden, canExpandDown: !isFirst, canExpandUp: !isLast,
+                        downToDefinition: isFirst
+                            ? nil : downReach(range, shown: top, hidden: hidden, scopes),
+                        upToDefinition: isLast
+                            ? nil : upReach(range, shown: bottom, hidden: hidden, scopes)))
             )
         }
         rows += context((range.upperBound - bottom)..<range.upperBound)
         return rows
+    }
+
+    /// How far the gap must open below the hunk above to show the rest of the innermost
+    /// definition that hunk ends in; nil when that's no further than what's shown, or than
+    /// "all". Scopes are zero-based, the range one-based.
+    static func downReach(
+        _ range: Range<Int>, shown: Int, hidden: Int, _ scopes: [SyntaxScope]
+    ) -> GapRow.Reach? {
+        let above = range.lowerBound - 2
+        guard
+            let scope = scopes.last(where: {
+                $0.lines.contains(above) && $0.lines.upperBound + 1 >= range.lowerBound
+            })
+        else { return nil }
+        let lines = scope.lines.upperBound + 2 - range.lowerBound
+        return reach(scope.name, lines: lines, shown: shown, hidden: hidden)
+    }
+
+    /// The same above the hunk below, to the start of the definition it begins in.
+    static func upReach(
+        _ range: Range<Int>, shown: Int, hidden: Int, _ scopes: [SyntaxScope]
+    ) -> GapRow.Reach? {
+        let below = range.upperBound - 1
+        guard
+            let scope = scopes.last(where: {
+                $0.lines.contains(below) && $0.lines.lowerBound + 1 < range.upperBound
+            })
+        else { return nil }
+        let lines = range.upperBound - 1 - scope.lines.lowerBound
+        return reach(scope.name, lines: lines, shown: shown, hidden: hidden)
+    }
+
+    static let definitionCap = 300
+
+    private static func reach(_ name: String, lines: Int, shown: Int, hidden: Int)
+        -> GapRow.Reach?
+    {
+        guard lines > shown, lines - shown < hidden else { return nil }
+        return GapRow.Reach(
+            name: name, lines: min(lines, shown + definitionCap),
+            isCapped: lines - shown > definitionCap)
     }
 
     /// The gap row's text and the character ranges of its controls.
@@ -80,6 +128,15 @@ extension DiffRowBuilder {
         let step = min(DiffContent.expandStep, gap.hidden)
         if gap.canExpandDown { add("↓ \(step)", .down) }
         if gap.canExpandUp { add("↑ \(step)", .up) }
+        func definition(_ reach: GapRow.Reach, _ arrow: String) -> String {
+            reach.isCapped
+                ? String(
+                    localized:
+                        "\(arrow) \(String(definitionCap)) lines of \(reach.name)", bundle: .module)
+                : String(localized: "\(arrow) whole \(reach.name)", bundle: .module)
+        }
+        if let reach = gap.downToDefinition { add(definition(reach, "↓"), .downTo(reach.lines)) }
+        if let reach = gap.upToDefinition { add(definition(reach, "↑"), .upTo(reach.lines)) }
         add(
             gap.hidden == 1
                 ? String(localized: "Show 1 more line", bundle: .module)

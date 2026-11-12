@@ -26,10 +26,20 @@ package struct UnifiedLine: Equatable, Sendable {
 
 /// The hidden part of a gap, with the controls that apply to it.
 package struct GapRow: Equatable, Sendable {
+    /// The rest of the definition a neighbouring hunk is in (SPEC §7.4): its name, how many
+    /// lines of the gap reach its end or start, and whether that was cut at the cap.
+    package struct Reach: Equatable, Sendable {
+        var name: String
+        var lines: Int
+        var isCapped: Bool
+    }
+
     package var gap: Int
     var hidden: Int
     var canExpandDown: Bool
     var canExpandUp: Bool
+    var downToDefinition: Reach?
+    var upToDefinition: Reach?
 }
 
 /// A hunk header always keeps its row, so hunk navigation stops there, but it shows only when it

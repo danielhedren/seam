@@ -1,6 +1,26 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ %@ lines of %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ lines of %3$@"
+          }
+        }
+      }
+    },
+    "%@ whole %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ whole %2$@"
+          }
+        }
+      }
+    },
     "Binary file" : {
 
     },
