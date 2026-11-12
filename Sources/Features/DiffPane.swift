@@ -92,6 +92,15 @@ struct DiffPane: View {
                     }
                 }
             }
+            if let problem = session.services.notifications.problem {
+                Banner(systemImage: "exclamationmark.triangle.fill", tint: .orange) {
+                    Text(problem).lineLimit(2).textSelection(.enabled).help(problem)
+                } actions: {
+                    Button(String(localized: "Dismiss", bundle: .module)) {
+                        session.services.notifications.dismissProblem()
+                    }
+                }
+            }
             if let failure = session.threadFailure {
                 Banner(systemImage: "exclamationmark.triangle.fill", tint: .orange) {
                     Text(failure).lineLimit(2).textSelection(.enabled).help(failure)

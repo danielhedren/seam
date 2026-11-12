@@ -357,6 +357,9 @@
     "Line %@" : {
 
     },
+    "Mark All as Read" : {
+
+    },
     "Mark as Not Viewed" : {
 
     },
@@ -384,7 +387,13 @@
     "New thread on old line %@" : {
 
     },
+    "News of your worktrees and pull requests is kept here, also what arrives while Seam is in front." : {
+
+    },
     "Next match" : {
+
+    },
+    "No Notifications" : {
 
     },
     "No changed file's path matches “%@”." : {
@@ -603,6 +612,9 @@
     "Show Hidden" : {
 
     },
+    "Show Notifications" : {
+
+    },
     "Show Only Checked" : {
 
     },
@@ -625,6 +637,9 @@
 
     },
     "Show the diff this thread was written on" : {
+
+    },
+    "Show the unread count on the Dock icon" : {
 
     },
     "Side by Side" : {
@@ -655,6 +670,9 @@
 
     },
     "The base %@ no longer exists" : {
+
+    },
+    "The bell in the toolbar keeps the news either way, and the Dock icon counts what's unread there." : {
 
     },
     "The chosen base %@ no longer exists." : {

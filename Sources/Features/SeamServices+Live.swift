@@ -9,7 +9,8 @@ extension SeamServices {
             git: CLIGitClient(), watcher: SystemFileWatcher(), clock: ContinuousClock(),
             store: JSONStateStore(), threads: ThreadStore(),
             settings: AppSettings(locateApp: MacPlatform.locateApp),
-            spotlight: SpotlightRepoIndex(), github: .live(), platform: MacPlatform())
+            spotlight: SpotlightRepoIndex(), github: .live(), platform: MacPlatform(),
+            notifications: NotificationBell(store: JSONNotificationLogStore()))
         services.launcher = ShellLauncher(locateApp: MacPlatform.locateApp)
         let gh = GHLocator()
         services.pullRequestStore = { repository in

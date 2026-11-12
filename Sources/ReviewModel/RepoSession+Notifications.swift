@@ -4,34 +4,43 @@ import Observation
 import SeamCore
 
 /// Notifications (SPEC §7.10): whenever what the session shows changes, the news since the last
-/// look is posted, of the kinds Settings has on, and only in the background unless asked.
+/// look is logged in the bell, of the kinds Settings has on, and posted in the background or,
+/// when asked, in front too.
 extension RepoSession {
     func startNotifications() {
         lastSnapshot = notificationSnapshot()
         notesOpens = true
         watchForNews()
-        watchAwaiting()
+        watchBadge()
     }
 
-    /// The Dock's badge follows what awaits the reader here.
-    private func watchAwaiting() {
+    /// The Dock's badge follows its switch in Settings.
+    private func watchBadge() {
         guard !isClosed else { return }
-        let count = withObservationTracking {
-            inbox.count
+        let badges = withObservationTracking {
+            settings.badgesDock
         } onChange: { [weak self] in
-            Task { @MainActor in self?.watchAwaiting() }
+            Task { @MainActor in self?.watchBadge() }
         }
-        services.dockBadge.set(count, for: directory.path, on: services.platform)
+        services.notifications.setBadgesDock(badges, on: services.platform)
     }
 
-    /// The reader opened `subject` here, so its notifications leave Notification Center.
+    /// The reader opened `subject` here: its news is read, and its notifications leave
+    /// Notification Center, also those the log no longer has.
     func noteOpened(_ subject: NotificationSubject) {
         guard notesOpens else { return }
         let platform = services.platform
+        services.notifications.noteOpened(subject, on: platform)
         Task {
             let ids = await platform.deliveredNotificationIDs().filter(subject.covers)
             if !ids.isEmpty { platform.removeNotifications(ids.sorted()) }
         }
+    }
+
+    /// A click on the bell's entry: what it's about opens, in whichever window has it.
+    package func openNotification(_ entry: NotificationLog.Entry) {
+        showsNotifications = false
+        services.notifications.open(entry, on: services.platform)
     }
 
     private func watchForNews() {
@@ -44,14 +53,19 @@ extension RepoSession {
         let events = NotificationRules.events(from: lastSnapshot, to: snapshot)
         lastSnapshot = snapshot
         let settings = settings
-        guard settings.notifiesInFront || !isAppActive else { return }
+        // The bell logs all of it; only the banner waits for the background.
+        let posts = settings.notifiesInFront || !isAppActive
         for event in events where settings.notifications.contains(event.kind) {
+            let notification: SeamNotification
             if let listed = NotificationText.listed(event, repo: directory.path) {
-                services.platform.notify(listed)
+                notification = listed
+            } else if let review = reviews.first(where: { $0.id == event.worktree }) {
+                notification = NotificationText.notification(event, in: review)
+            } else {
                 continue
             }
-            guard let review = reviews.first(where: { $0.id == event.worktree }) else { continue }
-            services.platform.notify(NotificationText.notification(event, in: review))
+            services.notifications.record(notification, posted: posts, on: services.platform)
+            if posts { services.platform.notify(notification) }
         }
     }
 

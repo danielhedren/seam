@@ -152,8 +152,8 @@ struct RepoWindow: View {
     }
 }
 
-/// View mode, reload and Threads; the diff gets the rest of the window (SPEC §9). Disabled rather
-/// than left out without a worktree, so the toolbar keeps its items.
+/// View mode, reload, Threads and the bell; the diff gets the rest of the window (SPEC §9).
+/// Disabled rather than left out without a worktree, so the toolbar keeps its items.
 struct ReviewToolbar: ToolbarContent {
     let session: RepoSession
     let review: WorktreeReview?
@@ -186,6 +186,12 @@ struct ReviewToolbar: ToolbarContent {
                     String(localized: "Show Threads", bundle: .module), command: "threads")
             )
             .disabled(review == nil)
+        }
+        ToolbarSpacer(.fixed)
+        ToolbarItem {
+            BellButton(
+                services: session.services, isShown: Bindable(session).showsNotifications,
+                open: session.openNotification)
         }
     }
 }

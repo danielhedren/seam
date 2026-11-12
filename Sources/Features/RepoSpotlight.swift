@@ -50,11 +50,9 @@ public struct SpotlightRepoIndex: RepoIndex {
 public final class SeamAppDelegate: NSObject, NSApplicationDelegate,
     UNUserNotificationCenterDelegate
 {
-    var send: @MainActor (URL) -> Void = { url in
-        NSWorkspace.shared.open(
-            [url], withApplicationAt: Bundle.main.bundleURL,
-            configuration: NSWorkspace.OpenConfiguration())
-    }
+    var send: @MainActor (URL) -> Void = { MacPlatform().open($0) }
+    /// Told the id of a notification clicked in Notification Center; `SeamScenes` sets it.
+    var clicked: @MainActor (String) async -> Void = { _ in }
     private let logger = Logger(subsystem: "com.danielhedren.seam", category: "Features")
 
     public func application(
@@ -73,13 +71,19 @@ public final class SeamAppDelegate: NSObject, NSApplicationDelegate,
         UNUserNotificationCenter.current().delegate = self
     }
 
-    /// A clicked notification opens what it's about, like `seam <path>` does (SPEC §7.10).
     public func userNotificationCenter(
         _ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse
     ) async {
-        guard let text = response.notification.request.content.userInfo["url"] as? String,
-            let url = URL(string: text)
-        else { return }
+        guard response.actionIdentifier == UNNotificationDefaultActionIdentifier else { return }
+        let request = response.notification.request
+        await received(id: request.identifier, url: request.content.userInfo["url"] as? String)
+    }
+
+    /// A clicked notification is read, and opens what it's about like `seam <path>` does
+    /// (SPEC §7.10).
+    func received(id: String, url: String?) async {
+        await clicked(id)
+        guard let url = url.flatMap(URL.init(string:)) else { return }
         await send(url)
     }
 

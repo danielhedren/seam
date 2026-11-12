@@ -42,21 +42,3 @@ public struct NoPlatform: PlatformServices {
     public func setBadge(_ count: Int) {}
     public var bundledCommand: URL? { nil }
 }
-
-/// The Dock icon's badge (SPEC §7.10): what awaits the reader, summed over the open repos.
-@MainActor
-public final class DockBadge {
-    private var counts: [String: Int] = [:]
-    private var shown = 0
-
-    public init() {}
-
-    /// A repo's count, by its main worktree; zero when its window closes.
-    func set(_ count: Int, for repo: String, on platform: any PlatformServices) {
-        counts[repo] = count == 0 ? nil : count
-        let total = counts.values.reduce(0, +)
-        guard total != shown else { return }
-        shown = total
-        platform.setBadge(total)
-    }
-}

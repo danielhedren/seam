@@ -48,6 +48,8 @@ public final class AppSettings {
     }
     /// Off, notifications wait until Seam isn't the app in front.
     package var notifiesInFront: Bool { didSet { save(notifiesInFront, "notifiesInFront") } }
+    /// The Dock icon shows how many of the bell's entries are unread.
+    package var badgesDock: Bool { didSet { save(badgesDock, "badgesDock") } }
 
     private let defaults: UserDefaults
 
@@ -89,6 +91,7 @@ public final class AppSettings {
         notifications = Set(NotificationKind.allCases)
             .subtracting(off.compactMap(NotificationKind.init))
         notifiesInFront = value("notifiesInFront", false)
+        badgesDock = value("badgesDock", true)
     }
 
     private func save(_ value: some Any, _ key: String) {

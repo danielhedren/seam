@@ -7,8 +7,8 @@ import Testing
 
 @testable import ReviewModel
 
-/// Opening in Seam what a notification is about takes it out of Notification Center, and the
-/// Dock's badge counts what awaits the reader (SPEC §7.10).
+/// Opening in Seam what a notification is about takes it out of Notification Center
+/// (SPEC §7.10).
 @MainActor @Suite(.timeLimit(.minutes(1))) struct NotificationCleanupTests {
     /// A repo whose `feature` worktree has PR #12, checks running, and whose list has #20.
     /// The repo is returned too: its folder goes when it does.
@@ -125,38 +125,5 @@ import Testing
         await until { !platform.removed.isEmpty }
         #expect(platform.removed == ["\(repo.main.path)|ready-12"])
         session.close()
-    }
-
-    @Test func theDockBadgeCountsWhatAwaitsTheReaderUntilTheWindowCloses() async throws {
-        let repo = try await FixtureRepo()
-        try repo.write("a.txt", "one\n")
-        let watcher = ManualWatcher()
-        let (session, review, store) = await threadSession(repo, watcher: watcher)
-        let reviewed = try #require(review)
-        let repository = try #require(session.repository)
-        let platform = try #require(session.platform)
-        session.draft = ThreadDraft(
-            worktree: reviewed.id,
-            anchor: try #require(reviewed.anchor(path: "a.txt", side: .new, lines: 1...1)))
-        await session.post("Why one?")
-        let id = try #require(session.selectedThreadID)
-        #expect(platform.badges == [])
-
-        try store.update(repository) { threads throws(ThreadError) in
-            try ThreadRules.reply(&threads, to: id, author: "claude", body: "So.", now: .now)
-        }
-        watcher.send([store.file(for: repository).path])
-        await until { platform.badges == [1] }
-
-        _ = await session.reply(to: id, "Thanks.")
-        await until { platform.badges == [1, 0] }
-
-        try store.update(repository) { threads throws(ThreadError) in
-            try ThreadRules.reply(&threads, to: id, author: "claude", body: "Sure.", now: .now)
-        }
-        watcher.send([store.file(for: repository).path])
-        await until { platform.badges == [1, 0, 1] }
-        session.close()
-        #expect(platform.badges == [1, 0, 1, 0])
     }
 }

@@ -172,6 +172,10 @@ package enum CommandCatalog {
             id: "hide-missing", title: localized("Hide Missing Worktrees"), menu: .view,
             section: 3, shortcut: .none, isEnabled: { _ in true }, isOn: { $0.hidesMissing },
             run: { $0.hidesMissing.toggle() }),
+        SeamCommand(
+            id: "notifications", title: localized("Show Notifications"), menu: .view, section: 4,
+            shortcut: .command("n", [.command, .shift]), isEnabled: { _ in true },
+            run: { $0.showsNotifications.toggle() }),
     ]
 
     static let go: [SeamCommand] =
@@ -258,6 +262,16 @@ package enum CommandCatalog {
                 id: "forward", title: localized("Forward"), menu: .go, section: 3,
                 shortcut: .command("-", [.control, .shift]), isEnabled: { $0.canGoForward },
                 run: { $0.goForward() }),
+            SeamCommand(
+                id: "next-notification", title: localized("Next Unread Notification"),
+                menu: .go, section: 4, shortcut: .command("n", [.command, .option]),
+                isEnabled: { $0.services.notifications.log.unreadCount > 0 },
+                run: { $0.services.notifications.openNewestUnread(on: $0.services.platform) }),
+            SeamCommand(
+                id: "notifications-read", title: localized("Mark All Notifications as Read"),
+                menu: .go, section: 4, shortcut: .none,
+                isEnabled: { $0.services.notifications.log.unreadCount > 0 },
+                run: { $0.services.notifications.markAllRead(on: $0.services.platform) }),
         ]
 
     static let review: [SeamCommand] = [

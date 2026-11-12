@@ -161,8 +161,8 @@ public struct SeamServices: Sendable {
     public var github: GitHubAccount
     /// The pasteboard, browser and file manager.
     public var platform: any PlatformServices
-    /// One for the app, so every window's repo counts towards the Dock's badge.
-    public var dockBadge: DockBadge
+    /// The bell's log (SPEC §7.10): one for the app, shared by every window.
+    public var notifications: NotificationBell
     package var launcher: any CommandLauncher = ShellLauncher()
     /// Where a repo's pull requests are fetched (SPEC §8.3.1); nil leaves them to the browser.
     package var pullRequestStore: @Sendable (Repository) -> (any PullRequestStore)? = { _ in nil }
@@ -174,10 +174,10 @@ public struct SeamServices: Sendable {
         threads: ThreadStore, settings: AppSettings,
         highlighter: SyntaxHighlighter = SyntaxHighlighter(),
         spotlight: any RepoIndex = NoRepoIndex(), github: GitHubAccount = .none(),
-        platform: any PlatformServices = NoPlatform()
+        platform: any PlatformServices = NoPlatform(), notifications: NotificationBell? = nil
     ) {
         self.platform = platform
-        dockBadge = DockBadge()
+        self.notifications = notifications ?? NotificationBell()
         self.github = github
         self.threads = threads
         self.spotlight = spotlight

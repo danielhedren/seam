@@ -65,6 +65,8 @@ package final class RepoSession {
     package var fileListHasFocus = false
     package var showsSwitcher = false
     package var showsPalette = false
+    /// The bell's popover (SPEC §7.10).
+    package var showsNotifications = false
     /// The worktree column. The file list always shows: macOS's three-column split view ignores
     /// `.detailOnly` and can't collapse its middle column.
     package var showsWorktreeList = true
@@ -199,6 +201,7 @@ package final class RepoSession {
             repoState = await services.store.load(repository)
             pullRequestStore = services.pullRequestStore(repository)
             stateProblem = await services.store.loadProblem(for: repository)
+            await services.notifications.load(on: services.platform)
             startPullRequests(in: repository)
             await services.store.noteOpened(directory)
             // Spotlight lists what Open Recent does, and never holds up the window.
@@ -702,7 +705,6 @@ package final class RepoSession {
         if let anchor = diff.anchor { selected?.savedAnchor = anchor }
         persist()
         isClosed = true
-        services.dockBadge.set(0, for: directory.path, on: services.platform)
         monitorTask?.cancel()
         monitorTask = nil
         threads?.stop()

@@ -10,7 +10,16 @@ public struct MacPlatform: PlatformServices {
         NSPasteboard.general.setString(text, forType: .string)
     }
 
-    public func open(_ url: URL) { NSWorkspace.shared.open(url) }
+    /// A `seam://` link goes to this copy of Seam, whichever one the system has for the scheme.
+    public func open(_ url: URL) {
+        guard url.scheme == "seam" else {
+            NSWorkspace.shared.open(url)
+            return
+        }
+        NSWorkspace.shared.open(
+            [url], withApplicationAt: Bundle.main.bundleURL,
+            configuration: NSWorkspace.OpenConfiguration())
+    }
 
     public func reveal(_ file: URL) { NSWorkspace.shared.activateFileViewerSelecting([file]) }
 

@@ -59,6 +59,38 @@ import Testing
         #expect(session.settings.layoutMode == .split)
     }
 
+    @Test func theBellBadgesTheUnreadNewsAndNoneAtZero() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", "one\n")
+        let session = RepoSession(directory: repo.main, services: services(repo.git))
+        await session.open()
+        await session.settled()
+        let platform = try #require(session.platform)
+        let bell = session.services.notifications
+        let window = toolbarWindow(session, try #require(session.selected))
+        func item() -> NSToolbarItem? {
+            window.toolbar?.items.first { $0.label == "Notifications" }
+        }
+        #expect(item()?.toolTip == "Show Notifications (⇧⌘N)")
+        #expect(window.toolbar?.items.last?.label == "Notifications")
+        #expect(item()?.badge == nil)
+
+        for number in 1...2 {
+            bell.record(
+                SeamNotification(
+                    id: "\(repo.main.path)|ready-\(number)", group: repo.main.path,
+                    title: "main", body: "#\(number) is ready to merge", url: nil),
+                posted: false, on: platform)
+        }
+        settle()
+        #expect(item()?.badge?.text == "2")
+
+        bell.markAllRead(on: platform)
+        settle()
+        #expect(item() != nil)
+        #expect(item()?.badge == nil)
+    }
+
     private func toolbarWindow(_ session: RepoSession, _ review: WorktreeReview) -> NSWindow {
         let root = NavigationStack {
             Color.clear.toolbar { ReviewToolbar(session: session, review: review) }
