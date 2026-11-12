@@ -21,6 +21,16 @@
         }
       }
     },
+    "%@ → %@ lines" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ → %2$@ lines"
+          }
+        }
+      }
+    },
     "Binary file" : {
 
     },
@@ -72,6 +82,12 @@
 
     },
     "Show all %lld lines" : {
+
+    },
+    "body" : {
+
+    },
+    "signature" : {
 
     }
   },

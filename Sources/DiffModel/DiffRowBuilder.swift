@@ -32,6 +32,7 @@ package enum DiffRowBuilder {
         let file = content.review.files[index]
         var rows: [DiffRow] = []
         rows.append(.fileHeader(file: index))
+        rows += (content.outlines[file.diff.path] ?? []).map { .outline(file: index, $0) }
         guard !content.collapsed.contains(file.diff.path) else { return rows }
         let fileContents = content.contents[file.diff.path]
         let tabWidth = content.tabWidths[file.diff.path] ?? content.tabWidth

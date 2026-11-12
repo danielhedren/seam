@@ -544,10 +544,12 @@ There is no panel beside the diff: a thread is read and answered in its card in 
 - **Outline:** each file's header can open a list of the definitions its change touches, under
   the header: `+ ValidateOrder` added, `− LegacyParse` removed, `~ Handle` with "signature" when
   its first line changed, else "body", and "40 → 180 lines" when its length changed by half or
-  more. A row scrolls to the definition. Definitions are matched across the sides by their
-  path of names, overloads by order. A collapsed file shows its outline in place of its hunks.
-  View › Show Outlines turns them on for every file (remembered); `⇧O` toggles the current
-  file's. Files in languages without definitions (§8.4) have none.
+  more. Each changed line counts for the innermost definition around it, and an added type is
+  one row, not one per method. A row scrolls to where that definition's change starts. Definitions are matched across the sides by their
+  path of names, overloads by order. A collapsed file with its outline open shows the outline
+  in place of its hunks, so marking a file viewed leaves its outline readable.
+  View › Show Outlines turns them on for every file (remembered); `⇧O` (View › Show Outline of
+  This File) flips the current file's. Files in languages without definitions (§8.4) have none.
 - **Moved code:** a block of at least 4 lines that isn't only braces, blank lines or keywords,
   removed in one place and added in another (in the same file or another), is drawn dimmed on
   both ends with "Moved to `Orders.cs:120`" and "Moved from `Orders.cs:48`" bands that jump to
@@ -1574,8 +1576,7 @@ and a store emptied behind Seam's back is rebuilt on the next read.
 header, whole-definition gaps, the change ruler and outlines.
 *Done when:* each works on a worktree and on a pull request review, Back returns from every kind
 of jump, and the §8.7 budgets hold on the 20k-line diff.
-*Built so far:* Back and Forward and where you are. *Not built yet:* whole-definition gaps,
-the change ruler and outlines.
+*Status:* built.
 
 **M13 — Reading less (§7.4, §7.7).** Trivial-change labels, moved code, repeated edits and Copy
 Prompt for Reviewer Agent.

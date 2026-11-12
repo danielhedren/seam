@@ -31,6 +31,9 @@ public final class AppSettings {
         didSet { save(showsCarriageReturns, "showsCarriageReturns") }
     }
 
+    /// View › Show Outlines: every file's outline open (SPEC §7.4).
+    package var showsOutlines: Bool { didSet { save(showsOutlines, "showsOutlines") } }
+
     /// Pull request markers through gh (SPEC §7.8), on wherever gh is installed.
     package var showsPullRequests: Bool { didSet { save(showsPullRequests, "showsPullRequests") } }
     /// View › Show Pull Requests: other people's open PRs under the worktrees (SPEC §7.2.2).
@@ -77,6 +80,7 @@ public final class AppSettings {
         showsResolvedThreads = value("showsResolvedThreads", false)
         showsPullRequests = value("showsPullRequests", true)
         showsPullRequestList = value("showsPullRequestList", true)
+        showsOutlines = value("showsOutlines", false)
         showsCarriageReturns = value("showsCarriageReturns", false)
         // Up to 0.4 `notifications` saved the kinds on, and only these six existed.
         let firstKinds: [NotificationKind] = [

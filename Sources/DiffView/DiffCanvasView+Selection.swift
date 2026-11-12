@@ -36,6 +36,9 @@ extension DiffCanvasView {
                 onToggleCollapse?(path)
             }
             return
+        case .outline(let file, let entry):
+            onOpenOutline?(review.files[file].diff.path, entry)
+            return
         case .thread(_, let marker):
             if collapsedTitleFrame(row: position.row)?.contains(point) == true {
                 onOpenThread?(marker.id)

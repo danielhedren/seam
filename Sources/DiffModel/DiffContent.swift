@@ -37,6 +37,9 @@ public struct DiffContent: Equatable, Sendable {
     public var sinceViewed: Set<String>
     /// View › Show Carriage Returns: a CRLF line's CR drawn as ␍ (SPEC §7.4).
     public var showsReturns = false
+    /// The definitions each file's change touches, for the files whose outline is open, which
+    /// show it under their header, and in place of their hunks while collapsed (SPEC §7.4).
+    public var outlines: [String: [OutlineEntry]] = [:]
 
     public init(
         review: ReviewDiff, mode: DiffLayoutMode = .unified, collapsed: Set<String> = [],

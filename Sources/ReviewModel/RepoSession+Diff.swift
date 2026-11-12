@@ -24,6 +24,7 @@ package struct DiffShown: Equatable {
     var expansions: [String: [Int: GapExpansion]]
     var draft: DraftMarker?
     var openThread: ThreadMarker?
+    var outlined: Set<String>
 }
 
 extension RepoSession {
@@ -37,7 +38,7 @@ extension RepoSession {
             contentsVersion: review.contentsVersion, syntaxVersion: review.syntaxVersion,
             wraps: review.wraps, showsReturns: settings.showsCarriageReturns,
             viewed: review.viewed, expansions: review.expansions, draft: draftMarker(for: review),
-            openThread: openThreadMarker(for: review))
+            openThread: openThreadMarker(for: review), outlined: review.outlinedPaths)
     }
 
     /// What the diff draws for `review` after showing `previous`, and where it scrolls; nil until

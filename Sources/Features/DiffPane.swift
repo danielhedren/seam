@@ -22,6 +22,7 @@ struct DiffRepresentable: NSViewRepresentable {
         view.keyBindings = CommandCatalog.diffKeyBindings
         session.diff.view = view
         view.onToggleCollapse = { [session] path in session.toggleCollapsed(path) }
+        view.onOpenOutline = { [session] path, entry in session.openOutline(path, entry) }
         view.onFocusChange = { [session] focused in session.diffHasFocus = focused }
         view.onCurrentFileChange = { [session] path in session.noteReading(path) }
         view.onToggleViewed = { [session] path in session.toggleViewed(path, advance: false) }

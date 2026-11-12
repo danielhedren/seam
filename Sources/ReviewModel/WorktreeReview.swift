@@ -59,6 +59,10 @@ package final class WorktreeReview: Identifiable {
     package private(set) var sinceViewed: [String: String] = [:]
     /// Review › Show Only Changes Since Viewed: the diff keeps only files changed since viewed.
     package internal(set) var onlySinceViewed = false
+    /// Files whose outline the reader flipped from View › Show Outlines (SPEC §7.4).
+    package private(set) var outlineToggles: Set<String> = []
+    /// Outlines by path, kept until the diff or its definitions change.
+    @ObservationIgnored private var outlineCache: (key: [Int], entries: [String: [OutlineEntry]])?
     /// Worked out when the files or the choice change, not on every redraw.
     private var sinceViewedDiffs: [String: FileDiff] = [:]
     /// What the git checks found (SPEC §5.4); `staleParent` adds the pull request's word.
@@ -558,8 +562,40 @@ package final class WorktreeReview: Identifiable {
             content.resolvedMarks = hiddenResolvedMarkers
             content.preamble = preambleMarkers
             content.showsReturns = services.settings.showsCarriageReturns
+            content.outlines = outlines(for: Set(content.review.files.map(\.diff.path)))
             return showingSinceViewed(content)
         }
+    }
+
+    /// Files with their outline open: all of them with View › Show Outlines, less those
+    /// flipped, or only those flipped without it.
+    package var outlinedPaths: Set<String> {
+        let paths = Set((diff?.files ?? []).map(\.diff.path))
+        return services.settings.showsOutlines
+            ? paths.subtracting(outlineToggles) : paths.intersection(outlineToggles)
+    }
+
+    package func toggleOutline(_ path: String) {
+        if outlineToggles.contains(path) {
+            outlineToggles.remove(path)
+        } else {
+            outlineToggles.insert(path)
+        }
+    }
+
+    private func outlines(for shown: Set<String>) -> [String: [OutlineEntry]] {
+        let key = [diffVersion, syntaxVersion]
+        if outlineCache?.key != key { outlineCache = (key, [:]) }
+        var result: [String: [OutlineEntry]] = [:]
+        for file in diff?.files ?? [] where shown.contains(file.diff.path) {
+            let path = file.diff.path
+            guard outlinedPaths.contains(path), let syntax = syntax[path] else { continue }
+            let entries =
+                outlineCache?.entries[path] ?? Outline.entries(of: file.diff, syntax: syntax)
+            outlineCache?.entries[path] = entries
+            if !entries.isEmpty { result[path] = entries }
+        }
+        return result
     }
 
     /// The old side of a file shown since viewed is the text the reader saw, so the base's

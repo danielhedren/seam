@@ -51,6 +51,7 @@ final class DiffCanvasView: NSView {
     var onToggleCollapse: ((String) -> Void)?
     var onFocusChange: ((Bool) -> Void)?
     var onExpand: ((String, Int, ExpandDirection) -> Void)?
+    var onOpenOutline: ((String, OutlineEntry) -> Void)?
     var onToggleViewed: ((String) -> Void)?
     var viewedHelp: ((ViewedMarks.Status) -> String)?
     var onOpenThread: ((String) -> Void)?
@@ -279,6 +280,12 @@ final class DiffCanvasView: NSView {
             drawText(
                 text, key: LineKey(row: index, side: .unified), x: geometry.chromeTextX,
                 rowTop: rect.minY, color: palette.gutterText, context: context)
+        case .outline(_, let entry):
+            fill(rect, palette.hunkBackground, context)
+            drawText(
+                DiffRowBuilder.outlineLabel(entry), key: LineKey(row: index, side: .unified),
+                x: geometry.chromeTextX, rowTop: rect.minY, color: palette.hunkText,
+                context: context)
         case .image(let file):
             drawImages(file: file, in: chromeRect(ofRow: index), palette: palette, context: context)
         case .draft:

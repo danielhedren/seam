@@ -20,7 +20,7 @@ extension DiffCanvasView {
             switch layout.rows[index] {
             case .line, .split:
                 regions.append((row, .text))
-            case .fileHeader:
+            case .fileHeader, .outline:
                 regions.append((chromeRect(ofRow: index), .control))
             case .thread:
                 if let title = collapsedTitleFrame(row: index) { regions.append((title, .control)) }

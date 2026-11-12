@@ -14,6 +14,10 @@ public final class DiffScrollView: NSScrollView {
     public var onFocusChange: ((Bool) -> Void)? {
         didSet { canvas.onFocusChange = onFocusChange }
     }
+    /// An outline row was clicked: file path and the definition.
+    public var onOpenOutline: ((String, OutlineEntry) -> Void)? {
+        didSet { canvas.onOpenOutline = onOpenOutline }
+    }
     /// A gap's control was clicked: file path, gap index, direction.
     public var onExpand: ((String, Int, ExpandDirection) -> Void)? {
         didSet { canvas.onExpand = onExpand }

@@ -151,6 +151,7 @@ package struct DiffLayout: Equatable, Sendable {
         case .line(_, let line): line.text.count
         case .split(_, let left, let right): max(left?.text.count ?? 0, right?.text.count ?? 0)
         case .hunkHeader(_, _, .titled(let text)), .notice(_, let text): text.count
+        case .outline(_, let entry): DiffRowBuilder.outlineLabel(entry).count
         case .gap(_, let gap): DiffRowBuilder.gapLabel(gap).text.count
         case .fileHeader, .image, .hunkHeader, .draft, .thread, .openThread: 0
         }

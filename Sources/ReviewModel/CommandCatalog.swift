@@ -130,6 +130,21 @@ package enum CommandCatalog {
             isEnabled: { $0.showsPullRequestList }, isOn: { $0.showsHiddenPullRequests },
             run: { $0.showsHiddenPullRequests.toggle() }),
         SeamCommand(
+            id: "outlines", title: localized("Show Outlines"), menu: .view, section: 2,
+            shortcut: .none, isEnabled: { _ in true }, isOn: { $0.settings.showsOutlines },
+            run: { $0.settings.showsOutlines.toggle() }),
+        SeamCommand(
+            id: "outline", title: localized("Show Outline of This File"), menu: .view,
+            section: 2, shortcut: .single("o", .shift),
+            isEnabled: { $0.selected?.currentFile != nil },
+            currentTitle: { session in
+                guard let review = session.selected, let path = review.currentFile,
+                    review.outlinedPaths.contains(path)
+                else { return nil }
+                return localized("Hide Outline of This File")
+            },
+            run: { $0.toggleOutline() }),
+        SeamCommand(
             id: "bigger", title: localized("Make Text Bigger"), menu: .view, section: 1,
             shortcut: .command("="), isEnabled: { _ in true },
             run: { $0.settings.adjustFontSize(by: 1) }),

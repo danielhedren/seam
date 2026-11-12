@@ -113,6 +113,31 @@ extension DiffRowBuilder {
             isCapped: lines - shown > definitionCap)
     }
 
+    /// An outline row's text: `+ Order › Validate`, `~ Order › Total  body · 4 → 14 lines`.
+    package static func outlineLabel(_ entry: OutlineEntry) -> String {
+        let name = entry.path.joined(separator: " › ")
+        let sign: String
+        var detail: [String] = []
+        switch entry.change {
+        case .added: sign = "+"
+        case .removed: sign = "−"
+        case .signature:
+            sign = "~"
+            detail.append(String(localized: "signature", bundle: .module))
+        case .body:
+            sign = "~"
+            detail.append(String(localized: "body", bundle: .module))
+        }
+        if let lengths = entry.lengths {
+            detail.append(
+                String(
+                    localized: "\(String(lengths.old)) → \(String(lengths.new)) lines",
+                    bundle: .module))
+        }
+        return detail.isEmpty
+            ? "\(sign) \(name)" : "\(sign) \(name)  \(detail.joined(separator: " · "))"
+    }
+
     /// The gap row's text and the character ranges of its controls.
     package static func gapLabel(_ gap: GapRow) -> (
         text: String, controls: [(Range<Int>, ExpandDirection)]

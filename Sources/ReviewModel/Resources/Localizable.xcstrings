@@ -339,6 +339,9 @@
     "Hide Missing Worktrees" : {
 
     },
+    "Hide Outline of This File" : {
+
+    },
     "Hide Pull Requests" : {
 
     },
@@ -544,6 +547,12 @@
 
     },
     "Show Only Changes Since Viewed" : {
+
+    },
+    "Show Outline of This File" : {
+
+    },
+    "Show Outlines" : {
 
     },
     "Show Pull Requests" : {

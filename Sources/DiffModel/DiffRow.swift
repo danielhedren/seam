@@ -70,12 +70,15 @@ package enum DiffRow: Equatable, Sendable {
     case openThread(file: Int, ThreadMarker)
     /// The composer for a new thread, after its last line and that line's threads.
     case draft(file: Int, DraftMarker)
+    /// A definition the file's change touches, under its header (SPEC §7.4).
+    case outline(file: Int, OutlineEntry)
 
     package var file: Int {
         switch self {
         case .fileHeader(let file), .hunkHeader(let file, _, _), .line(let file, _),
             .split(let file, _, _), .notice(let file, _), .gap(let file, _), .image(let file),
-            .thread(let file, _), .openThread(let file, _), .draft(let file, _):
+            .thread(let file, _), .openThread(let file, _), .draft(let file, _),
+            .outline(let file, _):
             file
         }
     }
