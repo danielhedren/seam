@@ -910,9 +910,10 @@ background unless Settings says otherwise (§12).
   when a read finds them finished after one found them running on the same commit, so a run
   that starts and ends between two reads posts nothing.
 - **Other people's pull requests** (§7.2.2), each kind its own switch: a review was requested
-  from the reader or one of their teams; a new pull request passed the list's filters; one the
-  reader has started reviewing (marked a file viewed) got new commits; and someone commented on
-  one the reader has opened in Seam. Only what the list shows counts, so a filter quiets its
+  from the reader or one of their teams; a new pull request passed the list's filters; and one
+  the reader has started reviewing (marked a file viewed) got new commits. Someone commenting
+  on one the reader has opened in Seam is news under the GitHub comment switch, titled with the
+  pull request, and opens its review. Only what the list shows counts, so a filter quiets its
   PRs. The first read of a repo's pull requests is a state, as below.
 - **What's news:** what changed between two looks at what Seam shows, per worktree. A worktree
   seen for the first time, a pull request's first read and Seam's threads before the author's
@@ -1586,15 +1587,7 @@ the rows; Show Only Changes Since Viewed for the whole review (§7.4).
 highlighting, a force-push on GitHub marks the files it changed as changed since viewed after the
 next read, the repo's refs, objects and `FETCH_HEAD` are unchanged by any of it (a test checks),
 and a store emptied behind Seam's back is rebuilt on the next read.
-*Built so far:* the store and its fetch (listed PRs fetched in the background after a read,
-only when a head or base moved), reviews over a worktree or a pull request source, picking a
-listed PR or its notification opens its review with its commits, full contents and
-highlighting, viewed marks and places kept per PR, the commands that need a checkout
-disabled, a store missing objects rebuilt once, GitHub's threads and conversation on a PR
-review, `+/−` on the rows, "new commits" on a row, attributes and `.editorconfig` read from
-the head, "Fetching #N…", repacking a store past 200 MB, and Show Only Changes Since Viewed
-for the whole review. *Not built yet:* the "new commits" and comment notifications (they wait
-for M14's notification work).
+*Status:* built.
 
 **M12 — Moving by definitions (§7.4, §7.4.1).** Back and Forward first, then where you are in the
 sticky header, whole-definition gaps, the change ruler, outlines, Go to Symbol, and Find

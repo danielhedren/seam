@@ -152,6 +152,22 @@ import Testing
         )
     }
 
+    @Test func aPushToAPullRequestBeingReviewedIsNewsOncePerHead() {
+        var pushed = pullRequest(1)
+        pushed.headCommit = "c2"
+        var again = pushed
+        again.headCommit = "c3"
+        let before = listed([1])
+        var after = listed([1])
+        after.newCommits = [1: pushed]
+        var later = after
+        later.newCommits = [1: again]
+
+        #expect(events(before, after) == [.newCommits(pushed)])
+        #expect(events(after, after).isEmpty)
+        #expect(events(after, later) == [.newCommits(again)])
+    }
+
     @Test func whatTheFiltersHideIsNoNewsEvenWhenAFilterIsTurnedOff() {
         // 2 is open but hidden: known, not shown.
         let before = listed([1], known: [1, 2])

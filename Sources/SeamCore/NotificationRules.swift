@@ -6,6 +6,8 @@ public enum NotificationKind: String, CaseIterable, Codable, Sendable {
     case agent, checks, review, comment, readyToMerge, closed
     /// Other people's pull requests, from the pull request list (SPEC §7.2.2).
     case reviewRequested, newPullRequest
+    /// A pull request the reader started reviewing was pushed to.
+    case newCommits
 
     /// The kinds that need pull requests read, in the background too.
     public var needsPullRequests: Bool { self != .agent }
@@ -29,6 +31,7 @@ public struct NotificationEvent: Equatable, Sendable {
         /// About a pull request in the list, not a worktree's (SPEC §7.2.2).
         case reviewRequested(PullRequest)
         case newPullRequest(PullRequest)
+        case newCommits(PullRequest)
     }
 
     public struct Comment: Equatable, Sendable {
@@ -57,6 +60,7 @@ public struct NotificationEvent: Equatable, Sendable {
         case .merged, .closed: .closed
         case .reviewRequested: .reviewRequested
         case .newPullRequest: .newPullRequest
+        case .newCommits: .newCommits
         }
     }
 }
@@ -103,11 +107,17 @@ public struct NotificationSnapshot: Equatable, Sendable {
         /// The rows the list shows.
         public var shown: [Int: PullRequest]
         public var reviewRequests: Set<Int>
+        /// Pull requests pushed to since the reader marked one of their files viewed.
+        public var newCommits: [Int: PullRequest]
 
-        public init(known: Set<Int>, shown: [Int: PullRequest], reviewRequests: Set<Int>) {
+        public init(
+            known: Set<Int>, shown: [Int: PullRequest], reviewRequests: Set<Int>,
+            newCommits: [Int: PullRequest] = [:]
+        ) {
             self.known = known
             self.shown = shown
             self.reviewRequests = reviewRequests
+            self.newCommits = newCommits
         }
     }
 
@@ -144,18 +154,23 @@ public enum NotificationRules {
         from before: NotificationSnapshot.Listed?, to now: NotificationSnapshot.Listed?
     ) -> [NotificationEvent] {
         guard let before, let now else { return [] }
-        return now.shown.values.sorted { $0.number < $1.number }.compactMap { pullRequest in
-            let number = pullRequest.number
-            let what: NotificationEvent.What? =
-                if now.reviewRequests.contains(number), !before.reviewRequests.contains(number) {
-                    .reviewRequested(pullRequest)
-                } else if !before.known.contains(number) {
-                    .newPullRequest(pullRequest)
-                } else {
-                    nil
-                }
-            return what.map { NotificationEvent(worktree: "", what: $0) }
-        }
+        let pushed = now.newCommits.values.sorted { $0.number < $1.number }
+            .filter { before.newCommits[$0.number]?.headCommit != $0.headCommit }
+            .map { NotificationEvent(worktree: "", what: .newCommits($0)) }
+        return pushed
+            + now.shown.values.sorted { $0.number < $1.number }.compactMap { pullRequest in
+                let number = pullRequest.number
+                let what: NotificationEvent.What? =
+                    if now.reviewRequests.contains(number), !before.reviewRequests.contains(number)
+                    {
+                        .reviewRequested(pullRequest)
+                    } else if !before.known.contains(number) {
+                        .newPullRequest(pullRequest)
+                    } else {
+                        nil
+                    }
+                return what.map { NotificationEvent(worktree: "", what: $0) }
+            }
     }
 
     private static func events(

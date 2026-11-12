@@ -164,10 +164,13 @@ import Testing
 
         #expect(
             settings.notifications
-                == [.agent, .checks, .review, .comment, .closed, .reviewRequested, .newPullRequest])
+                == [
+                    .agent, .checks, .review, .comment, .closed, .reviewRequested,
+                    .newPullRequest, .newCommits,
+                ])
         settings.notifications.remove(.newPullRequest)
         #expect(
             AppSettings(defaults: defaults).notifications
-                == [.agent, .checks, .review, .comment, .closed, .reviewRequested])
+                == [.agent, .checks, .review, .comment, .closed, .reviewRequested, .newCommits])
     }
 }

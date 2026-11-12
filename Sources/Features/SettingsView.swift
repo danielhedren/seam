@@ -170,6 +170,10 @@ struct NotificationSettings: View {
             String(localized: "Someone asks you to review their pull request", bundle: .module)
         case .newPullRequest:
             String(localized: "A pull request is opened that the list shows", bundle: .module)
+        case .newCommits:
+            String(
+                localized: "A pull request you started reviewing gets new commits",
+                bundle: .module)
         }
     }
 

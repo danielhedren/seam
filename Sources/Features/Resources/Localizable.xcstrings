@@ -80,6 +80,9 @@
     "A pull request merges or closes" : {
 
     },
+    "A pull request you started reviewing gets new commits" : {
+
+    },
     "A pull request's checks finish" : {
 
     },

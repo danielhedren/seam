@@ -18,7 +18,7 @@ public enum NotificationSubject: Equatable, Sendable {
             let what = id.dropFirst(worktree.count + 1)
             return !what.hasPrefix("agent-") && !what.hasPrefix("pr-")
         case .pullRequest(let repo, let number):
-            return id == "\(repo)|pr-\(number)"
+            return id == "\(repo)|pr-\(number)" || id.hasPrefix("\(repo)|pr-\(number)-")
         }
     }
 }

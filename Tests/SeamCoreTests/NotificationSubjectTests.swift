@@ -6,6 +6,7 @@ import Testing
     private let ids = [
         "/repo|agent-t1", "/repo|agent-t2", "/repo|checks-12-abc", "/repo|review-r9",
         "/repo|comments-12", "/repo|ready-12", "/repo|closed-12", "/repo|pr-20",
+        "/repo|pr-20-commits", "/repo|pr-200",
         "/repo/wt|agent-t1", "/repo/wt|checks-13-def",
     ]
 
@@ -27,7 +28,7 @@ import Testing
 
     @Test func anOpenedListedPullRequestCoversItsNews() {
         let subject = NotificationSubject.pullRequest(repo: "/repo", number: 20)
-        #expect(ids.filter(subject.covers) == ["/repo|pr-20"])
+        #expect(ids.filter(subject.covers) == ["/repo|pr-20", "/repo|pr-20-commits"])
         let other = NotificationSubject.pullRequest(repo: "/repo", number: 2)
         #expect(ids.filter(other.covers) == [])
     }

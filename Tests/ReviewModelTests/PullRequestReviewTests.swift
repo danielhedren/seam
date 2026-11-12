@@ -111,6 +111,7 @@ import Testing
     @Test func aPushAfterAFileWasViewedShowsAsNewCommitsAndAsAChangedFile() async throws {
         let (repo, pullRequest) = try await fixture()
         let session = await open(repo)
+        session.noteActivation(false)
         let review = try await openReview(session, 8)
         session.toggleViewed("b.txt", advance: false)
         #expect(session.pullRequestsWithNewCommits.isEmpty)
@@ -129,6 +130,39 @@ import Testing
 
         #expect(session.pullRequestsWithNewCommits == [8])
         #expect(review.viewedStatus("b.txt") == .changedSinceViewed)
+        let platform = try #require(session.services.platform as? RecordingPlatform)
+        #expect(
+            platform.notified.map(\.body).contains("New commits since you last viewed it"),
+            "\(platform.notified.map(\.body))")
+        session.close()
+    }
+
+    @Test func aCommentOnAPullRequestOpenedInSeamIsNewsTitledWithIt() async throws {
+        let (repo, _) = try await fixture()
+        let session = await open(repo)
+        session.noteActivation(false)
+        let review = try await openReview(session, 8)
+        await until { session.pullRequestThreads?.readThisSession(review.id) == 8 }
+        let platform = try #require(session.services.platform as? RecordingPlatform)
+
+        github.answer(
+            threads: [
+                GitHubReviewThread(
+                    id: "PRRT_1", path: "b.txt", isResolved: false, side: .right, lines: 1...1,
+                    comments: [
+                        .init(
+                            id: 7, author: "octocat", body: "Why b?", created: .distantPast,
+                            url: "https://github.com/owner/app/pull/8#discussion_r7",
+                            diffHunk: "@@ -0,0 +1 @@\n+b")
+                    ])
+            ], for: 8)
+        session.pullRequestThreads?.forgetReads()
+        session.reload()
+        await until { !platform.notified.isEmpty }
+
+        #expect(platform.notified.map(\.title) == ["#8 Count the lines"])
+        #expect(platform.notified.map(\.body) == ["octocat on #8: Why b?"])
+        #expect(platform.notified.first?.url == SeamURL(path: repo.main.path, pullRequest: 8).url)
         session.close()
     }
 
