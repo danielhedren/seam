@@ -171,6 +171,27 @@ import Testing
         session.close()
     }
 
+    /// Its PR was open all along, only checked out here until the worktree went.
+    @Test func aPullRequestLeftByARemovedWorktreeIsNoNews() async throws {
+        let repo = try await fixture()
+        var checkedOut = fakePullRequest(12)
+        checkedOut.author = "anna"
+        github.answer(open: [checkedOut] + others([20]))
+        let session = await open(repo)
+        session.noteActivation(false)
+        #expect(session.pullRequestListing.rows.map(\.id) == [20])
+
+        try await repo.run(
+            "worktree", "remove", "--force",
+            repo.directory.resolved.appending(path: "wt-feature").path)
+        await session.apply(RepoChange(refs: true))
+        await reload(session)
+
+        #expect(session.pullRequestListing.rows.map(\.id).sorted() == [12, 20])
+        #expect(platform.notified.isEmpty)
+        session.close()
+    }
+
     @Test func notificationKindsAddedLaterStartOnForAReaderWhoChoseSomeBefore() {
         let defaults = Scratch.defaults("seam-tests")
         defaults.set(

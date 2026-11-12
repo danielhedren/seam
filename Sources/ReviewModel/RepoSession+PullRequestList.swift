@@ -31,9 +31,10 @@ extension RepoSession {
     var listedSnapshot: NotificationSnapshot.Listed? {
         guard pullRequests?.hasRead == true, showsPullRequestList else { return nil }
         let saved = pullRequests?.saved ?? SavedPullRequests()
+        // Checked-out PRs count as known, so one a removed worktree leaves behind isn't new.
         let everything = PullRequestListing(
-            open: saved.open ?? [], viewer: saved.viewer, reviewRequests: [],
-            checkedOut: checkedOutPullRequests, filter: PullRequestFilter())
+            open: saved.open ?? [], viewer: saved.viewer, reviewRequests: [], checkedOut: [],
+            filter: PullRequestFilter())
         let listing = pullRequestListing
         return NotificationSnapshot.Listed(
             known: Set(everything.rows.map(\.id)).union(listing.rows.map(\.id)),
