@@ -51,6 +51,7 @@ extension RepoSession {
     package func openListedPullRequest(_ number: Int) {
         guard let url = listedPullRequest(number).flatMap({ URL(string: $0.url) }) else { return }
         services.platform.open(url)
+        noteOpened(.pullRequest(repo: directory.path, number: number))
     }
 
     package func copyListedPullRequestURL(_ number: Int) {

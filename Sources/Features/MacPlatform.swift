@@ -36,6 +36,23 @@ public struct MacPlatform: PlatformServices {
         }
     }
 
+    public func removeNotifications(_ ids: [String]) {
+        guard Self.isApp else { return }
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ids)
+    }
+
+    public func deliveredNotificationIDs() async -> Set<String> {
+        guard Self.isApp else { return [] }
+        return Set(
+            await UNUserNotificationCenter.current().deliveredNotifications()
+                .map(\.request.identifier))
+    }
+
+    /// The Dock's badge needs no notification permission, unlike the notification center's.
+    public func setBadge(_ count: Int) {
+        NSApp?.dockTile.badgeLabel = count > 0 ? String(count) : nil
+    }
+
     /// Asks the first time; while that question is unanswered the system can refuse, so it's
     /// asked again next time rather than taken as a no.
     static func mayNotify() async -> Bool {

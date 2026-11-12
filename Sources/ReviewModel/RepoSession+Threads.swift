@@ -130,6 +130,7 @@ extension RepoSession {
         guard let placed = review.placedThreads.first(where: { $0.id == id }) else { return }
         // The draft steps aside, text and all, until the thread closes.
         selectedThreadID = id
+        noteOpened(.thread(worktree: review.id, id: id))
         if review.collapsed.contains(placed.path) { review.toggleCollapsed(placed.path) }
     }
 

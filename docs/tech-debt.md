@@ -10,8 +10,8 @@ odd, why it matters, and a suggested fix. Line numbers are from when the entry w
   below it. Readers get the wrong description for both. Move the first two lines down to `help`.
 - `Sources/ReviewModel/WorktreeReview.swift:133`, `Sources/ReviewModel/RepoSession.swift:87` —
   the logger and signposter use category `Features`, the module these types lived in before
-  ReviewModel was split out; AGENTS.md says category = module. Console filters by module miss
-  them. Rename to `ReviewModel` (and check Instruments templates that name the category).
+  ReviewModel was split out; so do `StateStore.swift:28` and `RepoPullRequests.swift:85`.
+  AGENTS.md says category = module, and console filters by module miss them. Rename to `ReviewModel` (and check Instruments templates that name the category).
 - `Sources/ReviewModel/CommandCatalog.swift:432` — `openThread` and `selectedGitHubThread` repeat
   the same `placedThreads.first { $0.id == id }?.thread` lookup. Two places to change when
   threads get another source. Build the second on the first.
@@ -22,6 +22,27 @@ odd, why it matters, and a suggested fix. Line numbers are from when the entry w
 - `Sources/ReviewModel/HighlightPass.swift:9` — `files` is `package`, its sibling properties
   internal, and nothing outside the module reads it. Misleads about what the module exports.
   Make it internal.
+- `Sources/ReviewModel/StateStore.swift:163` — `SeamServices.platform` is a `var`, and tests
+  replace it after the services are built (`services.platform = platform`). Anything built in
+  `SeamServices.init` that keeps the platform (as the notification bell of SPEC §7.10 will)
+  goes on talking to the first one. Fix: pass the platform when the services are built
+  (`services(_:platform:)` in `Tests/ReviewTestSupport/Session.swift` now takes one) and make
+  the property a `let`.
+- `Sources/ReviewModel/RepoSession.swift:277` — `select(_:)` serves both the reader's pick and
+  the restore of the last selection in `open()`. Whoever needs to tell them apart must add a
+  flag, as `notesOpens` does. Fix: a private `show(_:)` both call, with `select` the reader's.
+- `Sources/ReviewModel/RepoSession+Notifications.swift:108` — `NotificationText` writes
+  notification ids as `<worktree>|<what>` strings, and `NotificationSubject`
+  (`Sources/SeamCore/NotificationSubject.swift:12`) matches them by prefix. The two can drift,
+  and a listed pull request's id is told from the main worktree's only by `pr-`. Fix: a typed
+  id in SeamCore that both write and match.
+- `Sources/ReviewModel/RepoSession+Notifications.swift:168` — `NotificationText.notification`
+  has a case for `.reviewRequested` and `.newPullRequest` that is never reached, since
+  `listed(_:repo:)` takes them first. Fix: split the event type so the switch needn't cover
+  them.
+- `Sources/ReviewModel/SeamCommand.swift:79` — every command runs on a `RepoSession`, so the
+  menus are off in the welcome window even for commands about the whole app (the bell's will
+  be). Fix: let a command say it needs no session.
 
 ## DiffModel
 
@@ -52,3 +73,19 @@ odd, why it matters, and a suggested fix. Line numbers are from when the entry w
 - `Tests/FeaturesTests/Support.swift:20` — `showDiff` shows the content once and never again, so
   a test that changes the model must call `view.show` by hand (as `SearchViewTests` does) and
   can pass while `DiffShown` misses a field. Prefer `CardWindow`, or have `showDiff` observe.
+- `Tests/TestSupport/FixtureRepo.swift` — a `FixtureRepo` removes its folder when it's
+  released, so a helper that returns only the session leaves the session on a deleted repo and
+  the test times out with no hint why. Fix: say so on the type, or have helpers return it.
+- `Scripts/prove-test.sh:36` — `make prove` is inconclusive for any test that uses API the
+  change adds, which is most new features. Fix: none cheap; mutation by hand meanwhile.
+
+## Features
+
+- `Sources/Features/RepoSpotlight.swift:50` — `SeamAppDelegate` is made by
+  `@NSApplicationDelegateAdaptor` with no services, so it can reach nothing injected: a
+  clicked notification can only be sent on as a URL. The bell needs it to report the clicked
+  id. Fix: have `SeamScenes` take the delegate and hand it what it needs.
+- `Sources/Features/MacPlatform.swift:13` — `open(_:)` sends a `seam://` URL to whichever app
+  LaunchServices has for the scheme, while the delegate's `send` pins it to this bundle
+  (`RepoSpotlight.swift:53`). With two copies of Seam installed they can differ. Fix: pin
+  `seam://` in `MacPlatform.open` and have the delegate use it.

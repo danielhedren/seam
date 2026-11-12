@@ -8,7 +8,30 @@ import SeamCore
 extension RepoSession {
     func startNotifications() {
         lastSnapshot = notificationSnapshot()
+        notesOpens = true
         watchForNews()
+        watchAwaiting()
+    }
+
+    /// The Dock's badge follows what awaits the reader here.
+    private func watchAwaiting() {
+        guard !isClosed else { return }
+        let count = withObservationTracking {
+            inbox.count
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.watchAwaiting() }
+        }
+        services.dockBadge.set(count, for: directory.path, on: services.platform)
+    }
+
+    /// The reader opened `subject` here, so its notifications leave Notification Center.
+    func noteOpened(_ subject: NotificationSubject) {
+        guard notesOpens else { return }
+        let platform = services.platform
+        Task {
+            let ids = await platform.deliveredNotificationIDs().filter(subject.covers)
+            if !ids.isEmpty { platform.removeNotifications(ids.sorted()) }
+        }
     }
 
     private func watchForNews() {

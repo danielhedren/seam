@@ -161,6 +161,8 @@ public struct SeamServices: Sendable {
     public var github: GitHubAccount
     /// The pasteboard, browser and file manager.
     public var platform: any PlatformServices
+    /// One for the app, so every window's repo counts towards the Dock's badge.
+    public var dockBadge: DockBadge
     package var launcher: any CommandLauncher = ShellLauncher()
 
     @MainActor
@@ -173,6 +175,7 @@ public struct SeamServices: Sendable {
         platform: any PlatformServices = NoPlatform()
     ) {
         self.platform = platform
+        dockBadge = DockBadge()
         self.github = github
         self.threads = threads
         self.spotlight = spotlight
