@@ -42,6 +42,8 @@ worktrees and open in the same diff as a worktree, full files included, without 
 ### Improved
 
 - The sticky file header names the definitions around the line you're reading.
+- A pull request's conversation card opens with its description, and a rule separates the
+  entries of a conversation and the comments of a thread.
 - File › Copy Pull Request Number, also in a worktree row's menu.
 - Notification kinds added in an update start on, even if you had turned some off before.
 - Up to 1000 open pull requests are read, so a worktree's pull request is found in busy repos.
