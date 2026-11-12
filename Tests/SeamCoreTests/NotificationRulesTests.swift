@@ -94,6 +94,18 @@ import Testing
         #expect(events(after, after).isEmpty)
     }
 
+    /// A description written after the PR opened is its author's text, not a review or comment.
+    @Test func aDescriptionIsNoNewsEvenWhenItAppearsLater() {
+        let description = GitHubConversationItem(
+            id: 12, kind: .description, author: "anna", body: "Counts the lines.",
+            created: start, url: "pr12")
+        let read = NotificationSnapshot.Worktree(pullRequest: pullRequest(), discussionRead: true)
+        let described = NotificationSnapshot.Worktree(
+            pullRequest: pullRequest(), discussionRead: true, conversation: [description])
+        #expect(events(read, described).isEmpty)
+        #expect(description.key == "d12", "apart from comment 12 and review 12")
+    }
+
     @Test func becomingReadyToMergeAndMergingAreNews() {
         let blocked = pullRequest(mergeState: .blocked)
         let ready = pullRequest(mergeState: .clean)

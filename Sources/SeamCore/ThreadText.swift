@@ -90,6 +90,7 @@ public enum ThreadText {
                 case .changesRequested: " requested changes"
                 case .commented: " reviewed"
                 case .dismissed: "'s review was dismissed"
+                case .description: "'s description"
                 }
             text.append("  \(item.author)\(verdict) · \(formatter.string(from: item.created))")
             if !item.body.isEmpty {

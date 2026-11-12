@@ -131,8 +131,14 @@ public struct NotificationSnapshot: Equatable, Sendable {
 }
 
 extension GitHubConversationItem {
-    /// A comment and a review can share a database id.
-    public var key: String { "\(kind == .comment ? "c" : "r")\(id)" }
+    /// A comment, a review and the pull request itself can share a database id.
+    public var key: String {
+        switch kind {
+        case .comment: "c\(id)"
+        case .description: "d\(id)"
+        default: "r\(id)"
+        }
+    }
 }
 
 /// Snapshot to snapshot, what's news (SPEC §7.10). Pure: the session builds the snapshots and
@@ -197,8 +203,11 @@ public enum NotificationRules {
             }
         }
         if before.discussionRead {
-            let added = now.conversation.values.filter { before.conversation[$0.key] == nil }
-                .sorted { $0.created < $1.created }
+            // A description filled in later is the author's text, not a review or a comment.
+            let added = now.conversation.values.filter {
+                before.conversation[$0.key] == nil && $0.kind != .description
+            }
+            .sorted { $0.created < $1.created }
             events += added.filter { $0.kind != .comment }.map { .review(pullRequest, $0) }
             let comments =
                 added.filter { $0.kind == .comment }.map {

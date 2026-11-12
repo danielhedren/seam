@@ -75,8 +75,10 @@ struct ThreadComments: View {
     var authorFont: Font?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ForEach(thread.comments) { comment in
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(Array(thread.comments.enumerated()), id: \.element.id) { index, comment in
+                // Without a rule, one comment's last line reads on into the next's author.
+                if index > 0 { Divider() }
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(verbatim: comment.author)

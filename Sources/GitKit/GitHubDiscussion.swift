@@ -1,9 +1,12 @@
 import Foundation
 
-/// A pull request's comments that aren't on lines, and its reviews' verdicts (SPEC §7.9).
+/// A pull request's description, its comments that aren't on lines, and its reviews' verdicts
+/// (SPEC §7.9).
 public struct GitHubConversationItem: Codable, Equatable, Sendable {
     public enum Kind: String, Codable, Sendable {
         case comment, approved, changesRequested, commented, dismissed
+        /// The pull request's own text, first in the conversation.
+        case description
     }
 
     /// GitHub's database id, unique among a PR's comments and, separately, its reviews.

@@ -27,8 +27,9 @@ struct ConversationCard: View {
                 }
             }
             .buttonStyle(.plain).pointerStyle(.link)
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(conversation.items, id: \.key) { item in
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(Array(conversation.items.enumerated()), id: \.element.key) { index, item in
+                    if index > 0 { Divider() }
                     row(item, bold: bold)
                 }
             }
@@ -78,7 +79,7 @@ struct ConversationCard: View {
         switch kind {
         case .approved: .green
         case .changesRequested: .red
-        case .comment, .commented, .dismissed: .secondary
+        case .comment, .commented, .dismissed, .description: .secondary
         }
     }
 }

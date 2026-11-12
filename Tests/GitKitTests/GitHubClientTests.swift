@@ -414,6 +414,29 @@ import Testing
         #expect(items.first?.body == "Fix the name.")
     }
 
+    /// The pull request's own text opens its conversation, however old the rest is.
+    @Test func theDescriptionOpensTheConversation() throws {
+        let json = """
+            {"data":{"viewer":{"login":"me"},"repository":{"pullRequest":{
+              "databaseId":12,"author":{"login":"anna"},"body":"Counts the lines.",
+              "createdAt":"2026-10-23T09:00:00Z","url":"pr12",
+              "comments":{"nodes":[
+                {"databaseId":5,"author":{"login":"octocat"},"body":"Looks close.",
+                 "createdAt":"2026-10-23T12:00:00Z","url":"c5"}]},
+              "reviews":{"nodes":[]},
+              "reviewThreads":{"pageInfo":{"hasNextPage":false,"endCursor":null},"nodes":[]}}}}}
+            """
+        let answer = try ReviewThreadQuery.decode(
+            ReviewThreadQuery.ThreadsAnswer.self, Data(json.utf8))
+        let items = try #require(answer.data.repository?.pullRequest).conversation
+        #expect(items.map(\.kind) == [.description, .comment])
+        #expect(items.first?.author == "anna")
+        #expect(items.first?.body == "Counts the lines.")
+        #expect(
+            ReviewThreadQuery.firstThreads.contains(
+                "databaseId author { login } body createdAt url"))
+    }
+
     /// ADR 0006: the queries gh runs can read, never write.
     @Test func theFixedQueriesHaveNoMutation() {
         for query in [

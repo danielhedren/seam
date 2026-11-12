@@ -105,6 +105,26 @@ import Testing
         session.close()
     }
 
+    @Test func theDescriptionOpensTheConversationCardButIsntCountedAsAComment() async throws {
+        let (repo, feature) = try await fixture()
+        github.answer(open: [Self.pullRequest()])
+        let start = Date(timeIntervalSince1970: 1_792_756_800)
+        let description = GitHubConversationItem(
+            id: 12, kind: .description, author: "anna", body: "Counts the lines.",
+            created: start, url: "pr12")
+        let comment = GitHubConversationItem(
+            id: 5, author: "octocat", body: "Looks close.", created: start + 60, url: "c5")
+        github.answer(threads: [], conversation: [description, comment], viewer: "me", for: 12)
+        let session = await open(repo, selecting: feature)
+
+        let row = try review(session, feature)
+        #expect(row.conversation?.items.map(\.kind) == [.description, .comment])
+        #expect(
+            row.marker(for: WorktreeReview.conversationID)?.title
+                == "Conversation on #12 · 1 comment")
+        session.close()
+    }
+
     /// The conversation comes with the threads' read, and goes when pull requests are off.
     @Test func thePullRequestsConversationIsReadWithItsThreads() async throws {
         let (repo, feature) = try await fixture()

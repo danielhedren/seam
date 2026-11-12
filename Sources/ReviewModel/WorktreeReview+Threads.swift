@@ -226,13 +226,15 @@ extension WorktreeReview {
     private var conversationMarker: ThreadMarker? {
         guard let conversation, let latest = conversation.items.last else { return nil }
         let verdict = PullRequestText.verdict(latest.kind).map { "\($0) " } ?? ""
+        // The description opens the conversation but isn't one of its comments.
+        let comments = conversation.items.count { $0.kind != .description }
         return ThreadMarker(
             id: Self.conversationID, side: .new, lines: 1...1, latestAuthor: latest.author,
             latest: verdict + Self.firstLine(latest.body),
-            commentCount: conversation.items.count, isResolved: false, source: .gitHub,
+            commentCount: comments, isResolved: false, source: .gitHub,
             title: String(
                 localized:
-                    "Conversation on #\(String(conversation.pullRequest)) · \(Counted.comments(conversation.items.count))",
+                    "Conversation on #\(String(conversation.pullRequest)) · \(Counted.comments(comments))",
                 bundle: .module),
             spot: .file)
     }

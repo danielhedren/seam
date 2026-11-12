@@ -71,6 +71,7 @@ enum ReviewThreadQuery {
         let extra =
             conversation
             ? """
+            databaseId author { login } body createdAt url
             comments(last: 100) { nodes { databaseId author { login } body createdAt url } }
             reviews(last: 100) {
               nodes { databaseId author { login } body state submittedAt url }
@@ -212,10 +213,24 @@ enum ReviewThreadQuery {
             var reviewThreads: Page<Thread>
             var comments: Nodes<ConversationComment>?
             var reviews: Nodes<Review>?
+            var databaseId: Int?
+            var author: Comment.Author?
+            var body: String?
+            var createdAt: Date?
+            var url: String?
 
-            /// Oldest first.
+            /// Oldest first, the description before the rest; an empty one isn't an entry.
             var conversation: [GitHubConversationItem] {
-                ((comments?.nodes ?? []).compactMap(\.item)
+                var description: [GitHubConversationItem] = []
+                if let body, !body.isEmpty, let databaseId, let createdAt, let url {
+                    description = [
+                        GitHubConversationItem(
+                            id: databaseId, kind: .description, author: author?.login ?? "ghost",
+                            body: body, created: createdAt, url: url)
+                    ]
+                }
+                return description
+                    + ((comments?.nodes ?? []).compactMap(\.item)
                     + (reviews?.nodes ?? []).compactMap(\.item))
                     .sorted { $0.created < $1.created }
             }

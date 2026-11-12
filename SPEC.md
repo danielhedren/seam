@@ -838,12 +838,14 @@ Seam's threads (§7.7) in the same rows, cards and list, but read-only: Seam nev
 GitHub.
 
 - **Which:** the PR's review threads, on lines or on a whole file, with their replies, and its
-  conversation: the latest 100 comments not on lines, and its reviews' verdicts (approved,
+  conversation: its description, then the latest 100 comments not on lines, and its reviews' verdicts (approved,
   changes requested, dismissed, and a review's own words). A review that only wraps line
   comments shows as those threads; one still pending is its author's alone.
 - **Conversation:** a card above the first file in the diff, in GitHub's blue with its mark,
   titled "Conversation on #12 · 3 comments"; collapsed, it shows the latest entry. Open, it lists
-  every entry oldest first: its author, a verdict tag, its age and its Markdown; an entry's
+  every entry oldest first, the description first, tagged "description" and not counted among
+  the comments, nor ever news (§7.10): its author, a verdict tag, its age and its Markdown, with
+  a rule between entries, as between a thread's comments; an entry's
   context menu opens it on GitHub, and the card's Open on GitHub opens the pull request. Threads
   lists it above the worktree's threads. Read with the threads, in the same query;
   kept per worktree in the GitHub file below.

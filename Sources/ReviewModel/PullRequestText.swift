@@ -74,6 +74,7 @@ package enum PullRequestText {
         case .changesRequested: String(localized: "requested changes", bundle: .module)
         case .commented: String(localized: "reviewed", bundle: .module)
         case .dismissed: String(localized: "review dismissed", bundle: .module)
+        case .description: String(localized: "description", bundle: .module)
         }
     }
 }
