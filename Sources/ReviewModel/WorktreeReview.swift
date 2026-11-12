@@ -863,17 +863,29 @@ package final class WorktreeReview: Identifiable {
             guard generation == loadGeneration else { return }
             do throws(GitError) {
                 // The merge base with the base branch's tip: the diff GitHub shows (SPEC §6.4).
-                guard
-                    let base = try await git.optionalLine(
-                        ["merge-base", pullRequest.baseCommit, pullRequest.headCommit], in: store)
-                else { throw .unexpectedOutput("no merge base for #\(pullRequest.number)") }
+                // Exit 1 is no common history; a missing object is git's own error.
+                let base: String
+                do {
+                    base = try await git.string(
+                        ["merge-base", pullRequest.baseCommit, pullRequest.headCommit], in: store
+                    ).trimmingCharacters(in: .whitespacesAndNewlines)
+                } catch {
+                    if case .nonZeroExit(_, 1, _) = error {
+                        throw .unexpectedOutput("no merge base for #\(pullRequest.number)")
+                    }
+                    throw error
+                }
                 guard generation == loadGeneration else { return }
                 try await show(
                     from: base, to: pullRequest.headCommit, in: store, generation, rangeVersion)
                 break
             } catch {
                 guard generation == loadGeneration, error != .cancelled else { return }
-                if again || fetch == nil { problem = .gitFailed(Self.describe(error)) }
+                // Only objects gone from the store are worth emptying and fetching it for.
+                guard !again, fetch != nil, Self.isMissingObject(error) else {
+                    problem = .gitFailed(Self.describe(error))
+                    break
+                }
             }
         }
         finish(generation)
@@ -936,6 +948,18 @@ package final class WorktreeReview: Identifiable {
         guard generation == loadGeneration else { return }
         isLoading = false
         showsProgress = false
+    }
+
+    /// git's words for an object the store doesn't have, as after a `gc` in the reader's repo
+    /// dropped one it borrowed, or for the store itself gone.
+    static func isMissingObject(_ error: GitError) -> Bool {
+        guard case .nonZeroExit(_, _, let stderr) = error else { return false }
+        let message = stderr.lowercased()
+        return [
+            "bad object", "not a valid object", "not a valid commit", "unable to read",
+            "missing", "could not read", "bad revision", "invalid object",
+            "not a git repository",
+        ].contains(where: message.contains)
     }
 
     static func describe(_ error: GitError) -> String {

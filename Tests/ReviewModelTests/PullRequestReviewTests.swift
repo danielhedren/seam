@@ -225,6 +225,74 @@ import Testing
         session.close()
     }
 
+    /// Only objects gone from the store rebuild it; any other failure says so and keeps it.
+    @Test func aPullRequestWithNoMergeBaseFailsWithoutEmptyingTheStore() async throws {
+        let (repo, pullRequest) = try await fixture()
+        try await repo.run("switch", "-q", "--orphan", "unrelated")
+        let orphan = try await repo.commit("c.txt", "c\n", "Unrelated")
+        try await repo.run("push", "-q", repo.origin.path, "unrelated:refs/pull/9/head")
+        try await repo.run("switch", "-q", "main")
+        var unrelated = fakePullRequest(9, head: "unrelated", headCommit: orphan)
+        unrelated.baseCommit = pullRequest.baseCommit
+        unrelated.author = "anna"
+        github.answer(open: [pullRequest, unrelated])
+        let held = HeldStore()
+        held.release()
+        let session = await open(repo, held: held)
+
+        let review = try await openReview(session, 9)
+
+        if case .gitFailed = review.problem {
+        } else {
+            Issue.record("\(String(describing: review.problem))")
+        }
+        #expect(held.resets.withLock { $0 } == 0)
+        session.close()
+    }
+
+    /// The fetch under way was for the listed PRs; a hidden one opened meanwhile needs its own.
+    @Test func aPullRequestOpenedWhileAFetchRunsIsFetchedWithoutEmptyingTheStore() async throws {
+        let (repo, pullRequest) = try await fixture()
+        try await repo.run("remote", "set-url", "origin", repo.origin.path)
+        let hiddenHead = try await repo.openPullRequest(9, file: "c.txt", "c\n")
+        try await repo.run("remote", "set-url", "origin", "https://github.com/owner/app.git")
+        var hidden = fakePullRequest(9, head: "pr-9-source", headCommit: hiddenHead)
+        hidden.baseCommit = pullRequest.baseCommit
+        // The reader's own, which the list never shows, opened from a notification.
+        hidden.author = "me"
+        github.answer(open: [pullRequest, hidden])
+        let held = HeldStore()
+        let session = await open(repo, held: held)
+        await until { held.waiting == 1 }
+
+        session.openPullRequestReview(9)
+        let review = try #require(session.selected)
+        held.release()
+        await review.loaded()
+
+        #expect(review.diff?.files.map(\.diff.path) == ["c.txt"])
+        #expect(held.resets.withLock { $0 } == 0)
+        session.close()
+    }
+
+    /// As a `gc` in the reader's repo can take objects the store borrowed.
+    @Test func aStoreEmptiedBehindSeamsBackIsRebuiltOnTheNextLoad() async throws {
+        let (repo, _) = try await fixture()
+        let held = HeldStore()
+        held.release()
+        let session = await open(repo, held: held)
+        let review = try await openReview(session, 8)
+        await held.inner.withLock { $0 }?.reset()
+
+        review.reloadDiff()
+        await review.loaded()
+
+        #expect(review.problem == nil, "\(String(describing: review.problem))")
+        #expect(review.diff?.files.map(\.diff.path) == ["b.txt"])
+        #expect(held.resets.withLock { $0 } == 1)
+        session.close()
+    }
+
     /// git refuses a bare repository found from its folder alone with this setting.
     @Test func aPullRequestReviewsWithBareRepositoriesMadeExplicit() async throws {
         let (repo, _) = try await fixture()
@@ -309,8 +377,15 @@ final class HeldStore: PullRequestStore {
     }
 
     func reset() async {
+        resets.withLock { $0 += 1 }
         await inner.withLock { $0 }?.reset()
     }
+
+    /// How many times the store was emptied, to tell a rebuild from a plain failure.
+    let resets = Mutex(0)
+
+    /// Fetches waiting for `release()`.
+    var waiting: Int { gate.withLock { $0.waiting.count } }
 }
 
 /// The reader's git with `safe.bareRepository=explicit` in their global config.

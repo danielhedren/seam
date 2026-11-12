@@ -57,7 +57,13 @@ extension RepoSession {
     /// only when a head or base moved since the last. `again` starts the store afresh.
     func fetchListedPullRequests(again: Bool = false) async -> GitError? {
         guard let store = pullRequestStore, let repo = pullRequests?.repo else { return nil }
-        if let running = storeFetch { return await running.value }
+        // A fetch under way may not have this caller's PR, so it's waited out and judged again.
+        // Its creator clears it only after resuming, so each is waited on once.
+        var waited: Task<GitError?, Never>?
+        while let running = storeFetch, running != waited {
+            waited = running
+            _ = await running.value
+        }
         let opened = pullRequestReviews.compactMap(\.pullRequest)
         let listed = pullRequestListing.rows.filter { !$0.isHidden }.map(\.pullRequest)
         let wanted = Dictionary(
@@ -77,7 +83,7 @@ extension RepoSession {
         }
         storeFetch = task
         let failure = await task.value
-        storeFetch = nil
+        if storeFetch == task { storeFetch = nil }
         if failure == nil {
             fetchedPullRequests = wanted
             await countChanges(of: listed + opened, in: store.directory)

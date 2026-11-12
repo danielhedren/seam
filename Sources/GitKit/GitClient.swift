@@ -87,7 +87,8 @@ public struct CLIGitClient: GitClient {
 }
 
 /// Runs every command on one git directory. A bare repository needs it named: with
-/// `safe.bareRepository=explicit` git won't use one found from its folder alone.
+/// `safe.bareRepository=explicit` git won't use one found from its folder alone. Commands run
+/// outside it, so one that's gone gets git's "not a git repository", not a failed launch.
 public struct GitDirectoryClient: GitClient {
     private let inner: any GitClient
     public let directory: URL
@@ -97,10 +98,11 @@ public struct GitDirectoryClient: GitClient {
         self.directory = directory
     }
 
-    public func run(_ arguments: [String], in directory: URL, input: Data?) async throws(GitError)
+    public func run(_ arguments: [String], in _: URL, input: Data?) async throws(GitError)
         -> Data
     {
         try await inner.run(
-            ["--git-dir=\(self.directory.path)"] + arguments, in: directory, input: input)
+            ["--git-dir=\(directory.path)"] + arguments,
+            in: FileManager.default.temporaryDirectory, input: input)
     }
 }
