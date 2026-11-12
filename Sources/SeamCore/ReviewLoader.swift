@@ -3,8 +3,8 @@ import GitKit
 
 /// The git side of loading a review (SPEC §6, §8.2): the commits since the base, the range the
 /// reader picked, the diff and the files' contents. The worktree model decides when to load and
-/// what to keep; this only reads. The directory is a worktree today; a branch without one would
-/// pass the repository's and a commit as the head.
+/// what to keep; this only reads. The directory is a worktree's, or for a review without one
+/// (a pull request's) a git directory with a commit as the head.
 public struct ReviewLoader: Sendable {
     public struct Diff: Sendable {
         /// The picked commits, nil when a rebase or reset removed them and the scope applies.
@@ -21,16 +21,23 @@ public struct ReviewLoader: Sendable {
     }
 
     /// The commits since the base, which the list shows before the diff is built.
-    public func commits(from base: String, in directory: URL) async throws(GitError) -> CommitLog {
-        try await CommitLog.load(base: base, in: directory, git: git)
+    public func commits(from base: String, to head: String? = nil, in directory: URL)
+        async throws(GitError) -> CommitLog
+    {
+        try await CommitLog.load(base: base, head: head ?? "HEAD", in: directory, git: git)
     }
 
+    /// With a `head` commit there is no working tree: every range ends at a commit.
     public func diff(
-        _ log: CommitLog, from base: String, in directory: URL, selection: CommitSelection?,
-        scope: ReviewScope, options: DiffOptions
+        _ log: CommitLog, from base: String, to head: String? = nil, in directory: URL,
+        selection: CommitSelection?, scope: ReviewScope, options: DiffOptions
     ) async throws(GitError) -> Diff {
         let picked = selection.flatMap(log.range)
-        let range = picked ?? (base, "HEAD", scope)
+        var range = picked ?? (base, "HEAD", scope)
+        if let head {
+            func commit(_ end: String) -> String { end == "HEAD" ? head : end }
+            range = (commit(range.base), commit(range.head), .committed)
+        }
         let diff = try await ReviewDiffBuilder(git: git, fileSystem: fileSystem).build(
             worktree: directory, base: range.base, head: range.head, scope: range.scope,
             options: options)

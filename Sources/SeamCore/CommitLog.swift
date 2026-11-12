@@ -48,14 +48,15 @@ public struct CommitLog: Equatable, Sendable {
         self.isTruncated = isTruncated
     }
 
-    public static func load(base: String, in worktree: URL, git: any GitClient)
-        async throws(GitError) -> CommitLog
-    {
+    /// `head` is a commit for a review without a working tree, such as a pull request's.
+    public static func load(
+        base: String, head: String = "HEAD", in worktree: URL, git: any GitClient
+    ) async throws(GitError) -> CommitLog {
         let format = ["--no-show-signature", "-z", "--format=%H%x1f%h%x1f%ct%x1f%s"]
         let listed = parse(
             try await git.string(
                 ["log", "--first-parent", "-n", String(limit + 1)] + format + [
-                    "\(base)..HEAD", "--",
+                    "\(base)..\(head)", "--",
                 ], in: worktree))
         guard
             let baseCommit = parse(

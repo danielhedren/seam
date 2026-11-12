@@ -93,8 +93,9 @@ public struct PullRequest: Codable, Equatable, Sendable {
     public var head: String
     public var headOwner: String
     public var headCommit: String
-    /// The branch it merges into.
+    /// The branch it merges into, and that branch's tip as GitHub has it.
     public var base: String
+    public var baseCommit: String
     public var review: Review
     public var checks: Checks
     /// Read with the reviews and checks; nil until then.
@@ -109,8 +110,10 @@ public struct PullRequest: Codable, Equatable, Sendable {
         number: Int, title: String, url: String, state: State, isDraft: Bool = false,
         head: String, headOwner: String, headCommit: String, base: String,
         review: Review = .none, checks: Checks = Checks(), mergeState: MergeState? = nil,
-        updated: Date, author: String = "", authorIsBot: Bool = false, labels: [String] = []
+        updated: Date, author: String = "", authorIsBot: Bool = false, labels: [String] = [],
+        baseCommit: String = ""
     ) {
+        self.baseCommit = baseCommit
         self.author = author
         self.authorIsBot = authorIsBot
         self.labels = labels
@@ -150,7 +153,8 @@ extension PullRequest {
             updated: try values.decode(Date.self, forKey: .updated),
             author: try values.decodeIfPresent(String.self, forKey: .author) ?? "",
             authorIsBot: try values.decodeIfPresent(Bool.self, forKey: .authorIsBot) ?? false,
-            labels: try values.decodeIfPresent([String].self, forKey: .labels) ?? [])
+            labels: try values.decodeIfPresent([String].self, forKey: .labels) ?? [],
+            baseCommit: try values.decodeIfPresent(String.self, forKey: .baseCommit) ?? "")
     }
 
     /// The row's marker (SPEC §7.8): one state, the review's only while the PR is open.
@@ -224,7 +228,7 @@ struct GHPullRequest: Decodable {
     /// `deletions` and `reviewRequests` add seconds, so they're left out (SPEC §7.8).
     static let summaryFields = [
         "number", "title", "url", "state", "isDraft", "headRefName", "headRefOid",
-        "headRepositoryOwner", "baseRefName", "updatedAt", "author", "labels",
+        "headRepositoryOwner", "baseRefName", "baseRefOid", "updatedAt", "author", "labels",
     ]
     static let detailFields =
         summaryFields + [
@@ -240,6 +244,7 @@ struct GHPullRequest: Decodable {
     var headRefOid: String
     var headRepositoryOwner: Owner?
     var baseRefName: String
+    var baseRefOid: String?
     var reviewDecision: String?
     var latestReviews: [LatestReview]?
     var statusCheckRollup: [Check]?
@@ -269,7 +274,8 @@ struct GHPullRequest: Decodable {
             head: headRefName, headOwner: headRepositoryOwner?.login ?? "",
             headCommit: headRefOid, base: baseRefName, review: review, checks: checks,
             mergeState: mergeState, updated: updatedAt, author: author?.login ?? "",
-            authorIsBot: author?.isBot ?? false, labels: (labels ?? []).map(\.name))
+            authorIsBot: author?.isBot ?? false, labels: (labels ?? []).map(\.name),
+            baseCommit: baseRefOid ?? "")
     }
 
     private var mergeState: PullRequest.MergeState? {
