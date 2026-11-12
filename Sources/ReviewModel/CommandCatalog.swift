@@ -19,6 +19,12 @@ package enum CommandCatalog {
         byID[id]?.shortcutLabel ?? ""
     }
 
+    /// A worktree is selected, not a pull request's review: there's no checkout to open, and
+    /// no agent to answer Seam's threads (SPEC §7.2.2).
+    private static let onWorktree: @MainActor (RepoSession) -> Bool = { session in
+        session.selected.map { !$0.isPullRequestReview } ?? false
+    }
+
     package static func help(_ text: String, command id: String) -> String {
         guard let label = byID[id]?.shortcutLabel, !label.isEmpty else { return text }
         return "\(text) (\(label))"
@@ -28,15 +34,17 @@ package enum CommandCatalog {
     static let file: [SeamCommand] = [
         SeamCommand(
             id: "worktree-editor", title: localized("Open Worktree in Editor"), menu: .file,
-            section: 0, shortcut: .none, isEnabled: { $0.selected?.worktree.isMissing == false },
+            section: 0, shortcut: .none,
+            isEnabled: { onWorktree($0) && $0.selected?.worktree.isMissing == false },
             run: { session in session.selected.map { session.openWorktreeInEditor($0) } }),
         SeamCommand(
             id: "worktree-reveal", title: localized("Reveal Worktree in Finder"), menu: .file,
-            section: 0, shortcut: .none, isEnabled: { $0.selected?.worktree.isMissing == false },
+            section: 0, shortcut: .none,
+            isEnabled: { onWorktree($0) && $0.selected?.worktree.isMissing == false },
             run: { session in session.selected.map(session.revealWorktree) }),
         SeamCommand(
             id: "worktree-copy-path", title: localized("Copy Worktree Path"), menu: .file,
-            section: 1, shortcut: .none,
+            section: 1, shortcut: .none, isEnabled: onWorktree,
             run: { session in session.selected.map { session.copyWorktreePath(of: $0) } }),
         SeamCommand(
             id: "worktree-copy-branch", title: localized("Copy Branch Name"), menu: .file,
@@ -264,7 +272,7 @@ package enum CommandCatalog {
             run: { $0.setScope(.committed) }),
         SeamCommand(
             id: "scope-uncommitted", title: localized("Uncommitted Changes"), menu: .review,
-            section: 0, shortcut: .single("3"),
+            section: 0, shortcut: .single("3"), isEnabled: onWorktree,
             isOn: { $0.selected?.isShowing(.uncommitted) == true },
             run: { $0.setScope(.uncommitted) }),
         SeamCommand(
@@ -317,11 +325,11 @@ package enum CommandCatalog {
             run: { session in Task { await session.toggleSinceViewed() } }),
         SeamCommand(
             id: "editor", title: localized("Open in Editor"), menu: .review, section: 2,
-            shortcut: .single("o"), run: { $0.openInEditor() }),
+            shortcut: .single("o"), isEnabled: onWorktree, run: { $0.openInEditor() }),
         SeamCommand(
             id: "copy-path", title: localized("Copy Path"), menu: .review, section: 2,
             shortcut: .command("c", [.command, .option]),
-            isEnabled: { $0.selected?.currentFile != nil },
+            isEnabled: { onWorktree($0) && $0.selected?.currentFile != nil },
             run: { session in
                 session.selected?.currentFile.map { session.copyPath($0, relative: false) }
             }),
@@ -335,7 +343,7 @@ package enum CommandCatalog {
         SeamCommand(
             id: "reveal", title: localized("Reveal in Finder"), menu: .review, section: 2,
             shortcut: .command("r", [.command, .shift]),
-            isEnabled: { $0.selected?.currentFile != nil },
+            isEnabled: { onWorktree($0) && $0.selected?.currentFile != nil },
             run: { session in session.selected?.currentFile.map(session.revealInFinder) }),
         SeamCommand(
             id: "collapse", title: localized("Collapse File"), menu: .review, section: 2,
@@ -349,7 +357,7 @@ package enum CommandCatalog {
             run: { $0.toggleCollapsed() }),
         SeamCommand(
             id: "base", title: localized("Choose Base…"), menu: .review, section: 3,
-            shortcut: .single("b"),
+            shortcut: .single("b"), isEnabled: onWorktree,
             run: { session in
                 // The picker opens from the commit list, so that has to be showing.
                 session.showsWorktreeList = true
@@ -376,7 +384,8 @@ package enum CommandCatalog {
             shortcut: .single("r"), run: { $0.reload() }),
         SeamCommand(
             id: "comment", title: localized("Comment…"), menu: .review, section: 5,
-            shortcut: .single("c"), isEnabled: { $0.threads != nil && $0.selected?.diff != nil },
+            shortcut: .single("c"),
+            isEnabled: { onWorktree($0) && $0.threads != nil && $0.selected?.diff != nil },
             run: { $0.comment() }),
         SeamCommand(
             id: "open-thread", title: localized("Open Thread on This Line"), menu: .review,
@@ -420,7 +429,7 @@ package enum CommandCatalog {
             run: { $0.settings.showsResolvedThreads.toggle() }),
         SeamCommand(
             id: "agent-prompt", title: localized("Copy Prompt for Agent"), menu: .review,
-            section: 6, shortcut: .none,
+            section: 6, shortcut: .none, isEnabled: onWorktree,
             run: { session in Task { await session.copyAgentPrompt() } }),
     ]
 

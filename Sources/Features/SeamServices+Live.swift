@@ -11,6 +11,14 @@ extension SeamServices {
             settings: AppSettings(locateApp: MacPlatform.locateApp),
             spotlight: SpotlightRepoIndex(), github: .live(), platform: MacPlatform())
         services.launcher = ShellLauncher(locateApp: MacPlatform.locateApp)
+        let gh = GHLocator()
+        services.pullRequestStore = { repository in
+            CLIPullRequestStore(
+                directory: AppChoices.stateFile(for: repository, in: AppChoices.stateRoot)
+                    .deletingLastPathComponent().appending(path: "pulls.git"),
+                objects: repository.commonDirectory.appending(path: "objects"),
+                credentials: { await gh.locate() })
+        }
         return services
     }
 }

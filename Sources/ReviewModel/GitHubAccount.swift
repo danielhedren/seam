@@ -81,7 +81,9 @@ package actor GHLocator {
     private var found: URL??
     private let path = LoginShellPath()
 
-    func locate() async -> URL? {
+    package init() {}
+
+    package func locate() async -> URL? {
         if let found { return found }
         let shell = URL(
             fileURLWithPath: ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh")

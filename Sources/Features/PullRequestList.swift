@@ -9,7 +9,7 @@ struct PullRequestSection: View {
     let session: RepoSession
 
     /// Rows are tagged in the worktree list's id space, apart from every worktree path.
-    static func tag(_ number: Int) -> String { "pr:\(number)" }
+    static func tag(_ number: Int) -> String { WorktreeReview.id(ofPullRequest: number) }
 
     static func number(_ tag: String) -> Int? {
         tag.hasPrefix("pr:") ? Int(tag.dropFirst(3)) : nil

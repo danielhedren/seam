@@ -40,10 +40,9 @@ struct WorktreeList: View {
         }
     }
 
-    /// A pull request row opens on GitHub and leaves the worktree selected.
     private func pick(_ id: String?) {
         if let number = id.flatMap(PullRequestSection.number) {
-            session.openListedPullRequest(number)
+            session.openPullRequestReview(number)
         } else {
             session.select(id)
         }

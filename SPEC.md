@@ -1586,6 +1586,15 @@ the rows; Show Only Changes Since Viewed for the whole review (§7.4).
 highlighting, a force-push on GitHub marks the files it changed as changed since viewed after the
 next read, the repo's refs, objects and `FETCH_HEAD` are unchanged by any of it (a test checks),
 and a store emptied behind Seam's back is rebuilt on the next read.
+*Built so far:* the store and its fetch (listed PRs fetched in the background after a read,
+only when a head or base moved), reviews over a worktree or a pull request source, picking a
+listed PR or its notification opens its review with its commits, full contents and
+highlighting, viewed marks and places kept per PR, the commands that need a checkout
+disabled, and a store missing objects rebuilt once. *Not built yet:* GitHub's threads and
+conversation on a PR review, "new commits" and its notification, the comment notification,
+`+/−` on the rows, attributes and `.editorconfig` read from the head's tree, the "Fetching
+#N…" wording (a plain progress shows), clean-up of a store past 200 MB, and Show Only Changes
+Since Viewed for the whole review.
 
 **M12 — Moving by definitions (§7.4, §7.4.1).** Back and Forward first, then where you are in the
 sticky header, whole-definition gaps, the change ruler, outlines, Go to Symbol, and Find

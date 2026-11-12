@@ -74,7 +74,7 @@ struct RepoWindow: View {
     private func handle(_ request: OpenRequests.Request?) async {
         guard let request else { return }
         if let number = request.pullRequest {
-            session.openListedPullRequest(number)
+            session.openPullRequestReview(number)
             return
         }
         await session.handle(worktree: request.worktree, base: request.base, thread: request.thread)

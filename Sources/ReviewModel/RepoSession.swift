@@ -44,6 +44,14 @@ package final class RepoSession {
     /// Where each worktree's jumps started, for Back and Forward (SPEC §7.4.1).
     var jumpHistories: [String: JumpHistory] = [:]
     package private(set) var reviews: [WorktreeReview] = []
+    /// Reviews of listed pull requests opened this session (SPEC §7.2.2), apart from the
+    /// worktrees so rows, sorting and notifications stay the worktrees'.
+    package internal(set) var pullRequestReviews: [WorktreeReview] = []
+    /// Where listed pull requests are fetched; nil leaves them to the browser (SPEC §8.3.1).
+    @ObservationIgnored var pullRequestStore: (any PullRequestStore)?
+    /// Each PR's head and base commits as last fetched, so a read fetches only what moved.
+    @ObservationIgnored var fetchedPullRequests: [Int: String] = [:]
+    @ObservationIgnored var storeFetch: Task<GitError?, Never>?
     package private(set) var selectedID: String?
     package var sort = WorktreeSort.attention
     package var hidesMissing = false
@@ -130,7 +138,7 @@ package final class RepoSession {
     }
 
     package var selected: WorktreeReview? {
-        reviews.first { $0.id == selectedID }
+        reviews.first { $0.id == selectedID } ?? pullRequestReviews.first { $0.id == selectedID }
     }
 
     package var repositoryName: String {
@@ -185,6 +193,7 @@ package final class RepoSession {
             }
             self.pullRequestThreads = pullRequestThreads
             repoState = await services.store.load(repository)
+            pullRequestStore = services.pullRequestStore(repository)
             stateProblem = await services.store.loadProblem(for: repository)
             startPullRequests(in: repository)
             await services.store.noteOpened(directory)
@@ -248,7 +257,7 @@ package final class RepoSession {
         if let selectedID, !reviews.contains(where: { $0.id == selectedID }) {
             self.selectedID = nil
         }
-        let ids = Set(reviews.map(\.id))
+        let ids = Set((reviews + pullRequestReviews).map(\.id))
         threadSelections = threadSelections.filter { ids.contains($0.key) }
         jumpHistories = jumpHistories.filter { ids.contains($0.key) }
     }
@@ -282,15 +291,16 @@ package final class RepoSession {
     // MARK: - Selection
 
     package func select(_ id: String?) {
-        guard let id, id != selectedID, let review = reviews.first(where: { $0.id == id }) else {
-            return
-        }
+        guard let id, id != selectedID,
+            let review = reviews.first(where: { $0.id == id })
+                ?? pullRequestReviews.first(where: { $0.id == id })
+        else { return }
         if let anchor = diff.anchor { selected?.savedAnchor = anchor }
         selected?.cancelLoading()
         selectedID = id
         // Known before Threads sorts threads by whose turn it is.
         Task { [threads] in _ = await threads?.reader(in: id) }
-        repoState.selectedWorktree = id
+        if !review.isPullRequestReview { repoState.selectedWorktree = id }
         persist()
         review.reloadDiff()
         noteOpened(.worktree(id))
@@ -507,12 +517,19 @@ package final class RepoSession {
 
     func notePullRequests(_ saved: SavedPullRequests) {
         repoState.pullRequests = saved.byBranch.isEmpty && saved.open == nil ? nil : saved
+        notePullRequestReviews(saved)
         // A PR hidden by hand stays hidden until it closes.
         if let open = saved.open, var filter = repoState.pullRequestFilter {
             filter.hiddenNumbers.formIntersection(open.map(\.number))
             repoState.pullRequestFilter = filter.isEmpty ? nil : filter
         }
         persist()
+    }
+
+    /// Pull request reviews' saved state, by PR number (SPEC §11).
+    var pullRequestReviewStates: [String: RepoState.WorktreeState] {
+        get { repoState.pullRequestReviews }
+        set { repoState.pullRequestReviews = newValue }
     }
 
     /// What the pull request list hides (SPEC §7.2.2), saved with the repo's state.
@@ -540,6 +557,10 @@ package final class RepoSession {
         // Worktrees that are gone take their state with them.
         repoState.worktrees = Dictionary(
             uniqueKeysWithValues: reviews.map { ($0.id, $0.persistentState) })
+        for review in pullRequestReviews {
+            guard let number = review.pullRequest?.number else { continue }
+            repoState.pullRequestReviews[String(number)] = review.persistentState
+        }
         let (snapshot, store) = (repoState, services.store)
         saveTask = Task { [weak self] in
             let failure = await store.save(snapshot, for: repository)

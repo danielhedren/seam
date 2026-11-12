@@ -164,6 +164,8 @@ public struct SeamServices: Sendable {
     /// One for the app, so every window's repo counts towards the Dock's badge.
     public var dockBadge: DockBadge
     package var launcher: any CommandLauncher = ShellLauncher()
+    /// Where a repo's pull requests are fetched (SPEC §8.3.1); nil leaves them to the browser.
+    package var pullRequestStore: @Sendable (Repository) -> (any PullRequestStore)? = { _ in nil }
 
     @MainActor
     public init(

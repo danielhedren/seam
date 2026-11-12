@@ -45,8 +45,31 @@ public struct RepoState: Codable, Equatable, Sendable {
     public var pullRequests: SavedPullRequests?
     /// What the pull request list hides (SPEC §7.2.2).
     public var pullRequestFilter: PullRequestFilter?
+    /// Pull request reviews' viewed marks and places, by PR number; dropped once it closes.
+    public var pullRequestReviews: [String: WorktreeState] = [:]
 
     public init() {}
+
+    private enum CodingKeys: String, CodingKey {
+        case baseOverrides, worktrees, selectedWorktree, pullRequests, pullRequestFilter
+        case pullRequestReviews
+    }
+
+    /// A state file from before a field existed leaves it empty.
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        baseOverrides =
+            try values.decodeIfPresent([String: String].self, forKey: .baseOverrides) ?? [:]
+        worktrees =
+            try values.decodeIfPresent([String: WorktreeState].self, forKey: .worktrees) ?? [:]
+        selectedWorktree = try values.decodeIfPresent(String.self, forKey: .selectedWorktree)
+        pullRequests = try values.decodeIfPresent(SavedPullRequests.self, forKey: .pullRequests)
+        pullRequestFilter = try values.decodeIfPresent(
+            PullRequestFilter.self, forKey: .pullRequestFilter)
+        pullRequestReviews =
+            try values.decodeIfPresent([String: WorktreeState].self, forKey: .pullRequestReviews)
+            ?? [:]
+    }
 }
 
 /// What Seam keeps of a repo's pull requests between launches (SPEC §11).

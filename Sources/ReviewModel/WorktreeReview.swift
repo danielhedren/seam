@@ -5,7 +5,15 @@ import Highlighting
 import Observation
 import SeamCore
 
-/// One worktree's row data and review state (SPEC §7.2–7.4). Owned by `RepoSession`.
+/// Where a review's range comes from (SPEC §8.2): a worktree, or a pull request with no
+/// worktree here, read from Seam's store (§6.4) and diffed from its base branch's merge base.
+package enum ReviewSource: Equatable, Sendable {
+    case worktree
+    case pullRequest(PullRequest, store: URL)
+}
+
+/// One worktree's or pull request's review state (SPEC §7.2–7.4), and a worktree's row data.
+/// Owned by `RepoSession`.
 @MainActor
 @Observable
 package final class WorktreeReview: Identifiable {
@@ -19,6 +27,8 @@ package final class WorktreeReview: Identifiable {
     }
 
     package let id: String
+    package private(set) var source = ReviewSource.worktree
+    /// For a pull request, a stand-in for the store, which has no working tree.
     package private(set) var worktree: Worktree
     package private(set) var detection: BaseDetection?
     package private(set) var activity: WorktreeActivity?
@@ -139,11 +149,37 @@ package final class WorktreeReview: Identifiable {
         self.services = services
     }
 
+    /// A pull request's review, identified apart from every worktree path.
+    init(pullRequest: PullRequest, store: URL, services: SeamServices) {
+        id = Self.id(ofPullRequest: pullRequest.number)
+        worktree = Worktree(path: store)
+        source = .pullRequest(pullRequest, store: store)
+        self.services = services
+    }
+
+    package static func id(ofPullRequest number: Int) -> String { "pr:\(number)" }
+
+    package var isPullRequestReview: Bool { source != .worktree }
+
+    /// Set by the session for a pull request: brings the store up to date before a load, or
+    /// with `again` rebuilds it, and says why it couldn't.
+    @ObservationIgnored var fetch: (@MainActor (_ again: Bool) async -> GitError?)?
+
+    /// A read of the list moved the PR; a new head or base loads it again.
+    func update(_ pullRequest: PullRequest) {
+        guard case .pullRequest(let last, let store) = source else { return }
+        source = .pullRequest(pullRequest, store: store)
+        if last.headCommit != pullRequest.headCommit || last.baseCommit != pullRequest.baseCommit {
+            reloadDiff()
+        }
+    }
+
     package var mode: DiffLayoutMode { services.settings.layoutMode }
 
     /// The parent the diff is against: the override if set, else the detected one.
     package var parentName: String? {
-        baseOverride.map(RefName.short) ?? detection?.parent?.name
+        if case .pullRequest(let pullRequest, _) = source { return pullRequest.base }
+        return baseOverride.map(RefName.short) ?? detection?.parent?.name
     }
 
     package var uniqueCommitCount: Int? {
@@ -557,7 +593,7 @@ package final class WorktreeReview: Identifiable {
 
     /// Counts can overlap like detection, so only the most recently started one is kept.
     func refreshActivity() async {
-        guard !worktree.isMissing else { return }
+        guard !worktree.isMissing, !isPullRequestReview else { return }
         let base = statsBase
         activityRuns += 1
         let run = activityRuns
@@ -577,6 +613,7 @@ package final class WorktreeReview: Identifiable {
     /// (the monitor and a reload), so only the most recently started one may write its result:
     /// it saw the newest refs.
     func refreshDetection(refs: RefSnapshot? = nil) async {
+        guard !isPullRequestReview else { return }
         guard !worktree.isMissing else {
             problem = .missingDirectory
             return
@@ -647,7 +684,8 @@ package final class WorktreeReview: Identifiable {
     }
 
     package var pullRequest: PullRequest? {
-        pullRequests?.pullRequest(for: worktree.branch)
+        if case .pullRequest(let pullRequest, _) = source { return pullRequest }
+        return pullRequests?.pullRequest(for: worktree.branch)
     }
 
     /// Commits on this branch its pull request doesn't have yet.
@@ -715,6 +753,10 @@ package final class WorktreeReview: Identifiable {
         let interval = signposter.beginInterval("loadDiff")
         defer { signposter.endInterval("loadDiff", interval) }
         let rangeVersion = rangeVersion
+        if case .pullRequest(let pullRequest, let store) = source {
+            await loadPullRequest(pullRequest, from: store, generation, rangeVersion)
+            return
+        }
         if detection == nil { await refreshDetection() }
         guard generation == loadGeneration, let detection else {
             finish(generation)
@@ -741,39 +783,78 @@ package final class WorktreeReview: Identifiable {
             // Another parent, or detection's first answer, moves the row's totals too.
             if statsBase != activityBase { await refreshActivity() }
             await checkStaleParent(detection)
-            let loader = ReviewLoader(git: services.git, fileSystem: services.fileSystem)
-            let log = try await loader.commits(from: base.commit, in: worktree.path)
-            guard generation == loadGeneration else { return }
-            commitLog = log
-            let loadedDiff = try await loader.diff(
-                log, from: base.commit, in: worktree.path, selection: commitSelection,
-                scope: scope, options: diffOptions)
-            guard generation == loadGeneration else { return }
-            // Picked commits a rebase or reset removed fall back to the scope.
-            commitSelection = loadedDiff.selection
-            let result = loadedDiff.diff
-            let config = await loader.editorConfig(in: worktree.path)
-            guard generation == loadGeneration, !Task.isCancelled else { return }
-            editorConfig = config
-            // A first load shows the diff before its contents arrive. A reload waits for both,
-            // so the new hunks are never drawn with the old files' gap lines.
-            let isReload = !contents.isEmpty
-            if !isReload { present(result, rangeVersion) }
-            let loaded = try await loader.contents(of: result, in: worktree.path)
-            guard generation == loadGeneration, !Task.isCancelled else { return }
-            if isReload { present(result, rangeVersion) }
-            // Spans of files whose text changed would paint the new lines wrongly until redone.
-            let previous = contents
-            syntax = syntax.filter { previous[$0.key] == loaded[$0.key] }
-            contents = loaded
-            contentsVersion += 1
-            refreshSinceViewed()
-            highlight(result, loaded)
+            try await show(from: base.commit, to: nil, in: worktree.path, generation, rangeVersion)
         } catch {
             guard generation == loadGeneration, error != .cancelled else { return }
             problem = .gitFailed(Self.describe(error))
         }
         finish(generation)
+    }
+
+    /// A store whose objects a `git gc` in the repo took away is rebuilt once (SPEC §8.3.1).
+    private func loadPullRequest(
+        _ pullRequest: PullRequest, from store: URL, _ generation: Int, _ rangeVersion: Int
+    ) async {
+        for again in [false, true] {
+            if let failure = await fetch?(again) {
+                guard generation == loadGeneration else { return }
+                problem = .gitFailed(Self.describe(failure))
+                break
+            }
+            guard generation == loadGeneration else { return }
+            do throws(GitError) {
+                // The merge base with the base branch's tip: the diff GitHub shows (SPEC §6.4).
+                guard
+                    let base = try await services.git.optionalLine(
+                        ["merge-base", pullRequest.baseCommit, pullRequest.headCommit], in: store)
+                else { throw .unexpectedOutput("no merge base for #\(pullRequest.number)") }
+                guard generation == loadGeneration else { return }
+                try await show(
+                    from: base, to: pullRequest.headCommit, in: store, generation, rangeVersion)
+                break
+            } catch {
+                guard generation == loadGeneration, error != .cancelled else { return }
+                if again || fetch == nil { problem = .gitFailed(Self.describe(error)) }
+            }
+        }
+        finish(generation)
+    }
+
+    /// The commits, the diff and the files' contents from `base`, to the working tree or to
+    /// `head` when there is none.
+    private func show(
+        from base: String, to head: String?, in directory: URL, _ generation: Int,
+        _ rangeVersion: Int
+    ) async throws(GitError) {
+        let loader = ReviewLoader(git: services.git, fileSystem: services.fileSystem)
+        let log = try await loader.commits(from: base, to: head, in: directory)
+        guard generation == loadGeneration else { return }
+        commitLog = log
+        let loadedDiff = try await loader.diff(
+            log, from: base, to: head, in: directory, selection: commitSelection,
+            scope: scope, options: diffOptions)
+        guard generation == loadGeneration else { return }
+        // Picked commits a rebase or reset removed fall back to the scope.
+        commitSelection = loadedDiff.selection
+        let result = loadedDiff.diff
+        // A pull request's .editorconfig is in its head's tree, not on disk.
+        let config = head == nil ? await loader.editorConfig(in: directory) : nil
+        guard generation == loadGeneration, !Task.isCancelled else { return }
+        editorConfig = config
+        // A first load shows the diff before its contents arrive. A reload waits for both,
+        // so the new hunks are never drawn with the old files' gap lines.
+        let isReload = !contents.isEmpty
+        if !isReload { present(result, rangeVersion) }
+        let loaded = try await loader.contents(of: result, in: directory)
+        guard generation == loadGeneration, !Task.isCancelled else { return }
+        if isReload { present(result, rangeVersion) }
+        // Spans of files whose text changed would paint the new lines wrongly until redone.
+        let previous = contents
+        syntax = syntax.filter { previous[$0.key] == loaded[$0.key] }
+        contents = loaded
+        contentsVersion += 1
+        refreshSinceViewed()
+        highlight(result, loaded)
     }
 
     func setThreadSince(_ since: [String: ThreadSince]) {
