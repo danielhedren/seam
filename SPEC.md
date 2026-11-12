@@ -242,9 +242,10 @@ A pull request review (§7.2.2) has no working tree, so it has only committed ch
   has them now, both fetched into Seam's store (§8.3.1). That is the diff GitHub shows. Base
   detection (§5) doesn't run: the pull request names its base, so stacked PRs come out right,
   and local `origin/*` refs, however stale, don't matter.
-- **Same diff as a worktree:** the command, options and contents of §6.1 and §6.3, run with
-  `--git-dir` on the store, with both sides read as blobs. Attributes (generated files, binary,
-  `diff`) come from the head's tree (`git check-attr --source=<head>`), as does `.editorconfig`.
+- **Same diff as a worktree:** the command, options and contents of §6.1 and §6.3, run in the
+  store, with both sides read as blobs. `linguist-generated` comes from the head's tree (`git
+  check-attr --source=<head>`), as does `.editorconfig` (`git show <head>:.editorconfig`). The
+  diff runs without textconv or external drivers anyway, so no other attribute changes it.
 - **Commit list:** the PR's commits, picked as in §6.2. There is no Uncommitted scope and no
   Uncommitted changes row; `1` is All, `2` Committed (the same range), `3` does nothing.
 - **When the head moves** (a push or force-push), the next read fetches it and the review
@@ -1592,7 +1593,7 @@ listed PR or its notification opens its review with its commits, full contents a
 highlighting, viewed marks and places kept per PR, the commands that need a checkout
 disabled, a store missing objects rebuilt once, GitHub's threads and conversation on a PR
 review, and `+/−` on the rows. *Not built yet:* "new commits" and its notification, the
-comment notification, attributes and `.editorconfig` read from the head's tree, the "Fetching
+comment notification, the "Fetching
 #N…" wording (a plain progress shows), clean-up of a store past 200 MB, and Show Only Changes
 Since Viewed for the whole review.
 

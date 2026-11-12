@@ -837,8 +837,7 @@ package final class WorktreeReview: Identifiable {
         // Picked commits a rebase or reset removed fall back to the scope.
         commitSelection = loadedDiff.selection
         let result = loadedDiff.diff
-        // A pull request's .editorconfig is in its head's tree, not on disk.
-        let config = head == nil ? await loader.editorConfig(in: directory) : nil
+        let config = await loader.editorConfig(in: directory, at: head)
         guard generation == loadGeneration, !Task.isCancelled else { return }
         editorConfig = config
         // A first load shows the diff before its contents arrive. A reload waits for both,

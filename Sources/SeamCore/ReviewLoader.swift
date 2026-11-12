@@ -40,7 +40,7 @@ public struct ReviewLoader: Sendable {
         }
         let diff = try await ReviewDiffBuilder(git: git, fileSystem: fileSystem).build(
             worktree: directory, base: range.base, head: range.head, scope: range.scope,
-            options: options)
+            options: options, attributes: head)
         return Diff(selection: picked == nil ? nil : selection, diff: diff)
     }
 
@@ -51,9 +51,13 @@ public struct ReviewLoader: Sendable {
             diff, worktree: directory)
     }
 
-    /// The directory's `.editorconfig`, read off the caller's actor.
-    public func editorConfig(in directory: URL) async -> EditorConfig? {
-        (try? fileSystem.contents(of: directory.appending(path: ".editorconfig")))
+    /// The working tree's root `.editorconfig`, or `head`'s for a review without one.
+    public func editorConfig(in directory: URL, at head: String? = nil) async -> EditorConfig? {
+        if let head {
+            return (try? await git.string(["show", "\(head):.editorconfig"], in: directory))
+                .map(EditorConfig.init)
+        }
+        return (try? fileSystem.contents(of: directory.appending(path: ".editorconfig")))
             .map { EditorConfig(String(decoding: $0, as: UTF8.self)) }
     }
 }

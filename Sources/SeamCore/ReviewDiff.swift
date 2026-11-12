@@ -121,9 +121,11 @@ public struct ReviewDiffBuilder: Sendable {
         return left.count < right.count
     }
 
+    /// `attributes` names the commit whose `.gitattributes` apply, for a review with no working
+    /// tree to read them from.
     public func build(
         worktree: URL, base: String, head: String = "HEAD", scope: ReviewScope,
-        options: DiffOptions = DiffOptions()
+        options: DiffOptions = DiffOptions(), attributes: String? = nil
     ) async throws(GitError) -> ReviewDiff {
         let interval = signposter.beginInterval("reviewDiff")
         defer { signposter.endInterval("reviewDiff", interval) }
@@ -140,7 +142,8 @@ public struct ReviewDiffBuilder: Sendable {
             files += try await untrackedFiles(worktree)
         }
         let generated = try await generatedPaths(
-            files.map(\.diff.path), globs: options.generatedGlobs, in: worktree)
+            files.map(\.diff.path), globs: options.generatedGlobs, in: worktree,
+            source: attributes)
         for index in files.indices where generated.contains(files[index].diff.path) {
             files[index].isGenerated = true
         }
@@ -153,13 +156,14 @@ public struct ReviewDiffBuilder: Sendable {
 
     /// `.gitattributes` decides first: `linguist-generated` set marks a file, unset clears it
     /// even when a glob matches. Unspecified paths fall back to the globs.
-    func generatedPaths(_ paths: [String], globs: [Glob], in worktree: URL) async throws(GitError)
-        -> Set<String>
-    {
+    func generatedPaths(
+        _ paths: [String], globs: [Glob], in worktree: URL, source: String? = nil
+    ) async throws(GitError) -> Set<String> {
         guard !paths.isEmpty else { return [] }
         let input = Data(paths.joined(separator: "\0").utf8) + Data([0])
         let output = try await git.run(
-            ["check-attr", "-z", "--stdin", "linguist-generated"], in: worktree, input: input)
+            ["check-attr", "-z", "--stdin"] + (source.map { ["--source=\($0)"] } ?? [])
+                + ["linguist-generated"], in: worktree, input: input)
         let fields = output.split(separator: 0, omittingEmptySubsequences: false)
             .map { String(decoding: $0, as: UTF8.self) }
         var attributes: [String: String] = [:]

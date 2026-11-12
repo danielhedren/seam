@@ -35,4 +35,25 @@ import Testing
         #expect(latest.diff.files.map(\.diff.path) == ["b.txt"])
         #expect(throughTheTop.diff.files.map(\.diff.path) == ["a.txt", "b.txt"])
     }
+
+    /// Nothing on disk belongs to the head: its own `.gitattributes` and `.editorconfig` apply.
+    @Test func aHeadCommitsAttributesAndEditorConfigComeFromItsTree() async throws {
+        let repo = try await FixtureRepo()
+        let base = try await repo.sha("HEAD")
+        try await repo.commit(".gitattributes", "gen.txt linguist-generated\n", "attributes")
+        try await repo.commit(".editorconfig", "[*]\ntab_width = 8\n", "editorconfig")
+        let head = try await repo.commit("gen.txt", "g\n", "generated")
+        try repo.write(".gitattributes", "")
+        try repo.write(".editorconfig", "[*]\ntab_width = 2\n")
+        let loader = ReviewLoader(git: repo.git, fileSystem: LocalFileSystem())
+
+        let log = try await loader.commits(from: base, to: head, in: repo.main)
+        let review = try await loader.diff(
+            log, from: base, to: head, in: repo.main, selection: nil, scope: .all,
+            options: DiffOptions())
+        let config = await loader.editorConfig(in: repo.main, at: head)
+
+        #expect(review.diff.files.filter(\.isGenerated).map(\.diff.path) == ["gen.txt"])
+        #expect(config?.tabWidth(for: "a.txt") == 8)
+    }
 }
