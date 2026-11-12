@@ -53,6 +53,8 @@ package final class WorktreeReview: Identifiable {
     }
     /// Files marked viewed, by path (SPEC §11).
     package private(set) var viewed = ViewedMarks()
+    /// A pull request's head when a file was last marked viewed: a later head is "new commits".
+    package private(set) var viewedHead: String?
     /// Files shown as their change since viewed, by path: the text the reader saw (SPEC §7.4).
     package private(set) var sinceViewed: [String: String] = [:]
     /// Worked out when the files or the choice change, not on every redraw.
@@ -222,11 +224,12 @@ package final class WorktreeReview: Identifiable {
         dismissedPullRequestBases = Set(state?.dismissedPullRequestBases ?? [])
         savedAnchor = state?.anchor
         currentFile = state?.currentFile
+        viewedHead = state?.viewedHead
         baseOverride = override
     }
 
     var persistentState: RepoState.WorktreeState {
-        RepoState.WorktreeState(
+        var state = RepoState.WorktreeState(
             scope: scope.rawValue, wraps: wraps,
             whitespace: whitespace?.rawValue, viewed: viewed,
             dismissedStaleParents: dismissedStaleParents.isEmpty
@@ -234,6 +237,8 @@ package final class WorktreeReview: Identifiable {
             dismissedPullRequestBases: dismissedPullRequestBases.isEmpty
                 ? nil : dismissedPullRequestBases.sorted(),
             anchor: savedAnchor, currentFile: currentFile)
+        state.viewedHead = viewedHead
+        return state
     }
 
     // MARK: - Intents
@@ -364,6 +369,7 @@ package final class WorktreeReview: Identifiable {
         guard let file = file(path) else { return nil }
         let previous = viewed.marks[path]
         viewed.toggle(file)
+        if case .pullRequest(let pullRequest, _) = source { viewedHead = pullRequest.headCommit }
         collapseIfViewed(path)
         refreshSinceViewed()
         return .some(previous)

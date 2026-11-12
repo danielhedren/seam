@@ -64,6 +64,26 @@ extension RepoSession {
         return failure
     }
 
+    /// Listed PRs pushed to since the reader marked one of their files viewed (SPEC §7.2.2).
+    package var pullRequestsWithNewCommits: Set<Int> {
+        guard let open = pullRequests?.saved.open else { return [] }
+        let live = Dictionary(
+            pullRequestReviews.compactMap { review in
+                review.pullRequest.map {
+                    ($0.number, (review.viewedHead, !review.viewed.marks.isEmpty))
+                }
+            }, uniquingKeysWith: { first, _ in first })
+        return Set(
+            open.compactMap { pullRequest in
+                let state = pullRequestReviewStates[String(pullRequest.number)]
+                let (head, hasMarks) =
+                    live[pullRequest.number]
+                    ?? (state?.viewedHead, !(state?.viewed?.marks.isEmpty ?? true))
+                guard hasMarks, let head, head != pullRequest.headCommit else { return nil }
+                return pullRequest.number
+            })
+    }
+
     /// Six at a time, only for a head or base that moved since it was counted.
     private func countChanges(of pullRequests: [PullRequest], in store: URL) async {
         let git = services.git

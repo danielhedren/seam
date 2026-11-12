@@ -17,6 +17,8 @@ public struct RepoState: Codable, Equatable, Sendable {
         /// Where the reader was, restored when the worktree is shown again.
         public var anchor: ScrollAnchor?
         public var currentFile: String?
+        /// A pull request review's head when a file was last marked viewed (SPEC §7.2.2).
+        public var viewedHead: String?
 
         public init(
             scope: String? = nil, wraps: Bool? = nil, whitespace: String? = nil,

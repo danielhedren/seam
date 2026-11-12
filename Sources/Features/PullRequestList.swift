@@ -19,8 +19,11 @@ struct PullRequestSection: View {
         let listing = session.pullRequestListing
         Section {
             ForEach(listing.rows) { row in
-                PullRequestListRow(row: row, totals: session.pullRequestTotals[row.id])
-                    .tag(Self.tag(row.id))
+                PullRequestListRow(
+                    row: row, totals: session.pullRequestTotals[row.id],
+                    hasNewCommits: session.pullRequestsWithNewCommits.contains(row.id)
+                )
+                .tag(Self.tag(row.id))
             }
             if listing.rows.isEmpty {
                 Text(Self.empty(listing)).font(.callout).foregroundStyle(.secondary)
@@ -87,6 +90,7 @@ struct PullRequestListRow: View {
     let row: PullRequestListing.Row
     /// Counted once the PR is in the store.
     var totals: DiffStat?
+    var hasNewCommits = false
     @Environment(\.backgroundProminence) private var prominence
 
     var body: some View {
@@ -118,6 +122,10 @@ struct PullRequestListRow: View {
                         .foregroundStyle(
                             prominence == .increased
                                 ? AnyShapeStyle(.foreground) : AnyShapeStyle(.orange))
+                }
+                if hasNewCommits {
+                    Text("new commits", bundle: .module).fontWeight(.semibold)
+                        .foregroundStyle(tint(.orange))
                 }
                 Spacer(minLength: 0)
                 // Grey for 0, as on worktree rows: only real changes take a colour.

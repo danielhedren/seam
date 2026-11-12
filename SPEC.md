@@ -1592,8 +1592,9 @@ only when a head or base moved), reviews over a worktree or a pull request sourc
 listed PR or its notification opens its review with its commits, full contents and
 highlighting, viewed marks and places kept per PR, the commands that need a checkout
 disabled, a store missing objects rebuilt once, GitHub's threads and conversation on a PR
-review, and `+/−` on the rows. *Not built yet:* "new commits" and its notification, the
-comment notification, the "Fetching
+review, `+/−` on the rows, "new commits" on a row, and attributes and `.editorconfig` read from
+the head. *Not built yet:* the "new commits" and comment notifications (they wait for M14's
+notification work), the "Fetching
 #N…" wording (a plain progress shows), clean-up of a store past 200 MB, and Show Only Changes
 Since Viewed for the whole review.
 

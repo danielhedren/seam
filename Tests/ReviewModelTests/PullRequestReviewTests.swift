@@ -105,6 +105,30 @@ import Testing
         session.close()
     }
 
+    @Test func aPushAfterAFileWasViewedShowsAsNewCommitsAndAsAChangedFile() async throws {
+        let (repo, pullRequest) = try await fixture()
+        let session = await open(repo)
+        let review = try await openReview(session, 8)
+        session.toggleViewed("b.txt", advance: false)
+        #expect(session.pullRequestsWithNewCommits.isEmpty)
+
+        try await repo.run("switch", "-q", "-c", "pushed", "main")
+        let pushed = try await repo.commit("b.txt", "b, again\n", "Rework b")
+        try await repo.run("push", "-q", "-f", repo.origin.path, "pushed:refs/pull/8/head")
+        var moved = pullRequest
+        moved.headCommit = pushed
+        moved.updated = pullRequest.updated.addingTimeInterval(60)
+        github.answer(open: [moved])
+        session.reload()
+        await session.settled()
+        await until { review.pullRequest?.headCommit == pushed }
+        await review.loaded()
+
+        #expect(session.pullRequestsWithNewCommits == [8])
+        #expect(review.viewedStatus("b.txt") == .changedSinceViewed)
+        session.close()
+    }
+
     @Test func aPullRequestReviewOffersNothingThatNeedsACheckout() async throws {
         let (repo, _) = try await fixture()
         let session = await open(repo)
