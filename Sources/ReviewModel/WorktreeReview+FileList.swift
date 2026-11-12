@@ -9,6 +9,8 @@ package final class FileListCache {
         package var collapsed: Set<String>
         var filter: String
         package var showsGenerated: Bool
+        /// Only files changed since viewed, when the review shows only those.
+        var sinceViewed: Set<String>?
     }
 
     var key: Key?
@@ -33,16 +35,31 @@ extension WorktreeReview {
         return parts
     }
 
+    package var changedSinceViewedPaths: Set<String> {
+        Set(
+            (diff?.files ?? []).filter { viewed.status(of: $0) == .changedSinceViewed }.map(
+                \.diff.path))
+    }
+
+    /// Files never marked viewed, which Show Only Changes Since Viewed leaves out.
+    package var neverViewedCount: Int {
+        (diff?.files ?? []).count { viewed.status(of: $0) == .unviewed }
+    }
+
     package var fileListRows: [FileListRow] {
+        let changed = onlySinceViewed ? changedSinceViewedPaths : nil
         let key = FileListCache.Key(
             diffVersion: diffVersion, flat: flatFileList, collapsed: collapsedDirectories,
-            filter: fileFilter, showsGenerated: showsGenerated)
+            filter: fileFilter, showsGenerated: showsGenerated, sinceViewed: changed)
         if fileListCache.key == key { return fileListCache.rows }
         let files = diff?.files ?? []
         let rows = FileTree.rows(
             files.map(\.diff.path), flat: flatFileList, collapsed: collapsedDirectories,
             filter: fileFilter, generated: Set(files.indices.filter { files[$0].isGenerated }),
-            showsGenerated: showsGenerated)
+            showsGenerated: showsGenerated,
+            only: changed.map { changed in
+                Set(files.indices.filter { changed.contains(files[$0].diff.path) })
+            })
         fileListCache.key = key
         fileListCache.rows = rows
         return rows

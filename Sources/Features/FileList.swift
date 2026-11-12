@@ -112,7 +112,21 @@ struct FileList: View {
     }
 
     @ViewBuilder private func totals(_ shown: Totals) -> some View {
-        if let diff = review.diff {
+        if review.onlySinceViewed {
+            // What's left out is said too: a file never viewed isn't in this pass.
+            let never = review.neverViewedCount
+            Text(
+                String(
+                    localized:
+                        "Since viewed · \(Counted.files(review.changedSinceViewedPaths.count))",
+                    bundle: .module)
+            )
+            .fixedSize()
+            if never > 0 {
+                Text(String(localized: "\(String(never)) never viewed", bundle: .module))
+                    .foregroundStyle(.secondary).lineLimit(1)
+            }
+        } else if let diff = review.diff {
             Text(verbatim: Counted.files(diff.files.count)).fixedSize()
             if !diff.files.isEmpty {
                 if shown == .all {

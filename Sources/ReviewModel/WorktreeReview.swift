@@ -57,6 +57,8 @@ package final class WorktreeReview: Identifiable {
     package private(set) var viewedHead: String?
     /// Files shown as their change since viewed, by path: the text the reader saw (SPEC §7.4).
     package private(set) var sinceViewed: [String: String] = [:]
+    /// Review › Show Only Changes Since Viewed: the diff keeps only files changed since viewed.
+    package internal(set) var onlySinceViewed = false
     /// Worked out when the files or the choice change, not on every redraw.
     private var sinceViewedDiffs: [String: FileDiff] = [:]
     /// What the git checks found (SPEC §5.4); `staleParent` adds the pull request's word.
@@ -534,10 +536,12 @@ package final class WorktreeReview: Identifiable {
                         diff.files[$0]
                     })
             }
-            return filter.isEmpty
-                ? diff
-                : ReviewDiff(
-                    scope: diff.scope, files: diff.files.filter { filter.matches($0.diff.path) })
+            let files = diff.files.filter { file in
+                (filter.isEmpty || filter.matches(file.diff.path))
+                    && (!onlySinceViewed || viewed.status(of: file) == .changedSinceViewed)
+            }
+            return files.count == diff.files.count
+                ? diff : ReviewDiff(scope: diff.scope, files: files)
         }.map {
             DiffContent(
                 review: $0, mode: mode, collapsed: collapsed, contents: contents,

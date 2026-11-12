@@ -374,6 +374,21 @@ package final class RepoSession {
         }
     }
 
+    /// Review › Show Only Changes Since Viewed for the whole review (SPEC §7.4): each file changed
+    /// since viewed shows that change, the rest leave the diff; again, everything comes back.
+    package func toggleOnlySinceViewed() async {
+        guard let review = selected else { return }
+        if review.onlySinceViewed {
+            review.onlySinceViewed = false
+            for path in review.sinceViewed.keys.sorted() { review.showFullDiff(path) }
+            return
+        }
+        for path in review.changedSinceViewedPaths.sorted() where review.sinceViewed[path] == nil {
+            await toggleSinceViewed(path)
+        }
+        review.onlySinceViewed = true
+    }
+
     /// Review › Show Changes Since Viewed, or Show Full Diff when it's shown (SPEC §7.4). A
     /// version the store doesn't have may still be a git object, if it was committed.
     package func toggleSinceViewed(_ path: String? = nil) async {

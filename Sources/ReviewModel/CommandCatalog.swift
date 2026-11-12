@@ -324,6 +324,17 @@ package enum CommandCatalog {
             },
             run: { session in Task { await session.toggleSinceViewed() } }),
         SeamCommand(
+            id: "since-viewed-all", title: localized("Show Only Changes Since Viewed"),
+            menu: .review, section: 2, shortcut: .single("v", [.option, .shift]),
+            isEnabled: { session in
+                guard let review = session.selected else { return false }
+                return review.onlySinceViewed || !review.changedSinceViewedPaths.isEmpty
+            },
+            currentTitle: { session in
+                session.selected?.onlySinceViewed == true ? localized("Show Full Diff") : nil
+            },
+            run: { session in Task { await session.toggleOnlySinceViewed() } }),
+        SeamCommand(
             id: "editor", title: localized("Open in Editor"), menu: .review, section: 2,
             shortcut: .single("o"), isEnabled: onWorktree, run: { $0.openInEditor() }),
         SeamCommand(

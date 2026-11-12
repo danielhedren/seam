@@ -74,4 +74,39 @@ struct SinceViewedSessionTests {
         #expect(review.sinceViewed.isEmpty)
         #expect(changedLines(review)?.count == 20)
     }
+
+    /// A second round: only what changed since the last pass, each as that change.
+    @Test func showingOnlyChangesSinceViewedNarrowsTheWholeReviewAndGoesBack() async throws {
+        let repo = try await FixtureRepo()
+        try repo.write("a.txt", numberedLines(1...20))
+        try repo.write("b.txt", "b\n")
+        try repo.write("c.txt", "c\n")
+        let store = MemoryStore()
+        let session = RepoSession(directory: repo.main, services: services(repo.git, store: store))
+        await session.open()
+        await session.settled()
+        let review = try #require(session.selected)
+        session.toggleViewed("a.txt", advance: false)
+        session.toggleViewed("b.txt", advance: false)
+        await session.settled()
+        try repo.write("a.txt", numberedLines(1...20, replacing: [10: "ten"]))
+        await session.apply(RepoChange(worktrees: [repo.main.path]))
+        await session.settled()
+        let command = try command("since-viewed-all")
+        #expect(command.isEnabled(session))
+
+        command.run(session)
+        await until { review.onlySinceViewed }
+
+        #expect(review.content?.review.files.map(\.diff.path) == ["a.txt"])
+        #expect(changedLines(review) == ["10", "ten"])
+        #expect(review.fileListRows.map(\.name) == ["a.txt"])
+        #expect(review.neverViewedCount == 1)
+        #expect(command.title(for: session) == "Show Full Diff")
+
+        command.run(session)
+        await until { !review.onlySinceViewed }
+        #expect(review.content?.review.files.map(\.diff.path) == ["a.txt", "b.txt", "c.txt"])
+        #expect(review.sinceViewed.isEmpty)
+    }
 }
