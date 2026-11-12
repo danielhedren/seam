@@ -116,7 +116,11 @@ struct DiffPane: View {
                 if let empty = EmptyDiff.of(review) {
                     EmptyDiffView(empty: empty, session: session, review: review)
                 }
-                if review.showsProgress {
+                if review.isFetching, let number = review.pullRequest?.number {
+                    ProgressView(String(localized: "Fetching #\(String(number))…", bundle: .module))
+                        .controlSize(.small)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if review.showsProgress {
                     ProgressView().controlSize(.small)
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                         .padding(12)

@@ -2,6 +2,7 @@ import Foundation
 import GitKit
 import ReviewTestSupport
 import SeamCore
+import Synchronization
 import TestSupport
 import Testing
 
@@ -25,15 +26,17 @@ import Testing
         return (repo, pullRequest)
     }
 
-    private func open(_ repo: FixtureRepo) async -> RepoSession {
+    private func open(_ repo: FixtureRepo, held: HeldStore? = nil) async -> RepoSession {
         var services = services(repo.git, store: store, github: GitHubAccount(client: github))
         let origin = repo.origin.path
         let storeDirectory = repo.directory.resolved.appending(path: "state/pulls.git")
         services.pullRequestStore = { repository in
-            CLIPullRequestStore(
+            let store = CLIPullRequestStore(
                 directory: storeDirectory,
                 objects: repository.commonDirectory.appending(path: "objects"),
                 remoteURL: { _ in origin })
+            held?.inner.withLock { $0 = store }
+            return held ?? store
         }
         let session = RepoSession(directory: repo.main, services: services)
         await session.open()
@@ -129,6 +132,23 @@ import Testing
         session.close()
     }
 
+    @Test func aPullRequestNotFetchedYetSaysItsBeingFetched() async throws {
+        let (repo, _) = try await fixture()
+        let held = HeldStore()
+        let session = await open(repo, held: held)
+
+        session.openPullRequestReview(8)
+        let review = try #require(session.selected)
+        await until { review.isFetching }
+        #expect(review.diff == nil)
+        held.release()
+        await review.loaded()
+
+        #expect(!review.isFetching)
+        #expect(review.diff?.files.map(\.diff.path) == ["b.txt"])
+        session.close()
+    }
+
     @Test func aPullRequestReviewOffersNothingThatNeedsACheckout() async throws {
         let (repo, _) = try await fixture()
         let session = await open(repo)
@@ -155,5 +175,37 @@ import Testing
 
         #expect(review.viewedStatus("b.txt") == .viewed)
         session.close()
+    }
+}
+
+/// The real store, its fetches held until released.
+final class HeldStore: PullRequestStore {
+    let inner = Mutex<CLIPullRequestStore?>(nil)
+    private let gate = Mutex<(open: Bool, waiting: [CheckedContinuation<Void, Never>])>((false, []))
+
+    var directory: URL { inner.withLock { $0?.directory } ?? URL(fileURLWithPath: "/") }
+
+    func release() {
+        let waiting = gate.withLock { gate in
+            gate.open = true
+            defer { gate.waiting = [] }
+            return gate.waiting
+        }
+        for continuation in waiting { continuation.resume() }
+    }
+
+    func fetch(pullRequests: [Int], bases: [String], from repo: GitHubRepo) async throws(GitError) {
+        await withCheckedContinuation { continuation in
+            let open = gate.withLock { gate in
+                if !gate.open { gate.waiting.append(continuation) }
+                return gate.open
+            }
+            if open { continuation.resume() }
+        }
+        try await inner.withLock { $0 }?.fetch(pullRequests: pullRequests, bases: bases, from: repo)
+    }
+
+    func reset() async {
+        await inner.withLock { $0 }?.reset()
     }
 }

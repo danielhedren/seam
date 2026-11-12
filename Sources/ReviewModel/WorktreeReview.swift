@@ -166,6 +166,8 @@ package final class WorktreeReview: Identifiable {
     /// Set by the session for a pull request: brings the store up to date before a load, or
     /// with `again` rebuilds it, and says why it couldn't.
     @ObservationIgnored var fetch: (@MainActor (_ again: Bool) async -> GitError?)?
+    /// The store is fetching this pull request before its first diff can show.
+    package private(set) var isFetching = false
 
     /// A read of the list moved the PR; a new head or base loads it again.
     func update(_ pullRequest: PullRequest) {
@@ -802,7 +804,10 @@ package final class WorktreeReview: Identifiable {
         _ pullRequest: PullRequest, from store: URL, _ generation: Int, _ rangeVersion: Int
     ) async {
         for again in [false, true] {
-            if let failure = await fetch?(again) {
+            isFetching = diff == nil
+            let failure = await fetch?(again)
+            isFetching = false
+            if let failure {
                 guard generation == loadGeneration else { return }
                 problem = .gitFailed(Self.describe(failure))
                 break
