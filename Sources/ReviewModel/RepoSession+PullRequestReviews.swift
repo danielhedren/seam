@@ -57,10 +57,41 @@ extension RepoSession {
         storeFetch = nil
         if failure == nil {
             fetchedPullRequests = wanted
+            await countChanges(of: listed + opened, in: store.directory)
         } else if again {
             fetchedPullRequests = [:]
         }
         return failure
+    }
+
+    /// Six at a time, only for a head or base that moved since it was counted.
+    private func countChanges(of pullRequests: [PullRequest], in store: URL) async {
+        let git = services.git
+        let wanted = pullRequests.filter {
+            countedPullRequests[$0.number] != "\($0.headCommit) \($0.baseCommit)"
+        }
+        let counted = await withTaskGroup(of: (PullRequest, DiffStat?).self) { group in
+            var counted: [(PullRequest, DiffStat?)] = []
+            for (index, pullRequest) in wanted.enumerated() {
+                if index >= 6, let next = await group.next() { counted.append(next) }
+                group.addTask {
+                    (
+                        pullRequest,
+                        try? await DiffStat.between(
+                            pullRequest.baseCommit, and: pullRequest.headCommit, in: store,
+                            git: git)
+                    )
+                }
+            }
+            for await next in group { counted.append(next) }
+            return counted
+        }
+        for (pullRequest, stat) in counted {
+            guard let stat else { continue }
+            pullRequestTotals[pullRequest.number] = stat
+            countedPullRequests[pullRequest.number] =
+                "\(pullRequest.headCommit) \(pullRequest.baseCommit)"
+        }
     }
 
     /// After a read: opened reviews follow their PR, closed ones go, and what's listed is

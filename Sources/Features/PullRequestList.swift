@@ -19,7 +19,8 @@ struct PullRequestSection: View {
         let listing = session.pullRequestListing
         Section {
             ForEach(listing.rows) { row in
-                PullRequestListRow(row: row).tag(Self.tag(row.id))
+                PullRequestListRow(row: row, totals: session.pullRequestTotals[row.id])
+                    .tag(Self.tag(row.id))
             }
             if listing.rows.isEmpty {
                 Text(Self.empty(listing)).font(.callout).foregroundStyle(.secondary)
@@ -84,6 +85,8 @@ struct PullRequestSection: View {
 
 struct PullRequestListRow: View {
     let row: PullRequestListing.Row
+    /// Counted once the PR is in the store.
+    var totals: DiffStat?
     @Environment(\.backgroundProminence) private var prominence
 
     var body: some View {
@@ -116,8 +119,17 @@ struct PullRequestListRow: View {
                             prominence == .increased
                                 ? AnyShapeStyle(.foreground) : AnyShapeStyle(.orange))
                 }
+                Spacer(minLength: 0)
+                // Grey for 0, as on worktree rows: only real changes take a colour.
+                if let totals, totals.files > 0 {
+                    Text(verbatim: "+\(totals.additions)")
+                        .foregroundStyle(totals.additions > 0 ? tint(.green) : grey)
+                    Text(verbatim: "−\(totals.deletions)")
+                        .foregroundStyle(totals.deletions > 0 ? tint(.red) : grey)
+                }
             }
             .font(.caption)
+            .monospacedDigit()
             .foregroundStyle(.secondary)
         }
         .padding(.vertical, 2)
@@ -125,6 +137,12 @@ struct PullRequestListRow: View {
         .help(
             pullRequest.labels.isEmpty
                 ? pullRequest.title : pullRequest.labels.joined(separator: ", "))
+    }
+
+    private var grey: AnyShapeStyle { AnyShapeStyle(.secondary) }
+
+    private func tint(_ color: Color) -> AnyShapeStyle {
+        prominence == .increased ? AnyShapeStyle(.foreground) : AnyShapeStyle(color)
     }
 }
 

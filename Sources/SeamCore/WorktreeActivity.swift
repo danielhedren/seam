@@ -13,6 +13,21 @@ public struct DiffStat: Equatable, Sendable {
         self.deletions = deletions
     }
 
+    /// A pull request's totals: from the merge base with `base` to `head`, as GitHub counts them.
+    public static func between(
+        _ base: String, and head: String, in directory: URL, git: any GitClient
+    ) async throws(GitError) -> DiffStat {
+        guard let mergeBase = try await git.optionalLine(["merge-base", base, head], in: directory)
+        else { throw .unexpectedOutput("no merge base of \(base) and \(head)") }
+        return parse(
+            try await git.string(
+                [
+                    "diff", "--shortstat", "--no-ext-diff", "--no-textconv", "-M", mergeBase, head,
+                    "--",
+                ],
+                in: directory))
+    }
+
     /// `git diff --shortstat`'s one line, such as "2 files changed, 5 insertions(+)".
     static func parse(_ line: String) -> DiffStat {
         var stat = DiffStat(files: 0, additions: 0, deletions: 0)

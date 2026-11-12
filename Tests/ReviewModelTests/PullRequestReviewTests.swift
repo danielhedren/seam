@@ -93,6 +93,18 @@ import Testing
         session.close()
     }
 
+    /// Fetched in the background after the list is read, before anything is opened.
+    @Test func aListedPullRequestsTotalsAreCountedInTheStore() async throws {
+        let (repo, _) = try await fixture()
+        let session = await open(repo)
+
+        await until { session.pullRequestTotals[8] != nil }
+
+        #expect(session.pullRequestTotals == [8: DiffStat(files: 1, additions: 1, deletions: 0)])
+        #expect(session.pullRequestReviews.isEmpty)
+        session.close()
+    }
+
     @Test func aPullRequestReviewOffersNothingThatNeedsACheckout() async throws {
         let (repo, _) = try await fixture()
         let session = await open(repo)

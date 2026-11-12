@@ -52,6 +52,10 @@ package final class RepoSession {
     /// Each PR's head and base commits as last fetched, so a read fetches only what moved.
     @ObservationIgnored var fetchedPullRequests: [Int: String] = [:]
     @ObservationIgnored var storeFetch: Task<GitError?, Never>?
+    /// Listed PRs' `+/−`, counted in the store; GitHub's own cost the list seconds (SPEC §7.8).
+    package internal(set) var pullRequestTotals: [Int: DiffStat] = [:]
+    /// The head and base each total was counted for.
+    @ObservationIgnored var countedPullRequests: [Int: String] = [:]
     package private(set) var selectedID: String?
     package var sort = WorktreeSort.attention
     package var hidesMissing = false
