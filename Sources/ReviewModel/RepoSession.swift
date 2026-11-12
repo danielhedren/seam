@@ -404,7 +404,7 @@ package final class RepoSession {
         await keepingSeen?.value
         var seen = await services.store.seen(id, for: repository)
         if seen == nil,
-            let blob = try? await services.git.run(
+            let blob = try? await review.git.run(
                 ["cat-file", "blob", id], in: review.worktree.path)
         {
             seen = String(decoding: blob, as: UTF8.self)

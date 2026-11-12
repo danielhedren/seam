@@ -26,8 +26,11 @@ import Testing
         return (repo, pullRequest)
     }
 
-    private func open(_ repo: FixtureRepo, held: HeldStore? = nil) async -> RepoSession {
-        var services = services(repo.git, store: store, github: GitHubAccount(client: github))
+    private func open(
+        _ repo: FixtureRepo, held: HeldStore? = nil, git: (any GitClient)? = nil
+    ) async -> RepoSession {
+        var services = services(
+            git ?? repo.git, store: store, github: GitHubAccount(client: github))
         let origin = repo.origin.path
         let storeDirectory = repo.directory.resolved.appending(path: "state/pulls.git")
         services.pullRequestStore = { repository in
@@ -222,6 +225,20 @@ import Testing
         session.close()
     }
 
+    /// git refuses a bare repository found from its folder alone with this setting.
+    @Test func aPullRequestReviewsWithBareRepositoriesMadeExplicit() async throws {
+        let (repo, _) = try await fixture()
+        let session = await open(repo, git: ExplicitBareRepositories(inner: repo.git))
+
+        let review = try await openReview(session, 8)
+        await until { session.pullRequestTotals[8] != nil }
+
+        #expect(review.problem == nil)
+        #expect(review.diff?.files.map(\.diff.path) == ["b.txt"])
+        #expect(session.pullRequestTotals[8]?.additions == 1)
+        session.close()
+    }
+
     /// A commit in any worktree, or a fetch, lists the worktrees again.
     @Test func aRefChangeKeepsThePullRequestReviewSelected() async throws {
         let (repo, _) = try await fixture()
@@ -293,5 +310,16 @@ final class HeldStore: PullRequestStore {
 
     func reset() async {
         await inner.withLock { $0 }?.reset()
+    }
+}
+
+/// The reader's git with `safe.bareRepository=explicit` in their global config.
+struct ExplicitBareRepositories: GitClient {
+    let inner: any GitClient
+
+    func run(_ arguments: [String], in directory: URL, input: Data?) async throws(GitError) -> Data
+    {
+        try await inner.run(
+            ["-c", "safe.bareRepository=explicit"] + arguments, in: directory, input: input)
     }
 }

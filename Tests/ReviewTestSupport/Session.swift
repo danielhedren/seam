@@ -232,6 +232,8 @@ package struct ReadOnlyGit: GitClient {
     ]
 
     package static func isRead(_ arguments: [String]) -> Bool {
+        // A pull request's store is named before the verb (`GitDirectoryClient`).
+        let arguments = arguments.drop { $0.hasPrefix("--git-dir=") }
         guard let verb = arguments.first else { return false }
         switch verb {
         case "config": return arguments.contains("--get") || arguments.contains("--get-regexp")

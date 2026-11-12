@@ -85,3 +85,22 @@ public struct CLIGitClient: GitClient {
         return result.stdout
     }
 }
+
+/// Runs every command on one git directory. A bare repository needs it named: with
+/// `safe.bareRepository=explicit` git won't use one found from its folder alone.
+public struct GitDirectoryClient: GitClient {
+    private let inner: any GitClient
+    public let directory: URL
+
+    public init(_ inner: any GitClient, directory: URL) {
+        self.inner = inner
+        self.directory = directory
+    }
+
+    public func run(_ arguments: [String], in directory: URL, input: Data?) async throws(GitError)
+        -> Data
+    {
+        try await inner.run(
+            ["--git-dir=\(self.directory.path)"] + arguments, in: directory, input: input)
+    }
+}

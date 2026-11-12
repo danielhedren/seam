@@ -109,7 +109,7 @@ extension RepoSession {
 
     /// Six at a time, only for a head or base that moved since it was counted.
     private func countChanges(of pullRequests: [PullRequest], in store: URL) async {
-        let git = services.git
+        let git = GitDirectoryClient(services.git, directory: store)
         let wanted = pullRequests.filter {
             countedPullRequests[$0.number] != "\($0.headCommit) \($0.baseCommit)"
         }

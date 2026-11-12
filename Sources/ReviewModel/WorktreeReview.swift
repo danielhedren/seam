@@ -169,6 +169,12 @@ package final class WorktreeReview: Identifiable {
 
     package var isPullRequestReview: Bool { source != .worktree }
 
+    /// git for this review's range: a pull request's store is named on every command.
+    var git: any GitClient {
+        guard case .pullRequest(_, let store) = source else { return services.git }
+        return GitDirectoryClient(services.git, directory: store)
+    }
+
     /// Set by the session for a pull request: brings the store up to date before a load, or
     /// with `again` rebuilds it, and says why it couldn't.
     @ObservationIgnored var fetch: (@MainActor (_ again: Bool) async -> GitError?)?
@@ -858,7 +864,7 @@ package final class WorktreeReview: Identifiable {
             do throws(GitError) {
                 // The merge base with the base branch's tip: the diff GitHub shows (SPEC §6.4).
                 guard
-                    let base = try await services.git.optionalLine(
+                    let base = try await git.optionalLine(
                         ["merge-base", pullRequest.baseCommit, pullRequest.headCommit], in: store)
                 else { throw .unexpectedOutput("no merge base for #\(pullRequest.number)") }
                 guard generation == loadGeneration else { return }
@@ -879,7 +885,7 @@ package final class WorktreeReview: Identifiable {
         from base: String, to head: String?, in directory: URL, _ generation: Int,
         _ rangeVersion: Int
     ) async throws(GitError) {
-        let loader = ReviewLoader(git: services.git, fileSystem: services.fileSystem)
+        let loader = ReviewLoader(git: git, fileSystem: services.fileSystem)
         let log = try await loader.commits(from: base, to: head, in: directory)
         guard generation == loadGeneration else { return }
         commitLog = log
