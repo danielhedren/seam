@@ -222,6 +222,19 @@ import Testing
         session.close()
     }
 
+    /// A commit in any worktree, or a fetch, lists the worktrees again.
+    @Test func aRefChangeKeepsThePullRequestReviewSelected() async throws {
+        let (repo, _) = try await fixture()
+        let session = await open(repo)
+        _ = try await openReview(session, 8)
+
+        await session.apply(RepoChange(refs: true))
+
+        #expect(session.selectedID == "pr:8")
+        #expect(session.selected?.diff?.files.map(\.diff.path) == ["b.txt"])
+        session.close()
+    }
+
     @Test func aPullRequestReviewOffersNothingThatNeedsACheckout() async throws {
         let (repo, _) = try await fixture()
         let session = await open(repo)

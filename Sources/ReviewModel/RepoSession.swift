@@ -261,10 +261,10 @@ package final class RepoSession {
                 override: worktree.branch.flatMap { repoState.baseOverrides[$0] })
             return review
         }
-        if let selectedID, !reviews.contains(where: { $0.id == selectedID }) {
+        let ids = Set((reviews + pullRequestReviews).map(\.id))
+        if let selectedID, !ids.contains(selectedID) {
             self.selectedID = nil
         }
-        let ids = Set((reviews + pullRequestReviews).map(\.id))
         threadSelections = threadSelections.filter { ids.contains($0.key) }
         jumpHistories = jumpHistories.filter { ids.contains($0.key) }
     }
