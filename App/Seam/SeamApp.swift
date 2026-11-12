@@ -9,6 +9,6 @@ struct SeamApp: App {
     @NSApplicationDelegateAdaptor private var delegate: SeamAppDelegate
 
     var body: some Scene {
-        SeamScenes(services: services)
+        SeamScenes(services: services, delegate: delegate)
     }
 }

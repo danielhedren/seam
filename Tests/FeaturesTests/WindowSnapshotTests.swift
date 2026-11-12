@@ -4,6 +4,7 @@ import ReviewTestSupport
 import SeamCore
 import SnapshotTesting
 import SwiftUI
+import Synchronization
 import TestSupport
 import Testing
 
@@ -393,6 +394,37 @@ struct WindowSnapshotTests {
             of: try render(view, size: CGSize(width: 900, height: 500), .aqua),
             as: .image(precision: 0.99, perceptualPrecision: 0.98),
             named: "welcome-\(Self.os)")
+    }
+
+    /// The bell's popover (SPEC §7.10): two unread entries above a read one.
+    @Test func theBellsEntries() async throws {
+        let platform = RecordingPlatform()
+        let dates = Mutex(
+            [10800, 9000, 60].map { Self.now.addingTimeInterval(-$0) } as [Date])
+        let bell = NotificationBell(now: {
+            dates.withLock { $0.count > 1 ? $0.removeFirst() : $0[0] }
+        })
+        let news = [
+            ("/r|closed-11", "main", "#11 merged"),
+            ("/r/wt|checks-12-abc", "feature", "Checks failed on #12 Count the lines"),
+            (
+                "/r|pr-2780", "#2780 Slot preview for the delivery options of an order",
+                "anna asks you to review"
+            ),
+        ]
+        for (id, title, body) in news {
+            bell.record(
+                SeamNotification(id: id, group: "/r", title: title, body: body, url: nil),
+                posted: false, on: platform)
+        }
+        bell.markRead(["/r|closed-11"], on: platform)
+        for (appearance, name) in Self.appearances {
+            let view = NotificationList(bell: bell, open: { _ in }, markAllRead: {})
+            check(
+                of: try render(view, size: CGSize(width: 360, height: 220), appearance),
+                as: .image(precision: 0.99, perceptualPrecision: 0.98),
+                named: "bell-\(name)-\(Self.os)")
+        }
     }
 
     private static let appearances: [(NSAppearance.Name, String)] = [

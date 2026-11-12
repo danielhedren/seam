@@ -56,6 +56,22 @@ private final class RecordingIndex: RepoIndex {
         #expect(sent.count == 1)
     }
 
+    @Test func aClickedNotificationIsReportedByIdThenOpened() async throws {
+        let delegate = SeamAppDelegate()
+        var events: [String] = []
+        delegate.send = { events.append("open \($0.absoluteString)") }
+        delegate.clicked = { events.append("clicked \($0)") }
+
+        await delegate.received(id: "/repo|agent-t1", url: "seam://open?path=/repo&thread=t1")
+        await delegate.received(id: "/repo|ready-12", url: nil)
+
+        #expect(
+            events == [
+                "clicked /repo|agent-t1", "open seam://open?path=/repo&thread=t1",
+                "clicked /repo|ready-12",
+            ])
+    }
+
     @Test func aSpotlightPickOpensItsPathAndOtherActivitiesNothing() {
         let pick = NSUserActivity(activityType: CSSearchableItemActionType)
         pick.userInfo = [CSSearchableItemActivityIdentifier: "/Users/me/Code/shop"]

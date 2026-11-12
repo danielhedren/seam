@@ -948,13 +948,12 @@ background unless Settings says otherwise (§12).
   of Notification Center; clearing a notification there doesn't mark its entry read (§16).
   Newer news with the same id replaces the entry and is unread again.
 - Go › Next Unread Notification (`⌥⌘N`) opens the newest unread entry; Go › Mark All
-  Notifications as Read has no key.
+  Notifications as Read has no key. Like every menu command they need a repo's window; in the
+  welcome window the bell's button and popover do the same.
 - **The Dock icon** is badged with the unread count across all repos, none at zero, unless
   Settings turns it off (§12). The badge needs no notification permission.
-- The log keeps the newest 200 entries of the last 30 days, across launches (§11).
-- **Not built yet (M14):** the bell, read state, its commands, `events.json` and the Dock
-  badge's switch. Until then the Dock icon counts what awaits the reader (§7.3.2) across the
-  open repos, and the toolbar has no bell.
+- The log keeps the newest 200 entries of the last 30 days, across launches (§11). Entries
+  past either limit drop out when news is logged and when Seam launches.
 
 ## 8. Technical design
 
@@ -1620,8 +1619,8 @@ Dock badge counting unread entries instead, with its switch.
 *Done when:* an event while Seam is in front is logged without a banner, opening its thread
 marks it read and removes its notification, the badge follows the unread count, the log holds
 at 200 entries and survives a relaunch, each from a session test with fakes.
-*Status:* the clearing up is built; the bell isn't, so what §7.1, §7.5, §9, §11 and §12 say of
-it is still to come.
+*Status:* built. The Dock icon no longer counts what awaits the reader. The bell's menu
+commands are off in the welcome window, as every command is there; its button works.
 
 ## 15. Risks
 

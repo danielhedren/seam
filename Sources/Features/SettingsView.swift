@@ -123,6 +123,9 @@ struct NotificationSettings: View {
                 Toggle(
                     String(localized: "Also while Seam is in front", bundle: .module),
                     isOn: $settings.notifiesInFront)
+                Toggle(
+                    String(localized: "Show the unread count on the Dock icon", bundle: .module),
+                    isOn: $settings.badgesDock)
                 if denied {
                     LabeledContent {
                         Button(String(localized: "Open System Settings", bundle: .module)) {
@@ -132,6 +135,12 @@ struct NotificationSettings: View {
                         Text("Notifications are off for Seam in System Settings.", bundle: .module)
                     }
                 }
+            } footer: {
+                Text(
+                    "The bell in the toolbar keeps the news either way, and the Dock icon counts what's unread there.",
+                    bundle: .module
+                )
+                .settingsFootnote()
             }
         }
         .task { denied = await MacPlatform.notificationsDenied() }

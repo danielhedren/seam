@@ -375,6 +375,9 @@
     "Make Text Smaller" : {
 
     },
+    "Mark All Notifications as Read" : {
+
+    },
     "Mark as Not Viewed" : {
 
     },
@@ -400,6 +403,9 @@
 
     },
     "Next Thread" : {
+
+    },
+    "Next Unread Notification" : {
 
     },
     "Next Worktree" : {
@@ -504,7 +510,13 @@
     "Reviewed, not approved" : {
 
     },
+    "Seam couldn't read its notification log, so the bell starts empty. The old file is kept as %@." : {
+
+    },
     "Seam couldn't read what it saved for this repository, so viewed files and chosen bases start afresh. The old file is kept as %@." : {
+
+    },
+    "Seam couldn't save its notification log: %@" : {
 
     },
     "Seam couldn't save its state: %@" : {
@@ -523,6 +535,9 @@
 
     },
     "Show Hidden Pull Requests" : {
+
+    },
+    "Show Notifications" : {
 
     },
     "Show Pull Requests" : {

@@ -18,6 +18,8 @@ import Testing
         #expect(settings.notifications == Set(NotificationKind.allCases), "all on until turned off")
         settings.notifications = [.agent, .readyToMerge]
         settings.notifiesInFront = true
+        #expect(settings.badgesDock, "on until turned off")
+        settings.badgesDock = false
 
         let reread = AppSettings(defaults: defaults)
 
@@ -27,6 +29,7 @@ import Testing
         #expect(reread.diffOptions.whitespace == .ignoreAll)
         #expect(reread.notifications == [.agent, .readyToMerge])
         #expect(reread.notifiesInFront)
+        #expect(!reread.badgesDock)
     }
 
     @Test func contextLinesAndEditorConfigReachTheReview() async throws {

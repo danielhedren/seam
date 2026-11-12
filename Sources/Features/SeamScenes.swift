@@ -100,8 +100,12 @@ public struct SeamScenes: Scene {
     @State private var requests = OpenRequests()
     @Environment(\.openWindow) private var openWindow
 
-    public init(services: SeamServices) {
+    /// The delegate hears of clicks in Notification Center, which mark the bell's entry read.
+    public init(services: SeamServices, delegate: SeamAppDelegate? = nil) {
         self.services = services
+        delegate?.clicked = { id in
+            await services.notifications.clicked(id, on: services.platform)
+        }
         // One window per repo (SPEC §7.1); this also takes the tab items out of the menus.
         NSWindow.allowsAutomaticWindowTabbing = false
     }
@@ -227,6 +231,11 @@ struct WindowRoot: View {
         )
         .onChange(of: url) { frame.track(url?.path) }
         .task { await launch() }
+        // A welcome window has no session to load the bell or follow its Dock switch.
+        .task { await services.notifications.load(on: services.platform) }
+        .onChange(of: services.settings.badgesDock, initial: true) { _, badges in
+            services.notifications.setBadgesDock(badges, on: services.platform)
+        }
         // Existing windows take seam:// URLs rather than SwiftUI opening one per URL.
         .handlesExternalEvents(preferring: ["seam"], allowing: ["*"])
         .onOpenURL { incoming in
@@ -332,6 +341,7 @@ struct WelcomeView: View {
     @State private var recent: [URL]
     @State private var opening: URL?
     @State private var failure: String?
+    @State private var showsNotifications = false
 
     /// `recent` shows until the store's list arrives.
     init(
@@ -402,6 +412,13 @@ struct WelcomeView: View {
                     CommandCatalog.help(
                         String(localized: "Open Repository…", bundle: .module),
                         shortcut: CommandCatalog.openRepository))
+            }
+            ToolbarSpacer(.fixed)
+            ToolbarItem {
+                BellButton(services: services, isShown: $showsNotifications) { entry in
+                    showsNotifications = false
+                    services.notifications.open(entry, on: services.platform)
+                }
             }
         }
         .task {
