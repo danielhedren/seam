@@ -2,6 +2,56 @@
 
 What changed in each release of Seam, newest first.
 
+## 0.5 — 2026-11-12
+
+Seam now reviews other people's pull requests: the repo's open pull requests are listed under the
+worktrees and open in the same diff as a worktree, full files included, without a checkout.
+
+### New
+
+- **Pull requests under the worktrees.** The repo's open pull requests that aren't yours and
+  aren't checked out here, review requests first, each with its author, age, `+/−`, "review
+  requested" and "new commits". The filter menu hides drafts, bots, authors or labels, keeps
+  only the checked authors or labels, and shows only review requests or pull requests involving
+  you (commented, reviewed, mentioned or assigned), or both. Filters are kept per repo; a row's
+  menu hides one pull request or one author, and copies the commands to check it out.
+- **Reviewing a pull request.** Selecting one shows the diff GitHub shows, with its commits,
+  full-file context, highlighting, viewed marks, and GitHub's threads and conversation. Seam
+  fetches pull requests into a store of its own under Application Support, using gh's sign-in;
+  your repository is still only read, and Seam still never posts to GitHub.
+- **Notifications for pull requests you review:** a review is asked of you, a new pull request
+  passes your filters, one you started reviewing gets new commits, or someone comments on one
+  you opened. Each has its switch in Settings › Notifications, and a click opens the review.
+- **The notification bell.** A toolbar button in every window keeps the news, also what arrives
+  while Seam is in front: an unread count, the entries in a popover (⇧⌘N), Go › Next Unread
+  Notification (⌥⌘N) and Mark All Notifications as Read. The Dock icon shows the unread count;
+  Settings can turn that off. A notification leaves Notification Center once you open what
+  it's about.
+- **Outlines.** A file's header can list the definitions its change touches: added, removed,
+  signature or body changed, and how much a definition grew. A row jumps to the change. ⇧O for
+  the current file, View › Show Outlines for every file.
+- **Show Only Changes Since Viewed** (⌥⇧V) narrows the whole review to the files changed since
+  you viewed them, each showing only that change: the second round with an agent, or a pull
+  request pushed to.
+- **Back and Forward** (⌃- and ⌃⇧-) return from a jump: a file picked in the list, a thread, a
+  search result, a find match, an outline row.
+- **Whole definition.** A gap next to a hunk inside a function offers "whole `Handle`", opening
+  the gap to that definition's start or end.
+- **Change ruler.** The diff's right edge marks where the changes are, dimmed for viewed files.
+
+### Improved
+
+- The sticky file header names the definitions around the line you're reading.
+- File › Copy Pull Request Number, also in a worktree row's menu.
+- Notification kinds added in an update start on, even if you had turned some off before.
+- Up to 1000 open pull requests are read, so a worktree's pull request is found in busy repos.
+
+### Fixed
+
+- Untracked build output (`bin/`, `obj/`, `node_modules/` and the like) no longer shows as
+  thousands of added lines when the `.gitignore` that hid it is gone; the file list's header
+  says how many such files it left out.
+
 ## 0.4 — 2026-10-27
 
 Threads move out of the side panel and into the diff, where the code is: the diff keeps the
