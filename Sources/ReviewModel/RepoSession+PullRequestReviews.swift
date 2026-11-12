@@ -50,6 +50,8 @@ extension RepoSession {
                 Task { [weak self] in await self?.readPullRequestThreads(saved, repo: repo) }
             }
         }
+        // Already showing, `select` does nothing, so its news is cleared here.
+        if selectedID == id { noteOpened(.worktree(id)) }
         select(id)
     }
 

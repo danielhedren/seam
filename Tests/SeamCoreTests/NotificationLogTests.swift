@@ -3,7 +3,7 @@ import SeamCore
 import Testing
 
 /// The bell's log (SPEC §7.10): newest first, replaced by id, read state, and its cap.
-@Suite struct NotificationLogTests {
+@Suite(.timeLimit(.minutes(1))) struct NotificationLogTests {
     private let start = Date(timeIntervalSince1970: 1_800_000_000)
 
     private func entry(_ id: String, after seconds: TimeInterval = 0, posted: Bool = true)

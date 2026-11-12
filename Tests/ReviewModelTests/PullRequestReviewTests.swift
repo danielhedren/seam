@@ -320,6 +320,30 @@ import Testing
         session.close()
     }
 
+    /// A rebase onto the same content leaves every viewed file as it was: nothing new to read.
+    @Test func aPushThatLeavesEveryFileAsViewedIsNoNewCommits() async throws {
+        let (repo, pullRequest) = try await fixture()
+        let session = await open(repo)
+        let review = try await openReview(session, 8)
+        session.toggleViewed("b.txt", advance: false)
+
+        try await repo.run("switch", "-q", "-c", "rebased", "main")
+        let rebased = try await repo.commit("b.txt", "b\n", "Add b again")
+        try await repo.run("push", "-q", "-f", repo.origin.path, "rebased:refs/pull/8/head")
+        var moved = pullRequest
+        moved.headCommit = rebased
+        moved.updated = pullRequest.updated.addingTimeInterval(60)
+        github.answer(open: [moved])
+        session.reload()
+        await session.settled()
+        await until { review.pullRequest?.headCommit == rebased }
+        await review.loaded()
+
+        #expect(review.viewedStatus("b.txt") == .viewed)
+        #expect(session.pullRequestsWithNewCommits.isEmpty)
+        session.close()
+    }
+
     @Test func aPullRequestReviewOffersNothingThatNeedsACheckout() async throws {
         let (repo, _) = try await fixture()
         let session = await open(repo)

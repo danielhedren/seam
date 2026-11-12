@@ -180,7 +180,8 @@ package final class RepoPullRequests {
     /// can open the window before its pull requests are read.
     func answered() async {
         if case .failed = status { return }
-        guard !hasRead, !isStopped else { return }
+        guard !hasRead, !isStopped, status != .notGitHub, services.settings.showsPullRequests
+        else { return }
         await withCheckedContinuation { answerWaiters.append($0) }
     }
 
@@ -261,6 +262,7 @@ package final class RepoPullRequests {
             guard let targets = PullRequestTargets(remotes: remotes, hosts: hosts, refs: refs)
             else {
                 status = .notGitHub
+                wakeAnswerWaiters()
                 saved = SavedPullRequests()
                 onUpdate?()
                 return false

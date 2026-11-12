@@ -306,7 +306,9 @@ package final class RepoSession {
         selected?.cancelLoading()
         selectedID = id
         // Known before Threads sorts threads by whose turn it is.
-        Task { [threads] in _ = await threads?.reader(in: id) }
+        if !review.isPullRequestReview {
+            Task { [threads] in _ = await threads?.reader(in: id) }
+        }
         if !review.isPullRequestReview { repoState.selectedWorktree = id }
         persist()
         review.reloadDiff()

@@ -878,6 +878,12 @@ package final class WorktreeReview: Identifiable {
                 guard generation == loadGeneration else { return }
                 try await show(
                     from: base, to: pullRequest.headCommit, in: store, generation, rangeVersion)
+                // A push that leaves every file as viewed, as a rebase does, isn't "new commits".
+                if let files = diff?.files, !files.isEmpty,
+                    files.allSatisfy({ viewed.status(of: $0) == .viewed })
+                {
+                    viewedHead = pullRequest.headCommit
+                }
                 break
             } catch {
                 guard generation == loadGeneration, error != .cancelled else { return }

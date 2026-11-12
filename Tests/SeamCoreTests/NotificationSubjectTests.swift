@@ -2,7 +2,7 @@ import SeamCore
 import Testing
 
 /// Which notifications opening something in Seam answers (SPEC §7.10).
-@Suite struct NotificationSubjectTests {
+@Suite(.timeLimit(.minutes(1))) struct NotificationSubjectTests {
     private let ids = [
         "/repo|agent-t1", "/repo|agent-t2", "/repo|checks-12-abc", "/repo|review-r9",
         "/repo|comments-12", "/repo|ready-12", "/repo|closed-12", "/repo|pr-20",

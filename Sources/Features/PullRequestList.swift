@@ -4,7 +4,7 @@ import SeamCore
 import SwiftUI
 
 /// Other people's open pull requests, a section of the worktree list after the worktrees (SPEC
-/// §7.2.2). Until they can be reviewed here (M11), picking one opens it on GitHub.
+/// §7.2.2).
 struct PullRequestSection: View {
     let session: RepoSession
 
@@ -17,11 +17,12 @@ struct PullRequestSection: View {
 
     var body: some View {
         let listing = session.pullRequestListing
+        let newCommits = session.pullRequestsWithNewCommits
         Section {
             ForEach(listing.rows) { row in
                 PullRequestListRow(
                     row: row, totals: session.pullRequestTotals[row.id],
-                    hasNewCommits: session.pullRequestsWithNewCommits.contains(row.id)
+                    hasNewCommits: newCommits.contains(row.id)
                 )
                 .tag(Self.tag(row.id))
             }

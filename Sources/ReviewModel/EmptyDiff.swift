@@ -34,6 +34,14 @@ package struct EmptyDiff: Equatable {
                     bundle: .module),
                 systemImage: "magnifyingglass", action: .clearSearch)
         }
+        if !diff.files.isEmpty, review.onlySinceViewed, review.changedSinceViewedPaths.isEmpty {
+            return EmptyDiff(
+                title: String(localized: "Nothing changed since viewed", bundle: .module),
+                detail: String(
+                    localized: "Every file is as you last viewed it. Show Full Diff goes back.",
+                    bundle: .module),
+                systemImage: "checkmark.circle", action: nil)
+        }
         if !diff.files.isEmpty {
             let filter = FileFilter(review.diffFilter)
             guard !filter.isEmpty, !diff.files.contains(where: { filter.matches($0.diff.path) })
@@ -46,6 +54,14 @@ package struct EmptyDiff: Equatable {
                 systemImage: "line.3.horizontal.decrease.circle", action: .clearFilter)
         }
         let parent = review.parentName ?? String(localized: "the base", bundle: .module)
+        if review.isPullRequestReview, review.commitSelection == nil {
+            return EmptyDiff(
+                title: String(localized: "No changes against \(parent)", bundle: .module),
+                detail: String(
+                    localized: "This pull request leaves every file as its base has it.",
+                    bundle: .module),
+                systemImage: "checkmark.circle", action: nil)
+        }
         // Offered only when the All scope would show something.
         let showAll: Action? = (review.activity?.changes?.files ?? 0) > 0 ? .showAll : nil
         if review.commitSelection != nil {

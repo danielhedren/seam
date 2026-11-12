@@ -43,8 +43,10 @@ extension RepoSession {
                 uniquingKeysWith: { first, _ in first }),
             reviewRequests: saved.reviewRequests ?? [],
             newCommits: Dictionary(
-                (saved.open ?? []).filter { pullRequestsWithNewCommits.contains($0.number) }
-                    .map { ($0.number, $0) }, uniquingKeysWith: { first, _ in first }))
+                (saved.open ?? []).filter { [newCommits = pullRequestsWithNewCommits] in
+                    newCommits.contains($0.number)
+                }
+                .map { ($0.number, $0) }, uniquingKeysWith: { first, _ in first }))
     }
 
     func listedPullRequest(_ number: Int) -> PullRequest? {

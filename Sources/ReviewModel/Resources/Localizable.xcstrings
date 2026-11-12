@@ -282,6 +282,9 @@
     "Draft" : {
 
     },
+    "Every file is as you last viewed it. Show Full Diff goes back." : {
+
+    },
     "Expand File" : {
 
     },
@@ -444,6 +447,9 @@
     "Note on line %@" : {
 
     },
+    "Nothing changed since viewed" : {
+
+    },
     "Nothing in the diff matches “%@”." : {
 
     },
@@ -598,6 +604,9 @@
 
     },
     "These threads were saved by a newer version of Seam. Update Seam to change them." : {
+
+    },
+    "This pull request leaves every file as its base has it." : {
 
     },
     "Thread #%@ no longer exists." : {
