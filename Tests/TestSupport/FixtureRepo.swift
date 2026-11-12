@@ -61,4 +61,22 @@ public struct FixtureRepo: Sendable {
     public func sha(_ revision: String) async throws -> String {
         try await run("rev-parse", revision)
     }
+
+    /// Opens pull request `number` on origin, as GitHub keeps it in `refs/pull/<n>/head`, with
+    /// one commit on top of `base` that only origin has: its branch is pushed, then deleted and
+    /// pruned here. Returns the commit's SHA.
+    @discardableResult
+    public func openPullRequest(
+        _ number: Int, file: String, _ content: String, from base: String = "main"
+    ) async throws -> String {
+        let branch = "pr-\(number)-source"
+        try await run("switch", "-q", "-c", branch, base)
+        let commit = try await commit(file, content, "Pull request \(number)")
+        try await run("push", "-q", "origin", "\(branch):refs/pull/\(number)/head")
+        try await run("switch", "-q", "-")
+        try await run("branch", "-q", "-D", branch)
+        try await run("reflog", "expire", "--expire=now", "--all")
+        try await run("gc", "-q", "--prune=now")
+        return commit
+    }
 }
