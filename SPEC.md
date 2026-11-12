@@ -4,7 +4,7 @@ A native macOS diff viewer for reviewing code in worktree-heavy repositories. Yo
 every worktree, pick one, and get that worktree's diff against the branch it was cut from. You
 never look up a base commit by hand.
 
-Status: spec only. Nothing is implemented.
+Status: implemented through M12 and M14; M13 is not built. §14 says what each milestone holds.
 
 ---
 
@@ -248,7 +248,9 @@ A pull request review (§7.2.2) has no working tree, so it has only committed ch
 - **Same diff as a worktree:** the command, options and contents of §6.1 and §6.3, run in the
   store, with both sides read as blobs. `linguist-generated` comes from the head's tree (`git
   check-attr --source=<head>`), as does `.editorconfig` (`git show <head>:.editorconfig`). The
-  diff runs without textconv or external drivers anyway, so no other attribute changes it.
+  diff runs without textconv or external drivers anyway. The store has no checkout, so `-diff`
+  and `binary` in `.gitattributes` aren't read for a pull request: git's own heuristic decides
+  what is binary.
 - **Commit list:** the PR's commits, picked as in §6.2. There is no Uncommitted scope and no
   Uncommitted changes row; `1` is All, `2` Committed (the same range), `3` does nothing.
 - **When the head moves** (a push or force-push), the next read fetches it and the review
@@ -404,17 +406,16 @@ the list isn't there at all.
 - **Selecting** a row opens its review in the file list and diff, and so does a notification's
   click, also for a PR the filters hide, or one not read yet: Seam waits for the first read
   and else asks gh for that PR. The worktree and pull request
-  lists share one selection; `⌘[`/`⌘]` walk the worktrees, then the pull requests, and `⌘K`
-  matches PRs by number, title and author as well. `⌘1`…`⌘9` stay the worktrees. Each PR keeps
-  its own scroll position, selected file and commits, as a worktree does.
+  rows share one selection; `⌘[`/`⌘]`, `⌘K` and `⌘1`…`⌘9` stay the worktrees'. Each PR keeps its
+  own scroll position, selected file and viewed marks, as a worktree does.
 - **Fetching:** the PRs listed are fetched into Seam's store in the background (§8.3.1) when the
   list is read and a head has moved, so selecting one rarely waits. One that does shows
   "Fetching #2780…" where the diff goes; a failure says why in a banner above the diff, with
-  Try Again and Open on GitHub, and the list stays as it was.
+  Retry, and the list stays as it was.
 - **Threads:** GitHub's review threads and conversation, read-only, exactly as on a worktree's PR
   (§7.9), read when the PR is first selected and then by §7.9's rules while it's listed. Seam's
   own threads need a worktree for an agent to answer in, so `c` and Review ›
-  Comment… are disabled on a pull request review, saying why in their tooltip.
+  Comment… are disabled on a pull request review.
 - **Commands:** File › Open Pull Request in Browser, Copy Pull Request URL and Copy Pull
   Request Number act on the selected PR too; a row's context menu has them, the two Hide
   commands, and Copy Worktree Command, which copies `git fetch origin pull/N/head:pr-N && git
@@ -519,7 +520,7 @@ There is no panel beside the diff: a thread is read and answered in its card in 
   path, the definitions around the line under it, outermost first (`DeliveryHandler › Handle`),
   as hunk headers do; it changes as the reader scrolls. It shares the header's row: when the
   row is short of room the definitions give way first, keeping the innermost, then the path.
-- **Trivial changes:** a file whose changes are all inside comments, or all whitespace, says
+- **Trivial changes:** (M13, not built yet) a file whose changes are all inside comments, or all whitespace, says
   "comments only" or "whitespace only" in grey after its path, like "generated", from the
   highlighter's comment spans on both sides. It's a label: the file isn't collapsed, sorted
   elsewhere or marked viewed, since commented-out code is a comment too.
@@ -558,12 +559,12 @@ There is no panel beside the diff: a thread is read and answered in its card in 
   in place of its hunks, so marking a file viewed leaves its outline readable.
   View › Show Outlines turns them on for every file (remembered); `⇧O` (View › Show Outline of
   This File) flips the current file's. Files in languages without definitions (§8.4) have none.
-- **Moved code:** a block of at least 4 lines that isn't only braces, blank lines or keywords,
+- **Moved code:** (M13, not built yet) a block of at least 4 lines that isn't only braces, blank lines or keywords,
   removed in one place and added in another (in the same file or another), is drawn dimmed on
   both ends with "Moved to `Orders.cs:120`" and "Moved from `Orders.cs:48`" bands that jump to
   the other end. Whitespace doesn't count; lines changed inside a moved block keep their word
   highlights, so only those draw the eye.
-- **Repeated edits:** when several hunks are each nothing but the same token replacement, a
+- **Repeated edits:** (M13, not built yet) when several hunks are each nothing but the same token replacement, a
   band above the first file says "14 hunks in 9 files only change `userId` → `accountId`" with
   Show, Collapse (those hunks become one line each) and Mark Files Viewed for the files whose
   every hunk it explains. A hunk with anything else in it isn't counted.
@@ -596,7 +597,7 @@ There is no panel beside the diff: a thread is read and answered in its card in 
 ### 7.4.1 Moving through the review
 
 - **Back and Forward** (`⌃-`, `⌃⇧-`, Go › Back and Forward): every jump (an outline row, a
-  moved block, a thread, a search result, a find match, a file picked in the list) remembers
+  thread, a search result, a find match, a file picked in the list) remembers
   where the reader was, per review. A place in a file the diff no longer has is skipped.
 
 ### 7.5 Keyboard
@@ -744,7 +745,7 @@ reviews an agent's work and the agent answers, or an agent reviews and the reade
   threads and how many are on the pull request, and an open pull request's failed checks, to fix
   once the threads are answered (`gh pr checks` lists them). Threads' header has it too (§7.3.2).
   Seam doesn't type into terminals.
-- **Asking an agent to review:** Review › Copy Prompt for Reviewer Agent puts on the clipboard
+- **Asking an agent to review:** (M13, not built yet; see `docs/briefs/agent-skills.md`) Review › Copy Prompt for Reviewer Agent puts on the clipboard
   a prompt for a second agent in the worktree: review the branch's change against the base Seam
   shows (the base's SHA, and `git diff <base>` to read it), open a thread with `seam comment`
   for each real problem, at most 10, the most serious first, and a note (`--note`) for anything
@@ -1338,7 +1339,7 @@ Rules:
     Since Viewed (§7.4). Copies no mark refers to are removed when the state is next read.
   - Per pull request review, keyed by its number: viewed marks (as above, the new side's blob
     id, so a force-push shows as changed since viewed), scroll anchor, selected file, the head
-    last viewed (for "new commits", §7.2.2) and outline toggles. A PR that closed drops out at
+    last viewed (for "new commits", §7.2.2). A PR that closed drops out at
     the next read.
   - The pull request list's filters (§7.2.2): the checked authors and labels with whether they
     are hidden or the only ones shown, the PRs hidden by number, Hide Drafts, Hide Bots, Only
@@ -1563,11 +1564,12 @@ test with fakes, and turning a kind off stops it.
 **M10 — Pull request list (§7.2.2, §7.10).** A section of the worktree list after the
 worktrees: other people's open pull requests, with the filters, the 100-most-recent limit, team review requests, the row and header
 commands, Copy Worktree Command, and the notifications for a review requested and a new pull
-request. Selecting a row, or clicking its notification, opens it in the browser until M11.
+request.
 *Done when:* on a repo with 100 open PRs the list reads within the §8.7 budget at the existing
 polling rate (the added fields measured for GitHub's points before they're committed to), each
 filter hides what it says and survives a relaunch, a PR checked out in a worktree leaves the
 list, and every notification kind fires once per event from a session test with fakes.
+*Status:* built.
 
 **M11 — Reviewing pull requests (§6.4, §8.3.1, ADR 0008).** The pull request store and its
 fetch; reviews split into shared state and a source, a pull request a source beside a worktree;
