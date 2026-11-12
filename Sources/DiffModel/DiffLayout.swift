@@ -344,6 +344,54 @@ extension DiffLayout {
         package var marker: ThreadMarker
     }
 
+    /// A run of changed lines, as shares of the document's height, for the change ruler.
+    package struct ChangeSpan: Equatable, Sendable {
+        package var top: Double
+        package var height: Double
+        package var isViewed: Bool
+    }
+
+    /// Every run of added and removed rows, top first (SPEC §7.4). `viewed` holds the file
+    /// indices marked viewed, whose runs are drawn dimmed.
+    package func changeSpans(viewed: Set<Int> = []) -> [ChangeSpan] {
+        guard totalHeight > 0 else { return [] }
+        var spans: [ChangeSpan] = []
+        var run: (start: Int, end: Int, file: Int)?
+        func close() {
+            guard let open = run else { return }
+            let top = top(of: open.start)
+            spans.append(
+                ChangeSpan(
+                    top: top / totalHeight,
+                    height: (self.top(of: open.end) + height(of: open.end) - top) / totalHeight,
+                    isViewed: viewed.contains(open.file)))
+            run = nil
+        }
+        for index in rows.indices {
+            guard let file = Self.changedFile(rows[index]) else {
+                close()
+                continue
+            }
+            if let open = run, open.file == file {
+                run?.end = index
+            } else {
+                close()
+                run = (index, index, file)
+            }
+        }
+        close()
+        return spans
+    }
+
+    private static func changedFile(_ row: DiffRow) -> Int? {
+        switch row {
+        case .line(let file, let line): line.kind == .context ? nil : file
+        case .split(let file, let left, let right):
+            [left, right].compactMap(\.self).allSatisfy { $0.kind == .context } ? nil : file
+        default: nil
+        }
+    }
+
     /// Every thread's row, read or not, top first.
     package var threadSpans: [ThreadSpan] {
         guard totalHeight > 0 else { return [] }

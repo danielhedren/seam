@@ -442,6 +442,9 @@ public final class DiffScrollView: NSScrollView {
             x: bounds.maxX - ThreadRuler.width, y: isFlipped ? top : 0, width: ThreadRuler.width,
             height: max(bounds.height - top, 0))
         ruler.spans = layout.threadSpans
+        let files = canvas.review.files
+        ruler.changes = layout.changeSpans(
+            viewed: Set(files.indices.filter { canvas.viewed[files[$0].diff.path] == .viewed }))
         ruler.isHidden = layout.totalHeight <= contentSize.height
         if subviews.last !== ruler { addSubview(ruler, positioned: .above, relativeTo: nil) }
     }
