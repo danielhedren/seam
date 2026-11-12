@@ -1,7 +1,8 @@
 # Seam
 
-A native macOS diff viewer for reviewing git worktrees. Each worktree is diffed against the branch
-it was cut from, including stacked branches.
+A native macOS diff viewer for reviewing git worktrees and GitHub pull requests. Each worktree is
+diffed against the branch it was cut from, including stacked branches; other people's open pull
+requests are reviewed in the same diff, without a checkout.
 
 ## Install with Homebrew
 
@@ -22,7 +23,7 @@ approval.
 ## About
 
 See `SPEC.md` for the full design and `AGENTS.md` for the rules every contributor and agent
-follows. Status: milestone M5 (review threads, `SPEC.md` §14).
+follows. Status: milestones M1–M12 and M14 (`SPEC.md` §14); M13 is next.
 
 ## Using Seam
 
@@ -34,7 +35,25 @@ branch it was cut from, and the diff.
 While the diff or file list has focus, single keys move through the review: `J`/`K` next and
 previous file, `N`/`P` next and previous hunk, `V` mark viewed, `1`–`4` pick what to compare, `C`
 comment on the selected lines. Every command, with its key, is in the menu bar; ⇧⌘P searches them
-all and ⌘K switches worktree.
+all and ⌘K switches worktree. ⇧O outlines the definitions a file's change touches, ⌥⇧V shows
+only what changed since you last viewed each file, and ⌃- / ⌃⇧- go back and forward after a jump.
+
+### Pull requests
+
+With the `gh` command installed and signed in, each worktree's row shows its branch's pull request,
+and a Pull Requests section under the worktrees lists other people's open ones, review requests
+first. Its filter menu hides drafts, bots, authors or labels, or shows only review requests and
+pull requests involving you. Selecting one reviews it like a worktree, with GitHub's threads; Seam
+fetches it into a store of its own under `~/Library/Application Support/Seam`, and your repository
+is only read. GitHub stays read-only: Seam never posts.
+
+### Notifications
+
+Seam says when something needs you: an agent answered, checks finished, a review or comment came
+in, a pull request is ready to merge, a review is asked of you, or one you're reviewing got new
+commits. Each kind can be turned off in Settings › Notifications. The bell at the right of the
+toolbar (⇧⌘N) keeps them, also those from while Seam was in front, and the Dock icon counts the
+unread ones.
 
 ### Review threads with an agent
 
